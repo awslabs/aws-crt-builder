@@ -8,9 +8,8 @@ ENV CMAKE_VERSION=3.13.5
 ###############################################################################	
 # CMake	
 ###############################################################################	
-RUN set -ex \	
-    && cd /tmp \	
-    && curl -LO https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}.tar.gz \	
+WORKDIR /tmp
+RUN curl -LO https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}.tar.gz \	
     && tar xzf cmake-${CMAKE_VERSION}.tar.gz \	
     && cd cmake-${CMAKE_VERSION} \	
     && ./bootstrap -- -DCMAKE_BUILD_TYPE=Release \	
@@ -21,10 +20,8 @@ RUN set -ex \
 ###############################################################################	
 # OpenSSL	
 ###############################################################################	
-RUN set -ex \	
-    && mkdir -p /tmp/build \	
-    && cd /tmp/build \	
-    && git clone https://github.com/openssl/openssl.git \	
+WORKDIR /tmp/build
+RUN git clone https://github.com/openssl/openssl.git \	
     && pushd openssl \	
     && git checkout OpenSSL_1_0_2-stable \	
     && setarch i386 ./config -fPIC -m32 \	
@@ -41,7 +38,12 @@ RUN set -ex \
 ###############################################################################	
 # Cleanup	
 ###############################################################################	
-RUN set -ex \	
-    && yum clean all \	
+RUN yum clean all \	
     && rm -rf /tmp/*
     
+###############################################################################
+# Install builder package
+###############################################################################
+ADD ../../../builder /usr/local/bin/builder
+COPY ../entrypoint-manylinux.sh /entrypoint.sh
+ENTRYPOINT ["/entrypoint.sh"]

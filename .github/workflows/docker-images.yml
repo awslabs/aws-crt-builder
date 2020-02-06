@@ -7,9 +7,20 @@ on:
       - '.github/workflows/docker-images.yml'
 
 jobs:
+  package:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Package builder
+        run: |
+          python3 -m pip install --target builder_pkg
+          rm -rf builder_pkg/.dist-info
+          python3 -m zipapp builder_pkg --python="/usr/bin/env python3" --output=builder
+
   manylinux1-x64:
 
     runs-on: ubuntu-latest
+    needs: package
 
     steps:
     - name: Checkout Sources
@@ -29,6 +40,7 @@ jobs:
   manylinux1-x86:
 
     runs-on: ubuntu-latest
+    needs: package
 
     steps:
     - name: Checkout Sources
@@ -48,6 +60,7 @@ jobs:
   manylinux2014-x64:
 
     runs-on: ubuntu-latest
+    needs: package
 
     steps:
     - name: Checkout Sources
@@ -67,6 +80,7 @@ jobs:
   manylinux2014-x86:
 
     runs-on: ubuntu-latest
+    needs: package
 
     steps:
     - name: Checkout Sources
@@ -86,6 +100,7 @@ jobs:
   Ubuntu-16-x64:
 
     runs-on: ubuntu-latest
+    needs: package
 
     steps:
     - name: Checkout Sources
@@ -105,6 +120,7 @@ jobs:
   AL2-x64:
 
     runs-on: ubuntu-latest
+    needs: package
 
     steps:
     - name: Checkout Sources

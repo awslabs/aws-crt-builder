@@ -34,11 +34,9 @@ RUN python3 -m pip install --upgrade pip setuptools virtualenv \
 ###############################################################################
 # OpenSSL
 ###############################################################################
-RUN DEBIAN_FRONTEND=noninteractive apt-get -y install gcc g++
-RUN set -ex \
+WORKDIR /tmp/build
+RUN DEBIAN_FRONTEND=noninteractive apt-get -y install gcc g++ \
     && ([ -d /opt/openssl ] && rm -rf /opt/openssl) || true \
-    && mkdir -p /tmp/build \
-    && cd /tmp/build \
     && git clone https://github.com/openssl/openssl.git \
     && pushd openssl \
     && git checkout OpenSSL_1_1_1-stable \
@@ -50,13 +48,19 @@ RUN set -ex \
         --prefix=/opt/openssl --openssldir=/opt/openssl \
     && make -j \
     && make install_sw \
-    && LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/openssl/lib /opt/openssl/bin/openssl version
-RUN DEBIAN_FRONTEND=noninteractive apt-get remove -y gcc g++ \
+    && LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/openssl/lib /opt/openssl/bin/openssl version \
+    && DEBIAN_FRONTEND=noninteractive apt-get remove -y gcc g++ \
     && apt autoremove -y
-
+    
 ###############################################################################
 # Cleanup
 ###############################################################################
-RUN set -ex \
-    && apt-get clean \
+RUN apt-get clean \
     && rm -rf /tmp/*
+
+###############################################################################
+# Install builder package
+###############################################################################
+ADD ../../../builder /usr/local/bin/builder
+COPY ../entrypoint.sh /entrypoint.sh
+ENTRYPOINT ["/entrypoint.sh"]

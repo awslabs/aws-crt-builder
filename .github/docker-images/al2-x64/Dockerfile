@@ -32,8 +32,7 @@ RUN python3 -m pip install --upgrade pip setuptools virtualenv \
 ###############################################################################
 # OpenSSL
 ###############################################################################
-RUN set -ex \
-    && ([ -d /opt/openssl ] && rm -rf /opt/openssl) || true \
+RUN ([ -d /opt/openssl ] && rm -rf /opt/openssl) || true \
     && mkdir -p /tmp/build \
     && cd /tmp/build \
     && git clone https://github.com/openssl/openssl.git \
@@ -52,6 +51,12 @@ RUN set -ex \
 ###############################################################################
 # Cleanup
 ###############################################################################
-RUN set -ex \
-    && yum clean all \
+RUN yum clean all \
     && rm -rf /tmp/*
+
+###############################################################################
+# Install builder package
+###############################################################################
+ADD ../../../builder /usr/local/bin/builder
+COPY ../entrypoint.sh /entrypoint.sh
+ENTRYPOINT ["/entrypoint.sh"]

@@ -862,16 +862,32 @@ class Builder(VirtualModule):
             if not hasattr(self, 'shell'):
                 self.shell = Builder.Shell(self.dryrun)
 
-            # default the project to whatever can be found
-            if not hasattr(self, 'project'):
-                self.project = self._default_project()
-
             # build environment set up
             self.source_dir = os.environ.get(
                 "CODEBUILD_SRC_DIR", self.shell.cwd())
-            self.build_dir = os.path.join(self.source_dir, 'build')
+            self.build_dir = os.path.join(self.source_dir, self.args.build_dir)
             self.deps_dir = os.path.join(self.build_dir, 'deps')
             self.install_dir = os.path.join(self.build_dir, 'install')
+            self.launch_dir = self.shell.cwd()
+
+            # Once initialized, switch to the build dir for everything else
+            self.shell.rm(self.build_dir)
+            self.shell.mkdir(self.build_dir)
+            self.shell.cd(self.build_dir)
+
+            # default the project to whatever can be found, or convert
+            # project from a name to a Project
+            if not hasattr(self, 'project'):
+                self.project = self._default_project()
+            else:
+                # Ensure that the specified project exists
+                project = self.find_project(self.args.project)
+                if not project.path:
+                    Builder.DownloadSource(
+                        project=project, branch=self.branch).run(self)
+                    project = self.find_project(project.name)
+                    assert project.path
+                self.project = project
 
         @staticmethod
         def _get_git_branch():
@@ -971,7 +987,8 @@ class Builder(VirtualModule):
                 return project
 
             sh = self.shell
-            search_dirs = (self.source_dir, os.path.join(self.deps_dir, name))
+            search_dirs = (os.path.abspath(self.launch_dir), os.path.abspath(
+                os.path.join('.', name)), self.source_dir, os.path.join(self.deps_dir, name))
 
             for search_dir in search_dirs:
                 if (os.path.basename(search_dir) == name) and os.path.isdir(search_dir):
@@ -1157,6 +1174,32 @@ class Builder(VirtualModule):
                 for package in config['brew_packages']:
                     sh.exec("brew", "install", package)
 
+    class DownloadSource(Action):
+        """ Downloads the source for a given project """
+
+        def __init__(self, **kwargs):
+            self.project = kwargs['project']
+            self.branch = kwargs.get('branch', 'master')
+
+        def run(self, env):
+            if self.project.path:
+                print('Project {} already exists on disk'.format(project.name))
+                return
+
+            sh = env.shell
+
+            sh.exec("git", "clone", self.project.url, always=True)
+            sh.pushd(self.project.name)
+            try:
+                sh.exec("git", "checkout", self.branch, always=True)
+            except:
+                print("Project {} does not have a branch named {}, using master".format(
+                    self.project.name, self.branch))
+            sh.popd()
+
+            # reload project now that it's on disk
+            self.project = env.find_project(self.project.name)
+
     class DownloadDependencies(Action):
         """ Downloads the source for dependencies and consumers if necessary """
 
@@ -1182,15 +1225,10 @@ class Builder(VirtualModule):
                     if dep_proj.path:
                         continue
 
-                    sh.exec("git", "clone", dep_proj.url, always=True)
-                    sh.pushd(dep_proj.name)
-                    try:
-                        sh.exec("git", "checkout", branch, always=True)
-                    except:
-                        print("Project {} does not have a branch named {}, using master".format(
-                            dep_proj.name, branch))
+                    Builder.DownloadSource(
+                        project=dep_proj, branch=branch).run(env)
 
-                    # load project, collect transitive dependencies/consumers
+                    # grab updated project, collect transitive dependencies/consumers
                     dep_proj = env.find_project(dep)
                     deps += dep_proj.upstream
                     if spec and spec.downstream:
@@ -1317,7 +1355,7 @@ class Builder(VirtualModule):
 
             sh = env.shell
 
-            project_source_dir = sh.cwd()
+            project_source_dir = env.project.path
             project_build_dir = os.path.join(project_source_dir, 'build')
             sh.pushd(project_build_dir)
 
@@ -1365,89 +1403,6 @@ def run_build(build_spec, env):
     )
 
     env.shell.popenv()
-
-########################################################################################################################
-# CODEBUILD
-########################################################################################################################
-
-
-CODEBUILD_OVERRIDES = {
-    'linux-clang-3-linux-x64': ['linux-clang3-x64'],
-    'linux-clang-6-linux-x64': ['linux-clang6-x64'],
-    'linux-clang-8-linux-x64': ['linux-clang8-x64'],
-    'linux-clang-6-linux-x64-downstream': ['downstream'],
-
-    'linux-gcc-4.8-linux-x86': ['linux-gcc-4x-x86', 'linux-gcc-4-linux-x86'],
-    'linux-gcc-4.8-linux-x64': ['linux-gcc-4x-x64', 'linux-gcc-4-linux-x64'],
-    'linux-gcc-5-linux-x64': ['linux-gcc-5x-x64'],
-    'linux-gcc-6-linux-x64': ['linux-gcc-6x-x64'],
-    'linux-gcc-7-linux-x64': ['linux-gcc-7x-x64'],
-    'linux-gcc-8-linux-x64': [],
-
-    'linux-ndk-19-android-arm64v8a': ['android-arm64-v8a'],
-
-    'al2012-default-default-linux-x64': ["AL2012-gcc44"],
-
-    'manylinux-default-default-linux-x86': ["ancient-linux-x86"],
-    'manylinux-default-default-linux-x64': ["ancient-linux-x64"],
-
-    'windows-msvc-2015-windows-x86': ['windows-msvc-2015-x86'],
-    'windows-msvc-2015-windows-x64': ['windows-msvc-2015'],
-    'windows-msvc-2017-windows-x64': ['windows-msvc-2017'],
-}
-
-
-def create_codebuild_project(config, project, github_account, inplace_script):
-
-    variables = {
-        'project': project,
-        'account': github_account,
-        'spec': config['spec'].name,
-        'python': config['python'],
-    }
-
-    if inplace_script:
-        run_commands = ["{python} ./codebuild/builder.py build {spec}"]
-    else:
-        run_commands = [
-            "{python} -c \\\"from urllib.request import urlretrieve; urlretrieve('https://raw.githubusercontent.com/awslabs/aws-c-common/master/codebuild/builder.py', 'builder.py')\\\"",
-            "{python} builder.py build {spec}"
-        ]
-
-    # This matches the CodeBuild API for expected format
-    CREATE_PARAM_TEMPLATE = {
-        'name': '{project}-{spec}',
-        'source': {
-            'type': 'GITHUB',
-            'location': 'https://github.com/{account}/{project}.git',
-            'gitCloneDepth': 1,
-            'buildspec':
-                'version: 0.2\n' +
-                'phases:\n' +
-                '  build:\n' +
-                '    commands:\n' +
-                '      - "{python} --version"\n' +
-                '\n'.join(['      - "{}"'.format(command)
-                           for command in run_commands]),
-            'auth': {
-                'type': 'OAUTH',
-                },
-            'reportBuildStatus': True,
-        },
-        'artifacts': {
-            'type': 'NO_ARTIFACTS',
-        },
-        'environment': {
-            'type': config['image_type'],
-            'image': config['image'],
-            'computeType': config['compute_type'],
-            'privilegedMode': config['requires_privilege'],
-        },
-        'serviceRole': 'arn:aws:iam::123124136734:role/CodeBuildServiceRole',
-        'badgeEnabled': False,
-    }
-
-    return _replace_variables(CREATE_PARAM_TEMPLATE, variables)
 
 ########################################################################################################################
 # MAIN
@@ -1504,6 +1459,8 @@ if __name__ == '__main__':
     parser.add_argument('--dump-config', action='store_true',
                         help="Print the config in use before running a build")
     parser.add_argument('--spec', type=str, dest='build')
+    parser.add_argument('-b', '--build-dir', type=str,
+                        help='Directory to work in', default='build')
     commands = parser.add_subparsers(dest='command')
 
     build = commands.add_parser(
@@ -1534,11 +1491,12 @@ if __name__ == '__main__':
     builder = Builder()
     env = Builder.Env({
         'dryrun': args.dry_run,
-        'args': args
+        'args': args,
+        'project': args.project,
     })
 
     # Build the config object
-    config_file = os.path.join(env.shell.cwd(), "builder.json")
+    config_file = os.path.join(env.project.path, "builder.json")
     build_name = getattr(args, 'build', None)
     if build_name:
         build_spec = env.build_spec = BuildSpec(spec=build_name)
@@ -1561,73 +1519,3 @@ if __name__ == '__main__':
     elif args.command == 'run':
         action = args.run
         builder.run_action(action, env)
-
-    # generate/update codebuild jobs
-    elif args.command == 'codebuild':
-
-        # Setup AWS connection
-        import boto3
-        session = boto3.Session(
-            profile_name=args.profile, region_name='us-east-1')
-        codebuild = session.client('codebuild')
-
-        # Get project status
-
-        existing_projects = []
-        new_projects = []
-
-        project_prefix_len = len(args.project) + 1
-
-        # Map of canonical builds to their existing codebuild projects (None if creation required)
-        canonical_list = {key: None for key in CODEBUILD_OVERRIDES.keys()}
-        # List of all potential names to search for
-        all_potential_builds = list(CODEBUILD_OVERRIDES.keys())
-        # Reverse mapping of codebuild name to canonical name
-        full_codebuild_to_canonical = {key.replace(
-            '.', ''): key for key in CODEBUILD_OVERRIDES.keys()}
-        for canonical, cb_list in CODEBUILD_OVERRIDES.items():
-            all_potential_builds += cb_list
-            for cb in cb_list:
-                full_codebuild_to_canonical[cb] = canonical
-
-        # Search for the projects
-        full_project_names = [
-            '{}-{}'.format(args.project, build.replace('.', '')) for build in all_potential_builds]
-        old_projects_response = codebuild.batch_get_projects(
-            names=full_project_names)
-        existing_projects += [project['name'][project_prefix_len:]
-                              for project in old_projects_response['projects']]
-
-        # Mark the found projects with their found names
-        for project in existing_projects:
-            canonical = full_codebuild_to_canonical[project]
-            canonical_list[canonical] = project
-
-        # Update all existing projects
-        for canonical, cb_name in canonical_list.items():
-            if cb_name:
-                create = False
-            else:
-                cb_name = canonical
-                create = True
-
-            build_name = '{}-{}'.format(args.project, cb_name)
-
-            build_spec = BuildSpec(spec=canonical)
-            config = produce_config(build_spec, args.config)
-            if not config['enabled']:
-                print("Skipping spec {}, as it's disabled".format(build_spec.name))
-                continue
-
-            cb_project = create_codebuild_project(
-                config, args.project, args.github_account, args.inplace_script)
-            cb_project['name'] = build_name.replace('.', '')
-
-            if create:
-                print('Creating: {}'.format(canonical))
-                if not args.dry_run:
-                    codebuild.create_project(**cb_project)
-            else:
-                print('Updating: {} ({})'.format(canonical, cb_name))
-                if not args.dry_run:
-                    codebuild.update_project(**cb_project)
