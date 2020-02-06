@@ -12,14 +12,9 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - name: Checkout Source
-      uses: actions/checkout@v2
-
-    - name: Checkout aws-c-common
-      shell: bash
+    - name: Login to GitHub Docker
       run: |
-        auth_header="$(git config --local --get http.https://github.com/.extraheader)"
-        git -c "http.extraheader=$auth_header" -c protocol.version=2 clone https://github.com/awslabs/aws-c-common.git --depth=1
+        echo "${{ secrets.GITHUB_TOKEN }}" | docker login docker.pkg.github.com -u awslabs --password-stdin
     
     - name: Build aws-c-common + consumers
       uses: ./.github/actions/linux-consumers
