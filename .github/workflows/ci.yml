@@ -9,7 +9,7 @@ on:
 
 jobs:
   aws-c-common:
-  - name: Build aws-c-common + consumers
+    name: Build aws-c-common + consumers
     container:
         image: docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-ubuntu-16:x64
         env:
