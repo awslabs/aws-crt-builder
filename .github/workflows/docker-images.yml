@@ -23,7 +23,7 @@ jobs:
         image_name: awslabs/aws-crt-builder/manylinux1
         image_tag: x64
         registry: docker.pkg.github.com
-        context: .github/images/manylinux1-x64
+        context: .github/docker-images/manylinux1-x64
         build_extra_args: "--compress=true"  
 
   manylinux1-x86:
@@ -42,7 +42,7 @@ jobs:
         image_name: awslabs/aws-crt-builder/manylinux1
         image_tag: x86
         registry: docker.pkg.github.com
-        context: .github/images/manylinux1-x86
+        context: .github/docker-images/manylinux1-x86
         build_extra_args: "--compress=true"  
   
   Ubuntu-16-x64:
@@ -61,7 +61,7 @@ jobs:
         image_name: awslabs/aws-crt-builder/ubuntu-16
         image_tag: x64
         registry: docker.pkg.github.com
-        context: .github/images/ubuntu-16-x64
+        context: .github/docker-images/ubuntu-16-x64
         build_extra_args: "--compress=true"  
 
   AL2-x64:
@@ -80,5 +80,5 @@ jobs:
         image_name: awslabs/aws-crt-builder/al2
         image_tag: x64
         registry: docker.pkg.github.com
-        context: .github/images/al2-x64
+        context: .github/docker-images/al2-x64
         build_extra_args: "--compress=true"
