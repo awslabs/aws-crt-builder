@@ -44,6 +44,6 @@ RUN yum clean all \
 ###############################################################################
 # Install builder package
 ###############################################################################
-ADD ../../../builder /usr/local/bin/builder
+ADD ../../../build/builder /usr/local/bin/builder
 COPY ../entrypoint-manylinux.sh /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]

@@ -12,7 +12,7 @@ setup(
     name="builder",
     version=version,
     packages=find_packages(),
-    scripts=['builder.py'],
+    scripts=['builder/*.py'],
     author='AWS SDK Common Runtime Team',
     author_email='aws-sdk-common-runtime@amazon.com',
     project_urls={

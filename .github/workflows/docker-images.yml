@@ -14,9 +14,10 @@ jobs:
     steps:
       - name: Package builder
         run: |
-          python3 -m pip install . --target builder_pkg
-          rm -rf builder_pkg/.dist-info
-          python3 -m zipapp builder_pkg --python="/usr/bin/env python3" --output=builder
+          python3 -m pip install -r requirements.txt --target builder
+          rm -rf builder/*.dist-info
+          mkdir -p build
+          python3 -m zipapp --python="/usr/bin/env python3" --output=build/builder builder
 
   manylinux1-x64:
 
