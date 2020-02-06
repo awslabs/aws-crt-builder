@@ -21,7 +21,6 @@ jobs:
         git -c "http.extraheader=$auth_header" -c protocol.version=2 clone https://github.com/awslabs/aws-c-common.git --depth=1
     
     - name: Build aws-c-common + consumers
-      run: |
-        builder="python3 `pwd`/builder.py"
-        pushd aws-c-common
-        $builder build linux-clang-9-linux-x64-downstream
+      uses: ./.github/actions/linux-consumers
+      with:
+        package: aws-c-common
