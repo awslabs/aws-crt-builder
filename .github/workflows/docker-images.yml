@@ -14,7 +14,7 @@ jobs:
     steps:
       - name: Package builder
         run: |
-          python3 -m pip install --target builder_pkg
+          python3 -m pip install . --target builder_pkg
           rm -rf builder_pkg/.dist-info
           python3 -m zipapp builder_pkg --python="/usr/bin/env python3" --output=builder
 
