@@ -18,7 +18,7 @@ jobs:
       shell: bash
       run: |
         auth_header="$(git config --local --get http.https://github.com/.extraheader)"
-        git -c "http.extraheader=$auth_header" -c protocol.version=2 clone aws-c-common --depth=1
+        git -c "http.extraheader=$auth_header" -c protocol.version=2 clone https://github.com/awslabs/aws-c-common.git --depth=1
     
     - name: Build aws-c-common + consumers
       run: |
