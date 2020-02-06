@@ -14,7 +14,9 @@
 from __future__ import print_function
 from importlib.abc import Loader, MetaPathFinder
 import importlib
-import platform, os, sys
+import platform
+import os
+import sys
 import glob
 import shutil
 import subprocess
@@ -1028,7 +1030,8 @@ class Builder(VirtualModule):
                 if cmd_type == str:
                     cmd = _replace_variables(cmd, env.config['variables'])
                 elif cmd_type == list:
-                    cmd = [_replace_variables(sub, env.config['variables']) for sub in cmd]
+                    cmd = [_replace_variables(
+                        sub, env.config['variables']) for sub in cmd]
                 return cmd
 
             # Interpolate any variables
@@ -1428,7 +1431,7 @@ def create_codebuild_project(config, project, github_account, inplace_script):
                            for command in run_commands]),
             'auth': {
                 'type': 'OAUTH',
-            },
+                },
             'reportBuildStatus': True,
         },
         'artifacts': {
@@ -1449,6 +1452,7 @@ def create_codebuild_project(config, project, github_account, inplace_script):
 ########################################################################################################################
 # MAIN
 ########################################################################################################################
+
 
 def default_spec(env):
 
@@ -1471,7 +1475,8 @@ def default_spec(env):
             compiler = 'gcc'
             version = gcc_version
         else:
-            print('Neither GCC or Clang could be found on this system, perhaps not installed yet?')
+            print(
+                'Neither GCC or Clang could be found on this system, perhaps not installed yet?')
 
         if os.uname()[4][:3].startswith('arm'):
             arch = ('armv8' if sys.maxsize > 2**32 else 'armv7')
@@ -1484,6 +1489,7 @@ def default_spec(env):
         compiler = 'clang'
 
     return BuildSpec(host=host, compiler=compiler, compiler_version='{}'.format(version), target=target, arch=arch)
+
 
 if __name__ == '__main__':
     import argparse
