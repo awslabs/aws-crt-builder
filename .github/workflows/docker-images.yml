@@ -49,19 +49,19 @@ jobs:
       uses: actions/download-artifact@v1
       with:
         name: builder
-        path: .github/docker-images/$IMAGE_NAME-$IMAGE_TAG
+        path: .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_TAG }}
 
-    - run: cp .github/docker-images/entrypoint-manylinux.sh .github/docker-images/$IMAGE_NAME-$IMAGE_TAG/entrypoint.sh
+    - run: cp .github/docker-images/entrypoint-manylinux.sh .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_TAG }}/entrypoint.sh
     
     - name: Build manylinux1-x64 image
       uses: whoan/docker-build-with-cache-action@v3
       with:
         username: "awslabs"
         password: "${{ secrets.GITHUB_TOKEN }}"
-        image_name: awslabs/aws-crt-builder/aws-crt-$IMAGE_NAME
-        image_tag: $IMAGE_TAG
+        image_name: awslabs/aws-crt-builder/aws-crt-${{ env.IMAGE_NAME }}
+        image_tag: ${{ env.IMAGE_TAG }}
         registry: docker.pkg.github.com
-        context: .github/docker-images/$IMAGE_NAME-$IMAGE_TAG
+        context: .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_TAG }}
         build_extra_args: "--compress=true"  
 
   manylinux1-x86:
@@ -80,19 +80,19 @@ jobs:
       uses: actions/download-artifact@v1
       with:
         name: builder
-        path: .github/docker-images/$IMAGE_NAME-$IMAGE_TAG
+        path: .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_TAG }}
 
-    - run: cp .github/docker-images/entrypoint-manylinux.sh .github/docker-images/$IMAGE_NAME-$IMAGE_TAG/entrypoint.sh
+    - run: cp .github/docker-images/entrypoint-manylinux.sh .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_TAG }}/entrypoint.sh
     
     - name: Build manylinux1-x64 image
       uses: whoan/docker-build-with-cache-action@v3
       with:
         username: "awslabs"
         password: "${{ secrets.GITHUB_TOKEN }}"
-        image_name: awslabs/aws-crt-builder/aws-crt-$IMAGE_NAME
-        image_tag: $IMAGE_TAG
+        image_name: awslabs/aws-crt-builder/aws-crt-${{ env.IMAGE_NAME }}
+        image_tag: ${{ env.IMAGE_TAG }}
         registry: docker.pkg.github.com
-        context: .github/docker-images/$IMAGE_NAME-$IMAGE_TAG
+        context: .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_TAG }}
         build_extra_args: "--compress=true"  
 
   manylinux2014-x64:
@@ -111,19 +111,19 @@ jobs:
       uses: actions/download-artifact@v1
       with:
         name: builder
-        path: .github/docker-images/$IMAGE_NAME-$IMAGE_TAG
+        path: .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_TAG }}
 
-    - run: cp .github/docker-images/entrypoint-manylinux.sh .github/docker-images/$IMAGE_NAME-$IMAGE_TAG/entrypoint.sh
+    - run: cp .github/docker-images/entrypoint-manylinux.sh .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_TAG }}/entrypoint.sh
     
     - name: Build manylinux1-x64 image
       uses: whoan/docker-build-with-cache-action@v3
       with:
         username: "awslabs"
         password: "${{ secrets.GITHUB_TOKEN }}"
-        image_name: awslabs/aws-crt-builder/aws-crt-$IMAGE_NAME
-        image_tag: $IMAGE_TAG
+        image_name: awslabs/aws-crt-builder/aws-crt-${{ env.IMAGE_NAME }}
+        image_tag: ${{ env.IMAGE_TAG }}
         registry: docker.pkg.github.com
-        context: .github/docker-images/$IMAGE_NAME-$IMAGE_TAG
+        context: .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_TAG }}
         build_extra_args: "--compress=true"  
 
   manylinux2014-x86:
@@ -142,19 +142,19 @@ jobs:
       uses: actions/download-artifact@v1
       with:
         name: builder
-        path: .github/docker-images/$IMAGE_NAME-$IMAGE_TAG
+        path: .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_TAG }}
 
-    - run: cp .github/docker-images/entrypoint-manylinux.sh .github/docker-images/$IMAGE_NAME-$IMAGE_TAG/entrypoint.sh
+    - run: cp .github/docker-images/entrypoint-manylinux.sh .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_TAG }}/entrypoint.sh
     
     - name: Build manylinux1-x64 image
       uses: whoan/docker-build-with-cache-action@v3
       with:
         username: "awslabs"
         password: "${{ secrets.GITHUB_TOKEN }}"
-        image_name: awslabs/aws-crt-builder/aws-crt-$IMAGE_NAME
-        image_tag: $IMAGE_TAG
+        image_name: awslabs/aws-crt-builder/aws-crt-${{ env.IMAGE_NAME }}
+        image_tag: ${{ env.IMAGE_TAG }}
         registry: docker.pkg.github.com
-        context: .github/docker-images/$IMAGE_NAME-$IMAGE_TAG
+        context: .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_TAG }}
         build_extra_args: "--compress=true"  
   
   Ubuntu-16-x64:
@@ -173,19 +173,19 @@ jobs:
       uses: actions/download-artifact@v1
       with:
         name: builder
-        path: .github/docker-images/$IMAGE_NAME-$IMAGE_TAG
+        path: .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_TAG }}
 
-    - run: cp .github/docker-images/entrypoint.sh .github/docker-images/$IMAGE_NAME-$IMAGE_TAG/entrypoint.sh
+    - run: cp .github/docker-images/entrypoint.sh .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_TAG }}/entrypoint.sh
     
     - name: Build manylinux1-x64 image
       uses: whoan/docker-build-with-cache-action@v3
       with:
         username: "awslabs"
         password: "${{ secrets.GITHUB_TOKEN }}"
-        image_name: awslabs/aws-crt-builder/aws-crt-$IMAGE_NAME
-        image_tag: $IMAGE_TAG
+        image_name: awslabs/aws-crt-builder/aws-crt-${{ env.IMAGE_NAME }}
+        image_tag: ${{ env.IMAGE_TAG }}
         registry: docker.pkg.github.com
-        context: .github/docker-images/$IMAGE_NAME-$IMAGE_TAG
+        context: .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_TAG }}
         build_extra_args: "--compress=true"  
 
   AL2-x64:
@@ -204,17 +204,17 @@ jobs:
       uses: actions/download-artifact@v1
       with:
         name: builder
-        path: .github/docker-images/$IMAGE_NAME-$IMAGE_TAG
+        path: .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_TAG }}
 
-    - run: cp .github/docker-images/entrypoint.sh .github/docker-images/$IMAGE_NAME-$IMAGE_TAG/entrypoint.sh
+    - run: cp .github/docker-images/entrypoint.sh .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_TAG }}/entrypoint.sh
     
     - name: Build manylinux1-x64 image
       uses: whoan/docker-build-with-cache-action@v3
       with:
         username: "awslabs"
         password: "${{ secrets.GITHUB_TOKEN }}"
-        image_name: awslabs/aws-crt-builder/aws-crt-$IMAGE_NAME
-        image_tag: $IMAGE_TAG
+        image_name: awslabs/aws-crt-builder/aws-crt-${{ env.IMAGE_NAME }}
+        image_tag: ${{ env.IMAGE_TAG }}
         registry: docker.pkg.github.com
-        context: .github/docker-images/$IMAGE_NAME-$IMAGE_TAG
+        context: .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_TAG }}
         build_extra_args: "--compress=true"  
