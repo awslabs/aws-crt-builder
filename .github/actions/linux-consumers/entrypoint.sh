@@ -12,5 +12,5 @@ python="`pwd`/venv/bin/python"
 builder="$python `pwd`/builder.py"
 git clone https://github.com/awslabs/$package.git
 cd $package
-$python builder.py build ${spec}-downstream
+$builder builder.py build ${spec}-downstream
 
