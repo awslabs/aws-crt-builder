@@ -22,6 +22,6 @@ jobs:
     
     - name: Build aws-c-common + consumers
       run: |
-        builder=python3 `pwd`/builder.py
+        builder="python3 `pwd`/builder.py"
         pushd aws-c-common
         $builder build linux-clang-9-linux-x64-downstream
