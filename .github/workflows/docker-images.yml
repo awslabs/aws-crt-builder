@@ -20,7 +20,7 @@ jobs:
       with:
         username: "awslabs"
         password: "${{ secrets.GITHUB_TOKEN }}"
-        image_name: awslabs/aws-crt-builder/manylinux1
+        image_name: awslabs/aws-crt-builder/aws-crt-manylinux1
         image_tag: x64
         registry: docker.pkg.github.com
         context: .github/docker-images/manylinux1-x64
@@ -39,10 +39,48 @@ jobs:
       with:
         username: "awslabs"
         password: "${{ secrets.GITHUB_TOKEN }}"
-        image_name: awslabs/aws-crt-builder/manylinux1
+        image_name: awslabs/aws-crt-builder/aws-crt-manylinux1
         image_tag: x86
         registry: docker.pkg.github.com
         context: .github/docker-images/manylinux1-x86
+        build_extra_args: "--compress=true"  
+
+  manylinux2014-x64:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Sources
+      uses: actions/checkout@v1
+    
+    - name: Build manylinux2014-x64 image
+      uses: whoan/docker-build-with-cache-action@v3
+      with:
+        username: "awslabs"
+        password: "${{ secrets.GITHUB_TOKEN }}"
+        image_name: awslabs/aws-crt-builder/aws-crt-manylinux2014
+        image_tag: x64
+        registry: docker.pkg.github.com
+        context: .github/docker-images/manylinux2014-x64
+        build_extra_args: "--compress=true"  
+
+  manylinux2014-x86:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Sources
+      uses: actions/checkout@v1
+    
+    - name: Build manylinux2014-x86 image
+      uses: whoan/docker-build-with-cache-action@v3
+      with:
+        username: "awslabs"
+        password: "${{ secrets.GITHUB_TOKEN }}"
+        image_name: awslabs/aws-crt-builder/aws-crt-manylinux2014
+        image_tag: x86
+        registry: docker.pkg.github.com
+        context: .github/docker-images/manylinux2014-x86
         build_extra_args: "--compress=true"  
   
   Ubuntu-16-x64:
@@ -58,7 +96,7 @@ jobs:
       with:
         username: "awslabs"
         password: "${{ secrets.GITHUB_TOKEN }}"
-        image_name: awslabs/aws-crt-builder/ubuntu-16
+        image_name: awslabs/aws-crt-builder/aws-crt-ubuntu-16
         image_tag: x64
         registry: docker.pkg.github.com
         context: .github/docker-images/ubuntu-16-x64
@@ -77,7 +115,7 @@ jobs:
       with:
         username: "awslabs"
         password: "${{ secrets.GITHUB_TOKEN }}"
-        image_name: awslabs/aws-crt-builder/al2
+        image_name: awslabs/aws-crt-builder/aws-crt-al2
         image_tag: x64
         registry: docker.pkg.github.com
         context: .github/docker-images/al2-x64
