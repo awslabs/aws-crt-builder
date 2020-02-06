@@ -5,6 +5,7 @@ on:
     paths:
       - '.github/docker-images/*/Dockerfile'
       - '.github/workflows/docker-images.yml'
+      - '*.py'
 
 jobs:
   package:
