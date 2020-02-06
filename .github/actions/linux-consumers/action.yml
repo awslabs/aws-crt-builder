@@ -1,0 +1,15 @@
+name: 'Build Consumers on Linux'
+description: 'Builds all of a package's consumers on Ubuntu 16 x64'
+inputs:
+    spec:
+        description: 'Build spec for builder.py'
+        required: false
+        default: 'linux-clang-9-linux-x64'
+    package:
+        description: 'Package to build consumers of'
+        required: true
+runs:
+    using: 'docker'
+    image: 'Dockerfile'
+    args:
+        - ${{ inputs.spec }}
