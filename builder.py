@@ -633,7 +633,8 @@ class Builder(VirtualModule):
         if not os.path.isdir('.builder'):
             return
 
-        scripts = glob.glob('.builder/**/*.py')
+        scripts = glob.glob('.builder/*.py')
+        scripts += glob.glob('.builder/**/*.py')
         for script in scripts:
             # Ensure that the import path includes the directory the script is in
             # so that relative imports work
