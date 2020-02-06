@@ -12,6 +12,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout Source
+        uses: actions/checkout@v1
+        
       - name: Package builder
         run: |
           python3 -m pip install -r requirements.txt --target builder
