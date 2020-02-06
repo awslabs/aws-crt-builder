@@ -27,7 +27,7 @@ RUN set -ex \
     && git clone https://github.com/openssl/openssl.git \	
     && pushd openssl \	
     && git checkout OpenSSL_1_0_2-stable \	
-    && ./config -fPIC \	
+    && setarch i386 ./config -fPIC -m32 \	
     no-md2 no-rc5 no-rfc3779 no-sctp no-ssl-trace no-zlib no-hw no-mdc2 \	
     no-seed no-idea no-camellia no-bf no-dsa no-ssl3 no-capieng \	
     no-unit-test no-tests \	
