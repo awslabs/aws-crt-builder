@@ -9,16 +9,21 @@ on:
 
 jobs:
   package:
+    name: Package builder app
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Source
         uses: actions/checkout@v1
-        
+
+      # re-enable this when requirements.txt has actual dependencies
+      # - name: Bundle dependencies
+      #   run: |
+      #     python3 -m pip install -r requirements.txt --target builder
+      #     rm -rf builder/*.dist-info
+
       - name: Package builder
         run: |
-          python3 -m pip install -r requirements.txt --target builder
-          rm -rf builder/*.dist-info
           mkdir -p build
           python3 -m zipapp --python="/usr/bin/env python3" --output=build/builder builder
 
