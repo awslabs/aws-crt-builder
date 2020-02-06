@@ -17,6 +17,6 @@ jobs:
       run: |
         echo "${{ secrets.GITHUB_TOKEN }}" | docker login docker.pkg.github.com -u awslabs --password-stdin
         docker pull docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-ubuntu-16:x64
-        export BUILDER_ARGS=-p aws-c-common build linux-clang-9-linux-x64-downstream
+        export BUILDER_ARGS="-p aws-c-common build linux-clang-9-linux-x64-downstream"
         docker run -it -v $GITHUB_WORKSPACE /-w /workspace --env BUILDER_ARGS docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-ubuntu-16:x64
 
