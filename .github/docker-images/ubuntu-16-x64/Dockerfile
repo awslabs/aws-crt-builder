@@ -58,6 +58,5 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get remove -y gcc g++ \
 # Cleanup
 ###############################################################################
 RUN set -ex \
-    && apt-get update -qq \
     && apt-get clean \
     && rm -rf /tmp/*
