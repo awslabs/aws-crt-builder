@@ -53,7 +53,7 @@ jobs:
 
     - run: cp .github/docker-images/entrypoint-manylinux.sh .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_TAG }}/entrypoint.sh
     
-    - name: Build manylinux1-x64 image
+    - name: Build ${{ env.IMAGE_NAME }}-${{ env.IMAGE_TAG }} image
       uses: whoan/docker-build-with-cache-action@v3
       with:
         username: "awslabs"
@@ -84,7 +84,7 @@ jobs:
 
     - run: cp .github/docker-images/entrypoint-manylinux.sh .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_TAG }}/entrypoint.sh
     
-    - name: Build manylinux1-x64 image
+    - name: Build ${{ env.IMAGE_NAME }}-${{ env.IMAGE_TAG }} image
       uses: whoan/docker-build-with-cache-action@v3
       with:
         username: "awslabs"
@@ -115,7 +115,7 @@ jobs:
 
     - run: cp .github/docker-images/entrypoint-manylinux.sh .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_TAG }}/entrypoint.sh
     
-    - name: Build manylinux1-x64 image
+    - name: Build ${{ env.IMAGE_NAME }}-${{ env.IMAGE_TAG }} image
       uses: whoan/docker-build-with-cache-action@v3
       with:
         username: "awslabs"
@@ -146,7 +146,7 @@ jobs:
 
     - run: cp .github/docker-images/entrypoint-manylinux.sh .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_TAG }}/entrypoint.sh
     
-    - name: Build manylinux1-x64 image
+    - name: Build ${{ env.IMAGE_NAME }}-${{ env.IMAGE_TAG }} image
       uses: whoan/docker-build-with-cache-action@v3
       with:
         username: "awslabs"
@@ -177,7 +177,7 @@ jobs:
 
     - run: cp .github/docker-images/entrypoint.sh .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_TAG }}/entrypoint.sh
     
-    - name: Build manylinux1-x64 image
+    - name: Build ${{ env.IMAGE_NAME }}-${{ env.IMAGE_TAG }} image
       uses: whoan/docker-build-with-cache-action@v3
       with:
         username: "awslabs"
@@ -208,7 +208,7 @@ jobs:
 
     - run: cp .github/docker-images/entrypoint.sh .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_TAG }}/entrypoint.sh
     
-    - name: Build manylinux1-x64 image
+    - name: Build ${{ env.IMAGE_NAME }}-${{ env.IMAGE_TAG }} image
       uses: whoan/docker-build-with-cache-action@v3
       with:
         username: "awslabs"
