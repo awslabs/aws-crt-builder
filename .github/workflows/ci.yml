@@ -1,0 +1,27 @@
+name: CI
+
+on: 
+  push:
+    paths:
+      - 'builder.py'
+      - '.github/workflows/ci.yml'
+
+jobs:
+  aws-c-common:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout Source
+      uses: actions/checkout@v2
+
+    - name: Checkout aws-c-common
+      shell: bash
+      run: |
+        auth_header="$(git config --local --get http.https://github.com/.extraheader)"
+        git -c "http.extraheader=$auth_header" -c protocol.version=2 clone aws-c-common --depth=1
+    
+    - name: Build aws-c-common + consumers
+      run: |
+        builder=python3 `pwd`/builder.py
+        pushd aws-c-common
+        $builder build linux-clang-9-linux-x64-downstream
