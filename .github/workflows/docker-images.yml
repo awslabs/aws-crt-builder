@@ -27,6 +27,12 @@ jobs:
           mkdir -p build
           python3 -m zipapp --python="/usr/bin/env python3" --output=build/builder builder
 
+      - name: Store builder
+        uses: actions/upload-artifact@v1
+        with:
+          name: builder
+          path: build/builder
+
   manylinux1-x64:
 
     runs-on: ubuntu-latest
@@ -35,6 +41,12 @@ jobs:
     steps:
     - name: Checkout Sources
       uses: actions/checkout@v1
+
+    - name: Fetch builder
+        uses: actions/download-artifact@v1
+        with:
+          name: builder
+          path: .github/docker-images/manylinux1-x64
     
     - name: Build manylinux1-x64 image
       uses: whoan/docker-build-with-cache-action@v3
@@ -55,6 +67,12 @@ jobs:
     steps:
     - name: Checkout Sources
       uses: actions/checkout@v1
+
+    - name: Fetch builder
+      uses: actions/download-artifact@v1
+      with:
+        name: builder
+        path: .github/docker-images/manylinux1-x86
     
     - name: Build manylinux1-x86 image
       uses: whoan/docker-build-with-cache-action@v3
@@ -75,6 +93,12 @@ jobs:
     steps:
     - name: Checkout Sources
       uses: actions/checkout@v1
+
+    - name: Fetch builder
+      uses: actions/download-artifact@v1
+      with:
+        name: builder
+        path: .github/docker-images/manylinux2014-x64
     
     - name: Build manylinux2014-x64 image
       uses: whoan/docker-build-with-cache-action@v3
@@ -95,6 +119,12 @@ jobs:
     steps:
     - name: Checkout Sources
       uses: actions/checkout@v1
+
+    - name: Fetch builder
+      uses: actions/download-artifact@v1
+      with:
+        name: builder
+        path: .github/docker-images/manylinux2014-x86
     
     - name: Build manylinux2014-x86 image
       uses: whoan/docker-build-with-cache-action@v3
@@ -116,6 +146,12 @@ jobs:
     - name: Checkout Sources
       uses: actions/checkout@v1
     
+    - name: Fetch builder
+      uses: actions/download-artifact@v1
+      with:
+        name: builder
+        path: .github/docker-images/ubuntu-16-x64
+
     - name: Build Ubuntu-16-x64 image
       uses: whoan/docker-build-with-cache-action@v3
       with:
@@ -135,6 +171,12 @@ jobs:
     steps:
     - name: Checkout Sources
       uses: actions/checkout@v1
+
+    - name: Fetch builder
+      uses: actions/download-artifact@v1
+      with:
+        name: builder
+        path: .github/docker-images/al2-x64
     
     - name: Build AL2-x64 image
       uses: whoan/docker-build-with-cache-action@v3
