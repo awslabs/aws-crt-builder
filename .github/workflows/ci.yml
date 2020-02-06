@@ -5,6 +5,7 @@ on:
     paths:
       - 'builder.py'
       - '.github/workflows/ci.yml'
+      - '.github/actions/**/*'
 
 jobs:
   aws-c-common:
