@@ -1,11 +1,6 @@
-## My Project
+## AWS CRT Builder
 
-TODO: Fill this README out!
-
-Be sure to:
-
-* Change the title in this README
-* Edit your repository description on GitHub
+This is a central repository for build scripts and docker images for the [AWS Common Runtime Team](https://github.com/orgs/awslabs/teams/aws-sdk-common-runtime-team)
 
 ## License
 
