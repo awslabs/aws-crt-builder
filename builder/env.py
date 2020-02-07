@@ -15,6 +15,7 @@ import os
 import subprocess
 import sys
 
+from builder import Builder
 from shell import Shell
 from project import Project
 from actions.git import DownloadSource
@@ -119,7 +120,7 @@ class Env(object):
             sys.exit(1)
 
         project_name = self.args.project
-        projects = Builder.Project.__subclasses__()
+        projects = Project.__subclasses__()
         for project_cls in projects:
             if project_cls.__name__ == project_name:
                 project = project_cls()
