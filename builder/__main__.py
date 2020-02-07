@@ -157,15 +157,6 @@ KEYS = {
 
 HOSTS = {
     'linux': {
-        'architectures': {
-            'x86': {
-                'image': "123124136734.dkr.ecr.us-east-1.amazonaws.com/aws-common-runtime/ubuntu-16.04:x86",
-            },
-            'x64': {
-                'image': "123124136734.dkr.ecr.us-east-1.amazonaws.com/aws-common-runtime/ubuntu-16.04:x64",
-            },
-        },
-
         'variables': {
             'python': "python3",
         },
@@ -178,9 +169,6 @@ HOSTS = {
         'apt_repos': [
             "ppa:ubuntu-toolchain-r/test",
         ],
-
-        'image_type': "LINUX_CONTAINER",
-        'compute_type': "BUILD_GENERAL1_SMALL",
     },
     'al2012': {
         'cmake_args': [
@@ -191,10 +179,16 @@ HOSTS = {
         'variables': {
             'python': "python3",
         },
+    },
+    'al2': {
+        'cmake_args': [
+            "-DENABLE_SANITIZERS=OFF",
+            "-DPERFORM_HEADER_CHECK=OFF",
+        ],
 
-        'image': "123124136734.dkr.ecr.us-east-1.amazonaws.com/aws-common-runtime/al2012:x64",
-        'image_type': "LINUX_CONTAINER",
-        'compute_type': "BUILD_GENERAL1_SMALL",
+        'variables': {
+            'python': "python3",
+        },
     },
     'manylinux': {
         'architectures': {
@@ -209,9 +203,6 @@ HOSTS = {
         'variables': {
             'python': "/opt/python/cp37-cp37m/bin/python",
         },
-
-        'image_type': "LINUX_CONTAINER",
-        'compute_type': "BUILD_GENERAL1_SMALL",
     },
     'windows': {
         'variables': {
@@ -222,9 +213,6 @@ HOSTS = {
         'cmake_args': [
             "-DPERFORM_HEADER_CHECK=ON",
         ],
-
-        'image_type': "WINDOWS_CONTAINER",
-        'compute_type': "BUILD_GENERAL1_MEDIUM",
     },
     'macos': {
         'variables': {
@@ -275,9 +263,6 @@ TARGETS = {
                 ],
             },
         },
-
-        'image_type': "LINUX_CONTAINER",
-        'compute_type': "BUILD_GENERAL1_SMALL",
     },
     'windows': {
         "variables": {
@@ -381,15 +366,11 @@ COMPILERS = {
                 'variables': {
                     'generator_version': "14 2015",
                 },
-
-                'image': "123124136734.dkr.ecr.us-east-1.amazonaws.com/aws-common-runtime/win-vs2015:x64",
             },
             '2017': {
                 'variables': {
                     'generator_version': "15 2017",
                 },
-
-                'image': "123124136734.dkr.ecr.us-east-1.amazonaws.com/aws-common-runtime/win-vs2017:x64",
             },
         },
 
@@ -410,8 +391,6 @@ COMPILERS = {
                 'cmake_args': [
                     "-DANDROID_NATIVE_API_LEVEL=19",
                 ],
-
-                'image': "123124136734.dkr.ecr.us-east-1.amazonaws.com/android/ndk-r19c:latest",
             }
         }
     }
