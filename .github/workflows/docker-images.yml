@@ -6,11 +6,10 @@ on:
       - '*'
       - '!master'
     paths:
-      - '.github/actions/**/*'
-      - '.github/docker-images/*'
-      - '.github/docker-images/**/*'
+      - '.github/actions/**'
+      - '.github/docker-images/**'
       - '.github/workflows/docker-images.yml'
-      - 'builder/*.py'
+      - 'builder/**'
   release:
     types: [published]
 
