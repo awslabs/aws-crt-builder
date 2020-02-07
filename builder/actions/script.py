@@ -14,6 +14,7 @@
 from builder import Builder
 from .action import Action
 
+
 class Script(Action):
     """ A build step that runs a series of shell commands or python functions """
 

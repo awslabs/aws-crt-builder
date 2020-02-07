@@ -16,6 +16,7 @@ import os
 from .action import Action
 from toolchain import Toolchain
 
+
 class CMakeBuild(Action):
     """ Runs cmake configure, build """
 
@@ -122,6 +123,7 @@ class CMakeBuild(Action):
             build_projects(env.project.downstream)
 
         sh.popd()
+
 
 class CTestRun(Action):
     """ Uses ctest to run tests if tests are enabled/built via 'build_tests' """
