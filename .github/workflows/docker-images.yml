@@ -39,7 +39,7 @@ jobs:
         uses: ./.github/actions/release-tag
         id: release
         with:
-          output: /tmp/release_tag
+          output: tag
 
       - run: echo TAG ${{ steps.release.outputs.release_tag }}
 
@@ -47,7 +47,15 @@ jobs:
         uses: actions/upload-artifact@v1
         with:
           name: release_tag
-          path: /tmp/release_tag
+          path: tag
+
+      - name: Fetch builder
+        uses: actions/download-artifact@v1
+        with:
+          name: builder
+
+      - runs: cat builder/builder
+      - runs: cat builder
 
   manylinux1-x64:
 
@@ -71,10 +79,10 @@ jobs:
       uses: actions/download-artifact@v1
       with:
         name: release_tag
-        path: /tmp/release_tag
+        path: release_tag
 
     - run: cp .github/docker-images/entrypoint-manylinux.sh .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }}/entrypoint.sh
-    - run: echo "::set-env name=IMAGE_TAG::$(cat /tmp/release_tag)"
+    - run: echo "::set-env name=IMAGE_TAG::$(cat release_tag/tag)"
     
     - name: Build ${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }} image
       uses: whoan/docker-build-with-cache-action@v3
@@ -109,10 +117,10 @@ jobs:
       uses: actions/download-artifact@v1
       with:
         name: release_tag
-        path: /tmp/release_tag
+        path: release_tag
 
     - run: cp .github/docker-images/entrypoint-manylinux.sh .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }}/entrypoint.sh
-    - run: echo "::set-env name=IMAGE_TAG::$(cat /tmp/release_tag)"
+    - run: echo "::set-env name=IMAGE_TAG::$(cat release_tag/tag)"
     
     - name: Build ${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }} image
       uses: whoan/docker-build-with-cache-action@v3
@@ -147,10 +155,10 @@ jobs:
       uses: actions/download-artifact@v1
       with:
         name: release_tag
-        path: /tmp/release_tag
+        path: release_tag
 
     - run: cp .github/docker-images/entrypoint-manylinux.sh .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }}/entrypoint.sh
-    - run: echo "::set-env name=IMAGE_TAG::$(cat /tmp/release_tag)"
+    - run: echo "::set-env name=IMAGE_TAG::$(cat release_tag/tag)"
     
     - name: Build ${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }} image
       uses: whoan/docker-build-with-cache-action@v3
@@ -185,10 +193,10 @@ jobs:
       uses: actions/download-artifact@v1
       with:
         name: release_tag
-        path: /tmp/release_tag
+        path: release_tag
 
     - run: cp .github/docker-images/entrypoint-manylinux.sh .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }}/entrypoint.sh
-    - run: echo "::set-env name=IMAGE_TAG::$(cat /tmp/release_tag)"
+    - run: echo "::set-env name=IMAGE_TAG::$(cat release_tag/tag)"
     
     - name: Build ${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }} image
       uses: whoan/docker-build-with-cache-action@v3
@@ -223,10 +231,10 @@ jobs:
       uses: actions/download-artifact@v1
       with:
         name: release_tag
-        path: /tmp/release_tag
+        path: release_tag
 
     - run: cp .github/docker-images/entrypoint.sh .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }}/entrypoint.sh
-    - run: echo "::set-env name=IMAGE_TAG::$(cat /tmp/release_tag)"
+    - run: echo "::set-env name=IMAGE_TAG::$(cat release_tag/tag)"
     
     - name: Build ${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }} image
       uses: whoan/docker-build-with-cache-action@v3
@@ -261,10 +269,10 @@ jobs:
       uses: actions/download-artifact@v1
       with:
         name: release_tag
-        path: /tmp/release_tag
+        path: release_tag
 
     - run: cp .github/docker-images/entrypoint.sh .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }}/entrypoint.sh
-    - run: echo "::set-env name=IMAGE_TAG::$(cat /tmp/release_tag)"
+    - run: echo "::set-env name=IMAGE_TAG::$(cat release_tag/tag)"
     
     - name: Build ${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }} image
       uses: whoan/docker-build-with-cache-action@v3
