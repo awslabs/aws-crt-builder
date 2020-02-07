@@ -19,4 +19,3 @@ setup(
         "Source": "https://github.com/awslabs/aws-crt-builder"
     }
 )
- 
