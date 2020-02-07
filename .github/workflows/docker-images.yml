@@ -40,7 +40,7 @@ jobs:
     needs: package
     env:
       IMAGE_NAME: manylinux1
-      IMAGE_TAG: x64
+      IMAGE_ARCH: x64
 
     steps:
     - name: Checkout Sources
@@ -50,19 +50,22 @@ jobs:
       uses: actions/download-artifact@v1
       with:
         name: builder
-        path: .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_TAG }}
+        path: .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }}
 
-    - run: cp .github/docker-images/entrypoint-manylinux.sh .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_TAG }}/entrypoint.sh
+    - run: cp .github/docker-images/entrypoint-manylinux.sh .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }}/entrypoint.sh
+    - run: echo "::set-env name=BRANCH::${GITHUB_REF##*/}"
+    - run: echo "::set-env name=RELEASE::$(git describe --abbrev=0)"
+    - run: echo "::set-env name=IMAGE_TAG::$(echo $BRANCH | sed -e s/master/$RELEASE/)"
     
-    - name: Build ${{ env.IMAGE_NAME }}-${{ env.IMAGE_TAG }} image
+    - name: Build ${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }} image
       uses: whoan/docker-build-with-cache-action@v3
       with:
         username: "awslabs"
         password: "${{ secrets.DOCKER_TOKEN }}"
-        image_name: awslabs/aws-crt-builder/aws-crt-${{ env.IMAGE_NAME }}
+        image_name: awslabs/aws-crt-builder/aws-crt-${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }}
         image_tag: ${{ env.IMAGE_TAG }}
         registry: docker.pkg.github.com
-        context: .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_TAG }}
+        context: .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }}
         build_extra_args: "--compress=true"  
 
   manylinux1-x86:
@@ -71,7 +74,7 @@ jobs:
     needs: package
     env:
       IMAGE_NAME: manylinux1
-      IMAGE_TAG: x86
+      IMAGE_ARCH: x86
 
     steps:
     - name: Checkout Sources
@@ -81,19 +84,22 @@ jobs:
       uses: actions/download-artifact@v1
       with:
         name: builder
-        path: .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_TAG }}
+        path: .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }}
 
-    - run: cp .github/docker-images/entrypoint-manylinux.sh .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_TAG }}/entrypoint.sh
+    - run: cp .github/docker-images/entrypoint-manylinux.sh .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }}/entrypoint.sh
+    - run: echo "::set-env name=BRANCH::${GITHUB_REF##*/}"
+    - run: echo "::set-env name=RELEASE::$(git describe --abbrev=0)"
+    - run: echo "::set-env name=IMAGE_TAG::$(echo $BRANCH | sed -e s/master/$RELEASE/)"
     
-    - name: Build ${{ env.IMAGE_NAME }}-${{ env.IMAGE_TAG }} image
+    - name: Build ${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }} image
       uses: whoan/docker-build-with-cache-action@v3
       with:
         username: "awslabs"
         password: "${{ secrets.DOCKER_TOKEN }}"
-        image_name: awslabs/aws-crt-builder/aws-crt-${{ env.IMAGE_NAME }}
+        image_name: awslabs/aws-crt-builder/aws-crt-${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }}
         image_tag: ${{ env.IMAGE_TAG }}
         registry: docker.pkg.github.com
-        context: .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_TAG }}
+        context: .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }}
         build_extra_args: "--compress=true"  
 
   manylinux2014-x64:
@@ -102,7 +108,7 @@ jobs:
     needs: package
     env:
       IMAGE_NAME: manylinux2014
-      IMAGE_TAG: x64
+      IMAGE_ARCH: x64
 
     steps:
     - name: Checkout Sources
@@ -112,19 +118,22 @@ jobs:
       uses: actions/download-artifact@v1
       with:
         name: builder
-        path: .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_TAG }}
+        path: .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }}
 
-    - run: cp .github/docker-images/entrypoint-manylinux.sh .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_TAG }}/entrypoint.sh
+    - run: cp .github/docker-images/entrypoint-manylinux.sh .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }}/entrypoint.sh
+    - run: echo "::set-env name=BRANCH::${GITHUB_REF##*/}"
+    - run: echo "::set-env name=RELEASE::$(git describe --abbrev=0)"
+    - run: echo "::set-env name=IMAGE_TAG::$(echo $BRANCH | sed -e s/master/$RELEASE/)"
     
-    - name: Build ${{ env.IMAGE_NAME }}-${{ env.IMAGE_TAG }} image
+    - name: Build ${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }} image
       uses: whoan/docker-build-with-cache-action@v3
       with:
         username: "awslabs"
         password: "${{ secrets.DOCKER_TOKEN }}"
-        image_name: awslabs/aws-crt-builder/aws-crt-${{ env.IMAGE_NAME }}
+        image_name: awslabs/aws-crt-builder/aws-crt-${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }}
         image_tag: ${{ env.IMAGE_TAG }}
         registry: docker.pkg.github.com
-        context: .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_TAG }}
+        context: .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }}
         build_extra_args: "--compress=true"  
 
   manylinux2014-x86:
@@ -133,7 +142,7 @@ jobs:
     needs: package
     env:
       IMAGE_NAME: manylinux2014
-      IMAGE_TAG: x86
+      IMAGE_ARCH: x86
 
     steps:
     - name: Checkout Sources
@@ -143,19 +152,22 @@ jobs:
       uses: actions/download-artifact@v1
       with:
         name: builder
-        path: .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_TAG }}
+        path: .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }}
 
-    - run: cp .github/docker-images/entrypoint-manylinux.sh .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_TAG }}/entrypoint.sh
+    - run: cp .github/docker-images/entrypoint-manylinux.sh .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }}/entrypoint.sh
+    - run: echo "::set-env name=BRANCH::${GITHUB_REF##*/}"
+    - run: echo "::set-env name=RELEASE::$(git describe --abbrev=0)"
+    - run: echo "::set-env name=IMAGE_TAG::$(echo $BRANCH | sed -e s/master/$RELEASE/)"
     
-    - name: Build ${{ env.IMAGE_NAME }}-${{ env.IMAGE_TAG }} image
+    - name: Build ${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }} image
       uses: whoan/docker-build-with-cache-action@v3
       with:
         username: "awslabs"
         password: "${{ secrets.DOCKER_TOKEN }}"
-        image_name: awslabs/aws-crt-builder/aws-crt-${{ env.IMAGE_NAME }}
+        image_name: awslabs/aws-crt-builder/aws-crt-${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }}
         image_tag: ${{ env.IMAGE_TAG }}
         registry: docker.pkg.github.com
-        context: .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_TAG }}
+        context: .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }}
         build_extra_args: "--compress=true"  
   
   Ubuntu-16-x64:
@@ -164,7 +176,7 @@ jobs:
     needs: package
     env:
       IMAGE_NAME: ubuntu-16
-      IMAGE_TAG: x64
+      IMAGE_ARCH: x64
 
     steps:
     - name: Checkout Sources
@@ -174,19 +186,22 @@ jobs:
       uses: actions/download-artifact@v1
       with:
         name: builder
-        path: .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_TAG }}
+        path: .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }}
 
-    - run: cp .github/docker-images/entrypoint.sh .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_TAG }}/entrypoint.sh
+    - run: cp .github/docker-images/entrypoint.sh .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }}/entrypoint.sh
+    - run: echo "::set-env name=BRANCH::${GITHUB_REF##*/}"
+    - run: echo "::set-env name=RELEASE::$(git describe --abbrev=0)"
+    - run: echo "::set-env name=IMAGE_TAG::$(echo $BRANCH | sed -e s/master/$RELEASE/)"
     
-    - name: Build ${{ env.IMAGE_NAME }}-${{ env.IMAGE_TAG }} image
+    - name: Build ${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }} image
       uses: whoan/docker-build-with-cache-action@v3
       with:
         username: "awslabs"
         password: "${{ secrets.DOCKER_TOKEN }}"
-        image_name: awslabs/aws-crt-builder/aws-crt-${{ env.IMAGE_NAME }}
+        image_name: awslabs/aws-crt-builder/aws-crt-${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }}
         image_tag: ${{ env.IMAGE_TAG }}
         registry: docker.pkg.github.com
-        context: .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_TAG }}
+        context: .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }}
         build_extra_args: "--compress=true"  
 
   AL2-x64:
@@ -195,7 +210,7 @@ jobs:
     needs: package
     env:
       IMAGE_NAME: al2
-      IMAGE_TAG: x64
+      IMAGE_ARCH: x64
 
     steps:
     - name: Checkout Sources
@@ -205,17 +220,20 @@ jobs:
       uses: actions/download-artifact@v1
       with:
         name: builder
-        path: .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_TAG }}
+        path: .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }}
 
-    - run: cp .github/docker-images/entrypoint.sh .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_TAG }}/entrypoint.sh
+    - run: cp .github/docker-images/entrypoint.sh .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }}/entrypoint.sh
+    - run: echo "::set-env name=BRANCH::${GITHUB_REF##*/}"
+    - run: echo "::set-env name=RELEASE::$(git describe --abbrev=0)"
+    - run: echo "::set-env name=IMAGE_TAG::$(echo $BRANCH | sed -e s/master/$RELEASE/)"
     
-    - name: Build ${{ env.IMAGE_NAME }}-${{ env.IMAGE_TAG }} image
+    - name: Build ${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }} image
       uses: whoan/docker-build-with-cache-action@v3
       with:
         username: "awslabs"
         password: "${{ secrets.DOCKER_TOKEN }}"
-        image_name: awslabs/aws-crt-builder/aws-crt-${{ env.IMAGE_NAME }}
+        image_name: awslabs/aws-crt-builder/aws-crt-${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }}
         image_tag: ${{ env.IMAGE_TAG }}
         registry: docker.pkg.github.com
-        context: .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_TAG }}
+        context: .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }}
         build_extra_args: "--compress=true"  
