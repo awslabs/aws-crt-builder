@@ -20,6 +20,7 @@ from shell import Shell
 from env import Env
 from actions.action import Action
 
+
 class Builder(VirtualModule):
     """ The interface available to scripts that define projects, builds, actions, or configuration """
     # Must cache available actions or the GC will delete them

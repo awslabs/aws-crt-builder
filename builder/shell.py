@@ -17,6 +17,7 @@ import subprocess
 import sys
 import tempfile
 
+
 class Shell(object):
     """ Virtual shell that abstracts away dry run and tracks/logs state """
 

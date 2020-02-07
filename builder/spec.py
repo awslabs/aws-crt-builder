@@ -11,6 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+
 class BuildSpec(object):
     """ Refers to a specific build permutation, gets converted into a toolchain """
 

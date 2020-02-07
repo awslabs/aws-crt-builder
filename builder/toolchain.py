@@ -11,6 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+
 class Toolchain(object):
     """ Represents a compiler toolchain """
 
@@ -30,7 +31,7 @@ class Toolchain(object):
                 setattr(self, slot, kwargs[slot])
 
         self.name = '-'.join([self.host, self.compiler,
-                                self.compiler_version, self.target, self.arch])
+                              self.compiler_version, self.target, self.arch])
 
     def compiler_path(self, env):
         if self.compiler == 'default':

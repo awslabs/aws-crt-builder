@@ -19,6 +19,7 @@ from shell import Shell
 from project import Project
 from actions.git import DownloadSource
 
+
 class Env(object):
     """ Encapsulates the environment in which the build is running """
 
@@ -137,7 +138,7 @@ class Env(object):
                     project_config = json.load(config_fp)
                 except Exception as e:
                     print("Failed to parse config file",
-                            project_config_file, e)
+                          project_config_file, e)
                     sys.exit(1)
                 return self._cache_project(Project(**project_config, path=self.shell.cwd()))
 
