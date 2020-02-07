@@ -12,11 +12,25 @@ jobs:
   aws-c-common:
     runs-on: 'ubuntu-latest'
 
-    # We can't use the `uses: docker://image` version yet, GitHub lacks authentication for actions -> packages
     steps:
+    - name: Get release tag
+      uses: ./.github/actions/release-tag
+      id: release
+      with:
+        output: /tmp/release_tag
+
+    - run: echo TAG ${{ steps.release.outputs.release_tag }}
+
+    - name: Store release_tag
+      uses: actions/upload-artifact@v1
+      with:
+        name: release_tag
+        path: /tmp/release_tag
+
+    # We can't use the `uses: docker://image` version yet, GitHub lacks authentication for actions -> packages
     - name: Build aws-c-common + consumers
       run: |
         echo "${{ secrets.GITHUB_TOKEN }}" | docker login docker.pkg.github.com -u awslabs --password-stdin
-        docker pull docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-ubuntu-16:x64
-        docker run docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-ubuntu-16:x64 -p aws-c-common build linux-clang-9-linux-x64-downstream
+        docker pull docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-ubuntu-16-x64:${{ steps.release.outputs.release_tag }}
+        docker run docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-ubuntu-16-x64:${{ steps.release.outputs.release_tag }} -p aws-c-common build linux-clang-9-linux-x64-downstream
 

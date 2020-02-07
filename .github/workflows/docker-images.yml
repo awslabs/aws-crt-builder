@@ -34,6 +34,20 @@ jobs:
           name: builder
           path: build/builder
 
+      - name: Get release tag
+        uses: ./.github/actions/release-tag
+        id: release
+        with:
+          output: /tmp/release_tag
+
+      - run: echo TAG ${{ steps.release.outputs.release_tag }}
+
+      - name: Store release_tag
+        uses: actions/upload-artifact@v1
+        with:
+          name: release_tag
+          path: /tmp/release_tag
+
   manylinux1-x64:
 
     runs-on: ubuntu-latest
@@ -52,10 +66,14 @@ jobs:
         name: builder
         path: .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }}
 
+    - name: Fetch release_tag
+      uses: actions/download-artifact@v1
+      with:
+        name: release_tag
+        path: release_tag
+
     - run: cp .github/docker-images/entrypoint-manylinux.sh .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }}/entrypoint.sh
-    - run: echo "::set-env name=BRANCH::${GITHUB_REF##*/}"
-    - run: echo "::set-env name=RELEASE::$(git describe --abbrev=0)"
-    - run: echo "::set-env name=IMAGE_TAG::$(echo $BRANCH | sed -e s/master/$RELEASE/)"
+    - run: echo "::set-env name=IMAGE_TAG::$(cat release_tag)"
     
     - name: Build ${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }} image
       uses: whoan/docker-build-with-cache-action@v3
@@ -87,9 +105,7 @@ jobs:
         path: .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }}
 
     - run: cp .github/docker-images/entrypoint-manylinux.sh .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }}/entrypoint.sh
-    - run: echo "::set-env name=BRANCH::${GITHUB_REF##*/}"
-    - run: echo "::set-env name=RELEASE::$(git describe --abbrev=0)"
-    - run: echo "::set-env name=IMAGE_TAG::$(echo $BRANCH | sed -e s/master/$RELEASE/)"
+    - run: echo "::set-env name=IMAGE_TAG::$(cat release_tag)"
     
     - name: Build ${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }} image
       uses: whoan/docker-build-with-cache-action@v3
@@ -121,9 +137,7 @@ jobs:
         path: .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }}
 
     - run: cp .github/docker-images/entrypoint-manylinux.sh .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }}/entrypoint.sh
-    - run: echo "::set-env name=BRANCH::${GITHUB_REF##*/}"
-    - run: echo "::set-env name=RELEASE::$(git describe --abbrev=0)"
-    - run: echo "::set-env name=IMAGE_TAG::$(echo $BRANCH | sed -e s/master/$RELEASE/)"
+    - run: echo "::set-env name=IMAGE_TAG::$(cat release_tag)"
     
     - name: Build ${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }} image
       uses: whoan/docker-build-with-cache-action@v3
@@ -155,9 +169,7 @@ jobs:
         path: .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }}
 
     - run: cp .github/docker-images/entrypoint-manylinux.sh .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }}/entrypoint.sh
-    - run: echo "::set-env name=BRANCH::${GITHUB_REF##*/}"
-    - run: echo "::set-env name=RELEASE::$(git describe --abbrev=0)"
-    - run: echo "::set-env name=IMAGE_TAG::$(echo $BRANCH | sed -e s/master/$RELEASE/)"
+    - run: echo "::set-env name=IMAGE_TAG::$(cat release_tag)"
     
     - name: Build ${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }} image
       uses: whoan/docker-build-with-cache-action@v3
@@ -189,9 +201,7 @@ jobs:
         path: .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }}
 
     - run: cp .github/docker-images/entrypoint.sh .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }}/entrypoint.sh
-    - run: echo "::set-env name=BRANCH::${GITHUB_REF##*/}"
-    - run: echo "::set-env name=RELEASE::$(git describe --abbrev=0)"
-    - run: echo "::set-env name=IMAGE_TAG::$(echo $BRANCH | sed -e s/master/$RELEASE/)"
+    - run: echo "::set-env name=IMAGE_TAG::$(cat release_tag)"
     
     - name: Build ${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }} image
       uses: whoan/docker-build-with-cache-action@v3
@@ -223,9 +233,7 @@ jobs:
         path: .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }}
 
     - run: cp .github/docker-images/entrypoint.sh .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }}/entrypoint.sh
-    - run: echo "::set-env name=BRANCH::${GITHUB_REF##*/}"
-    - run: echo "::set-env name=RELEASE::$(git describe --abbrev=0)"
-    - run: echo "::set-env name=IMAGE_TAG::$(echo $BRANCH | sed -e s/master/$RELEASE/)"
+    - run: echo "::set-env name=IMAGE_TAG::$(cat release_tag)"
     
     - name: Build ${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }} image
       uses: whoan/docker-build-with-cache-action@v3
