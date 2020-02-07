@@ -44,7 +44,7 @@ class Script(Action):
                 sh.exec(cmd)
             elif cmd_type == list:
                 sh.exec(*cmd)
-            elif isinstance(cmd, Builder.Action):
+            elif isinstance(cmd, Action):
                 Builder.run_action(cmd, env)
             elif callable(cmd):
                 return cmd(env)
@@ -62,7 +62,7 @@ class Script(Action):
                 cmds.append(cmd)
             elif cmd_type == list:
                 cmds.append(' '.join(cmd))
-            elif isinstance(cmd, Builder.Action):
+            elif isinstance(cmd, Action):
                 cmds.append(str(cmd))
             elif callable(cmd):
                 cmds.append(cmd.__func__.__name__)

@@ -63,7 +63,7 @@ class Builder(VirtualModule):
 
     @staticmethod
     def _find_actions():
-        return Builder.Action.__subclasses__()
+        return Action.__subclasses__()
 
     @staticmethod
     def find_action(name):

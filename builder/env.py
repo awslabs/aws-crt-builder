@@ -115,7 +115,7 @@ class Env(object):
             print(
                 "Multiple projects available and no project (-p|--project) specified")
             print("Available projects:", ', '.join(
-                [p.__name__ for p in Builder.Project.__subclasses__()]))
+                [p.__name__ for p in Project.__subclasses__()]))
             sys.exit(1)
 
         project_name = self.args.project
@@ -144,7 +144,7 @@ class Env(object):
 
         # load any builder scripts and check them
         Builder._load_scripts()
-        projects = Builder.Project.__subclasses__()
+        projects = Project.__subclasses__()
         project_cls = None
         if len(projects) == 1:
             project_cls = projects[0]
