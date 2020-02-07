@@ -13,6 +13,7 @@
 
 from .action import Action
 
+
 class DownloadSource(Action):
     """ Downloads the source for a given project """
 
@@ -65,7 +66,7 @@ class DownloadDependencies(Action):
                 if dep_proj.path:
                     continue
 
-                Builder.DownloadSource(
+                DownloadSource(
                     project=dep_proj, branch=branch).run(env)
 
                 # grab updated project, collect transitive dependencies/consumers
