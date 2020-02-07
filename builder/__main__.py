@@ -15,14 +15,13 @@ from __future__ import print_function
 import os
 import sys
 
-from .vmod import VirtualModule
-from .config import produce_config
-from .builder import Builder
-from .actions.cmake import *
-from .actions.git import *
-from .actions.install import *
-from .actions.script import Script
-from .spec import BuildSpec
+from config import produce_config
+from builder import Builder
+from actions.cmake import *
+from actions.git import *
+from actions.install import *
+from actions.script import Script
+from spec import BuildSpec
 
 
 ########################################################################################################################

@@ -15,10 +15,10 @@ import glob
 import os
 import sys
 
-from .vmod import VirtualModule
-from .shell import Shell
-from .env import Env
-from .actions.action import Action
+from vmod import VirtualModule
+from shell import Shell
+from env import Env
+from actions.action import Action
 
 class Builder(VirtualModule):
     """ The interface available to scripts that define projects, builds, actions, or configuration """

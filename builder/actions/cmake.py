@@ -14,7 +14,7 @@
 import os
 
 from .action import Action
-from ..toolchain import Toolchain
+from toolchain import Toolchain
 
 class CMakeBuild(Action):
     """ Runs cmake configure, build """

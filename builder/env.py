@@ -15,9 +15,9 @@ import os
 import subprocess
 import sys
 
-from .shell import Shell
-from .project import Project
-from .actions.git import DownloadSource
+from shell import Shell
+from project import Project
+from actions.git import DownloadSource
 
 class Env(object):
     """ Encapsulates the environment in which the build is running """
@@ -56,6 +56,9 @@ class Env(object):
         if not hasattr(self, 'project'):
             self.project = self._default_project()
         else:
+            if not self.args.project:
+                print('No project specified and no project found in current directory')
+                sys.exit(1)
             # Ensure that the specified project exists
             project = self.find_project(self.args.project)
             if not project.path:
