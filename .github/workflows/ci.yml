@@ -3,7 +3,8 @@ name: CI
 on: 
   push:
     paths:
-      - 'builder.py'
+      - 'setup.py'
+      - 'builder/*'
       - '.github/workflows/ci.yml'
       - '.github/actions/**/*'
 
