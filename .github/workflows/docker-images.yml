@@ -291,6 +291,7 @@ jobs:
   # When all the images are built, run a downstream test
   aws-c-common:
     runs-on: 'ubuntu-latest'
+    if: github.event_name != 'release'
     needs: 
     - manylinux1-x64
     - manylinux1-x86
@@ -300,8 +301,6 @@ jobs:
     - AL2-x64 
 
     steps:
-    - if: github.event_name != 'release'
-
     - name: Checkout Source
       uses: actions/checkout@v1
     
