@@ -54,8 +54,8 @@ jobs:
         with:
           name: builder
 
-      - runs: cat builder/builder
-      - runs: cat builder
+      - run: cat builder/builder
+      - run: cat builder
 
   manylinux1-x64:
 
