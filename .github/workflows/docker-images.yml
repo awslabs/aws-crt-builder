@@ -1,0 +1,315 @@
+name: Docker Images
+
+on: 
+  push:
+    branches: 
+      - '*'
+      - '!master'
+    paths:
+      - '.github/actions/**/*'
+      - '.github/docker-images/*'
+      - '.github/docker-images/**/*'
+      - '.github/workflows/docker-images.yml'
+      - 'builder/*.py'
+  release:
+    types: [published]
+
+jobs:
+  package:
+    name: Package builder app
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@v1
+
+      # re-enable this when requirements.txt has actual dependencies
+      # - name: Bundle dependencies
+      #   run: |
+      #     python3 -m pip install -r requirements.txt --target builder
+      #     rm -rf builder/*.dist-info
+
+      - name: Package builder
+        run: |
+          mkdir -p build
+          python3 -m zipapp --python="/usr/bin/env python3" --output=build/builder builder
+
+      - name: Store builder
+        uses: actions/upload-artifact@v1
+        with:
+          name: builder
+          path: build/builder
+
+      - name: Get release tag
+        uses: ./.github/actions/release-tag
+        id: release
+        with:
+          output: tag
+
+      - run: echo TAG ${{ steps.release.outputs.release_tag }}
+
+      - name: Store release_tag
+        uses: actions/upload-artifact@v1
+        with:
+          name: release_tag
+          path: tag
+
+  manylinux1-x64:
+
+    runs-on: ubuntu-latest
+    needs: package
+    env:
+      IMAGE_NAME: manylinux1
+      IMAGE_ARCH: x64
+
+    steps:
+    - name: Checkout Sources
+      uses: actions/checkout@v1
+
+    - name: Fetch builder
+      uses: actions/download-artifact@v1
+      with:
+        name: builder
+      
+    - run: mv builder/builder .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }}/
+
+    - name: Fetch release_tag
+      uses: actions/download-artifact@v1
+      with:
+        name: release_tag
+        path: release_tag
+
+    - run: cp .github/docker-images/entrypoint-manylinux.sh .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }}/entrypoint.sh
+    - run: echo "::set-env name=IMAGE_TAG::$(cat release_tag/tag)"
+    
+    - name: Build ${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }} image
+      uses: whoan/docker-build-with-cache-action@v3
+      with:
+        username: "awslabs"
+        password: "${{ secrets.DOCKER_TOKEN }}"
+        image_name: awslabs/aws-crt-builder/aws-crt-${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }}
+        image_tag: ${{ env.IMAGE_TAG }}
+        registry: docker.pkg.github.com
+        context: .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }}
+        build_extra_args: "--compress=true"  
+
+  manylinux1-x86:
+
+    runs-on: ubuntu-latest
+    needs: package
+    env:
+      IMAGE_NAME: manylinux1
+      IMAGE_ARCH: x86
+
+    steps:
+    - name: Checkout Sources
+      uses: actions/checkout@v1
+
+    - name: Fetch builder
+      uses: actions/download-artifact@v1
+      with:
+        name: builder
+    
+    - run: mv builder/builder .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }}/
+
+    - name: Fetch release_tag
+      uses: actions/download-artifact@v1
+      with:
+        name: release_tag
+        path: release_tag
+
+    - run: cp .github/docker-images/entrypoint-manylinux.sh .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }}/entrypoint.sh
+    - run: echo "::set-env name=IMAGE_TAG::$(cat release_tag/tag)"
+    
+    - name: Build ${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }} image
+      uses: whoan/docker-build-with-cache-action@v3
+      with:
+        username: "awslabs"
+        password: "${{ secrets.DOCKER_TOKEN }}"
+        image_name: awslabs/aws-crt-builder/aws-crt-${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }}
+        image_tag: ${{ env.IMAGE_TAG }}
+        registry: docker.pkg.github.com
+        context: .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }}
+        build_extra_args: "--compress=true"  
+
+  manylinux2014-x64:
+
+    runs-on: ubuntu-latest
+    needs: package
+    env:
+      IMAGE_NAME: manylinux2014
+      IMAGE_ARCH: x64
+
+    steps:
+    - name: Checkout Sources
+      uses: actions/checkout@v1
+
+    - name: Fetch builder
+      uses: actions/download-artifact@v1
+      with:
+        name: builder
+
+    - run: mv builder/builder .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }}/
+
+    - name: Fetch release_tag
+      uses: actions/download-artifact@v1
+      with:
+        name: release_tag
+        path: release_tag
+
+    - run: cp .github/docker-images/entrypoint-manylinux.sh .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }}/entrypoint.sh
+    - run: echo "::set-env name=IMAGE_TAG::$(cat release_tag/tag)"
+    
+    - name: Build ${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }} image
+      uses: whoan/docker-build-with-cache-action@v3
+      with:
+        username: "awslabs"
+        password: "${{ secrets.DOCKER_TOKEN }}"
+        image_name: awslabs/aws-crt-builder/aws-crt-${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }}
+        image_tag: ${{ env.IMAGE_TAG }}
+        registry: docker.pkg.github.com
+        context: .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }}
+        build_extra_args: "--compress=true"  
+
+  manylinux2014-x86:
+
+    runs-on: ubuntu-latest
+    needs: package
+    env:
+      IMAGE_NAME: manylinux2014
+      IMAGE_ARCH: x86
+
+    steps:
+    - name: Checkout Sources
+      uses: actions/checkout@v1
+
+    - name: Fetch builder
+      uses: actions/download-artifact@v1
+      with:
+        name: builder
+
+    - run: mv builder/builder .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }}/
+
+    - name: Fetch release_tag
+      uses: actions/download-artifact@v1
+      with:
+        name: release_tag
+        path: release_tag
+
+    - run: cp .github/docker-images/entrypoint-manylinux.sh .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }}/entrypoint.sh
+    - run: echo "::set-env name=IMAGE_TAG::$(cat release_tag/tag)"
+    
+    - name: Build ${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }} image
+      uses: whoan/docker-build-with-cache-action@v3
+      with:
+        username: "awslabs"
+        password: "${{ secrets.DOCKER_TOKEN }}"
+        image_name: awslabs/aws-crt-builder/aws-crt-${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }}
+        image_tag: ${{ env.IMAGE_TAG }}
+        registry: docker.pkg.github.com
+        context: .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }}
+        build_extra_args: "--compress=true"  
+  
+  Ubuntu-16-x64:
+
+    runs-on: ubuntu-latest
+    needs: package
+    env:
+      IMAGE_NAME: ubuntu-16
+      IMAGE_ARCH: x64
+
+    steps:
+    - name: Checkout Sources
+      uses: actions/checkout@v1
+    
+    - name: Fetch builder
+      uses: actions/download-artifact@v1
+      with:
+        name: builder
+
+    - run: mv builder/builder .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }}/
+
+    - name: Fetch release_tag
+      uses: actions/download-artifact@v1
+      with:
+        name: release_tag
+        path: release_tag
+
+    - run: cp .github/docker-images/entrypoint.sh .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }}/entrypoint.sh
+    - run: echo "::set-env name=IMAGE_TAG::$(cat release_tag/tag)"
+    
+    - name: Build ${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }} image
+      uses: whoan/docker-build-with-cache-action@v3
+      with:
+        username: "awslabs"
+        password: "${{ secrets.DOCKER_TOKEN }}"
+        image_name: awslabs/aws-crt-builder/aws-crt-${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }}
+        image_tag: ${{ env.IMAGE_TAG }}
+        registry: docker.pkg.github.com
+        context: .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }}
+        build_extra_args: "--compress=true"  
+
+  AL2-x64:
+
+    runs-on: ubuntu-latest
+    needs: package
+    env:
+      IMAGE_NAME: al2
+      IMAGE_ARCH: x64
+
+    steps:
+    - name: Checkout Sources
+      uses: actions/checkout@v1
+
+    - name: Fetch builder
+      uses: actions/download-artifact@v1
+      with:
+        name: builder
+      
+    - run: mv builder/builder .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }}/
+
+    - name: Fetch release_tag
+      uses: actions/download-artifact@v1
+      with:
+        name: release_tag
+        path: release_tag
+
+    - run: cp .github/docker-images/entrypoint.sh .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }}/entrypoint.sh
+    - run: echo "::set-env name=IMAGE_TAG::$(cat release_tag/tag)"
+    
+    - name: Build ${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }} image
+      uses: whoan/docker-build-with-cache-action@v3
+      with:
+        username: "awslabs"
+        password: "${{ secrets.DOCKER_TOKEN }}"
+        image_name: awslabs/aws-crt-builder/aws-crt-${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }}
+        image_tag: ${{ env.IMAGE_TAG }}
+        registry: docker.pkg.github.com
+        context: .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }}
+        build_extra_args: "--compress=true"  
+
+  # When all the images are built, run a downstream test
+  aws-c-common:
+    runs-on: 'ubuntu-latest'
+    needs: 
+    - manylinux1-x64
+    - manylinux1-x86
+    - manylinux2014-x64
+    - manylinux2014-x86
+    - Ubuntu-16-x64
+    - AL2-x64 
+
+    steps:
+    - name: Checkout Source
+      uses: actions/checkout@v1
+    
+    - name: Get release tag
+      uses: ./.github/actions/release-tag
+      id: release
+
+    # We can't use the `uses: docker://image` version yet, GitHub lacks authentication for actions -> packages
+    - name: Build aws-c-common + consumers
+      run: |
+        echo "${{ secrets.GITHUB_TOKEN }}" | docker login docker.pkg.github.com -u awslabs --password-stdin
+        docker pull docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-ubuntu-16-x64:${{ steps.release.outputs.release_tag }}
+        docker run --env GITHUB_REF docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-ubuntu-16-x64:${{ steps.release.outputs.release_tag }} -p aws-c-common build linux-clang-9-linux-x64-downstream

@@ -1,0 +1,22 @@
+name: Lint
+
+on:
+  push:
+    paths:
+      - '*.py'
+      - '**/*.py'
+
+
+jobs:
+  autopep8:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Source
+      uses: actions/checkout@v2
+    
+    - name: Build and Test
+      run: |
+        python3 -m pip install --upgrade setuptools
+        python3 -m pip install --upgrade autopep8
+        python3 -m autopep8 --exit-code --diff --recursive setup.py builder/*.py
