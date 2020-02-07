@@ -13,6 +13,9 @@ jobs:
     runs-on: 'ubuntu-latest'
 
     steps:
+    - name: Checkout Source
+      uses: actions/checkout@v1
+    
     - name: Get release tag
       uses: ./.github/actions/release-tag
       id: release
