@@ -9,7 +9,7 @@ try {
     if (branch == 'master') {
         const spawnSync = require('child_process').spawnSync;
         const result = spawnSync('git', ['describe', '--abbrev=0'], {
-            timeout=2000
+            timeout: 2000
         });
         if (result.status == 0) {
             release_tag = result.stdout.trim();
