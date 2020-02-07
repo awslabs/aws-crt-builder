@@ -3,6 +3,7 @@ name: Docker Images
 on: 
   push:
     paths:
+      - '.github/actions/**/*'
       - '.github/docker-images/*'
       - '.github/docker-images/**/*'
       - '.github/workflows/docker-images.yml'
