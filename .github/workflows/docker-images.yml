@@ -8,6 +8,8 @@ on:
       - '.github/docker-images/**/*'
       - '.github/workflows/docker-images.yml'
       - 'builder/*.py'
+  release:
+    types: [published]
 
 jobs:
   package:
