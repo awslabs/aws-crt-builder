@@ -12,7 +12,7 @@ jobs:
   aws-c-common:
     runs-on: 'ubuntu-latest'
 
-    # We can't use the `uses: docker://image` version yet, GitHub lacks authentication for packages
+    # We can't use the `uses: docker://image` version yet, GitHub lacks authentication for actions -> packages
     steps:
     - name: Build aws-c-common + consumers
       run: |
