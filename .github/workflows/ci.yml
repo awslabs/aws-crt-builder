@@ -16,16 +16,6 @@ jobs:
     - name: Get release tag
       uses: ./.github/actions/release-tag
       id: release
-      with:
-        output: /tmp/release_tag
-
-    - run: echo TAG ${{ steps.release.outputs.release_tag }}
-
-    - name: Store release_tag
-      uses: actions/upload-artifact@v1
-      with:
-        name: release_tag
-        path: /tmp/release_tag
 
     # We can't use the `uses: docker://image` version yet, GitHub lacks authentication for actions -> packages
     - name: Build aws-c-common + consumers
