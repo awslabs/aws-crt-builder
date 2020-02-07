@@ -55,8 +55,8 @@ jobs:
     - name: Build test image
       uses: whoan/docker-build-with-cache-action@v3
       with:
-        username: "awslabs"
-        password: "${{ secrets.GITHUB_TOKEN }}"
+        username: awslabs
+        password: ${{ secrets.GITHUB_TOKEN }}
         image_name: awslabs/aws-crt-builder/aws-crt-test
         image_tag: x64
         registry: docker.pkg.github.com
