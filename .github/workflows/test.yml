@@ -48,11 +48,11 @@ jobs:
       uses: actions/download-artifact@v1
       with:
         name: builder
-        path: .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_TAG }}
+        path: .github/docker-images/test-x64
 
-    - run: cp .github/docker-images/entrypoint.sh .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_TAG }}/entrypoint.sh
+    - run: cp .github/docker-images/entrypoint.sh .github/docker-images/test-x64/entrypoint.sh
     
-    - name: Build ${{ env.IMAGE_NAME }}-${{ env.IMAGE_TAG }} image
+    - name: Build test image
       uses: whoan/docker-build-with-cache-action@v3
       with:
         username: "awslabs"
