@@ -297,6 +297,9 @@ jobs:
     - Ubuntu-16-x64
     - AL2-x64
 
+    steps:
+      -run: echo "All docker images built"
+
   # When all the images are built, run a downstream test
   aws-c-common-linux:
     name: Linux aws-c-common test build
