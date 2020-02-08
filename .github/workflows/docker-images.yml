@@ -348,7 +348,7 @@ jobs:
     - name: Build aws-c-common + consumers
       run: python builder\builder -p aws-c-common --dump-config build windows-msvc-2015-windows-x64-downstream
 
-    aws-c-common-windows-vs2019:
+  aws-c-common-windows-vs2019:
       name: Windows (VS2019) aws-c-common test build
       runs-on: 'windows-latest'
       if: github.event_name != 'release'
