@@ -289,7 +289,7 @@ jobs:
 
   # When all the images are built, run a downstream test
   aws-c-common:
-    name: 'Downstream aws-c-common test build'
+    name: ${{ matrix.os }} aws-c-common test build
     runs-on: ${{ matrix.os }}
     if: github.event_name != 'release'
     needs: 
