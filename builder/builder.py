@@ -19,6 +19,7 @@ from vmod import VirtualModule
 from shell import Shell
 from env import Env
 from actions.action import Action
+from scripts import Scripts
 
 
 class Builder(VirtualModule):
@@ -31,35 +32,8 @@ class Builder(VirtualModule):
 
     def __init__(self):
         Builder.all_actions = set(Builder.Action.__subclasses__())
-        self._load_scripts()
-
-    @staticmethod
-    def _load_scripts():
-        """ Loads all scripts from ${cwd}/.builder/**/*.py to make their classes available """
-        import importlib.util
-
-        if not os.path.isdir('.builder'):
-            return
-
-        scripts = glob.glob('.builder/*.py')
-        scripts += glob.glob('.builder/**/*.py')
-        for script in scripts:
-            # Ensure that the import path includes the directory the script is in
-            # so that relative imports work
-            script_dir = os.path.dirname(script)
-            if script_dir not in sys.path:
-                sys.path.append(script_dir)
-            print("Importing {}".format(os.path.abspath(script)), flush=True)
-
-            name = os.path.split(script)[1].split('.')[0]
-            spec = importlib.util.spec_from_file_location(name, script)
-            module = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(module)
-            actions = frozenset(Builder._find_actions())
-            new_actions = actions.difference(Builder.all_actions)
-            print("Imported {}".format(
-                ', '.join([a.__name__ for a in new_actions])))
-            Builder.all_actions.update(new_actions)
+        self.scripts = Scripts()
+        self.scripts.load()
 
     @staticmethod
     def _find_actions():

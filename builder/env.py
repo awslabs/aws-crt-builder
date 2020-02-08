@@ -15,10 +15,10 @@ import os
 import subprocess
 import sys
 
-from builder import Builder
-from shell import Shell
-from project import Project
 from actions.git import DownloadSource
+from project import Project
+from scripts import Scripts
+from shell import Shell
 
 
 class Env(object):
@@ -144,7 +144,7 @@ class Env(object):
                 return self._cache_project(Project(**project_config, path=self.shell.cwd()))
 
         # load any builder scripts and check them
-        Builder._load_scripts()
+        Scipts.load()
         projects = Project.__subclasses__()
         project_cls = None
         if len(projects) == 1:
