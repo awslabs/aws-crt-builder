@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 from build import Builder
-from .action import Action
+from action import Action
 
 
 class Script(Action):

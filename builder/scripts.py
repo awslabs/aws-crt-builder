@@ -15,7 +15,7 @@ import importlib
 import os
 import sys
 
-from actions.action import Action
+from action import Action
 
 
 class Scripts(object):

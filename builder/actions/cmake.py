@@ -13,7 +13,7 @@
 
 import os
 
-from .action import Action
+from action import Action
 from toolchain import Toolchain
 
 

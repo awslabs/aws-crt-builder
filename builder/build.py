@@ -18,7 +18,7 @@ import sys
 from vmod import VirtualModule
 from shell import Shell
 from env import Env
-from actions.action import Action
+from action import Action
 from scripts import Scripts
 
 
