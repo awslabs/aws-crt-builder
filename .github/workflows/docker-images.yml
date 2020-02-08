@@ -290,7 +290,7 @@ jobs:
   # When all the images are built, run a downstream test
   aws-c-common:
     name: 'Downstream aws-c-common test build'
-    runs-on: 'ubuntu-latest'
+    runs-on: ${{ matrix.os }}
     if: github.event_name != 'release'
     needs: 
     - manylinux1-x64
@@ -299,6 +299,9 @@ jobs:
     - manylinux2014-x86
     - Ubuntu-16-x64
     - AL2-x64 
+    strategy:
+      matrix:
+        os: [macos-latest, windows-latest, ubuntu-latest]
 
     steps:
     - name: Checkout Source
