@@ -11,6 +11,8 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+from collections import namedtuple
+
 
 class Project(object):
     """ Describes a given library and its dependencies/consumers """
