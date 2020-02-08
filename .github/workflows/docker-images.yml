@@ -287,21 +287,22 @@ jobs:
         context: .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }}
         build_extra_args: "--compress=true"  
 
-  # When all the images are built, run a downstream test
-  aws-c-common:
-    name: ${{ matrix.os }} aws-c-common test build
-    runs-on: ${{ matrix.os }}
-    if: github.event_name != 'release'
+  images-built:
+    runs-on: 'ubuntu-latest'
     needs: 
     - manylinux1-x64
     - manylinux1-x86
     - manylinux2014-x64
     - manylinux2014-x86
     - Ubuntu-16-x64
-    - AL2-x64 
-    strategy:
-      matrix:
-        os: [macos-latest, windows-latest, ubuntu-latest]
+    - AL2-x64
+
+  # When all the images are built, run a downstream test
+  aws-c-common-linux:
+    name: Linux aws-c-common test build
+    runs-on: 'ubuntu-latest'
+    if: github.event_name != 'release'
+    needs: images-built
 
     steps:
     - name: Checkout Source
@@ -317,3 +318,42 @@ jobs:
         echo "${{ secrets.GITHUB_TOKEN }}" | docker login docker.pkg.github.com -u awslabs --password-stdin
         docker pull docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-ubuntu-16-x64:${{ steps.release.outputs.release_tag }}
         docker run --env GITHUB_REF docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-ubuntu-16-x64:${{ steps.release.outputs.release_tag }} -p aws-c-common build linux-clang-9-linux-x64-downstream
+
+  aws-c-common-osx:
+    name: OSX aws-c-common test build
+    runs-on: 'macos-latest'
+    if: github.event_name != 'release'
+    needs: images-built
+
+    steps:
+    - name: Checkout Source
+      uses: actions/checkout@v1
+    
+    - name: Install builder
+      uses: actions/download-artifact@v1
+      with:
+        name: builder
+    - run: cp builder/builder /usr/local/bin/
+
+    - name: Build aws-c-common + consumers
+      run: |
+        builder -p aws-c-common build macos-default-default-macos-x64-downstream
+
+  aws-c-common-windows:
+    name: OSX aws-c-common test build
+    runs-on: 'macos-latest'
+    if: github.event_name != 'release'
+    needs: images-built
+
+    steps:
+    - name: Checkout Source
+      uses: actions/checkout@v1
+    
+    - name: Install builder
+      uses: actions/download-artifact@v1
+      with:
+        name: builder
+
+    - name: Build aws-c-common + consumers
+      run: |
+        python builder\builder -p aws-c-common build windows-msvc-2015-windows-x64-downstream
