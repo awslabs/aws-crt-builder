@@ -34,13 +34,17 @@ class Project(object):
     def get_dependencies(self, spec):
         """ Gets dependencies for a given BuildSpec, filters by target """
         target = spec.target
-        deps = [[p][target in getattr(p, 'targets', [])]
-                for p in self.dependencies]
+        deps = []
+        for p in self.dependencies:
+            if target in getattr(p, 'targets', []):
+                deps.append(p)
         return deps
 
     def get_consumers(self, spec):
         """ Gets consumers for a given BuildSpec, filters by target """
         target = spec.target
-        consumers = [[p][target in getattr(p, 'targets', [])]
-                     for p in self.consumers]
+        consumers = []
+        for c in self.consumers:
+            if target in getattr(c, 'targets', []):
+                consumers.append(c)
         return consumers
