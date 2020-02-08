@@ -345,7 +345,7 @@ jobs:
 
   aws-c-common-windows:
     name: Windows aws-c-common test build
-    runs-on: 'macos-latest'
+    runs-on: 'windows-latest'
     if: github.event_name != 'release'
     needs: images-built
 
