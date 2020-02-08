@@ -26,7 +26,7 @@ from actions.git import DownloadDependencies
 from actions.cmake import CMakeBuild, CTestRun
 from env import Env
 from build import Builder
-from config import produce_config
+from config import produce_config, validate_build
 
 
 ########################################################################################################################
@@ -175,6 +175,8 @@ if __name__ == '__main__':
         from pprint import pprint
         pprint(build_spec)
         pprint(config)
+
+    validate_build(build_spec)
 
     # Run a build with a specific spec/toolchain
     if args.command == 'build':

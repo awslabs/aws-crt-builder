@@ -86,7 +86,7 @@ class CMakeBuild(Action):
                 "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
                 "-DCMAKE_BUILD_TYPE=" + build_config,
                 "-DBUILD_TESTING=" + ("ON" if build_tests else "OFF"),
-            ] + compiler_flags + getattr(project, 'cmake_args', []) + getattr(config, 'cmake_args', [])
+            ] + compiler_flags + getattr(project, 'cmake_args', []) + config.get('cmake_args', [])
 
             # configure
             sh.exec("cmake", cmake_args, project_source_dir)

@@ -106,8 +106,6 @@ def _replace_variables(value, variables):
 
 def produce_config(build_spec, config_file, **additional_variables):
 
-    validate_build(build_spec)
-
     defaults = {
         'hosts': HOSTS,
         'targets': TARGETS,
