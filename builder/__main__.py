@@ -12,6 +12,8 @@
 # permissions and limitations under the License.
 
 from __future__ import print_function
+import os
+import sys
 
 # If this is running locally for debugging, we need to add the current directory, when packaged this is a non-issue
 if __name__ == '__main__':  # nopep8
@@ -25,8 +27,6 @@ from actions.cmake import CMakeBuild, CTestRun
 from env import Env
 from build import Builder
 from config import produce_config
-import os
-import sys
 
 
 ########################################################################################################################
