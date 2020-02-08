@@ -16,8 +16,10 @@ class Project(object):
     """ Describes a given library and its dependencies/consumers """
 
     def __init__(self, **kwargs):
-        self.upstream = self.dependencies = kwargs.get('upstream', [])
-        self.downstream = self.consumers = kwargs.get('downstream', [])
+        self.upstream = self.dependencies = [namedtuple('ProjectReference', u.keys())(
+            *u.values()) for u in kwargs.get('upstream', [])]
+        self.downstream = self.consumers = [namedtuple('ProjectReference', d.keys())(
+            *d.values()) for d in kwargs.get('downstream', [])]
         self.account = kwargs.get('account', 'awslabs')
         self.name = kwargs['name']
         self.url = "https://github.com/{}/{}.git".format(
@@ -30,12 +32,13 @@ class Project(object):
     def get_dependencies(self, spec):
         """ Gets dependencies for a given BuildSpec, filters by target """
         target = spec.target
-        deps = [[p][target in p.get('targets', [])] for p in self.dependencies]
+        deps = [[p][target in getattr(p, 'targets', [])]
+                for p in self.dependencies]
         return deps
 
     def get_consumers(self, spec):
         """ Gets consumers for a given BuildSpec, filters by target """
         target = spec.target
-        consumers = [[p][target in p.get('targets', [])]
+        consumers = [[p][target in getattr(p, 'targets', [])]
                      for p in self.consumers]
         return consumers
