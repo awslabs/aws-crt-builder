@@ -2,9 +2,12 @@ name: Lint
 
 on:
   push:
+    branches:
+      - '*'
+      - '!master'
     paths:
-      - '*.py'
-      - '**/*.py'
+      - 'setup.py'
+      - 'builder/**'
 
 
 jobs:
@@ -19,4 +22,4 @@ jobs:
       run: |
         python3 -m pip install --upgrade setuptools
         python3 -m pip install --upgrade autopep8
-        python3 -m autopep8 --exit-code --diff --recursive setup.py builder/*.py
+        python3 -m autopep8 --exit-code --diff --recursive setup.py builder

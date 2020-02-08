@@ -6,11 +6,10 @@ on:
       - '*'
       - '!master'
     paths:
-      - '.github/actions/**/*'
-      - '.github/docker-images/*'
-      - '.github/docker-images/**/*'
+      - '.github/actions/**'
+      - '.github/docker-images/**'
       - '.github/workflows/docker-images.yml'
-      - 'builder/*.py'
+      - 'builder/**'
   release:
     types: [published]
 
@@ -290,7 +289,9 @@ jobs:
 
   # When all the images are built, run a downstream test
   aws-c-common:
+    name: 'Downstream aws-c-common test build'
     runs-on: 'ubuntu-latest'
+    if: github.event_name != 'release'
     needs: 
     - manylinux1-x64
     - manylinux1-x86
@@ -303,7 +304,7 @@ jobs:
     - name: Checkout Source
       uses: actions/checkout@v1
     
-    - name: Get release tag
+    - name: Get Release Tag
       uses: ./.github/actions/release-tag
       id: release
 
