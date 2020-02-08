@@ -66,7 +66,7 @@ class DownloadDependencies(Action):
                 if dep_proj.path:
                     continue
 
-                dep_branch = dep.get('revision', branch)
+                dep_branch = getattr(dep, 'revision', branch)
                 DownloadSource(
                     project=dep_proj, branch=dep_branch).run(env)
 

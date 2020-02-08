@@ -129,7 +129,7 @@ class Shell(object):
 
     def rm(self, path):
         """ Remove a file or directory """
-        self._log_command(["rm -rf", path])
+        self._log_command(['rm', '-rf', path])
         if not self.dryrun:
             try:
                 shutil.rmtree(path)
