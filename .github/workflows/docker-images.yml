@@ -287,25 +287,12 @@ jobs:
         context: .github/docker-images/${{ env.IMAGE_NAME }}-${{ env.IMAGE_ARCH }}
         build_extra_args: "--compress=true"  
 
-  images-built:
-    runs-on: 'ubuntu-latest'
-    needs: 
-    - manylinux1-x64
-    - manylinux1-x86
-    - manylinux2014-x64
-    - manylinux2014-x86
-    - Ubuntu-16-x64
-    - AL2-x64
-
-    steps:
-      - run: echo "All docker images built"
-
   # When all the images are built, run a downstream test
   aws-c-common-linux:
     name: Linux aws-c-common test build
     runs-on: 'ubuntu-latest'
     if: github.event_name != 'release'
-    needs: images-built
+    needs: Ubuntu-16-x64
 
     steps:
     - name: Checkout Source
