@@ -50,7 +50,7 @@ class CMakeBuild(Action):
 
         def build_project(project, build_tests=False):
             # build dependencies first, let cmake decide what needs doing
-            for dep in [env.find_project(p) for p in project.upstream]:
+            for dep in [env.find_project(p.name) for p in project.get_dependencies(env.build_spec)]:
                 sh.pushd(dep.path)
                 build_project(dep)
                 sh.popd()
@@ -113,14 +113,14 @@ class CMakeBuild(Action):
 
         sh.pushd(source_dir)
 
-        build_projects(env.project.upstream)
+        build_projects([p.name for p in env.project.get_dependencies(env.build_spec)])
 
         # BUILD
         build_project(env.project, getattr(env, 'build_tests', False))
 
         spec = getattr(env, 'build_spec', None)
         if spec and spec.downstream:
-            build_projects(env.project.downstream)
+            build_projects([p.name for p in env.project.get_consumers(env.build_spec)])
 
         sh.popd()
 
