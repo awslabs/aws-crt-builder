@@ -32,9 +32,10 @@ class Project(object):
         target = spec.target
         deps = [[p][target in p.get('targets', [])] for p in self.dependencies]
         return deps
-    
+
     def get_consumers(self, spec):
         """ Gets consumers for a given BuildSpec, filters by target """
         target = spec.target
-        consumers = [[p][target in p.get('targets', [])] for p in self.consumers]
+        consumers = [[p][target in p.get('targets', [])]
+                     for p in self.consumers]
         return consumers
