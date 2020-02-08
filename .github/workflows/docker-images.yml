@@ -330,24 +330,6 @@ jobs:
     - name: Build aws-c-common + consumers
       run: builder -p aws-c-common --dump-config build macos-default-default-macos-x64-downstream
 
-  aws-c-common-windows-vs2017:
-    name: Windows aws-c-common test build
-    runs-on: 'windows-latest'
-    if: github.event_name != 'release'
-    needs: package
-
-    steps:
-    - name: Checkout Source
-      uses: actions/checkout@v1
-    
-    - name: Install builder
-      uses: actions/download-artifact@v1
-      with:
-        name: builder
-
-    - name: Build aws-c-common + consumers
-      run: python builder\builder -p aws-c-common --dump-config build windows-msvc-2017-windows-x64-downstream
-
   aws-c-common-windows-vs2019:
       name: Windows (VS2019) aws-c-common test build
       runs-on: 'windows-latest'
@@ -369,6 +351,6 @@ jobs:
   ci-passed:
     name: Downstream Tests Passed
     runs-on: 'ubuntu-latest'
-    needs: [aws-c-common-linux, aws-c-common-osx, aws-c-common-windows-vs2017, aws-c-common-windows-vs2019]
+    needs: [aws-c-common-linux, aws-c-common-osx, aws-c-common-windows-vs2019]
     steps:
       - run: echo "All downstream tests passed"
