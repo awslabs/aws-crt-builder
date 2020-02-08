@@ -298,7 +298,7 @@ jobs:
     - AL2-x64
 
     steps:
-      -run: echo "All docker images built"
+      - run: echo "All docker images built"
 
   # When all the images are built, run a downstream test
   aws-c-common-linux:
