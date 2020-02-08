@@ -13,6 +13,7 @@
 
 from actions.action import Action
 
+
 class Scripts(object):
     """ Manages loading and context of per-project scripts """
     all_actions = set()
@@ -47,7 +48,7 @@ class Scripts(object):
             spec = importlib.util.spec_from_file_location(name, script)
             module = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(module)
-            
+
             # Report newly loaded actions
             actions = frozenset(Action.__subclasses__())
             new_actions = actions.difference(all_actions)
