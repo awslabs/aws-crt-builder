@@ -12,20 +12,21 @@
 # permissions and limitations under the License.
 
 from __future__ import print_function
+
+# If this is running locally for debugging, we need to add the current directory, when packaged this is a non-issue
+if __name__ == '__main__':  # nopep8
+    sys.path.append(os.path.abspath(os.path.dirname(__file__)))  # nopep8
+
+from spec import BuildSpec
+from actions.script import Script
+from actions.install import InstallTools
+from actions.git import DownloadDependencies
+from actions.cmake import CMakeBuild, CTestRun
+from env import Env
+from build import Builder
+from config import produce_config
 import os
 import sys
-
-if __name__ == '__main__':
-    sys.path.append(os.path.abspath(os.path.dirname(__file__)))
-
-from config import produce_config
-from build import Builder
-from env import Env
-from actions.cmake import CMakeBuild, CTestRun
-from actions.git import DownloadDependencies
-from actions.install import InstallTools
-from actions.script import Script
-from spec import BuildSpec
 
 
 ########################################################################################################################
