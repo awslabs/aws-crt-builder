@@ -144,7 +144,7 @@ class Env(object):
                 return self._cache_project(Project(**project_config, path=self.shell.cwd()))
 
         # load any builder scripts and check them
-        Scipts.load()
+        Scripts.load()
         projects = Project.__subclasses__()
         project_cls = None
         if len(projects) == 1:
