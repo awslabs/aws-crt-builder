@@ -173,6 +173,7 @@ if __name__ == '__main__':
 
     if getattr(args, 'dump_config', False):
         from pprint import pprint
+        pprint(build_spec)
         pprint(config)
 
     # Run a build with a specific spec/toolchain

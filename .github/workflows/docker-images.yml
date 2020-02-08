@@ -328,7 +328,7 @@ jobs:
         chmod a+x /usr/local/bin/builder
 
     - name: Build aws-c-common + consumers
-      run: builder -p aws-c-common build macos-default-default-macos-x64-downstream
+      run: builder -p aws-c-common --dump-config build macos-default-default-macos-x64-downstream
 
   aws-c-common-windows:
     name: Windows aws-c-common test build
@@ -346,7 +346,7 @@ jobs:
         name: builder
 
     - name: Build aws-c-common + consumers
-      run: python builder\builder -p aws-c-common build windows-msvc-2015-windows-x64-downstream
+      run: python builder\builder -p aws-c-common --dump-config build windows-msvc-2015-windows-x64-downstream
 
   ci-passed:
     name: Downstream Tests Passed
