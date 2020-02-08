@@ -15,11 +15,15 @@ from __future__ import print_function
 import os
 import sys
 
+if __name__ == '__main__':
+    sys.path.append(os.path.abspath(os.path.dirname(__file__)))
+
 from config import produce_config
-from builder import Builder
-from actions.cmake import *
-from actions.git import *
-from actions.install import *
+from build import Builder
+from env import Env
+from actions.cmake import CMakeBuild, CTestRun
+from actions.git import DownloadDependencies
+from actions.install import InstallTools
 from actions.script import Script
 from spec import BuildSpec
 
@@ -149,7 +153,7 @@ if __name__ == '__main__':
 
     # set up builder and environment
     builder = Builder()
-    env = Builder.Env({
+    env = Env({
         'dryrun': args.dry_run,
         'args': args,
         'project': args.project,
