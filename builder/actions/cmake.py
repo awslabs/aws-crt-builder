@@ -113,14 +113,16 @@ class CMakeBuild(Action):
 
         sh.pushd(source_dir)
 
-        build_projects([p.name for p in env.project.get_dependencies(env.build_spec)])
+        build_projects(
+            [p.name for p in env.project.get_dependencies(env.build_spec)])
 
         # BUILD
         build_project(env.project, getattr(env, 'build_tests', False))
 
         spec = getattr(env, 'build_spec', None)
         if spec and spec.downstream:
-            build_projects([p.name for p in env.project.get_consumers(env.build_spec)])
+            build_projects(
+                [p.name for p in env.project.get_consumers(env.build_spec)])
 
         sh.popd()
 
