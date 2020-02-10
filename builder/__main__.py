@@ -130,7 +130,7 @@ if __name__ == '__main__':
 
     build = commands.add_parser(
         'build', help="Run target build, formatted 'host-compiler-compilerversion-target-arch'. Ex: linux-ndk-19-android-arm64v8a")
-    build.add_argument('build', type=str, default='default')
+    build.add_argument('build', type=str, default='default', nargs='?')
     build.add_argument('--skip-install', action='store_true',
                        help="Skip the install phase, useful when testing locally")
 
