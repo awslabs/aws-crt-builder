@@ -137,7 +137,7 @@ jobs:
     name: Linux aws-c-common test build
     runs-on: 'ubuntu-latest'
     if: github.event_name != 'release'
-    needs: Ubuntu-16-x64
+    needs: linux-variants
 
     steps:
     - name: Checkout Source
