@@ -33,7 +33,8 @@ class Scripts(object):
         path = os.path.abspath(os.path.join(path, '.builder'))
 
         if not os.path.isdir(path):
-            print('Scripts.load: path {} is not a directory'.format(path))
+            print(
+                'Scripts.load: path {} is not a directory, no scripts loaded'.format(path))
             return
 
         scripts = glob.glob('.builder/**')

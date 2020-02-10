@@ -288,17 +288,11 @@ jobs:
         build_extra_args: "--compress=true"  
 
   # When all the images are built, run a downstream test
-  aws-c-common:
-    name: 'Downstream aws-c-common test build'
+  aws-c-common-linux:
+    name: Linux aws-c-common test build
     runs-on: 'ubuntu-latest'
     if: github.event_name != 'release'
-    needs: 
-    - manylinux1-x64
-    - manylinux1-x86
-    - manylinux2014-x64
-    - manylinux2014-x86
-    - Ubuntu-16-x64
-    - AL2-x64 
+    needs: Ubuntu-16-x64
 
     steps:
     - name: Checkout Source
@@ -314,3 +308,49 @@ jobs:
         echo "${{ secrets.GITHUB_TOKEN }}" | docker login docker.pkg.github.com -u awslabs --password-stdin
         docker pull docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-ubuntu-16-x64:${{ steps.release.outputs.release_tag }}
         docker run --env GITHUB_REF docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-ubuntu-16-x64:${{ steps.release.outputs.release_tag }} -p aws-c-common build linux-clang-9-linux-x64-downstream
+
+  aws-c-common-osx:
+    name: OSX aws-c-common test build
+    runs-on: 'macos-latest'
+    if: github.event_name != 'release'
+    needs: package
+
+    steps:
+    - name: Checkout Source
+      uses: actions/checkout@v1
+    
+    - name: Install builder
+      uses: actions/download-artifact@v1
+      with:
+        name: builder
+    - run: |
+        cp builder/builder /usr/local/bin/
+        chmod a+x /usr/local/bin/builder
+
+    - name: Build aws-c-common + consumers
+      run: builder -p aws-c-common --dump-config build macos-default-default-macos-x64-downstream
+
+  aws-c-common-windows-vs2019:
+      name: Windows (VS2019) aws-c-common test build
+      runs-on: 'windows-latest'
+      if: github.event_name != 'release'
+      needs: package
+
+      steps:
+      - name: Checkout Source
+        uses: actions/checkout@v1
+      
+      - name: Install builder
+        uses: actions/download-artifact@v1
+        with:
+          name: builder
+
+      - name: Build aws-c-common + consumers
+        run: python builder\builder -p aws-c-common --dump-config build windows-msvc-2019-windows-x64-downstream
+
+  ci-passed:
+    name: Downstream Tests Passed
+    runs-on: 'ubuntu-latest'
+    needs: [aws-c-common-linux, aws-c-common-osx, aws-c-common-windows-vs2019]
+    steps:
+      - run: echo "All downstream tests passed"

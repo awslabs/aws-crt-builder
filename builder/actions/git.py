@@ -48,7 +48,7 @@ class DownloadDependencies(Action):
         project = env.project
         sh = env.shell
         branch = env.branch
-        deps = list(project.upstream)
+        deps = project.get_dependencies(env.build_spec)
 
         config = getattr(env, 'config', {})
         spec = config.get('spec', None)
@@ -62,18 +62,19 @@ class DownloadDependencies(Action):
 
             while deps:
                 dep = deps.pop()
-                dep_proj = env.find_project(dep)
+                dep_proj = env.find_project(dep.name)
                 if dep_proj.path:
                     continue
 
+                dep_branch = getattr(dep, 'revision', branch)
                 DownloadSource(
-                    project=dep_proj, branch=branch).run(env)
+                    project=dep_proj, branch=dep_branch).run(env)
 
                 # grab updated project, collect transitive dependencies/consumers
-                dep_proj = env.find_project(dep)
-                deps += dep_proj.upstream
+                dep_proj = env.find_project(dep.name)
+                deps += dep_proj.get_dependencies(env.build_spec)
                 if spec and spec.downstream:
-                    deps += dep_proj.downstream
+                    deps += dep_proj.get_consumers(env.build_spec)
                 sh.popd()
 
             sh.popd()
