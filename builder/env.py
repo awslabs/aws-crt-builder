@@ -21,6 +21,17 @@ from scripts import Scripts
 from shell import Shell
 
 
+def looks_like_code(path):
+    git_dir = os.path.isdir(os.path.join(path, '.git'))
+    if git_dir:
+        return True
+    # maybe not committed yet?
+    readme = glob.glob(os.path.join(path, 'README.*'))
+    if readme:
+        return True
+    return False
+
+
 class Env(object):
     """ Encapsulates the environment in which the build is running """
 
@@ -185,7 +196,8 @@ class Env(object):
             if (os.path.basename(search_dir) == name) and os.path.isdir(search_dir):
                 sh.pushd(search_dir)
                 project = self._project_from_cwd(name)
-                if not project:  # no config file, but still exists
+                # might be a project without a config
+                if not project and looks_like_code(search_dir):
                     project = self._cache_project(
                         Project(name=name, path=search_dir))
                 sh.popd()
