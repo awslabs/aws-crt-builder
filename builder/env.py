@@ -11,6 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+import glob
 import os
 import subprocess
 import sys
@@ -19,6 +20,17 @@ from actions.git import DownloadSource
 from project import Project
 from scripts import Scripts
 from shell import Shell
+
+
+def looks_like_code(path):
+    git_dir = os.path.isdir(os.path.join(path, '.git'))
+    if git_dir:
+        return True
+    # maybe not committed yet?
+    readme = glob.glob(os.path.join(path, 'README.*'))
+    if readme:
+        return True
+    return False
 
 
 class Env(object):
@@ -48,6 +60,8 @@ class Env(object):
         self.install_dir = os.path.join(self.build_dir, 'install')
         self.launch_dir = self.shell.cwd()
 
+        print('Source directory: {}'.format(self.source_dir))
+
         # Once initialized, switch to the build dir for everything else
         self.shell.rm(self.build_dir)
         self.shell.mkdir(self.build_dir)
@@ -57,18 +71,23 @@ class Env(object):
         # project from a name to a Project
         if not hasattr(self, 'project'):
             self.project = self._default_project()
-        else:
-            if not self.args.project:
-                print('No project specified and no project found in current directory')
-                sys.exit(1)
-            # Ensure that the specified project exists
-            project = self.find_project(self.args.project)
-            if not project.path:
-                DownloadSource(
-                    project=project, branch=self.branch).run(self)
-                project = self.find_project(project.name)
-                assert project.path
-            self.project = project
+
+        if not self.project and not self.args.project:
+            print('No project specified and no project found in current directory')
+            sys.exit(1)
+        project_name = self.project if self.project else self.args.project1
+        # Ensure that the specified project exists, this may return a ref or the project if
+        # it is present on disk
+        project = self.find_project(project_name)
+        if not project.path:  # got a ref
+            print('Project {} could not be found locally, downloading'.format(
+                project.name))
+            DownloadSource(
+                project=project, branch=self.branch).run(self)
+            # Now that the project is downloaded, look it up again
+            project = self.find_project(project.name)
+            assert project.path
+        self.project = project
 
     @staticmethod
     def _get_git_branch():
@@ -106,6 +125,7 @@ class Env(object):
 
     def _cache_project(self, project):
         self._projects[project.name] = project
+        Scripts.load(project.path)
         return project
 
     def _default_project(self):
@@ -144,6 +164,8 @@ class Env(object):
                 return self._cache_project(Project(**project_config, path=self.shell.cwd()))
 
         # load any builder scripts and check them
+        print("No project file found at {}, loading scripts".format(
+            project_config_file))
         Scripts.load()
         projects = Project.__subclasses__()
         project_cls = None
@@ -175,12 +197,13 @@ class Env(object):
             if (os.path.basename(search_dir) == name) and os.path.isdir(search_dir):
                 sh.pushd(search_dir)
                 project = self._project_from_cwd(name)
-                if not project:  # no config file, but still exists
-                    project = self._cache_project(
-                        Project(name=name, path=search_dir))
                 sh.popd()
 
-                return project
+                # might be a project without a config
+                if not project and looks_like_code(search_dir):
+                    project = self._cache_project(
+                        Project(name=name, path=search_dir))
+                    return project
 
         # Enough of a project to get started, note that this is not cached
         return Project(name=name)

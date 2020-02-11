@@ -36,7 +36,7 @@ class Project(object):
         target = spec.target
         deps = []
         for p in self.dependencies:
-            if target in getattr(p, 'targets', []):
+            if not hasattr(p, 'targets') or target in getattr(p, 'targets', []):
                 deps.append(p)
         return deps
 

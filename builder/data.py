@@ -76,6 +76,7 @@ HOSTS = {
             "-DENABLE_SANITIZERS=OFF",
             "-DPERFORM_HEADER_CHECK=OFF",
         ],
+        'run_tests': False,
 
         'variables': {
             'python': "python3",
@@ -164,8 +165,8 @@ TARGETS = {
 
 COMPILERS = {
     'default': {
-        'hosts': ['macos', 'al2012', 'manylinux'],
-        'targets': ['macos', 'linux'],
+        'hosts': ['macos', 'al2012', 'al2', 'manylinux', 'linux', 'windows'],
+        'targets': ['macos', 'linux', 'windows'],
 
         'versions': {
             'default': {}

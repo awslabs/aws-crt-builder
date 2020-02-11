@@ -12,6 +12,7 @@
 # permissions and limitations under the License.
 
 import importlib
+import glob
 import os
 import sys
 
@@ -37,7 +38,7 @@ class Scripts(object):
                 'Scripts.load: path {} is not a directory, no scripts loaded'.format(path))
             return
 
-        scripts = glob.glob('.builder/**')
+        scripts = glob.glob('{}/**'.format(path))
         for script in scripts:
             if not script.endswith('.py'):
                 continue

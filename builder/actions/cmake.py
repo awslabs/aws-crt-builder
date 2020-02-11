@@ -136,6 +136,11 @@ class CTestRun(Action):
             print("No tests were built, skipping test run")
             return
 
+        run_tests = env.config.get('run_tests', True)
+        if not run_tests:
+            print("Tests are disabled for this configuration")
+            return
+
         sh = env.shell
 
         project_source_dir = env.project.path

@@ -11,6 +11,25 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+import os
+import sys
+
+
+def current_platform():
+    if sys.platform == 'win32':
+        return 'windows'
+    elif sys.platform == 'darwin':
+        return 'macos'
+    elif 'linux' in sys.platform or sys.platform in ('cygwin', 'msys'):
+        return 'linux'
+
+
+def current_arch():
+    if current_platform() == 'linux':
+        if os.uname()[4][:3].startswith('arm'):
+            arch = ('armv8' if sys.maxsize > 2**32 else 'armv7')
+    return ('x64' if sys.maxsize > 2**32 else 'x86')
+
 
 class BuildSpec(object):
     """ Refers to a specific build permutation, gets converted into a toolchain """
@@ -21,9 +40,14 @@ class BuildSpec(object):
         self.downstream = False
 
         if 'spec' in kwargs:
-            # Parse the spec from a single string
-            self.host, self.compiler, self.compiler_version, self.target, self.arch, * \
-                rest = kwargs['spec'].split('-')
+            spec = kwargs['spec']
+            if spec.startswith('default'):  # default or default(-{variant})
+                _, *rest = spec.split('-')
+            elif not '-' in spec:  # just a variant
+                rest = [spec]
+            else:  # Parse the spec from a single string
+                self.host, self.compiler, self.compiler_version, self.target, self.arch, * \
+                    rest = spec.split('-')
 
             for variant in ('downstream',):
                 if variant in rest:
@@ -35,6 +59,14 @@ class BuildSpec(object):
         for slot in ('host', 'target', 'arch', 'compiler', 'compiler_version'):
             if slot in kwargs:
                 setattr(self, slot, kwargs[slot])
+
+        # Convert defaults to be based on running environment
+        if self.host == 'default':
+            self.host = current_platform()
+        if self.target == 'default':
+            self.target = current_platform()
+        if self.arch == 'default':
+            self.arch = current_arch()
 
         self.name = '-'.join([self.host, self.compiler,
                               self.compiler_version, self.target, self.arch])

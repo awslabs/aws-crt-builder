@@ -33,7 +33,6 @@ class Builder(VirtualModule):
     def __init__(self):
         Builder.all_actions = set(Builder.Action.__subclasses__())
         self.scripts = Scripts()
-        self.scripts.load()
 
     @staticmethod
     def _find_actions():

@@ -130,7 +130,7 @@ if __name__ == '__main__':
 
     build = commands.add_parser(
         'build', help="Run target build, formatted 'host-compiler-compilerversion-target-arch'. Ex: linux-ndk-19-android-arm64v8a")
-    build.add_argument('build', type=str, default='default')
+    build.add_argument('build', type=str, default='default', nargs='?')
     build.add_argument('--skip-install', action='store_true',
                        help="Skip the install phase, useful when testing locally")
 
@@ -167,7 +167,12 @@ if __name__ == '__main__':
         build_spec = env.build_spec = BuildSpec(spec=build_name)
     else:
         build_spec = env.build_spec = default_spec(env)
-    config = env.config = produce_config(build_spec, config_file)
+
+    print("Building project {} with spec {}".format(
+        env.project.name, build_spec))
+
+    config = env.config = produce_config(
+        build_spec, config_file, source_dir=env.source_dir, build_dir=env.build_dir, install_dir=env.install_dir, project=env.project.name, project_dir=env.project.path, spec=str(build_spec))
     if not env.config['enabled']:
         raise Exception("The project is disabled in this configuration")
 
