@@ -57,19 +57,22 @@ class Env(object):
         # project from a name to a Project
         if not hasattr(self, 'project'):
             self.project = self._default_project()
-        else:
-            if not self.args.project:
-                print('No project specified and no project found in current directory')
-                sys.exit(1)
-            # Ensure that the specified project exists
-            project = self.find_project(self.args.project)
-            if not project.path:
-                print('Project {} could not be found locally, downloading'.format(project.name))
-                DownloadSource(
-                    project=project, branch=self.branch).run(self)
-                project = self.find_project(project.name)
-                assert project.path
-            self.project = project
+        
+        if not self.project and not self.args.project:
+            print('No project specified and no project found in current directory')
+            sys.exit(1)
+        project_name = self.project if self.project else self.args.project1
+        # Ensure that the specified project exists, this may return a ref or the project if
+        # it is present on disk
+        project = self.find_project(project_name)
+        if not project.path: # got a ref
+            print('Project {} could not be found locally, downloading'.format(project.name))
+            DownloadSource(
+                project=project, branch=self.branch).run(self)
+            # Now that the project is downloaded, look it up again
+            project = self.find_project(project.name)
+            assert project.path
+        self.project = project
 
     @staticmethod
     def _get_git_branch():
