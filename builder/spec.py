@@ -25,8 +25,9 @@ def current_platform():
 
 
 def current_arch():
-    if os.uname()[4][:3].startswith('arm'):
-        arch = ('armv8' if sys.maxsize > 2**32 else 'armv7')
+    if current_platform() == 'linux':
+        if os.uname()[4][:3].startswith('arm'):
+            arch = ('armv8' if sys.maxsize > 2**32 else 'armv7')
     return ('x64' if sys.maxsize > 2**32 else 'x86')
 
 
