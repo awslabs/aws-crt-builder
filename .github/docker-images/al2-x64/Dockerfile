@@ -20,7 +20,9 @@ RUN yum -y install \
     gcc \
     gcc-c++ \
     && ln -s /usr/bin/cmake3 /usr/bin/cmake \
-    && cmake --version
+    && ln -s /usr/bin/ctest3 /usr/bin/ctest \
+    && cmake --version \
+    && ctest --version
 
 ###############################################################################
 # Python/AWS CLI
@@ -39,11 +41,11 @@ RUN ([ -d /opt/openssl ] && rm -rf /opt/openssl) || true \
     && pushd openssl \
     && git checkout OpenSSL_1_1_1-stable \
     && ./config -fPIC \
-        no-md2 no-rc5 no-rfc3779 no-sctp no-ssl-trace no-zlib no-hw no-mdc2 \
-        no-seed no-idea no-camellia no-bf no-dsa no-ssl3 no-capieng \
-        no-unit-test no-tests \
-        -DSSL_FORBID_ENULL -DOPENSSL_NO_DTLS1 -DOPENSSL_NO_HEARTBEATS \
-        --prefix=/opt/openssl --openssldir=/opt/openssl \
+    no-md2 no-rc5 no-rfc3779 no-sctp no-ssl-trace no-zlib no-hw no-mdc2 \
+    no-seed no-idea no-camellia no-bf no-dsa no-ssl3 no-capieng \
+    no-unit-test no-tests \
+    -DSSL_FORBID_ENULL -DOPENSSL_NO_DTLS1 -DOPENSSL_NO_HEARTBEATS \
+    --prefix=/opt/openssl --openssldir=/opt/openssl \
     && make -j \
     && make install_sw \
     && LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/openssl/lib /opt/openssl/bin/openssl version
