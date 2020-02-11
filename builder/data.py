@@ -76,6 +76,7 @@ HOSTS = {
             "-DENABLE_SANITIZERS=OFF",
             "-DPERFORM_HEADER_CHECK=OFF",
         ],
+        'run_tests': False,
 
         'variables': {
             'python': "python3",
