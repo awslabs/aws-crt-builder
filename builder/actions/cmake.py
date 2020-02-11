@@ -135,7 +135,7 @@ class CTestRun(Action):
         if not has_tests:
             print("No tests were built, skipping test run")
             return
-        
+
         run_tests = env.config.get('run_tests', True)
         if not run_tests:
             print("Tests are disabled for this configuration")
