@@ -64,6 +64,7 @@ class Env(object):
             # Ensure that the specified project exists
             project = self.find_project(self.args.project)
             if not project.path:
+                print('Project {} could not be found locally, downloading'.format(project.name))
                 DownloadSource(
                     project=project, branch=self.branch).run(self)
                 project = self.find_project(project.name)

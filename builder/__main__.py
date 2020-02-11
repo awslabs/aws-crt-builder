@@ -167,6 +167,9 @@ if __name__ == '__main__':
         build_spec = env.build_spec = BuildSpec(spec=build_name)
     else:
         build_spec = env.build_spec = default_spec(env)
+
+    print("Building project {} with spec {}".format(env.project.name, build_spec))
+
     config = env.config = produce_config(build_spec, config_file)
     if not env.config['enabled']:
         raise Exception("The project is disabled in this configuration")
