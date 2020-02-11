@@ -66,7 +66,7 @@ def _apply_value(obj, key, new_value):
 # Replace all variable strings with their values
 
 
-def _replace_variables(value, variables):
+def replace_variables(value, variables):
 
     key_type = type(value)
     if key_type == str:
@@ -91,11 +91,11 @@ def _replace_variables(value, variables):
 
     elif key_type == list:
         # Update each element
-        return [_replace_variables(e, variables) for e in value]
+        return [replace_variables(e, variables) for e in value]
 
     elif key_type == dict:
         # Iterate each element and recursively apply the variables
-        return dict([(key, _replace_variables(value, variables)) for (key, value) in value.items()])
+        return dict([(key, replace_variables(value, variables)) for (key, value) in value.items()])
 
     else:
         # Unsupported, just return it
@@ -205,7 +205,7 @@ def produce_config(build_spec, config_file, **additional_variables):
                 replacements[k] = v
 
     # Post process
-    new_version = _replace_variables(new_version, replacements)
+    new_version = replace_variables(new_version, replacements)
     new_version['variables'] = replacements
 
     return new_version

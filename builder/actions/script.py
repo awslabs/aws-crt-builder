@@ -13,6 +13,7 @@
 
 from build import Builder
 from action import Action
+from config import replace_variables
 
 
 class Script(Action):
