@@ -172,7 +172,7 @@ if __name__ == '__main__':
         env.project.name, build_spec))
 
     config = env.config = produce_config(
-        build_spec, config_file, source_dir=env.source_dir, build_dir=env.build_dir, install_dir=env.install_dir, project=env.project.name, spec=str(build_spec))
+        build_spec, config_file, source_dir=env.source_dir, build_dir=env.build_dir, install_dir=env.install_dir, project=env.project.name, project_dir=env.project.path, spec=str(build_spec))
     if not env.config['enabled']:
         raise Exception("The project is disabled in this configuration")
 
