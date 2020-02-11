@@ -197,13 +197,13 @@ class Env(object):
             if (os.path.basename(search_dir) == name) and os.path.isdir(search_dir):
                 sh.pushd(search_dir)
                 project = self._project_from_cwd(name)
+                sh.popd()
+
                 # might be a project without a config
                 if not project and looks_like_code(search_dir):
                     project = self._cache_project(
                         Project(name=name, path=search_dir))
-                sh.popd()
-
-                return project
+                    return project
 
         # Enough of a project to get started, note that this is not cached
         return Project(name=name)
