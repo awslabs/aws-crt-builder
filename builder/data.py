@@ -164,8 +164,8 @@ TARGETS = {
 
 COMPILERS = {
     'default': {
-        'hosts': ['macos', 'al2012', 'manylinux', 'linux', 'windows'],
-        'targets': ['macos', 'linux'],
+        'hosts': ['macos', 'al2012', 'al2', 'manylinux', 'linux', 'windows'],
+        'targets': ['macos', 'linux', 'windows'],
 
         'versions': {
             'default': {}
