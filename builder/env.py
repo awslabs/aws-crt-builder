@@ -47,6 +47,8 @@ class Env(object):
         self.deps_dir = os.path.join(self.build_dir, 'deps')
         self.install_dir = os.path.join(self.build_dir, 'install')
         self.launch_dir = self.shell.cwd()
+    
+        print('Source directory: {}'.format(self.source_dir))
 
         # Once initialized, switch to the build dir for everything else
         self.shell.rm(self.build_dir)
@@ -111,6 +113,7 @@ class Env(object):
 
     def _cache_project(self, project):
         self._projects[project.name] = project
+        Scripts.load()
         return project
 
     def _default_project(self):
@@ -149,6 +152,7 @@ class Env(object):
                 return self._cache_project(Project(**project_config, path=self.shell.cwd()))
 
         # load any builder scripts and check them
+        print("No project file found at {}, loading scripts".format(project_config_file))
         Scripts.load()
         projects = Project.__subclasses__()
         project_cls = None
