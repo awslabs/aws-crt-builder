@@ -60,7 +60,7 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: 'us-east-1'
         run: |
-          aws s3 cp build/builder $AWS_S3_BUCKET/${{ steps.release.outputs.release_tag }}/builder
+          aws s3 cp build/builder s3://$AWS_S3_BUCKET/${{ steps.release.outputs.release_tag }}/builder
 
   manylinux:
     runs-on: ubuntu-latest
