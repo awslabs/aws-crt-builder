@@ -168,7 +168,8 @@ if __name__ == '__main__':
     else:
         build_spec = env.build_spec = default_spec(env)
 
-    print("Building project {} with spec {}".format(env.project.name, build_spec))
+    print("Building project {} with spec {}".format(
+        env.project.name, build_spec))
 
     config = env.config = produce_config(build_spec, config_file)
     if not env.config['enabled']:

@@ -57,7 +57,7 @@ class Env(object):
         # project from a name to a Project
         if not hasattr(self, 'project'):
             self.project = self._default_project()
-        
+
         if not self.project and not self.args.project:
             print('No project specified and no project found in current directory')
             sys.exit(1)
@@ -65,8 +65,9 @@ class Env(object):
         # Ensure that the specified project exists, this may return a ref or the project if
         # it is present on disk
         project = self.find_project(project_name)
-        if not project.path: # got a ref
-            print('Project {} could not be found locally, downloading'.format(project.name))
+        if not project.path:  # got a ref
+            print('Project {} could not be found locally, downloading'.format(
+                project.name))
             DownloadSource(
                 project=project, branch=self.branch).run(self)
             # Now that the project is downloaded, look it up again
