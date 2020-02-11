@@ -113,7 +113,7 @@ class Env(object):
 
     def _cache_project(self, project):
         self._projects[project.name] = project
-        Scripts.load()
+        Scripts.load(project.path)
         return project
 
     def _default_project(self):
