@@ -29,9 +29,9 @@ class Script(Action):
         def _expand_vars(cmd):
             cmd_type = type(cmd)
             if cmd_type == str:
-                cmd = _replace_variables(cmd, env.config['variables'])
+                cmd = replace_variables(cmd, env.config['variables'])
             elif cmd_type == list:
-                cmd = [_replace_variables(
+                cmd = [replace_variables(
                     sub, env.config['variables']) for sub in cmd]
             return cmd
 
