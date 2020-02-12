@@ -18,15 +18,26 @@ jobs:
     name: Sanity Test builder
     strategy:
       matrix:
-        host: [ubuntu-latest, windows-latest, macos-latest]
+        host: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.host }}
     steps:
       - name: Checkout Source
         uses: actions/checkout@v1
 
       - name: Sanity Test
+        if:  matrix.host != 'windows-latest'
+        run: |
+          python3 -m builder inspect
+      
+      - name: Sanity Test
+        if: matrix.host == 'windows-latest'
         run: |
           python -m builder inspect
+
+  sanity_test_windows:
+    name: Sanity Test builder (windows-latest)
+    runs-on: [windows-latest]
+
 
   package:
     name: Package builder app
