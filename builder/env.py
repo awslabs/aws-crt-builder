@@ -54,11 +54,11 @@ class Env(object):
 
         # build environment set up
         self.source_dir = os.environ.get(
-            "CODEBUILD_SRC_DIR", self.shell.cwd())
+            "CODEBUILD_SRC_DIR", os.path.abspath(self.shell.cwd()))
         self.build_dir = os.path.join(self.source_dir, self.args.build_dir)
         self.deps_dir = os.path.join(self.build_dir, 'deps')
         self.install_dir = os.path.join(self.build_dir, 'install')
-        self.launch_dir = self.shell.cwd()
+        self.launch_dir = os.path.abspath(self.shell.cwd())
 
         print('Source directory: {}'.format(self.source_dir))
 
@@ -190,8 +190,12 @@ class Env(object):
             return project
 
         sh = self.shell
-        search_dirs = (os.path.abspath(self.launch_dir), os.path.abspath(
-            os.path.join('.', name)), self.source_dir, os.path.join(self.deps_dir, name))
+        search_dirs = (
+            self.launch_dir,
+            os.path.abspath(os.path.join('.', name)),
+            os.path.join(self.build_dir, name)
+            self.source_dir,
+            os.path.join(self.deps_dir, name))
 
         for search_dir in search_dirs:
             if (os.path.basename(search_dir) == name) and os.path.isdir(search_dir):
