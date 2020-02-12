@@ -89,12 +89,17 @@ def find_llvm_tool(env, name, version=None):
 
 def _find_msvc_tool(env, versions):
     result = env.shell.exec('vswhere', '-legacy', '-latest',
-                            '-property', 'installationVersion')
+                            '-property', 'installationVersion', '-property', 'installationPath')
     text = result.stdout.decode(encoding='UTF-8')
-    m = re.match('(\d+)\.', text)
+    compiler = None
+    version = None
+    m = re.match('"installationPath": "(.+)"', text)
     if m:
-        return 'msvc', m.group(1)
-    return None, None
+        compiler = m.group(1)
+    m = re.match('"installationVersion": "(\d+)\.', text)
+    if m:
+        version = m.group(1)
+    return compiler, version
 
 
 def find_msvc(env, version=None):
@@ -190,11 +195,11 @@ class Toolchain(object):
                 return env.shell.where(env_cc)
             return env.shell.where('cc')
         elif self.compiler == 'clang':
-            return env.find_llvm_tool('clang', self.compiler_version if self.compiler_version != 'default' else None)[0]
+            return find_llvm_tool(env, 'clang', self.compiler_version if self.compiler_version != 'default' else None)[0]
         elif self.compiler == 'gcc':
-            return env.find_gcc_tool('gcc', self.compiler_version if self.compiler_version != 'default' else None)[0]
+            return find_gcc_tool(env, 'gcc', self.compiler_version if self.compiler_version != 'default' else None)[0]
         elif self.compiler == 'msvc':
-            return env.shell.where('cl.exe')
+            return find_msvc(env)[0]
         return None
 
     def __str__(self):
