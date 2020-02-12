@@ -61,7 +61,7 @@ class Shell(object):
                 return result
             except Exception as ex:
                 print('Failed to run {}: {}'.format(
-                    self._flatten_command(*command), ex))
+                    ' '.join(self._flatten_command(*command)), ex))
                 return None
 
     def _cd(self, directory):
