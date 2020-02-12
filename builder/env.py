@@ -157,9 +157,11 @@ class Env(object):
                     print("Failed to parse config file",
                           project_config_file, e)
                     sys.exit(1)
+
                 if not project_config.get('name', None):
                     project_config['name'] = name_hint if name_hint else os.path.dirname(
                         self.shell.cwd())
+                print('    Found project: {}'.format(project_config['name']))
                 return self._cache_project(Project(**project_config, path=self.shell.cwd()))
 
         # load any builder scripts and check them
@@ -210,7 +212,6 @@ class Env(object):
                 sh.popd()
 
                 if project:
-                    print('    Found project: {}'.format(project.path))
                     return project
 
                 # might be a project without a config
