@@ -180,6 +180,11 @@ COMPILERS = {
         'apt_keys': ["http://apt.llvm.org/llvm-snapshot.gpg.key"],
 
         'versions': {
+            'default': {
+                '!post_build_steps': [],
+                '!apt_repos': [],
+                '!cmake_args': [],
+            },
             '3': {
                 '!post_build_steps': [],
                 '!apt_repos': [],
