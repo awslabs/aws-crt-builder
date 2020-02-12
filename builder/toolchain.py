@@ -22,7 +22,7 @@ def _compiler_version(env, cc):
     if current_platform() in ('linux', 'macos'):
         result = env.shell.exec(cc, '--version', quiet=True, stderr=False)
         text = result.stdout.decode(encoding='UTF-8')
-        m = re.match('Apple (LLVM|clang) version (\d+)', test)
+        m = re.match('Apple (LLVM|clang) version (\d+)', text)
         if m:
             return m.group(2)
         m = re.match('clang version (\d+)', text)
