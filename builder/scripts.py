@@ -59,7 +59,7 @@ class Scripts(object):
 
             # Report newly loaded actions
             actions = frozenset(Action.__subclasses__())
-            new_actions = actions.difference(all_actions)
+            new_actions = actions.difference(Scripts.all_actions)
             print("Imported {}".format(
                 ', '.join([a.__name__ for a in new_actions])))
             all_actions.update(new_actions)

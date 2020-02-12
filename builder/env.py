@@ -11,6 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+from collections import OrderedDict
 import glob
 import os
 import subprocess
@@ -196,6 +197,8 @@ class Env(object):
             os.path.join(self.build_dir, name),
             self.source_dir,
             os.path.join(self.deps_dir, name))
+        # remove duplicates when these overlap
+        search_dirs = list(OrderedDict.fromkeys(search_dirs))
 
         for search_dir in search_dirs:
             print('  Looking in {}'.format(search_dir))
