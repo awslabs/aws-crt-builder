@@ -38,7 +38,9 @@ class Scripts(object):
             #     'Scripts.load: path {} is not a directory, no scripts loaded'.format(path))
             return
 
-        scripts = glob.glob('{}/**'.format(path))
+        print('Loading scripts from {}'.format(path))
+        scripts = glob.glob('{}/*.py'.format(path))
+        script += glob.glob('{}/**/*.py'.format(path))
         for script in scripts:
             if not script.endswith('.py'):
                 continue
