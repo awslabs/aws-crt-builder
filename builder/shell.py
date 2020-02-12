@@ -54,7 +54,9 @@ class Shell(object):
             result = subprocess.run(self._flatten_command(
                 *command), check=True, stdout=subprocess.PIPE, stderr=sys.stderr if kwargs.get('stderr', True) else subprocess.DEVNULL)
             if not kwargs.get('quiet', False):
-                print(result.stdout)
+                output = result.stdout.decode(encoding='UTF-8')
+                if output:
+                    print(output)
             return result
 
     def _cd(self, directory):
