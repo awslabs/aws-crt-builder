@@ -110,7 +110,7 @@ def find_msvc(env, version=None):
         if m:
             vc_version = m.group(1)
 
-        if not vc_version:
+        if not vc_version or vc_version != version:
             return None, None
 
         # Grab installation path
