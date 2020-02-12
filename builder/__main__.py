@@ -29,6 +29,8 @@ from config import produce_config, validate_build
 from toolchain import Toolchain
 from host import current_platform, current_host, current_arch
 
+import api  # force API to load and expose the virtual module
+
 
 ########################################################################################################################
 # RUN BUILD
