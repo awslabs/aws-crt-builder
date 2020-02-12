@@ -157,7 +157,9 @@ class Env(object):
                     print("Failed to parse config file",
                           project_config_file, e)
                     sys.exit(1)
-                return self._cache_project(Project(**project_config, path=self.shell.cwd()))
+                name = project_config.get(
+                    'name', name_hint if name_hint else os.path.dirname(self.shell.cwd()))
+                return self._cache_project(Project(**project_config, name=name, path=self.shell.cwd()))
 
         # load any builder scripts and check them
         Scripts.load()
