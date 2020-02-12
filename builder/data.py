@@ -181,7 +181,6 @@ COMPILERS = {
 
         'versions': {
             'default': {
-                '!post_build_steps': [],
                 '!apt_repos': [],
                 '!cmake_args': [],
             },
@@ -237,6 +236,15 @@ COMPILERS = {
                 'cxx': "clang-9",
 
                 'requires_privilege': True,
+            },
+            # 10 and 11 are XCode Apple clang/LLVM
+            '10': {
+                '!apt_repos': [],
+                '!cmake_args': [],
+            },
+            '11': {
+                '!apt_repos': [],
+                '!cmake_args': [],
             },
         },
     },

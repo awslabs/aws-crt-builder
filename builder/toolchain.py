@@ -15,11 +15,16 @@ import re
 from data import COMPILERS
 from host import current_platform
 
+# helpful list of XCode clang output: https://gist.github.com/yamaya/2924292
+
 
 def _compiler_version(env, cc):
     if current_platform() in ('linux', 'macos'):
         result = env.shell.exec(cc, '--version', quiet=True, stderr=False)
         text = result.stdout.decode(encoding='UTF-8')
+        m = re.match('Apple (LLVM|clang) version (\d+)', test)
+        if m:
+            return m.group(2)
         m = re.match('clang version (\d+)', text)
         if m:
             return m.group(1)
@@ -116,8 +121,10 @@ _default_version = None
 def default_compiler(env):
     try:
         return _default_compiler, _default_version
-    except:
+    except UnboundLocalError:
         def _find_compiler():
+            compiler = None
+            version = None
             platform = current_platform()
             if platform in ('linux', 'macos'):
                 clang_path, clang_version = find_llvm_tool(env, 'clang')
@@ -136,7 +143,6 @@ def default_compiler(env):
 
             else:
                 compiler = 'msvc'
-                version = 'unknown'
             return compiler, version
         _default_compiler, _default_version = _find_compiler()
         return _default_compiler, _default_version
