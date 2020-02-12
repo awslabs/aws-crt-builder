@@ -26,7 +26,7 @@ class CMakeBuild(Action):
         except:
             try:
                 toolchain = env.toolchain = Toolchain(env,
-                                                      spec=env.args.build)
+                                                      spec=env.build_spec)
             except:
                 toolchain = env.toolchain = Toolchain(env, default=True)
 
