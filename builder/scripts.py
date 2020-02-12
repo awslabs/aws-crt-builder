@@ -40,7 +40,7 @@ class Scripts(object):
 
         print('Loading scripts from {}'.format(path))
         scripts = glob.glob('{}/*.py'.format(path))
-        script += glob.glob('{}/**/*.py'.format(path))
+        scripts += glob.glob('{}/**/*.py'.format(path))
         for script in scripts:
             if not script.endswith('.py'):
                 continue
