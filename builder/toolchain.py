@@ -87,23 +87,22 @@ def find_llvm_tool(env, name, version=None):
     return _find_compiler_tool(env, name, versions)
 
 
-def _find_msvc_tool(env, versions):
-    result = env.shell.exec('vswhere', '-legacy', '-latest',
-                            '-property', 'installationVersion', '-property', 'installationPath')
-    text = result.stdout.decode(encoding='UTF-8')
-    compiler = None
-    version = None
-    m = re.match('"installationPath": "(.+)"', text)
-    if m:
-        compiler = m.group(1)
-    m = re.match('"installationVersion": "(\d+)\.', text)
-    if m:
-        version = m.group(1)
-    return compiler, version
-
-
 def find_msvc(env, version=None):
     """ Finds MSVC at a specific version, or the latest one available """
+    def _find_msvc(env, versions):
+        result = env.shell.exec('vswhere', '-legacy', '-latest',
+                                '-property', 'installationVersion', '-property', 'installationPath')
+        text = result.stdout.decode(encoding='UTF-8')
+        compiler = None
+        version = None
+        m = re.match('"installationPath": "(.+)"', text)
+        if m:
+            compiler = m.group(1)
+        m = re.match('"installationVersion": "(\d+)\.', text)
+        if m:
+            version = m.group(1)
+        return compiler, version
+
     versions = [version] if version else _msvc_versions()
     return _find_msvc(env, versions)
 
