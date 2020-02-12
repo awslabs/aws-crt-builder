@@ -62,4 +62,4 @@ class Scripts(object):
             new_actions = actions.difference(Scripts.all_actions)
             print("Imported {}".format(
                 ', '.join([a.__name__ for a in new_actions])))
-            all_actions.update(new_actions)
+            Scripts.all_actions.update(new_actions)
