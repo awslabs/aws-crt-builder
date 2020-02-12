@@ -90,23 +90,30 @@ def find_llvm_tool(env, name, version=None):
 def find_msvc(env, version=None):
     """ Finds MSVC at a specific version, or the latest one available """
     def _find_msvc(env, versions, install_vswhere=True):
-        result = env.shell.exec('vswhere', '-legacy', '-latest',
-                                '-property', 'installationVersion', '-property', 'installationPath')
+        vswhere = env.shell.where('vswhere')
         # if that fails, install vswhere and try again
-        if not result and install_vswhere:
+        if not vswhere and install_vswhere:
             result = env.shell.exec(
                 'choco', 'install', '--no-progress', 'vswhere')
             if result:
                 return _find_msvc(env, versions, False)
             return None, None
 
-        text = result.stdout.decode(encoding='UTF-8')
-        print('vswhere: {}'.format(text))
         compiler = None
         version = None
+
+        result = env.shell.exec('vswhere', '-legacy', '-latest',
+                                '-property', 'installationPath')
+        text = result.stdout.decode(encoding='UTF-8')
+        print('vswhere: {}'.format(text))
         m = re.match('"installationPath": "(.+)"', text)
         if m:
             compiler = m.group(1)
+
+        result = env.shell.exec('vswhere', '-legacy', '-latest',
+                                '-property', 'installationVersion')
+        text = result.stdout.decode(encoding='UTF-8')
+        print('vswhere: {}'.format(text))
         m = re.match('"installationVersion": "(\d+)\.', text)
         if m:
             version = m.group(1)
