@@ -193,7 +193,7 @@ class Env(object):
         search_dirs = (
             self.launch_dir,
             os.path.abspath(os.path.join('.', name)),
-            os.path.join(self.build_dir, name)
+            os.path.join(self.build_dir, name),
             self.source_dir,
             os.path.join(self.deps_dir, name))
 
