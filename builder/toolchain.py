@@ -96,7 +96,7 @@ def find_msvc(env, version=None):
             result = env.shell.exec(
                 'choco', 'install', '--no-progress', 'vswhere')
             if result:
-                return _find_msvc(env, versions, False)
+                return _find_msvc(env, version, False)
             return None, None
 
         compiler = None
