@@ -89,7 +89,7 @@ def find_llvm_tool(env, name, version=None):
 
 def find_msvc(env, version=None):
     """ Finds MSVC at a specific version, or the latest one available """
-    def _find_msvc(env, versions, install_vswhere=True):
+    def _find_msvc(env, version, install_vswhere=True):
         vswhere = env.shell.where('vswhere')
         # if that fails, install vswhere and try again
         if not vswhere and install_vswhere:
@@ -100,31 +100,33 @@ def find_msvc(env, version=None):
             return None, None
 
         compiler = None
-        version = None
+        vc_version = None
 
         # Grab installed version
-        result = env.shell.exec('vswhere', '-legacy', '-latest',
+        result = env.shell.exec('vswhere', '-legacy', '-version', version,
                                 '-property', 'installationVersion')
         text = result.stdout.decode(encoding='UTF-8')
-        print('vswhere: {}'.format(text))
         m = re.match('(\d+)\.?', text)
         if m:
-            version = m.group(1)
+            vc_version = m.group(1)
 
-        if version not in versions:
+        if not vc_version:
             return None, None
 
         # Grab installation path
-        result = env.shell.exec('vswhere', '-legacy', '-latest',
+        result = env.shell.exec('vswhere', '-legacy', '-version', version,
                                 '-property', 'installationPath')
         text = result.stdout.decode(encoding='UTF-8')
-        print('vswhere: {}'.format(text))
         compiler = text
 
-        return compiler, version
+        return compiler, vc_version
 
     versions = [version] if version else _msvc_versions()
-    return _find_msvc(env, versions)
+    for version in versions:
+        path, version = _find_msvc(env, version)
+        if path:
+            return path, version
+    return None, None
 
 
 def all_compilers(env):
