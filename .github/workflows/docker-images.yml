@@ -34,11 +34,6 @@ jobs:
         run: |
           python -m builder inspect
 
-  sanity_test_windows:
-    name: Sanity Test builder (windows-latest)
-    runs-on: [windows-latest]
-
-
   package:
     name: Package builder app
     runs-on: ubuntu-latest
