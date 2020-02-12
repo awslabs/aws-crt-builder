@@ -101,7 +101,7 @@ def find_msvc(env, version=None):
             return None, None
 
         text = result.stdout.decode(encoding='UTF-8')
-        print(text)
+        print('vswhere: {}'.format(text))
         compiler = None
         version = None
         m = re.match('"installationPath": "(.+)"', text)
