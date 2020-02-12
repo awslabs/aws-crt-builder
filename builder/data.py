@@ -249,7 +249,7 @@ COMPILERS = {
         },
     },
     'gcc': {
-        'hosts': ['linux'],
+        'hosts': ['linux', 'manylinux', 'al2012', 'al2'],
         'targets': ['linux'],
 
         'c': "gcc-{version}",
