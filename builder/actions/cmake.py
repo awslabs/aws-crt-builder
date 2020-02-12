@@ -25,10 +25,10 @@ class CMakeBuild(Action):
             toolchain = env.toolchain
         except:
             try:
-                toolchain = env.toolchain = Toolchain(
+                toolchain = env.toolchain = Toolchain(env,
                     spec=env.args.build)
             except:
-                toolchain = env.toolchain = Toolchain(default=True)
+                toolchain = env.toolchain = Toolchain(env, default=True)
 
         sh = env.shell
 

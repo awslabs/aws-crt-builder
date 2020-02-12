@@ -47,11 +47,15 @@ class Shell(object):
         print('>', subprocess.list2cmdline(
             self._flatten_command(*command)), flush=True)
 
-    def _run_command(self, *command):
-        self._log_command(*command)
+    def _run_command(self, *command, **kwargs):
+        if not kwargs.get('quiet', False):
+            self._log_command(*command)
         if not self.dryrun:
-            subprocess.check_call(self._flatten_command(
-                *command), stdout=sys.stdout, stderr=sys.stderr)
+            result = subprocess.run(self._flatten_command(
+                *command), check=True, stdout=subprocess.PIPE, stderr=sys.stderr if kwargs.get('stderr', True) else subprocess.DEVNULL)
+            if not kwargs.get('quiet', False):
+                print(result.stdout)
+            return result
 
     def _cd(self, directory):
         if self.dryrun:
@@ -161,10 +165,14 @@ class Shell(object):
 
     def exec(self, *command, **kwargs):
         """ Executes a shell command, or just logs it for dry runs """
+        output = ''
         if kwargs.get('always', False):
             prev_dryrun = self.dryrun
             self.dryrun = False
-            self._run_command(*command)
+            output = self._run_command(
+                *command, quiet=kwargs.get('quiet', False), stderr=kwargs.get('stderr', False))
             self.dryrun = prev_dryrun
         else:
-            self._run_command(*command)
+            output = self._run_command(
+                *command, quiet=kwargs.get('quiet', False), stderr=kwargs.get('stderr', False))
+        return output

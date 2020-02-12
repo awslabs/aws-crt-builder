@@ -205,6 +205,17 @@ COMPILERS = {
 
                 'requires_privilege': True,
             },
+            '7': {
+                'apt_repos': [
+                    "deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-7 main",
+                ],
+                'apt_packages': ["clang-7", "clang-tidy-7"],
+
+                'c': "clang-7",
+                'cxx': "clang-7",
+
+                'requires_privilege': True,
+            },
             '8': {
                 'apt_repos': [
                     "deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-8 main",

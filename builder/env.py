@@ -62,11 +62,6 @@ class Env(object):
 
         print('Source directory: {}'.format(self.source_dir))
 
-        # Once initialized, switch to the build dir for everything else
-        self.shell.rm(self.build_dir)
-        self.shell.mkdir(self.build_dir)
-        self.shell.cd(self.build_dir)
-
         # default the project to whatever can be found, or convert
         # project from a name to a Project
         if not hasattr(self, 'project'):
@@ -74,8 +69,9 @@ class Env(object):
 
         if not self.project and not self.args.project:
             print('No project specified and no project found in current directory')
-            sys.exit(1)
-        project_name = self.project if self.project else self.args.project1
+            return
+
+        project_name = self.project if self.project else self.args.project
         # Ensure that the specified project exists, this may return a ref or the project if
         # it is present on disk
         project = self.find_project(project_name)
@@ -181,6 +177,9 @@ class Env(object):
 
         return None
 
+    def projects(self):
+        return self._projects.keys()
+
     def find_project(self, name, hints=[]):
         """ Finds a project, either on disk, or makes a virtual one to allow for acquisition """
         project = self._projects.get(name, None)
@@ -218,22 +217,3 @@ class Env(object):
 
         # Enough of a project to get started, note that this is not cached
         return Project(name=name)
-
-    def _find_compiler_tool(self, name, versions):
-        for version in versions:
-            for pattern in ('{name}-{version}', '{name}-{version}.0'):
-                exe = pattern.format(name=name, version=version)
-                path = self.shell.where(exe)
-                if path:
-                    return path, version
-        return None, None
-
-    def find_gcc_tool(self, name, version=None):
-        """ Finds gcc, gcc-ld, gcc-ranlib, etc at a specific version, or the latest one available """
-        versions = [version] if version else list(range(8, 5, -1))
-        return self._find_compiler_tool(name, versions)
-
-    def find_llvm_tool(self, name, version=None):
-        """ Finds clang, clang-tidy, lld, etc at a specific version, or the latest one available """
-        versions = [version] if version else list(range(10, 6, -1))
-        return self._find_compiler_tool(name, versions)

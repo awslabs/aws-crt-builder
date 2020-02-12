@@ -27,6 +27,8 @@ from actions.cmake import CMakeBuild, CTestRun
 from env import Env
 from build import Builder
 from config import produce_config, validate_build
+from toolchain import Toolchain, default_compiler, all_compilers
+from host import current_platform, current_host, current_arch
 
 
 ########################################################################################################################
@@ -69,47 +71,25 @@ def run_build(build_spec, env):
 
     env.shell.popenv()
 
-########################################################################################################################
-# MAIN
-########################################################################################################################
-
-
 def default_spec(env):
-
-    compiler = 'gcc'
-    version = 'default'
-    target = host = 'default'
-
-    arch = ('x64' if sys.maxsize > 2**32 else 'x86')
-
-    if sys.platform in ('linux', 'linux2'):
-        target = host = 'linux'
-        clang_path, clang_version = env.find_llvm_tool('clang')
-        gcc_path, gcc_version = env.find_gcc_tool('gcc')
-        if clang_path:
-            print('Found clang {} as default compiler'.format(clang_version))
-            compiler = 'clang'
-            version = clang_version
-        elif gcc_path:
-            print('Found gcc {} as default compiler'.format(gcc_version))
-            compiler = 'gcc'
-            version = gcc_version
-        else:
-            print(
-                'Neither GCC or Clang could be found on this system, perhaps not installed yet?')
-
-        if os.uname()[4][:3].startswith('arm'):
-            arch = ('armv8' if sys.maxsize > 2**32 else 'armv7')
-
-    elif sys.platform in ('win32'):
-        target = host = 'windows'
-        compiler = 'msvc'
-    elif sys.platform in ('darwin'):
-        target = host = 'macos'
-        compiler = 'clang'
+    target = current_platform()
+    host = current_host()
+    arch = current_arch()
+    compiler, version = default_compiler(env)
 
     return BuildSpec(host=host, compiler=compiler, compiler_version='{}'.format(version), target=target, arch=arch)
 
+
+def inspect_host(env):
+    spec = default_spec(env)
+    toolchain = Toolchain(env, spec=spec)
+    print('Host: {} {}'.format(spec.host, spec.arch))
+    print('Default Target: {} {}'.format(spec.target, spec.arch))
+    print('Default Compiler: {} {}'.format(
+        spec.compiler, toolchain.compiler_version))
+    compilers = ['{} {}'.format(c[0], c[1]) for c in all_compilers(env)]
+    print('Available Compilers: {}'.format(', '.join(compilers)))
+    print('Available Projects: {}'.format(', '.join(env.projects())))
 
 if __name__ == '__main__':
     import argparse
@@ -138,17 +118,7 @@ if __name__ == '__main__':
     run.add_argument('run', type=str)
     run.add_argument('args', nargs=argparse.REMAINDER)
 
-    codebuild = commands.add_parser('codebuild', help="Create codebuild jobs")
-    codebuild.add_argument(
-        'project', type=str, help='The name of the repo to create the projects for')
-    codebuild.add_argument('--github-account', type=str, dest='github_account',
-                           default='awslabs', help='The GitHub account that owns the repo')
-    codebuild.add_argument('--profile', type=str, default='default',
-                           help='The profile in ~/.aws/credentials to use when creating the jobs')
-    codebuild.add_argument('--inplace-script', action='store_true',
-                           help='Use the python script in codebuild/builder.py instead of downloading it')
-    codebuild.add_argument(
-        '--config', type=str, help='The config file to use when generating the projects')
+    inspect = commands.add_parser('inspect', help='Dump information about the current host')
 
     args = parser.parse_args()
 
@@ -160,6 +130,10 @@ if __name__ == '__main__':
         'project': args.project,
     })
 
+    if args.command == 'inspect':
+        inspect_host(env)
+        sys.exit(0)
+
     # Build the config object
     config_file = os.path.join(env.project.path, "builder.json")
     build_name = getattr(args, 'build', None)
@@ -168,11 +142,14 @@ if __name__ == '__main__':
     else:
         build_spec = env.build_spec = default_spec(env)
 
-    print("Building project {} with spec {}".format(
-        env.project.name, build_spec))
-
     config = env.config = produce_config(
-        build_spec, config_file, source_dir=env.source_dir, build_dir=env.build_dir, install_dir=env.install_dir, project=env.project.name, project_dir=env.project.path, spec=str(build_spec))
+        build_spec, config_file,
+        source_dir=env.source_dir,
+        build_dir=env.build_dir,
+        install_dir=env.install_dir,
+        project=env.project.name,
+        project_dir=env.project.path,
+        spec=str(build_spec))
     if not env.config['enabled']:
         raise Exception("The project is disabled in this configuration")
 
@@ -182,6 +159,11 @@ if __name__ == '__main__':
         pprint(config)
 
     validate_build(build_spec)
+
+    # Once initialized, switch to the build dir for everything else
+    env.shell.rm(env.build_dir)
+    env.shell.mkdir(env.build_dir)
+    env.shell.cd(env.build_dir)
 
     # Run a build with a specific spec/toolchain
     if args.command == 'build':
