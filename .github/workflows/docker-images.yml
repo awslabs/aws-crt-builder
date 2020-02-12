@@ -32,7 +32,7 @@ jobs:
       - name: Sanity Test
         if: matrix.host == 'windows-latest'
         run: |
-          choco install vswhere
+          choco install --no-progress vswhere
           python -m builder inspect
 
   package:
