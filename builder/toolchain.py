@@ -87,14 +87,15 @@ def find_llvm_tool(env, name, version=None):
     return _find_compiler_tool(env, name, versions)
 
 
-def find_msvc(env, version=None, install_vswhere=True):
+def find_msvc(env, version=None):
     """ Finds MSVC at a specific version, or the latest one available """
-    def _find_msvc(env, versions):
+    def _find_msvc(env, versions, install_vswhere=True):
         result = env.shell.exec('vswhere', '-legacy', '-latest',
                                 '-property', 'installationVersion', '-property', 'installationPath')
         # if that fails, install vswhere and try again
         if not result and install_vswhere:
-            result = env.shell.exec('choco', 'install', 'vswhere')
+            result = env.shell.exec(
+                'choco', 'install', '--no-progress', 'vswhere')
             if result:
                 return _find_msvc(env, versions, False)
             return None, None
