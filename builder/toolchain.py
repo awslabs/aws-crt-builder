@@ -87,14 +87,20 @@ def find_llvm_tool(env, name, version=None):
     return _find_compiler_tool(env, name, versions)
 
 
-def _find_msvc_tool(env, name, versions):
-    return 'unknown', 'unknown'
+def _find_msvc_tool(env, versions):
+    result = env.shell.exec('vswhere', '-legacy', '-latest',
+                            '-property', 'installationVersion')
+    text = result.stdout.decode(encoding='UTF-8')
+    m = re.match('(\d+)\.', text)
+    if m:
+        return 'msvc', m.group(1)
+    return None, None
 
 
-def find_msvc_tool(env, name, version=None):
-    """ Finds cl.exe, link.exe, etc at a specific version, or the latest one available """
+def find_msvc(env, version=None):
+    """ Finds MSVC at a specific version, or the latest one available """
     versions = [version] if version else _msvc_versions()
-    return _find_msvc_tool(env, name, versions)
+    return _find_msvc(env, versions)
 
 
 def all_compilers(env):
@@ -109,7 +115,7 @@ def all_compilers(env):
             compilers.append(('clang', version))
     if current_platform() == 'windows':
         for version in _msvc_versions():
-            path, _version = find_msvc_tool(env, 'cl', version)
+            path, _version = find_msvc(env, version)
             if path:
                 compilers.append(('msvc', version))
     return compilers
@@ -143,7 +149,7 @@ def default_compiler(env):
                         'Neither GCC or Clang could be found on this system, perhaps not installed yet?')
 
             else:
-                compiler = 'msvc'
+                compiler, version = find_msvc(env)
             return compiler, version
         _default_compiler, _default_version = _find_compiler()
         return _default_compiler, _default_version
