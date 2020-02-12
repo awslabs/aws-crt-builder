@@ -31,7 +31,7 @@ class Scripts(object):
         """ Loads all scripts from ${path}/.Scripts/**/*.py to make their classes available """
         import importlib.util
 
-        path = os.path.abspath(os.path.join(path, '.Scripts'))
+        path = os.path.abspath(os.path.join(path, '.builder'))
 
         print('Loading scripts from {}'.format(path))
         if not os.path.isdir(path):
