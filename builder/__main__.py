@@ -171,7 +171,7 @@ if __name__ == '__main__':
     # Once initialized, switch to the build dir for everything else
     env.shell.rm(env.build_dir)
     env.shell.mkdir(env.build_dir)
-    env.shell.cd(env.build_dir)
+    env.shell.cd(env.source_dir)
 
     # Run a build with a specific spec/toolchain
     if args.command == 'build':
