@@ -33,12 +33,12 @@ class Scripts(object):
 
         path = os.path.abspath(os.path.join(path, '.Scripts'))
 
+        print('Loading scripts from {}'.format(path))
         if not os.path.isdir(path):
-            # print(
-            #     'Scripts.load: path {} is not a directory, no scripts loaded'.format(path))
+            print(
+                'Scripts.load: {} is not a directory, no scripts loaded'.format(path))
             return
 
-        print('Loading scripts from {}'.format(path))
         scripts = glob.glob('{}/*.py'.format(path))
         scripts += glob.glob('{}/**/*.py'.format(path))
         for script in scripts:
