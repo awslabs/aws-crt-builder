@@ -33,7 +33,6 @@ jobs:
         if: matrix.host == 'windows-latest'
         run: |
           choco install vswhere
-          call refreshenv.cmd
           python -m builder inspect
 
   package:
