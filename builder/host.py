@@ -41,8 +41,11 @@ def _file_contains(path, search):
                 line = f.readline()
     return False
 
+
 # cache the result of this, since it involves a bunch of file I/O
 _current_host = None
+
+
 def current_host():
     try:
         return _current_host
@@ -64,4 +67,3 @@ def current_host():
                 return platform
         _current_host = _discover_host()
         return _current_host
-                
