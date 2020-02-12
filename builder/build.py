@@ -11,10 +11,6 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-import glob
-import os
-import sys
-
 from vmod import VirtualModule
 from shell import Shell
 from env import Env
@@ -28,16 +24,10 @@ from actions.script import Script
 from toolchain import Toolchain
 import host
 
-# Must cache available actions or the GC will delete them
-_all_actions = set()
-
 
 class Builder(VirtualModule):
     """ The interface available to scripts that define projects, builds, actions, or configuration """
 
-    ###########################################################################
-    # BEGIN public classes
-    ###########################################################################
     Shell = Shell
     Env = Env
     Action = Action
@@ -57,48 +47,3 @@ class Builder(VirtualModule):
     DownloadSource = DownloadSource
     InstallTools = InstallTools
     Script = Script
-    ###########################################################################
-    # END public classes
-    ###########################################################################
-
-    def __init__(self):
-        _all_actions = set(Builder.Action.__subclasses__())
-        self.scripts = Scripts()
-
-    @staticmethod
-    def _find_actions():
-        _all_actions = set(Action.__subclasses__())
-        return _all_actions
-
-    @staticmethod
-    def find_action(name):
-        """ Finds any loaded action class by name and returns it """
-        name = name.replace('-', '').lower()
-        all_actions = Builder._find_actions()
-        for action in all_actions:
-            if action.__name__.lower() == name:
-                return action
-
-    @staticmethod
-    def run_action(action, env):
-        """ Runs an action, and any generated child actions recursively """
-        action_type = type(action)
-        if action_type is str:
-            try:
-                action_cls = Builder.find_action(action)
-                action = action_cls()
-            except:
-                print("Unable to find action {} to run".format(action))
-                all_actions = [a.__name__ for a in Builder._find_actions()]
-                print("Available actions: \n\t{}".format(
-                    '\n\t'.join(all_actions)))
-                sys.exit(2)
-
-        print("Running: {}".format(action), flush=True)
-        children = action.run(env)
-        if children:
-            if not isinstance(children, list) and not isinstance(children, tuple):
-                children = [children]
-            for child in children:
-                Builder.run_action(child, env)
-        print("Finished: {}".format(action), flush=True)

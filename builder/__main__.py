@@ -24,9 +24,9 @@ from actions.install import InstallTools
 from actions.git import DownloadDependencies
 from actions.cmake import CMakeBuild, CTestRun
 from env import Env
-from build import Builder
+from scripts import Scripts
 from config import produce_config, validate_build
-from toolchain import Toolchain, default_compiler, all_compilers
+from toolchain import Toolchain
 from host import current_platform, current_host, current_arch
 
 
@@ -56,7 +56,7 @@ def run_build(build_spec, env):
     for var, value in config.get('build_env', {}).items():
         env.shell.setenv(var, value)
 
-    Builder.run_action(
+    Scripts.run_action(
         Script([
             InstallTools(),
             DownloadDependencies(),
@@ -75,7 +75,7 @@ def default_spec(env):
     target = current_platform()
     host = current_host()
     arch = current_arch()
-    compiler, version = default_compiler(env)
+    compiler, version = Toolchain.default_compiler(env)
 
     return BuildSpec(host=host, compiler=compiler, compiler_version='{}'.format(version), target=target, arch=arch)
 
@@ -85,9 +85,10 @@ def inspect_host(env):
     toolchain = Toolchain(env, spec=spec)
     print('Host: {} {}'.format(spec.host, spec.arch))
     print('Default Target: {} {}'.format(spec.target, spec.arch))
-    print('Default Compiler: {} (version: {})'.format(
-        spec.compiler, toolchain.compiler_version))
-    compilers = ['{} {}'.format(c[0], c[1]) for c in all_compilers(env)]
+    print('Default Compiler: {} (version: {}) {}'.format(
+        spec.compiler, toolchain.compiler_version, toolchain.compiler_path(env)))
+    compilers = ['{} {}'.format(c[0], c[1])
+                 for c in Toolchain.all_compilers(env)]
     print('Available Compilers: {}'.format(', '.join(compilers)))
     print('Available Projects: {}'.format(', '.join(env.projects())))
 
@@ -124,8 +125,7 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    # set up builder and environment
-    builder = Builder()
+    # set up environment
     env = Env({
         'dryrun': args.dry_run,
         'args': args,
@@ -135,6 +135,10 @@ if __name__ == '__main__':
     if args.command == 'inspect':
         inspect_host(env)
         sys.exit(0)
+
+    if not env.project:
+        print('No project specified and no project found in current directory')
+        sys.exit(1)
 
     # Build the config object
     config_file = os.path.join(env.project.path, "builder.json")

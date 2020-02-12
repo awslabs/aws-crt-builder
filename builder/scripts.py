@@ -20,7 +20,7 @@ from action import Action
 
 
 class Scripts(object):
-    """ Manages loading and context of per-project scripts """
+    """ Manages loading, context, and running of per-project scripts """
     all_actions = set()
 
     def __init__(self):
@@ -28,10 +28,10 @@ class Scripts(object):
 
     @staticmethod
     def load(path='.'):
-        """ Loads all scripts from ${path}/.builder/**/*.py to make their classes available """
+        """ Loads all scripts from ${path}/.Scripts/**/*.py to make their classes available """
         import importlib.util
 
-        path = os.path.abspath(os.path.join(path, '.builder'))
+        path = os.path.abspath(os.path.join(path, '.Scripts'))
 
         if not os.path.isdir(path):
             # print(
@@ -63,3 +63,41 @@ class Scripts(object):
             print("Imported {}".format(
                 ', '.join([a.__name__ for a in new_actions])))
             Scripts.all_actions.update(new_actions)
+
+    @staticmethod
+    def _find_actions():
+        _all_actions = set(Action.__subclasses__())
+        return _all_actions
+
+    @staticmethod
+    def find_action(name):
+        """ Finds any loaded action class by name and returns it """
+        name = name.replace('-', '').lower()
+        all_actions = Scripts._find_actions()
+        for action in all_actions:
+            if action.__name__.lower() == name:
+                return action
+
+    @staticmethod
+    def run_action(action, env):
+        """ Runs an action, and any generated child actions recursively """
+        action_type = type(action)
+        if action_type is str:
+            try:
+                action_cls = Scripts.find_action(action)
+                action = action_cls()
+            except:
+                print("Unable to find action {} to run".format(action))
+                all_actions = [a.__name__ for a in Scripts._find_actions()]
+                print("Available actions: \n\t{}".format(
+                    '\n\t'.join(all_actions)))
+                sys.exit(2)
+
+        print("Running: {}".format(action), flush=True)
+        children = action.run(env)
+        if children:
+            if not isinstance(children, list) and not isinstance(children, tuple):
+                children = [children]
+            for child in children:
+                Scripts.run_action(child, env)
+        print("Finished: {}".format(action), flush=True)

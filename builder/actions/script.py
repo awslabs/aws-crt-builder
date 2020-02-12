@@ -11,9 +11,9 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from build import Builder
 from action import Action
 from config import replace_variables
+from scripts import Scripts
 
 
 class Script(Action):
@@ -46,7 +46,7 @@ class Script(Action):
             elif cmd_type == list:
                 sh.exec(*cmd)
             elif isinstance(cmd, Action):
-                Builder.run_action(cmd, env)
+                Scripts.run_action(cmd, env)
             elif callable(cmd):
                 return cmd(env)
             else:

@@ -69,7 +69,6 @@ class Env(object):
             self.project = self._default_project()
 
         if not self.project and not self.args.project:
-            print('No project specified and no project found in current directory')
             return
 
         project_name = self.project if self.project else self.args.project

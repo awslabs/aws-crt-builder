@@ -117,11 +117,11 @@ class Toolchain(object):
                 return env.shell.where(env_cc)
             return env.shell.where('cc')
         elif self.compiler == 'clang':
-            return find_llvm_tool(env, 'clang', self.compiler_version if self.compiler_version != 'default' else None)[0]
+            return Toolchain.find_llvm_tool(env, 'clang', self.compiler_version if self.compiler_version != 'default' else None)[0]
         elif self.compiler == 'gcc':
-            return find_gcc_tool(env, 'gcc', self.compiler_version if self.compiler_version != 'default' else None)[0]
+            return Toolchain.find_gcc_tool(env, 'gcc', self.compiler_version if self.compiler_version != 'default' else None)[0]
         elif self.compiler == 'msvc':
-            return find_msvc(env)[0]
+            return Toolchain.find_msvc(env)[0]
         return None
 
     def __str__(self):
@@ -207,32 +207,33 @@ class Toolchain(object):
 
     @staticmethod
     def default_compiler(env):
-        try:
+        if Toolchain._default_compiler and Toolchain._default_version:
             return Toolchain._default_compiler, Toolchain._default_version
-        except UnboundLocalError:
-            def _find_compiler():
-                compiler = None
-                version = None
-                platform = current_platform()
-                if platform in ('linux', 'macos'):
-                    clang_path, clang_version = Toolchain.find_llvm_tool(
-                        env, 'clang')
-                    gcc_path, gcc_version = Toolchain.find_gcc_tool(env, 'gcc')
-                    if clang_path:
-                        print('Found clang {} as default compiler'.format(
-                            clang_version))
-                        compiler = 'clang'
-                        version = clang_version
-                    elif gcc_path:
-                        print('Found gcc {} as default compiler'.format(gcc_version))
-                        compiler = 'gcc'
-                        version = gcc_version
-                    else:
-                        print(
-                            'Neither GCC or Clang could be found on this system, perhaps not installed yet?')
 
+        def _find_compiler():
+            compiler = None
+            version = None
+            platform = current_platform()
+            if platform in ('linux', 'macos'):
+                clang_path, clang_version = Toolchain.find_llvm_tool(
+                    env, 'clang')
+                gcc_path, gcc_version = Toolchain.find_gcc_tool(env, 'gcc')
+                if clang_path:
+                    compiler = 'clang'
+                    version = clang_version
+                elif gcc_path:
+                    compiler = 'gcc'
+                    version = gcc_version
                 else:
-                    compiler, version = find_msvc(env)
-                return compiler, version
-            Toolchain._default_compiler, Toolchain._default_version = _find_compiler()
-            return Toolchain._default_compiler, Toolchain._default_version
+                    print(
+                        'Neither GCC or Clang could be found on this system, perhaps not installed yet?')
+
+            else:
+                compiler, version = find_msvc(env)
+            if not compiler or not version:
+                print('WARNING: Default compiler could not be found')
+
+            return compiler, version
+
+        Toolchain._default_compiler, Toolchain._default_version = _find_compiler()
+        return Toolchain._default_compiler, Toolchain._default_version
