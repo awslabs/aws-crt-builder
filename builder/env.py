@@ -164,8 +164,6 @@ class Env(object):
                 return self._cache_project(Project(**project_config, path=self.shell.cwd()))
 
         # load any builder scripts and check them
-        print("No project file found at {}, loading scripts".format(
-            project_config_file))
         Scripts.load()
         projects = Project.__subclasses__()
         project_cls = None
@@ -183,7 +181,7 @@ class Env(object):
 
         return None
 
-    def find_project(self, name):
+    def find_project(self, name, hints=[]):
         """ Finds a project, either on disk, or makes a virtual one to allow for acquisition """
         project = self._projects.get(name, None)
         if project:
@@ -192,6 +190,7 @@ class Env(object):
         print('Looking for project {}'.format(name))
         sh = self.shell
         search_dirs = (
+            *hints,
             self.launch_dir,
             os.path.abspath('.'),
             os.path.abspath(os.path.join('.', name)),
