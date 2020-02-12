@@ -28,6 +28,7 @@ def _compiler_version(env, cc):
             return m.group(1)
     return 'unknown'
 
+
 def _find_compiler_tool(env, name, versions):
     # look for the default tool, and see if the version is in the search set
     path = env.shell.where(name)
@@ -43,41 +44,52 @@ def _find_compiler_tool(env, name, versions):
                 return path, version
     return None, None
 
+
 def _clang_versions():
-    versions = [v for v in COMPILERS['clang']['versions'].keys() if v != 'default']
+    versions = [v for v in COMPILERS['clang']
+                ['versions'].keys() if v != 'default']
     versions.sort()
     versions.reverse()
     return versions
+
 
 def _gcc_versions():
-    versions = [v for v in COMPILERS['gcc']['versions'].keys() if v != 'default']
+    versions = [v for v in COMPILERS['gcc']
+                ['versions'].keys() if v != 'default']
     versions.sort()
     versions.reverse()
     return versions
 
+
 def _msvc_versions():
-    versions = [v for v in COMPILERS['msvc']['versions'].keys() if v != 'default']
+    versions = [v for v in COMPILERS['msvc']
+                ['versions'].keys() if v != 'default']
     versions.sort()
     versions.reverse()
     return versions
+
 
 def find_gcc_tool(env, name, version=None):
     """ Finds gcc, gcc-ld, gcc-ranlib, etc at a specific version, or the latest one available """
     versions = [version] if version else _gcc_versions()
     return _find_compiler_tool(env, name, versions)
 
+
 def find_llvm_tool(env, name, version=None):
     """ Finds clang, clang-tidy, lld, etc at a specific version, or the latest one available """
     versions = [version] if version else _clang_versions()
     return _find_compiler_tool(env, name, versions)
 
+
 def _find_msvc_tool(env, name, versions):
     return 'unknown', 'unknown'
+
 
 def find_msvc_tool(env, name, version=None):
     """ Finds cl.exe, link.exe, etc at a specific version, or the latest one available """
     versions = [version] if version else _msvc_versions()
     return _find_msvc_tool(env, name, versions)
+
 
 def all_compilers(env):
     compilers = []
@@ -96,8 +108,11 @@ def all_compilers(env):
                 compilers.append(('msvc', version))
     return compilers
 
+
 _default_compiler = None
 _default_version = None
+
+
 def default_compiler(env):
     try:
         return _default_compiler, _default_version
@@ -147,9 +162,10 @@ class Toolchain(object):
         for slot in ('host', 'target', 'arch', 'compiler', 'compiler_version'):
             if slot in kwargs:
                 setattr(self, slot, kwargs[slot])
-        
+
         if self.compiler_version == 'default':
-            self.compiler_version = _compiler_version(env, self.compiler_path(env))
+            self.compiler_version = _compiler_version(
+                env, self.compiler_path(env))
 
         self.name = '-'.join([self.host, self.compiler,
                               self.compiler_version, self.target, self.arch])

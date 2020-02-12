@@ -71,6 +71,7 @@ def run_build(build_spec, env):
 
     env.shell.popenv()
 
+
 def default_spec(env):
     target = current_platform()
     host = current_host()
@@ -90,6 +91,7 @@ def inspect_host(env):
     compilers = ['{} {}'.format(c[0], c[1]) for c in all_compilers(env)]
     print('Available Compilers: {}'.format(', '.join(compilers)))
     print('Available Projects: {}'.format(', '.join(env.projects())))
+
 
 if __name__ == '__main__':
     import argparse
@@ -118,7 +120,8 @@ if __name__ == '__main__':
     run.add_argument('run', type=str)
     run.add_argument('args', nargs=argparse.REMAINDER)
 
-    inspect = commands.add_parser('inspect', help='Dump information about the current host')
+    inspect = commands.add_parser(
+        'inspect', help='Dump information about the current host')
 
     args = parser.parse_args()
 
