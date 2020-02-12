@@ -132,9 +132,9 @@ class Toolchain(object):
 
     @staticmethod
     def find_gcc_tool(env, name, version=None):
-    """ Finds gcc, gcc-ld, gcc-ranlib, etc at a specific version, or the latest one available """
-    versions = [version] if version else _gcc_versions()
-    return _find_compiler_tool(env, name, versions)
+        """ Finds gcc, gcc-ld, gcc-ranlib, etc at a specific version, or the latest one available """
+        versions = [version] if version else _gcc_versions()
+        return _find_compiler_tool(env, name, versions)
 
     @staticmethod
     def find_llvm_tool(env, name, version=None):
