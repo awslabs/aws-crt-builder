@@ -30,7 +30,7 @@ class DownloadSource(Action):
 
         sh = env.shell
 
-        sh.exec("git", "clone", self.project.url, path, always=True)
+        sh.exec("git", "clone", self.project.url, self.path, always=True)
         sh.pushd(self.path)
         try:
             sh.exec("git", "checkout", self.branch, always=True)
