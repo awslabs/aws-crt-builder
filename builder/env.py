@@ -189,22 +189,28 @@ class Env(object):
         if project:
             return project
 
+        print('Looking for project {}'.format(name))
         sh = self.shell
         search_dirs = (
             self.launch_dir,
+            os.path.abspath('.'),
             os.path.abspath(os.path.join('.', name)),
             os.path.join(self.build_dir, name),
             self.source_dir,
             os.path.join(self.deps_dir, name))
 
         for search_dir in search_dirs:
+            print('  Looking in {}'.format(search_dir))
             if (os.path.basename(search_dir) == name) and os.path.isdir(search_dir):
                 sh.pushd(search_dir)
                 project = self._project_from_cwd(name)
+                if project:
+                    print('    Found project')
                 sh.popd()
 
                 # might be a project without a config
                 if not project and looks_like_code(search_dir):
+                    print(('    Found source code that looks like a project'))
                     project = self._cache_project(
                         Project(name=name, path=search_dir))
                     return project
