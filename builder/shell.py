@@ -51,13 +51,18 @@ class Shell(object):
         if not kwargs.get('quiet', False):
             self._log_command(*command)
         if not self.dryrun:
-            result = subprocess.run(self._flatten_command(
-                *command), check=True, stdout=subprocess.PIPE, stderr=sys.stderr if kwargs.get('stderr', True) else subprocess.DEVNULL)
-            if not kwargs.get('quiet', False):
-                output = result.stdout.decode(encoding='UTF-8')
-                if output:
-                    print(output)
-            return result
+            try:
+                result = subprocess.run(self._flatten_command(
+                    *command), check=True, stdout=subprocess.PIPE, stderr=sys.stderr if kwargs.get('stderr', True) else subprocess.DEVNULL)
+                if not kwargs.get('quiet', False):
+                    output = result.stdout.decode(encoding='UTF-8')
+                    if output:
+                        print(output)
+                return result
+            except Exception as ex:
+                print('Failed to run {}: {}'.format(
+                    self._flatten_command(*command), ex))
+                return None
 
     def _cd(self, directory):
         if self.dryrun:
