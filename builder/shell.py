@@ -11,6 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+from collections import namedtuple
 import os
 import shutil
 import subprocess
@@ -52,13 +53,24 @@ class Shell(object):
             self._log_command(*command)
         if not self.dryrun:
             try:
-                result = subprocess.run(self._flatten_command(
-                    *command), check=True, stdout=subprocess.PIPE, stderr=sys.stderr if kwargs.get('stderr', True) else subprocess.DEVNULL)
-                if not kwargs.get('quiet', False):
-                    output = result.stdout.decode(encoding='UTF-8')
-                    if output:
-                        print(output)
-                return result
+                proc = subprocess.Popen(
+                    self._flatten_command(*command),
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    bufsize=0)  # do not buffer output
+
+                output = bytes("", 'UTF-8')
+                line = proc.stdout.readline()
+                while (line):
+                    output += line
+                    if not kwargs.get('quiet', False):
+                        line = line.decode(encoding='UTF-8')
+                        print(line)
+                    line = proc.stdout.readline()
+                proc.wait()
+
+                return namedtuple('ExecResult', ['returncode', 'pid', 'output'])(proc.returncode, proc.pid, output)
+
             except Exception as ex:
                 print('Failed to run {}: {}'.format(
                     ' '.join(self._flatten_command(*command)), ex))

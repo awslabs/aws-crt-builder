@@ -22,7 +22,7 @@ from host import current_platform
 def _compiler_version(env, cc):
     if current_platform() in ('linux', 'macos'):
         result = env.shell.exec(cc, '--version', quiet=True, stderr=False)
-        text = result.stdout.decode(encoding='UTF-8')
+        text = result.output.decode(encoding='UTF-8')
         # Apple clang
         m = re.match('Apple (LLVM|clang) version (\d+)', text)
         if m:
@@ -151,7 +151,7 @@ class Toolchain(object):
             if not vswhere and install_vswhere:
                 result = env.shell.exec(
                     'choco', 'install', '--no-progress', 'vswhere')
-                if result:
+                if result.returncode == 0:
                     return _find_msvc(env, version, False)
                 return None, None
 
@@ -161,7 +161,7 @@ class Toolchain(object):
             # Grab installed version
             result = env.shell.exec('vswhere', '-legacy', '-version', version,
                                     '-property', 'installationVersion', quiet=True)
-            text = result.stdout.decode(encoding='UTF-8')
+            text = result.output.decode(encoding='UTF-8')
             m = re.match('(\d+)\.?', text)
             if m:
                 vc_version = m.group(1)
@@ -172,7 +172,7 @@ class Toolchain(object):
             # Grab installation path
             result = env.shell.exec('vswhere', '-legacy', '-version', version,
                                     '-property', 'installationPath', quiet=True)
-            text = result.stdout.decode(encoding='UTF-8')
+            text = result.output.decode(encoding='UTF-8')
             compiler = text.strip()
 
             return compiler, vc_version
