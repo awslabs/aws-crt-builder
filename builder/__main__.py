@@ -86,7 +86,7 @@ def inspect_host(env):
     toolchain = Toolchain(env, spec=spec)
     print('Host: {} {}'.format(spec.host, spec.arch))
     print('Default Target: {} {}'.format(spec.target, spec.arch))
-    print('Default Compiler: {} {}'.format(
+    print('Default Compiler: {} (version: {})'.format(
         spec.compiler, toolchain.compiler_version))
     compilers = ['{} {}'.format(c[0], c[1]) for c in all_compilers(env)]
     print('Available Compilers: {}'.format(', '.join(compilers)))
