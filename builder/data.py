@@ -313,3 +313,7 @@ COMPILERS = {
         }
     }
 }
+
+COMPILERS['msvc']['versions']['14'] = COMPILERS['msvc']['versions']['2015']
+COMPILERS['msvc']['versions']['15'] = COMPILERS['msvc']['versions']['2017']
+COMPILERS['msvc']['versions']['16'] = COMPILERS['msvc']['versions']['2019']
