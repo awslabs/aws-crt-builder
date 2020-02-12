@@ -16,8 +16,7 @@ import os
 import sys
 
 # If this is running locally for debugging, we need to add the current directory, when packaged this is a non-issue
-if __name__ == '__main__':  # nopep8
-    sys.path.append(os.path.abspath(os.path.dirname(__file__)))  # nopep8
+sys.path.append(os.path.abspath(os.path.dirname(__file__)))  # nopep8
 
 from spec import BuildSpec
 from actions.script import Script
