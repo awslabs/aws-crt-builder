@@ -117,7 +117,7 @@ def find_msvc(env, version=None):
         result = env.shell.exec('vswhere', '-legacy', '-version', version,
                                 '-property', 'installationPath', quiet=True)
         text = result.stdout.decode(encoding='UTF-8')
-        compiler = text.trim()
+        compiler = text.strip()
 
         return compiler, vc_version
 
