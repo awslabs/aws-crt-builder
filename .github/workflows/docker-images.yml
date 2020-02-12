@@ -16,7 +16,10 @@ on:
 jobs:
   sanity_test:
     name: Sanity Test builder
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        host: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.host }}
     steps:
       - name: Checkout Source
         uses: actions/checkout@v1
