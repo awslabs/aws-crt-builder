@@ -23,13 +23,20 @@ def _compiler_version(env, cc):
     if current_platform() in ('linux', 'macos'):
         result = env.shell.exec(cc, '--version', quiet=True, stderr=False)
         text = result.stdout.decode(encoding='UTF-8')
+        # Apple clang
         m = re.match('Apple (LLVM|clang) version (\d+)', text)
         if m:
             return m.group(2)
+        # LLVM clang
         m = re.match('clang version (\d+)', text)
         if m:
             return m.group(1)
-        m = re.match('gcc .+ (\d+)\..+$', text)
+        # GCC 4.x
+        m = re.match('gcc .+ (4\.\d+)', text)
+        if m:
+            return m.group(1)
+        # GCC 5+
+        m = re.match('gcc .+ (\d+)\.', text)
         if m:
             return m.group(1)
     return 'unknown'
