@@ -33,6 +33,10 @@ jobs:
           mkdir -p build
           python3 -m zipapp --python="/usr/bin/env python3" --output=build/builder builder
 
+      - name: Sanity Test Builder
+        run: |
+          python3 build/builder inspect
+
       - name: Store builder
         uses: actions/upload-artifact@v1
         with:
