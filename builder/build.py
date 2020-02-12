@@ -20,23 +20,55 @@ from shell import Shell
 from env import Env
 from action import Action
 from scripts import Scripts
+from project import Project
+from actions.cmake import CMakeBuild, CTestRun
+from actions.git import DownloadSource, DownloadDependencies
+from actions.install import InstallTools
+from actions.script import Script
+from toolchain import Toolchain
+import host
+
+# Must cache available actions or the GC will delete them
+_all_actions = set()
 
 
 class Builder(VirtualModule):
     """ The interface available to scripts that define projects, builds, actions, or configuration """
-    # Must cache available actions or the GC will delete them
-    all_actions = set()
+
+    ###########################################################################
+    # BEGIN public classes
+    ###########################################################################
     Shell = Shell
     Env = Env
     Action = Action
 
+    class Host(object):
+        current_platform = host.current_platform
+        current_arch = host.current_arch
+        current_host = host.current_host
+
+    Project = Project
+    Toolchain = Toolchain
+
+    # Actions
+    CMakeBuild = CMakeBuild
+    CTestRun = CTestRun
+    DownloadDependencies = DownloadDependencies
+    DownloadSource = DownloadSource
+    InstallTools = InstallTools
+    Script = Script
+    ###########################################################################
+    # END public classes
+    ###########################################################################
+
     def __init__(self):
-        Builder.all_actions = set(Builder.Action.__subclasses__())
+        _all_actions = set(Builder.Action.__subclasses__())
         self.scripts = Scripts()
 
     @staticmethod
     def _find_actions():
-        return Action.__subclasses__()
+        _all_actions = set(Action.__subclasses__())
+        return _all_actions
 
     @staticmethod
     def find_action(name):

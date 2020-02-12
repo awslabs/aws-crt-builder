@@ -82,112 +82,6 @@ def _msvc_versions():
     return versions
 
 
-def find_gcc_tool(env, name, version=None):
-    """ Finds gcc, gcc-ld, gcc-ranlib, etc at a specific version, or the latest one available """
-    versions = [version] if version else _gcc_versions()
-    return _find_compiler_tool(env, name, versions)
-
-
-def find_llvm_tool(env, name, version=None):
-    """ Finds clang, clang-tidy, lld, etc at a specific version, or the latest one available """
-    versions = [version] if version else _clang_versions()
-    return _find_compiler_tool(env, name, versions)
-
-
-def find_msvc(env, version=None):
-    """ Finds MSVC at a specific version, or the latest one available """
-    def _find_msvc(env, version, install_vswhere=True):
-        vswhere = env.shell.where('vswhere')
-        # if that fails, install vswhere and try again
-        if not vswhere and install_vswhere:
-            result = env.shell.exec(
-                'choco', 'install', '--no-progress', 'vswhere')
-            if result:
-                return _find_msvc(env, version, False)
-            return None, None
-
-        compiler = None
-        vc_version = None
-
-        # Grab installed version
-        result = env.shell.exec('vswhere', '-legacy', '-version', version,
-                                '-property', 'installationVersion', quiet=True)
-        text = result.stdout.decode(encoding='UTF-8')
-        m = re.match('(\d+)\.?', text)
-        if m:
-            vc_version = m.group(1)
-
-        if not vc_version or vc_version != version:
-            return None, None
-
-        # Grab installation path
-        result = env.shell.exec('vswhere', '-legacy', '-version', version,
-                                '-property', 'installationPath', quiet=True)
-        text = result.stdout.decode(encoding='UTF-8')
-        compiler = text.strip()
-
-        return compiler, vc_version
-
-    versions = [version] if version else _msvc_versions()
-    for version in versions:
-        path, version = _find_msvc(env, version)
-        if path:
-            return path, version
-    return None, None
-
-
-def all_compilers(env):
-    compilers = []
-    for version in _gcc_versions():
-        path, _version = find_gcc_tool(env, 'gcc', version)
-        if path:
-            compilers.append(('gcc', version))
-    for version in _clang_versions():
-        path, _version = find_llvm_tool(env, 'clang', version)
-        if path:
-            compilers.append(('clang', version))
-    if current_platform() == 'windows':
-        for version in _msvc_versions():
-            path, _version = find_msvc(env, version)
-            if path:
-                compilers.append(('msvc', version))
-    return compilers
-
-
-_default_compiler = None
-_default_version = None
-
-
-def default_compiler(env):
-    try:
-        return _default_compiler, _default_version
-    except UnboundLocalError:
-        def _find_compiler():
-            compiler = None
-            version = None
-            platform = current_platform()
-            if platform in ('linux', 'macos'):
-                clang_path, clang_version = find_llvm_tool(env, 'clang')
-                gcc_path, gcc_version = find_gcc_tool(env, 'gcc')
-                if clang_path:
-                    print('Found clang {} as default compiler'.format(clang_version))
-                    compiler = 'clang'
-                    version = clang_version
-                elif gcc_path:
-                    print('Found gcc {} as default compiler'.format(gcc_version))
-                    compiler = 'gcc'
-                    version = gcc_version
-                else:
-                    print(
-                        'Neither GCC or Clang could be found on this system, perhaps not installed yet?')
-
-            else:
-                compiler, version = find_msvc(env)
-            return compiler, version
-        _default_compiler, _default_version = _find_compiler()
-        return _default_compiler, _default_version
-
-
 class Toolchain(object):
     """ Represents a compiler toolchain """
 
@@ -235,3 +129,110 @@ class Toolchain(object):
 
     def __repr__(self):
         return self.name
+
+    @staticmethod
+    def find_gcc_tool(env, name, version=None):
+    """ Finds gcc, gcc-ld, gcc-ranlib, etc at a specific version, or the latest one available """
+    versions = [version] if version else _gcc_versions()
+    return _find_compiler_tool(env, name, versions)
+
+    @staticmethod
+    def find_llvm_tool(env, name, version=None):
+        """ Finds clang, clang-tidy, lld, etc at a specific version, or the latest one available """
+        versions = [version] if version else _clang_versions()
+        return _find_compiler_tool(env, name, versions)
+
+    @staticmethod
+    def find_msvc(env, version=None):
+        """ Finds MSVC at a specific version, or the latest one available """
+        def _find_msvc(env, version, install_vswhere=True):
+            vswhere = env.shell.where('vswhere')
+            # if that fails, install vswhere and try again
+            if not vswhere and install_vswhere:
+                result = env.shell.exec(
+                    'choco', 'install', '--no-progress', 'vswhere')
+                if result:
+                    return _find_msvc(env, version, False)
+                return None, None
+
+            compiler = None
+            vc_version = None
+
+            # Grab installed version
+            result = env.shell.exec('vswhere', '-legacy', '-version', version,
+                                    '-property', 'installationVersion', quiet=True)
+            text = result.stdout.decode(encoding='UTF-8')
+            m = re.match('(\d+)\.?', text)
+            if m:
+                vc_version = m.group(1)
+
+            if not vc_version or vc_version != version:
+                return None, None
+
+            # Grab installation path
+            result = env.shell.exec('vswhere', '-legacy', '-version', version,
+                                    '-property', 'installationPath', quiet=True)
+            text = result.stdout.decode(encoding='UTF-8')
+            compiler = text.strip()
+
+            return compiler, vc_version
+
+        versions = [version] if version else _msvc_versions()
+        for version in versions:
+            path, version = _find_msvc(env, version)
+            if path:
+                return path, version
+        return None, None
+
+    @staticmethod
+    def all_compilers(env):
+        compilers = []
+        for version in _gcc_versions():
+            path, _version = Toolchain.find_gcc_tool(env, 'gcc', version)
+            if path:
+                compilers.append(('gcc', version))
+        for version in _clang_versions():
+            path, _version = Toolchain.find_llvm_tool(env, 'clang', version)
+            if path:
+                compilers.append(('clang', version))
+        if current_platform() == 'windows':
+            for version in _msvc_versions():
+                path, _version = Toolchain.find_msvc(env, version)
+                if path:
+                    compilers.append(('msvc', version))
+        return compilers
+
+    _default_compiler = None
+    _default_version = None
+
+    @staticmethod
+    def default_compiler(env):
+        try:
+            return Toolchain._default_compiler, Toolchain._default_version
+        except UnboundLocalError:
+            def _find_compiler():
+                compiler = None
+                version = None
+                platform = current_platform()
+                if platform in ('linux', 'macos'):
+                    clang_path, clang_version = Toolchain.find_llvm_tool(
+                        env, 'clang')
+                    gcc_path, gcc_version = Toolchain.find_gcc_tool(env, 'gcc')
+                    if clang_path:
+                        print('Found clang {} as default compiler'.format(
+                            clang_version))
+                        compiler = 'clang'
+                        version = clang_version
+                    elif gcc_path:
+                        print('Found gcc {} as default compiler'.format(gcc_version))
+                        compiler = 'gcc'
+                        version = gcc_version
+                    else:
+                        print(
+                            'Neither GCC or Clang could be found on this system, perhaps not installed yet?')
+
+                else:
+                    compiler, version = find_msvc(env)
+                return compiler, version
+            Toolchain._default_compiler, Toolchain._default_version = _find_compiler()
+            return Toolchain._default_compiler, Toolchain._default_version
