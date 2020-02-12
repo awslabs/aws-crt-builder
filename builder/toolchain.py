@@ -229,7 +229,8 @@ class Toolchain(object):
                         'Neither GCC or Clang could be found on this system, perhaps not installed yet?')
 
             else:
-                compiler, version = Toolchain.find_msvc(env)
+                compiler = 'msvc'
+                version = Toolchain.find_msvc(env)[1]
             if not compiler or not version:
                 print('WARNING: Default compiler could not be found')
 
