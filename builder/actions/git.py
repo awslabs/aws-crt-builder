@@ -20,6 +20,7 @@ class DownloadSource(Action):
     def __init__(self, **kwargs):
         self.project = kwargs['project']
         self.branch = kwargs.get('branch', 'master')
+        self.path = kwargs.get('path', os.path.join('.', self.project.name))
 
     def run(self, env):
         if self.project.path:
@@ -28,17 +29,17 @@ class DownloadSource(Action):
 
         sh = env.shell
 
-        sh.exec("git", "clone", self.project.url, always=True)
-        sh.pushd(self.project.name)
+        sh.exec("git", "clone", self.project.url, path, always=True)
+        sh.pushd(self.path)
         try:
             sh.exec("git", "checkout", self.branch, always=True)
         except:
             print("Project {} does not have a branch named {}, using master".format(
                 self.project.name, self.branch))
-        sh.popd()
 
         # reload project now that it's on disk
         self.project = env.find_project(self.project.name)
+        sh.popd()
 
 
 class DownloadDependencies(Action):
