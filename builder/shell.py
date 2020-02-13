@@ -164,6 +164,8 @@ class Shell(object):
 
     def where(self, exe, path=None):
         """ Platform agnostic `where executable` command """
+        if exe is None:
+            return None
         if path is None:
             path = os.environ['PATH']
         paths = path.split(os.pathsep)
