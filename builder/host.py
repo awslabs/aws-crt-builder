@@ -61,7 +61,7 @@ def current_host():
                     return 'al2012'
                 if _file_contains('/etc/redhat-release', 'CentOS release 5.11 (Final)'):
                     return 'manylinux'
-                if _file_contains('/etc/redhat-release', 'CentOS Linux release 7.7.1908 (Core)'):
+                if _file_contains('/etc/redhat-release', 'CentOS Linux release 7.7.1908'):
                     return 'manylinux'
                 if _file_contains('/etc/lsb-release', 'Ubuntu'):
                     return 'linux'

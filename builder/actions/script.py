@@ -62,6 +62,9 @@ class Script(Action):
     def __str__(self):
         if len(self.commands) == 0:
             return 'Script({}): Empty'.format(self.name)
+        if self.name != self.__class__.__name__:
+            return 'Script({})'.format(self.name)
+
         cmds = []
         for cmd in self.commands:
             cmd_type = type(cmd)
