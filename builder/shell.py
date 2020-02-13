@@ -195,9 +195,9 @@ class Shell(object):
             prev_dryrun = self.dryrun
             self.dryrun = False
             result = self._run_command(
-                *command, quiet=kwargs.get('quiet', False), stderr=kwargs.get('stderr', False))
+                *command, quiet=kwargs.get('quiet', False), check=kwargs.get('check', False))
             self.dryrun = prev_dryrun
         else:
             result = self._run_command(
-                *command, quiet=kwargs.get('quiet', False), stderr=kwargs.get('stderr', False))
+                *command, quiet=kwargs.get('quiet', False), check=kwargs.get('check', False))
         return result
