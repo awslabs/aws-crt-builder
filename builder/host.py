@@ -33,9 +33,11 @@ def current_arch():
 
 def _file_contains(path, search):
     if os.path.isfile(path):
+        print('Probing {}'.format(path))
         with open(path) as f:
             line = f.readline()
             while line:
+                print('  {}'.format(line), end='')
                 if search in line:
                     return True
                 line = f.readline()
@@ -63,6 +65,7 @@ def current_host():
                     return 'manylinux'
                 if _file_contains('/etc/lsb-release', 'Ubuntu'):
                     return 'linux'
+                return 'linux'
             else:
                 return platform
         _current_host = _discover_host()

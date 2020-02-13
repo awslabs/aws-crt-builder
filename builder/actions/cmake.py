@@ -74,19 +74,26 @@ class CMakeBuild(Action):
                         if opt in config and config[opt]:
                             sh.setenv(variable, config[opt])
 
+            cmake_flags = []
+            if env.build_spec.target == 'linux':
+                cmake_flags += [
+                    # Each image has a custom installed openssl build, make sure CMake knows where to find it
+                    "-DLibCrypto_INCLUDE_DIR=/opt/openssl/include",
+                    "-DLibCrypto_SHARED_LIBRARY=/opt/openssl/lib/libcrypto.so",
+                    "-DLibCrypto_STATIC_LIBRARY=/opt/openssl/lib/libcrypto.a",
+                ]
+
             cmake_args = [
                 "-Werror=dev",
                 "-Werror=deprecated",
                 "-DCMAKE_INSTALL_PREFIX=" + install_dir,
                 "-DCMAKE_PREFIX_PATH=" + install_dir,
-                # Each image has a custom installed openssl build, make sure CMake knows where to find it
-                "-DLibCrypto_INCLUDE_DIR=/opt/openssl/include",
-                "-DLibCrypto_SHARED_LIBRARY=/opt/openssl/lib/libcrypto.so",
-                "-DLibCrypto_STATIC_LIBRARY=/opt/openssl/lib/libcrypto.a",
                 "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
                 "-DCMAKE_BUILD_TYPE=" + build_config,
                 "-DBUILD_TESTING=" + ("ON" if build_tests else "OFF"),
-            ] + compiler_flags + getattr(project, 'cmake_args', []) + config.get('cmake_args', [])
+                *cmake_flags,
+                *compiler_flags,
+            ] getattr(project, 'cmake_args', []) + config.get('cmake_args', [])
 
             # configure
             sh.exec("cmake", cmake_args, project_source_dir)
