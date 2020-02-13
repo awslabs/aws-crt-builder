@@ -24,11 +24,11 @@ class InstallTools(Action):
         self.packages = list(packages)
 
     def run(self, env):
+        config = env.config
         packages = self.packages + config.get('packages', [])
         if not packages:
             return
 
-        config = env.config
         sh = env.shell
         sudo = config.get('sudo', current_platform() == 'linux')
         sudo = ['sudo'] if sudo else []
