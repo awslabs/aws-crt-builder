@@ -112,11 +112,8 @@ class Toolchain(object):
 
     def compiler_path(self, env):
         if self.compiler == 'default':
-            env_cc = os.environ.get('CC', None)
-            if env_cc:
-                return env.shell.where(env_cc)
-            return env.shell.where('cc')
-        return Toolchain.find_compiler(env, self.compiler)
+            return Toolchain.default_compiler(env)[0]
+        return Toolchain.find_compiler(env, self.compiler, self.compiler_version if self.compiler_version != 'default' else None)[0]
 
     def __str__(self):
         return self.name
@@ -180,16 +177,18 @@ class Toolchain(object):
 
     @staticmethod
     def find_compiler(env, compiler, version=None):
+        """ Returns path, found_version for the requested compiler if it is installed """
         if compiler == 'clang':
             return Toolchain.find_llvm_tool(env, compiler, version)
         elif compiler == 'gcc':
             return Toolchain.find_gcc_tool(env, compiler, version)
         elif compiler == 'msvc':
             return Toolchain.find_msvc(env, version)
-        return None
+        return None, None
 
     @staticmethod
     def compiler_packages(compiler, version):
+        """ Returns a list of packages required to use the requested compiler """
         compiler_config = COMPILERS.get(compiler, {}).get(
             'versions', {}).get(version, None)
         if compiler_config:
@@ -198,6 +197,7 @@ class Toolchain(object):
 
     @staticmethod
     def all_compilers(env):
+        """ Returns a list of tuples of all available (compiler, version) """
         compilers = []
         for version in _gcc_versions():
             path, _version = Toolchain.find_gcc_tool(env, 'gcc', version)
@@ -219,6 +219,7 @@ class Toolchain(object):
 
     @staticmethod
     def default_compiler(env):
+        """ Finds the system default compiler and returns (compiler, version) """
         if Toolchain._default_compiler and Toolchain._default_version:
             return Toolchain._default_compiler, Toolchain._default_version
 
@@ -227,6 +228,12 @@ class Toolchain(object):
             version = None
             platform = current_platform()
             if platform in ('linux', 'macos'):
+                # resolve CC and /usr/bin/cc
+                for env_cc in (os.environ.get('CC', None), env.shell.where('cc')):
+                    if env_cc:
+                        return env.shell.where(env_cc), _compiler_version(env, env_cc)
+
+                # Try to find clang or gcc
                 clang_path, clang_version = Toolchain.find_llvm_tool(
                     env, 'clang')
                 gcc_path, gcc_version = Toolchain.find_gcc_tool(env, 'gcc')
