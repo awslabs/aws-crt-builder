@@ -42,14 +42,34 @@ def run_action(action, env):
     env.shell.pushenv()
     for var, value in config.get('build_env', {}).items():
         env.shell.setenv(var, value)
+    for var, value in getattr(env, 'env', {}).items():
+        env.shell.setenv(var, value)
 
     if isinstance(action, str):
         action_cls = Scripts.find_action(action)
         action = action_cls()
 
+    def _export_compiler(_env):
+        if current_platform() == 'windows':
+            return
+
+        compiler = env.build_spec.compiler
+        version = env.build_spec.compiler_version
+        if compiler != 'default':
+            for var, suffix in {'CC': '', 'CXX': '++'}.items():
+                exe = compiler + suffix
+                if version != 'default':
+                    exe += '-{}'.format(version)
+                compiler_path = env.shell.where(exe)
+                if compiler_path:
+                    env.shell.setenv(var, compiler_path)
+                else:
+                    print('WARNING: Compiler {} could not be found'.format(exe))
+
     Scripts.run_action(
         Script([
             InstallTools(),
+            _export_compiler,
             DownloadDependencies(),
             action,
         ], name='run_build'),
@@ -126,8 +146,9 @@ def parse_extra_args(env):
     args, env.args.args = parser.parse_known_args(args)
 
     if args.compiler or args.target:
-        compiler, version = args.compiler.split(
-            '-') if args.compiler else (None, None)
+        compiler, version = (None, None)
+        if args.compiler:
+            compiler, version = args.compiler.split('-')
         env.build_spec = BuildSpec(compiler=compiler,
                                    compiler_version=version, target=args.target)
 
