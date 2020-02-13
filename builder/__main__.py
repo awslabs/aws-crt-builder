@@ -134,8 +134,8 @@ if __name__ == '__main__':
         'project': args.project,
     })
 
+    inspect_host(env)
     if args.command == 'inspect':
-        inspect_host(env)
         sys.exit(0)
 
     if not env.project:

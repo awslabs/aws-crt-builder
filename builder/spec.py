@@ -14,7 +14,7 @@
 import os
 import sys
 
-from host import current_platform, current_arch
+from host import current_host, current_platform, current_arch
 
 
 class BuildSpec(object):
