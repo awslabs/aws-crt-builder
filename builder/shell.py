@@ -171,6 +171,7 @@ class Shell(object):
 
         def is_executable(path):
             return os.path.isfile(path) and os.access(path, os.X_OK)
+
         if sys.platform == 'win32':
             pathext = os.environ['PATHEXT'].lower().split(os.pathsep)
             (base, ext) = os.path.splitext(exe)

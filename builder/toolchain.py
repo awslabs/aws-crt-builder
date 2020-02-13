@@ -116,13 +116,7 @@ class Toolchain(object):
             if env_cc:
                 return env.shell.where(env_cc)
             return env.shell.where('cc')
-        elif self.compiler == 'clang':
-            return Toolchain.find_llvm_tool(env, 'clang', self.compiler_version if self.compiler_version != 'default' else None)[0]
-        elif self.compiler == 'gcc':
-            return Toolchain.find_gcc_tool(env, 'gcc', self.compiler_version if self.compiler_version != 'default' else None)[0]
-        elif self.compiler == 'msvc':
-            return Toolchain.find_msvc(env)[0]
-        return None
+        return Toolchain.find_compiler(env, self.compiler)
 
     def __str__(self):
         return self.name
@@ -183,6 +177,24 @@ class Toolchain(object):
             if path:
                 return path, version
         return None, None
+
+    @staticmethod
+    def find_compiler(env, compiler, version=None):
+        if compiler == 'clang':
+            return Toolchain.find_llvm_tool(env, compiler, version)
+        elif compiler == 'gcc':
+            return Toolchain.find_gcc_tool(env, compiler, version)
+        elif compiler == 'msvc':
+            return Toolchain.find_msvc(env, version)
+        return None
+
+    @staticmethod
+    def compiler_packages(compiler, version):
+        compiler_config = COMPILERS.get(compiler, {}).get(
+            'versions', {}).get(version, None)
+        if compiler_config:
+            return compiler_config.get('packages', [])
+        return []
 
     @staticmethod
     def all_compilers(env):
