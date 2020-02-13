@@ -78,37 +78,35 @@ def run_build(build_spec, env):
         test_action = Script(test_steps, name='test')
 
     build = Script([
-            prebuild_action,
-            build_action,
-            postbuild_action,
-            test_action,
-        ], name='run_build'),
-        env
-    )
+        prebuild_action,
+        build_action,
+        postbuild_action,
+        test_action,
+    ], name='run_build')
     run_action(build, env)
 
 
 def default_spec(env):
-    target=current_platform()
-    host=current_host()
-    arch=current_arch()
-    compiler, version=Toolchain.default_compiler(env)
+    target = current_platform()
+    host = current_host()
+    arch = current_arch()
+    compiler, version = Toolchain.default_compiler(env)
     print('Using Default Spec:')
     print('  Host: {} {}'.format(host, arch))
     print('  Target: {} {}'.format(target, arch))
     print('  Compiler: {} {}'.format(compiler, version))
-    return BuildSpec(host = host, compiler = compiler, compiler_version = '{}'.format(version), target = target, arch = arch)
+    return BuildSpec(host=host, compiler=compiler, compiler_version='{}'.format(version), target=target, arch=arch)
 
 
 def inspect_host(env):
-    spec=env.build_spec
-    toolchain=Toolchain(env, spec = spec)
+    spec = env.build_spec
+    toolchain = Toolchain(env, spec=spec)
     print('Host Environment:')
     print('  Host: {} {}'.format(spec.host, spec.arch))
     print('  Default Target: {} {}'.format(spec.target, spec.arch))
     print('  Default Compiler: {} (version: {}) {}'.format(
         spec.compiler, toolchain.compiler_version, toolchain.compiler_path(env)))
-    compilers=['{} {}'.format(c[0], c[1])
+    compilers = ['{} {}'.format(c[0], c[1])
                  for c in Toolchain.all_compilers(env)]
     print('  Available Compilers: {}'.format(', '.join(compilers)))
     print('  Available Projects: {}'.format(', '.join(env.projects())))
@@ -119,19 +117,19 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-d', '--dry-run', action='store_true',
-                        help = "Don't run the build, just print the commands that would run")
-    parser.add_argument('-p', '--project', action = 'store',
-                        type = str, help = "Project to work on")
-    parser.add_argument('--config', type = str, default = 'RelWithDebInfo',
-                        help = 'The native code configuration to build with')
-    parser.add_argument('--dump-config', action = 'store_true',
-                        help = "Print the config in use before running a build")
-    parser.add_argument('--spec', type = str, dest = 'build')
-    parser.add_argument('-b', '--build-dir', type = str,
-                        help = 'Directory to work in', default = 'build')
-    commands=parser.add_subparsers(dest = 'command')
+                        help="Don't run the build, just print the commands that would run")
+    parser.add_argument('-p', '--project', action='store',
+                        type=str, help="Project to work on")
+    parser.add_argument('--config', type=str, default='RelWithDebInfo',
+                        help='The native code configuration to build with')
+    parser.add_argument('--dump-config', action='store_true',
+                        help="Print the config in use before running a build")
+    parser.add_argument('--spec', type=str, dest='build')
+    parser.add_argument('-b', '--build-dir', type=str,
+                        help='Directory to work in', default='build')
+    commands = parser.add_subparsers(dest='command')
 
-    build=commands.add_parser(
+    build = commands.add_parser(
         'build', help="Run target build, formatted 'host-compiler-compilerversion-target-arch'. Ex: linux-ndk-19-android-arm64v8a")
     build.add_argument('build', type=str, default='default', nargs='?')
     build.add_argument('--skip-install', action='store_true',
