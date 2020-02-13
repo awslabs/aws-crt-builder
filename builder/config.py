@@ -38,7 +38,7 @@ def validate_build(build_spec):
         build_spec.compiler_version, build_spec.compiler)
 
     supported_hosts = compiler['hosts']
-    assert build_spec.host in supported_hosts, "Compiler {} does not support host {}".format(
+    assert build_spec.host in supported_hosts or current_platform() in supported_hosts, "Compiler {} does not support host {}".format(
         build_spec.compiler, build_spec.host)
 
     supported_targets = compiler['targets']
