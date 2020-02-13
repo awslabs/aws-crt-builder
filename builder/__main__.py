@@ -78,12 +78,11 @@ def default_spec(env):
     host = current_host()
     arch = current_arch()
     compiler, version = Toolchain.default_compiler(env)
-
     return BuildSpec(host=host, compiler=compiler, compiler_version='{}'.format(version), target=target, arch=arch)
 
 
 def inspect_host(env):
-    spec = default_spec(env)
+    spec = env.build_spec
     toolchain = Toolchain(env, spec=spec)
     print('Host: {} {}'.format(spec.host, spec.arch))
     print('Default Target: {} {}'.format(spec.target, spec.arch))
@@ -134,6 +133,12 @@ if __name__ == '__main__':
         'project': args.project,
     })
 
+    build_name = getattr(args, 'build', None)
+    if build_name:
+        build_spec = env.build_spec = BuildSpec(spec=build_name)
+    else:
+        build_spec = env.build_spec = default_spec(env)
+
     inspect_host(env)
     if args.command == 'inspect':
         sys.exit(0)
@@ -144,11 +149,6 @@ if __name__ == '__main__':
 
     # Build the config object
     config_file = os.path.join(env.project.path, "builder.json")
-    build_name = getattr(args, 'build', None)
-    if build_name:
-        build_spec = env.build_spec = BuildSpec(spec=build_name)
-    else:
-        build_spec = env.build_spec = default_spec(env)
 
     config = env.config = produce_config(
         build_spec, config_file,
