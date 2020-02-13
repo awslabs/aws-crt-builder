@@ -53,7 +53,7 @@ HOSTS = {
     },
     'ubuntu': {
         # need ld and make and such
-        'packages': ['build-essential'],
+        'compiler_packages': ['build-essential'],
         'pkg_setup': [
             'apt-key adv --fetch-keys http://apt.llvm.org/llvm-snapshot.gpg.key',
             'apt-add-repository ppa:ubuntu-toolchain-r/test',
