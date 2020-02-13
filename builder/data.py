@@ -17,27 +17,28 @@
 
 KEYS = {
     # Build
-    'python': "",
-    'c': None,
-    'cxx': None,
-    'pre_build_steps': [],
-    'post_build_steps': [],
-    'build_env': {},
-    'cmake_args': [],
-    'run_tests': True,
-    'build': [],
-    'build_steps': [],
-    'test': [],
-    'test_steps': [],
-    'pkg_setup': [],
+    'python': "",  # where to find python on the machine
+    'c': None,  # c compiler
+    'cxx': None,  # c++ compiler
+    'pre_build_steps': [],  # steps to run before build
+    'post_build_steps': [],  # steps to run after build
+    'build_env': {},  # environment variables to set before starting build
+    'cmake_args': [],  # additional cmake arguments
+    'run_tests': True,  # whether or not to run tests
+    'build': [],  # deprecated, use build_steps
+    'build_steps': [],  # steps to run instead of the default cmake compile
+    'test': [],  # deprecated, use test_steps
+    'test_steps': [],  # steps to run instead of the default ctest
+    'pkg_setup': [],  # commands required to configure the package system
+    # command to install packages, should be of the form 'pkgmanager arg1 arg2 {packages will go here}'
     'pkg_install': None,
-    'pkg_update': None,
-    'packages': [],
-    'compiler_packages': [],
-    'needs_compiler': True,
+    'pkg_update': None,  # command to update the package manager's database
+    'packages': [],  # packages to install
+    'compiler_packages': [],  # packages to support compiler
+    'needs_compiler': True,  # whether or not this build needs a compiler
 
     # Linux
-    'sudo': False
+    'sudo': False  # whether or not sudo is necessary for installs
 }
 
 HOSTS = {
