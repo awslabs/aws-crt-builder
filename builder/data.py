@@ -35,7 +35,7 @@ KEYS = {
     'packages': [],
 
     # Linux
-    'sudo': True
+    'sudo': False
 }
 
 HOSTS = {
