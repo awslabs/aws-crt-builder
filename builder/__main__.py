@@ -35,6 +35,30 @@ import api  # force API to load and expose the virtual module
 ########################################################################################################################
 # RUN BUILD
 ########################################################################################################################
+
+def run_action(action, env):
+
+    # Set build environment from config
+    env.shell.pushenv()
+    for var, value in config.get('build_env', {}).items():
+        env.shell.setenv(var, value)
+
+    if isinstance(action, str):
+        action_cls = Scripts.find_action(action)
+        action = action_cls()
+
+    Scripts.run_action(
+        Script([
+            InstallTools(),
+            DownloadDependencies(),
+            action,
+        ], name='run_build'),
+        env
+    )
+
+    env.shell.popenv()
+
+
 def run_build(build_spec, env):
 
     build_action = CMakeBuild()
@@ -45,23 +69,15 @@ def run_build(build_spec, env):
     postbuild_action = Script(config.get(
         'post_build_steps', []), name='post_build_steps')
 
-    build_steps = config.get('build', None)
+    build_steps = config.get('build_steps', config.get('build', None))
     if build_steps:
         build_action = Script(build_steps, name='build')
 
-    test_steps = config.get('test', None)
+    test_steps = config.get('test_steps', config.get('test', None))
     if test_steps:
         test_action = Script(test_steps, name='test')
 
-    # Set build environment
-    env.shell.pushenv()
-    for var, value in config.get('build_env', {}).items():
-        env.shell.setenv(var, value)
-
-    Scripts.run_action(
-        Script([
-            InstallTools(),
-            DownloadDependencies(),
+    build = Script([
             prebuild_action,
             build_action,
             postbuild_action,
@@ -69,31 +85,30 @@ def run_build(build_spec, env):
         ], name='run_build'),
         env
     )
-
-    env.shell.popenv()
+    run_action(build, env)
 
 
 def default_spec(env):
-    target = current_platform()
-    host = current_host()
-    arch = current_arch()
-    compiler, version = Toolchain.default_compiler(env)
+    target=current_platform()
+    host=current_host()
+    arch=current_arch()
+    compiler, version=Toolchain.default_compiler(env)
     print('Using Default Spec:')
     print('  Host: {} {}'.format(host, arch))
     print('  Target: {} {}'.format(target, arch))
     print('  Compiler: {} {}'.format(compiler, version))
-    return BuildSpec(host=host, compiler=compiler, compiler_version='{}'.format(version), target=target, arch=arch)
+    return BuildSpec(host = host, compiler = compiler, compiler_version = '{}'.format(version), target = target, arch = arch)
 
 
 def inspect_host(env):
-    spec = env.build_spec
-    toolchain = Toolchain(env, spec=spec)
+    spec=env.build_spec
+    toolchain=Toolchain(env, spec = spec)
     print('Host Environment:')
     print('  Host: {} {}'.format(spec.host, spec.arch))
     print('  Default Target: {} {}'.format(spec.target, spec.arch))
     print('  Default Compiler: {} (version: {}) {}'.format(
         spec.compiler, toolchain.compiler_version, toolchain.compiler_path(env)))
-    compilers = ['{} {}'.format(c[0], c[1])
+    compilers=['{} {}'.format(c[0], c[1])
                  for c in Toolchain.all_compilers(env)]
     print('  Available Compilers: {}'.format(', '.join(compilers)))
     print('  Available Projects: {}'.format(', '.join(env.projects())))
@@ -104,19 +119,19 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-d', '--dry-run', action='store_true',
-                        help="Don't run the build, just print the commands that would run")
-    parser.add_argument('-p', '--project', action='store',
-                        type=str, help="Project to work on")
-    parser.add_argument('--config', type=str, default='RelWithDebInfo',
-                        help='The native code configuration to build with')
-    parser.add_argument('--dump-config', action='store_true',
-                        help="Print the config in use before running a build")
-    parser.add_argument('--spec', type=str, dest='build')
-    parser.add_argument('-b', '--build-dir', type=str,
-                        help='Directory to work in', default='build')
-    commands = parser.add_subparsers(dest='command')
+                        help = "Don't run the build, just print the commands that would run")
+    parser.add_argument('-p', '--project', action = 'store',
+                        type = str, help = "Project to work on")
+    parser.add_argument('--config', type = str, default = 'RelWithDebInfo',
+                        help = 'The native code configuration to build with')
+    parser.add_argument('--dump-config', action = 'store_true',
+                        help = "Print the config in use before running a build")
+    parser.add_argument('--spec', type = str, dest = 'build')
+    parser.add_argument('-b', '--build-dir', type = str,
+                        help = 'Directory to work in', default = 'build')
+    commands=parser.add_subparsers(dest = 'command')
 
-    build = commands.add_parser(
+    build=commands.add_parser(
         'build', help="Run target build, formatted 'host-compiler-compilerversion-target-arch'. Ex: linux-ndk-19-android-arm64v8a")
     build.add_argument('build', type=str, default='default', nargs='?')
     build.add_argument('--skip-install', action='store_true',
@@ -154,7 +169,6 @@ if __name__ == '__main__':
 
     # Build the config object
     config_file = os.path.join(env.project.path, "builder.json")
-
     config = env.config = produce_config(
         build_spec, config_file,
         source_dir=env.source_dir,
@@ -173,7 +187,7 @@ if __name__ == '__main__':
 
     validate_build(build_spec)
 
-    # Once initialized, switch to the build dir for everything else
+    # Once initialized, switch to the source dir before running actions
     env.shell.rm(env.build_dir)
     env.shell.mkdir(env.build_dir)
     env.shell.cd(env.project.path)
@@ -186,4 +200,4 @@ if __name__ == '__main__':
     # run a single action, usually local to a project
     elif args.command == 'run':
         action = args.run
-        Scripts.run_action(action, env)
+        run_action(action, env)
