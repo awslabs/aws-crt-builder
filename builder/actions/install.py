@@ -37,18 +37,18 @@ class InstallTools(Action):
                 if isinstance(cmd, str):
                     cmd = cmd.split(' ')
                 assert isinstance(cmd, list)
-                sh.exec(*sudo, cmd)
+                sh.exec(*sudo, cmd, check=True)
 
         pkg_update = config.get('pkg_update', None)
         if pkg_update:
             pkg_update = pkg_update.split(' ')
-            sh.exec(*sudo, pkg_update)
+            sh.exec(*sudo, pkg_update, check=True)
 
         pkg_install = config['pkg_install']
         pkg_install = pkg_install.split(' ')
         pkg_install += self.packages + config.get('packages', [])
 
-        sh.exec(*sudo, pkg_install)
+        sh.exec(*sudo, pkg_install, check=True)
 
         if '--skip-install' in env.args.args:
             sh.dryrun = was_dryrun

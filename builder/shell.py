@@ -75,6 +75,8 @@ class Shell(object):
             except Exception as ex:
                 print('Failed to run {}: {}'.format(
                     ' '.join(self._flatten_command(*command)), ex))
+                if kwargs.get('check', False):
+                    sys.exit(5)
                 return ExecResult(-1, -1, ex)
 
     def _cd(self, directory):
