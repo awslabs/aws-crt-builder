@@ -24,6 +24,10 @@ class InstallTools(Action):
         self.packages = list(packages)
 
     def run(self, env):
+        packages = self.packages + config.get('packages', [])
+        if not packages:
+            return
+
         config = env.config
         sh = env.shell
         sudo = config.get('sudo', current_platform() == 'linux')
@@ -52,9 +56,12 @@ class InstallTools(Action):
 
         pkg_install = config['pkg_install']
         pkg_install = pkg_install.split(' ')
-        pkg_install += self.packages + config.get('packages', [])
+        pkg_install += packages
 
         sh.exec(*sudo, pkg_install, check=True)
 
         if args.skip_install:
             sh.dryrun = was_dryrun
+
+    def __str__(self):
+        return '{}({})'.format(self.__class__.__name__, ', '.join(self.packages + config.get('packages', [])))
