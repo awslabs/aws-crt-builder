@@ -42,9 +42,15 @@ class Script(Action):
         for cmd in self.commands:
             cmd_type = type(cmd)
             if cmd_type == str:
-                sh.exec(cmd)
+                result = sh.exec(cmd)
+                if result.returncode != 0:
+                    print('Command failed, exiting')
+                    sys.exit(12)
             elif cmd_type == list:
-                sh.exec(*cmd)
+                result = sh.exec(*cmd)
+                if result.returncode != 0:
+                    print('Command failed, exiting')
+                    sys.exit(12)
             elif isinstance(cmd, Action):
                 Scripts.run_action(cmd, env)
             elif callable(cmd):
