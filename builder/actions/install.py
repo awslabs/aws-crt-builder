@@ -12,6 +12,7 @@
 # permissions and limitations under the License.
 
 from action import Action
+from host import current_platform
 
 
 class InstallTools(Action):
