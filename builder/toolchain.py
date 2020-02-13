@@ -105,11 +105,14 @@ class Toolchain(object):
 
         # resolve default compiler and/or version
         if self.compiler == 'default':
-            self.compiler, self.compiler_version = Toolchain.default_compiler(
-                env)
+            c, v = Toolchain.default_compiler(env)
+            if c:
+                self.compiler, self.compiler_version = c, v
         elif self.compiler_version == 'default':
             self.compiler_version = _compiler_version(
                 env, self.compiler_path(env))[1]
+            if not self.compiler_version:
+                self.compiler_version = 'default'
 
         self.name = '-'.join([self.host, self.compiler,
                               self.compiler_version, self.target, self.arch])
