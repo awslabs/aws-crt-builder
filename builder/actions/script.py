@@ -76,7 +76,7 @@ class Script(Action):
             elif isinstance(cmd, Action):
                 cmds.append(str(cmd))
             elif callable(cmd):
-                cmds.append(cmd.__func__.__name__)
+                cmds.append(cmd.__name__)
             else:
                 cmds.append("UNKNOWN: {}".format(cmd))
         return 'Script({}): (\n\t{}\n)'.format(self.name, '\n\t'.join(cmds))
