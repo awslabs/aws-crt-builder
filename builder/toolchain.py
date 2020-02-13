@@ -26,19 +26,19 @@ def _compiler_version(env, cc):
         # Apple clang
         m = re.match('Apple (LLVM|clang) version (\d+)', text)
         if m:
-            return m.group(2)
+            return 'clang', m.group(2)
         # LLVM clang
         m = re.match('clang version (\d+)', text)
         if m:
-            return m.group(1)
+            return 'clang', m.group(1)
         # GCC 4.x
         m = re.match('gcc .+ (4\.\d+)', text)
         if m:
-            return m.group(1)
+            return 'gcc', m.group(1)
         # GCC 5+
         m = re.match('gcc .+ (\d+)\.', text)
         if m:
-            return m.group(1)
+            return 'gcc', m.group(1)
     return 'unknown'
 
 
@@ -46,7 +46,7 @@ def _find_compiler_tool(env, name, versions):
     # look for the default tool, and see if the version is in the search set
     path = env.shell.where(name)
     if path:
-        version = _compiler_version(env, path)
+        version = _compiler_version(env, path)[1]
         if version in versions:
             return path, version
     for version in versions:
@@ -103,9 +103,13 @@ class Toolchain(object):
             if slot in kwargs:
                 setattr(self, slot, kwargs[slot])
 
-        if self.compiler_version == 'default':
+        # resolve default compiler and/or version
+        if self.compiler == 'default':
+            self.compiler, self.compiler_version = Toolchain.default_compiler(
+                env)
+        elif self.compiler_version == 'default':
             self.compiler_version = _compiler_version(
-                env, self.compiler_path(env))
+                env, self.compiler_path(env))[1]
 
         self.name = '-'.join([self.host, self.compiler,
                               self.compiler_version, self.target, self.arch])
