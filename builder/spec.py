@@ -43,7 +43,7 @@ class BuildSpec(object):
 
         # Pull out individual fields. Note this is not in an else to support overriding at construction time
         for slot in ('host', 'target', 'arch', 'compiler', 'compiler_version', 'downstream'):
-            if slot in kwargs:
+            if slot in kwargs and kwargs[slot]:
                 setattr(self, slot, kwargs[slot])
 
         # Convert defaults to be based on running environment

@@ -71,11 +71,11 @@ def run_build(build_spec, env):
 
     build_steps = config.get('build_steps', config.get('build', None))
     if build_steps:
-        build_action = Script(build_steps, name='build')
+        build_action = Script(build_steps, name='build_steps')
 
     test_steps = config.get('test_steps', config.get('test', None))
     if test_steps:
-        test_action = Script(test_steps, name='test')
+        test_action = Script(test_steps, name='test_steps')
 
     build = Script([
         prebuild_action,
