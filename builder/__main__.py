@@ -59,8 +59,8 @@ def run_action(action, env):
     env.shell.popenv()
 
 
-def run_build(build_spec, env):
-
+def run_build(env):
+    print("Running build", env.build_spec.name, flush=True)
     build_action = CMakeBuild()
     test_action = CTestRun()
 
@@ -112,6 +112,23 @@ def inspect_host(env):
     print('  Available Projects: {}'.format(', '.join(env.projects())))
 
 
+def parse_extra_args(env):
+    args = env.args.args
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--compiler', type=str,
+                        help="The compiler to use for this build")
+    parser.add_argument(
+        '--target', type=str, help="The target to cross-compile for (e.g. android, linux-x86, aarch64)")
+    # parse the args we know, pass the rest on to actions to figure out
+    args, env.args.args = parser.parse_known_args(args)
+
+    if args.compiler or args.target:
+        compiler, version = args.compiler.split(
+            '-') if args.compiler else (None, None)
+        env.build_spec = BuildSpec(compiler=compiler,
+                                   compiler_version=version, target=args.target)
+
+
 if __name__ == '__main__':
     import argparse
 
@@ -150,11 +167,14 @@ if __name__ == '__main__':
         'project': args.project,
     })
 
-    build_name = getattr(args, 'build', None)
-    if build_name:
-        build_spec = env.build_spec = BuildSpec(spec=build_name)
-    else:
-        build_spec = env.build_spec = default_spec(env)
+    parse_extra_args(env)
+
+    if not getattr(env, 'build_spec', None):
+        build_name = getattr(args, 'build', None)
+        if build_name:
+            env.build_spec = BuildSpec(spec=build_name)
+        else:
+            env.build_spec = default_spec(env)
 
     inspect_host(env)
     if args.command == 'inspect':
@@ -167,22 +187,25 @@ if __name__ == '__main__':
     # Build the config object
     config_file = os.path.join(env.project.path, "builder.json")
     config = env.config = produce_config(
-        build_spec, config_file,
+        env.build_spec, config_file,
         source_dir=env.source_dir,
         build_dir=env.build_dir,
         install_dir=env.install_dir,
         project=env.project.name,
         project_dir=env.project.path,
-        spec=str(build_spec))
+        spec=str(env.build_spec))
+
     if not env.config.get('enabled', True):
         raise Exception("The project is disabled in this configuration")
 
     if getattr(args, 'dump_config', False):
         from pprint import pprint
-        pprint(build_spec)
+        print('Spec: ', end='')
+        pprint(env.build_spec)
+        print('Config:')
         pprint(config)
 
-    validate_build(build_spec)
+    validate_build(env.build_spec)
 
     # Once initialized, switch to the source dir before running actions
     env.shell.rm(env.build_dir)
@@ -191,10 +214,8 @@ if __name__ == '__main__':
 
     # Run a build with a specific spec/toolchain
     if args.command == 'build':
-        print("Running build", build_spec.name, flush=True)
-        run_build(build_spec, env)
+        run_build(env)
 
     # run a single action, usually local to a project
     elif args.command == 'run':
-        action = args.run
-        run_action(action, env)
+        run_action(args.run, env)

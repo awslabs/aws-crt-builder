@@ -66,7 +66,7 @@ class Shell(object):
                     output += line
                     if not kwargs.get('quiet', False):
                         line = line.decode(encoding='UTF-8')
-                        print(line, end='')
+                        print(line, end='', flush=True)
                     line = proc.stdout.readline()
                 proc.wait()
 

@@ -11,6 +11,8 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+import argparse
+
 from action import Action
 from host import current_platform
 
@@ -27,8 +29,12 @@ class InstallTools(Action):
         sudo = config.get('sudo', current_platform() == 'linux')
         sudo = ['sudo'] if sudo else []
 
+        parser = argparse.ArgumentParser()
+        parser.add_argument('--skip-install', action='store_true')
+        args = parser.parse_known_args(env.args.args)[0]
+
         was_dryrun = sh.dryrun
-        if '--skip-install' in getattr(env.args, 'args', []):
+        if args.skip_install:
             sh.dryrun = True
 
         pkg_setup = config.get('pkg_setup', [])
@@ -50,5 +56,5 @@ class InstallTools(Action):
 
         sh.exec(*sudo, pkg_install, check=True)
 
-        if '--skip-install' in getattr(env.args, 'args', []):
+        if args.skip_install:
             sh.dryrun = was_dryrun
