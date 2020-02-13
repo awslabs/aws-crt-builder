@@ -88,14 +88,15 @@ def default_spec(env):
 def inspect_host(env):
     spec = env.build_spec
     toolchain = Toolchain(env, spec=spec)
-    print('Host: {} {}'.format(spec.host, spec.arch))
-    print('Default Target: {} {}'.format(spec.target, spec.arch))
-    print('Default Compiler: {} (version: {}) {}'.format(
+    print('Host Environment:')
+    print('  Host: {} {}'.format(spec.host, spec.arch))
+    print('  Default Target: {} {}'.format(spec.target, spec.arch))
+    print('  Default Compiler: {} (version: {}) {}'.format(
         spec.compiler, toolchain.compiler_version, toolchain.compiler_path(env)))
     compilers = ['{} {}'.format(c[0], c[1])
                  for c in Toolchain.all_compilers(env)]
-    print('Available Compilers: {}'.format(', '.join(compilers)))
-    print('Available Projects: {}'.format(', '.join(env.projects())))
+    print('  Available Compilers: {}'.format(', '.join(compilers)))
+    print('  Available Projects: {}'.format(', '.join(env.projects())))
 
 
 if __name__ == '__main__':
