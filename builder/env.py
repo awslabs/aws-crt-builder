@@ -53,6 +53,11 @@ class Env(object):
 
         print('Source directory: {}'.format(self.source_dir))
 
+        # Once initialized, switch to the source dir before running actions
+        if os.path.exists(self.build_dir):
+            self.shell.rm(self.build_dir)
+        self.shell.mkdir(self.build_dir)
+
         # default the project to whatever can be found, or convert
         # project from a name to a Project
         if not hasattr(self, 'project'):
@@ -69,11 +74,13 @@ class Env(object):
             print('Project {} could not be found locally, downloading'.format(
                 project.name))
             DownloadSource(
-                project=project, branch=self.branch).run(self)
+                project=project, branch=self.branch, path=self.build_dir).run(self)
             # Now that the project is downloaded, look it up again
             project = Project.find_project(project.name)
             assert project.path
         self.project = project
+        if self.project:
+            self.shell.cd(self.project.path)
 
     @staticmethod
     def _get_git_branch():

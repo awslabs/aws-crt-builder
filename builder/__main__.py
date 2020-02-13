@@ -215,12 +215,6 @@ if __name__ == '__main__':
 
     validate_build(env.build_spec)
 
-    # Once initialized, switch to the source dir before running actions
-    if os.path.exists(env.build_dir):
-        env.shell.rm(env.build_dir)
-    env.shell.mkdir(env.build_dir)
-    env.shell.cd(env.project.path)
-
     # Run a build with a specific spec/toolchain
     if args.command == 'build':
         run_build(env)
