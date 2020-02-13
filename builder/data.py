@@ -27,23 +27,15 @@ KEYS = {
     'run_tests': True,
     'build': [],
     'test': [],
+    'pkg_setup': [],
+    'pkg_install': None,
+    'pkg_update': None,
+    'packages': [],
 
     # Linux
-    'use_apt': False,
     'apt_keys': [],
     'apt_repos': [],
     'apt_packages': [],
-
-    # macOS
-    'use_brew': False,
-    'brew_packages': [],
-
-    # CodeBuild
-    'enabled': True,
-    'image': "",
-    'image_type': "",
-    'compute_type': "",
-    'requires_privilege': False,
 }
 
 HOSTS = {
@@ -56,16 +48,25 @@ HOSTS = {
             "-DPERFORM_HEADER_CHECK=ON",
         ],
 
-        'use_apt': True,
-        'apt_repos': [
-            "ppa:ubuntu-toolchain-r/test",
+        'pkg_setup': [
+            "apt-key adv --fetch-keys http://apt.llvm.org/llvm-snapshot.gpg.key",
+            "apt-add-repository ppa:ubuntu-toolchain-r/test",
+            "apt-add-repository deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-6.0 main",
+            "apt-add-repository deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-7 main",
+            "apt-add-repository deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-8 main",
+            "apt-add-repository deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-9 main",
         ],
+        'pkg_update': 'apt-get -qq update -y',
+        'pkg_install': 'apt-get -qq install -y',
     },
     'al2012': {
         'cmake_args': [
             "-DENABLE_SANITIZERS=OFF",
             "-DPERFORM_HEADER_CHECK=OFF",
         ],
+
+        'pkg_update': 'yum update -y',
+        'pkg_install': 'yum install -y',
 
         'variables': {
             'python': "python3",
@@ -76,6 +77,9 @@ HOSTS = {
             "-DENABLE_SANITIZERS=OFF",
             "-DPERFORM_HEADER_CHECK=OFF",
         ],
+
+        'pkg_update': 'yum update -y',
+        'pkg_install': 'yum install -y',
 
         'variables': {
             'python': "python3",
@@ -100,6 +104,7 @@ HOSTS = {
             'python': "python.exe",
         },
 
+        'pkg_install': 'choco install --no-progress',
 
         'cmake_args': [
             "-DPERFORM_HEADER_CHECK=ON",
@@ -109,6 +114,8 @@ HOSTS = {
         'variables': {
             'python': "python3",
         },
+
+        'pkg_install': 'brew install'
 
         'use_brew': True,
     }
@@ -181,69 +188,42 @@ COMPILERS = {
 
         'versions': {
             'default': {
-                '!apt_repos': [],
                 '!cmake_args': [],
             },
             '3': {
-                '!post_build_steps': [],
-                '!apt_repos': [],
-                '!cmake_args': [],
-
-                'apt_packages': ["clang-3.9"],
+                'packages': ["clang-3.9"],
                 'c': "clang-3.9",
                 'cxx': "clang-3.9",
             },
             '6': {
-                'apt_repos': [
-                    "deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-6.0 main",
-                ],
-                'apt_packages': ["clang-6.0", "clang-tidy-6.0"],
+                'packages': ["clang-6.0", "clang-tidy-6.0"],
 
                 'c': "clang-6.0",
                 'cxx': "clang-6.0",
-
-                'requires_privilege': True,
             },
             '7': {
-                'apt_repos': [
-                    "deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-7 main",
-                ],
-                'apt_packages': ["clang-7", "clang-tidy-7"],
+                'packages': ["clang-7", "clang-tidy-7"],
 
                 'c': "clang-7",
                 'cxx': "clang-7",
-
-                'requires_privilege': True,
             },
             '8': {
-                'apt_repos': [
-                    "deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-8 main",
-                ],
-                'apt_packages': ["clang-8", "clang-tidy-8"],
+                'packages': ["clang-8", "clang-tidy-8"],
 
                 'c': "clang-8",
                 'cxx': "clang-8",
-
-                'requires_privilege': True,
             },
             '9': {
-                'apt_repos': [
-                    "deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-9 main",
-                ],
-                'apt_packages': ["clang-9", "clang-tidy-9"],
+                'packages': ["clang-9", "clang-tidy-9"],
 
                 'c': "clang-9",
                 'cxx': "clang-9",
-
-                'requires_privilege': True,
             },
             # 10 and 11 are XCode Apple clang/LLVM
             '10': {
-                '!apt_repos': [],
                 '!cmake_args': [],
             },
             '11': {
-                '!apt_repos': [],
                 '!cmake_args': [],
             },
         },
@@ -254,7 +234,7 @@ COMPILERS = {
 
         'c': "gcc-{version}",
         'cxx': "g++-{version}",
-        'apt_packages': ["gcc-{version}", "g++-{version}"],
+        'packages': ["gcc-{version}", "g++-{version}"],
 
         'versions': {
             '4.8': {},
@@ -266,7 +246,7 @@ COMPILERS = {
 
         'architectures': {
             'x86': {
-                'apt_packages': ["gcc-{version}-multilib", "g++-{version}-multilib"],
+                'packages': ["gcc-{version}-multilib", "g++-{version}-multilib"],
             },
         },
     },

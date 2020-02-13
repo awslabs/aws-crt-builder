@@ -17,6 +17,9 @@ from action import Action
 class InstallTools(Action):
     """ Installs prerequisites to building """
 
+    def __init__(self, *packages):
+        self.packages = packages
+
     def run(self, env):
         config = env.config
         sh = env.shell
@@ -24,21 +27,21 @@ class InstallTools(Action):
         if getattr(env.args, 'skip_install', False):
             return
 
-        if config['use_apt']:
-            # Install keys
-            for key in config['apt_keys']:
-                sh.exec("sudo", "apt-key", "adv", "--fetch-keys", key)
+        pkg_setup = config.get('pkg_setup', [])
+        if pkg_setup:
+            for cmd in pkg_setup:
+                if isinstance(cmd, str):
+                    cmd = cmd.split(' ')
+                assert isinstance(list, cmd)
+                sh.exec(cmd)
 
-            # Add APT repositories
-            for repo in config['apt_repos']:
-                sh.exec("sudo", "apt-add-repository", repo)
+        pkg_update = config.get('pkg_update', None)
+        if pkg_update:
+            pkg_update = pkg_update.split(' ')
+            sh.exec(pkg_update)
 
-            # Install packages
-            if config['apt_packages']:
-                sh.exec("sudo", "apt-get", "-qq", "update", "-y")
-                sh.exec("sudo", "apt-get", "-qq", "install",
-                        "-y", "-f", config['apt_packages'])
+        pkg_install = config['pkg_install']
+        pkg_install = pkg_install.split('')
+        pkg_install += self.packages + config.get('packages', [])
 
-        if config['use_brew']:
-            for package in config['brew_packages']:
-                sh.exec("brew", "install", package)
+        sh.exec(pkg_install)
