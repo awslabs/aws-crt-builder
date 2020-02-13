@@ -41,6 +41,8 @@ class Scripts(object):
 
         scripts = glob.glob(os.path.join(path, '*.py'))
         scripts += glob.glob(os.path.join(path, '**', '*.py'))
+        # Update to get the latest action set right before we load
+        Scripts.all_actions = set(Action.__subclasses__())
         for script in scripts:
             if not script.endswith('.py'):
                 continue
