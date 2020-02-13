@@ -106,6 +106,8 @@ def replace_variables(value, variables):
 
 def produce_config(build_spec, config_file, **additional_variables):
 
+    platform = current_platform()
+
     defaults = {
         'hosts': HOSTS,
         'targets': TARGETS,
@@ -140,6 +142,9 @@ def produce_config(build_spec, config_file, **additional_variables):
 
             return new_config
 
+        # Get defaults from platform (linux) then override with host (al2, manylinux, etc)
+        if platform != build_spec.host:
+            process_element(config, 'hosts', platform)
         process_element(config, 'hosts', build_spec.host)
         process_element(config, 'targets', build_spec.target)
 
