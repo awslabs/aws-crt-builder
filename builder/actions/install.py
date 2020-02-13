@@ -18,21 +18,22 @@ class InstallTools(Action):
     """ Installs prerequisites to building """
 
     def __init__(self, *packages):
-        self.packages = packages
+        self.packages = list(packages)
 
     def run(self, env):
         config = env.config
         sh = env.shell
 
-        if getattr(env.args, 'skip_install', False):
-            return
+        was_dryrun = sh.dryrun
+        if '--skip-install' in env.args.args:
+            sh.dryrun = True
 
         pkg_setup = config.get('pkg_setup', [])
         if pkg_setup:
             for cmd in pkg_setup:
                 if isinstance(cmd, str):
                     cmd = cmd.split(' ')
-                assert isinstance(list, cmd)
+                assert isinstance(cmd, list)
                 sh.exec(cmd)
 
         pkg_update = config.get('pkg_update', None)
@@ -41,7 +42,10 @@ class InstallTools(Action):
             sh.exec(pkg_update)
 
         pkg_install = config['pkg_install']
-        pkg_install = pkg_install.split('')
+        pkg_install = pkg_install.split(' ')
         pkg_install += self.packages + config.get('packages', [])
 
         sh.exec(pkg_install)
+
+        if '--skip-install' in env.args.args:
+            sh.dryrun = was_dryrun

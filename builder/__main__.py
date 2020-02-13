@@ -175,7 +175,7 @@ if __name__ == '__main__':
         project=env.project.name,
         project_dir=env.project.path,
         spec=str(build_spec))
-    if not env.config['enabled']:
+    if not env.config.get('enabled', True):
         raise Exception("The project is disabled in this configuration")
 
     if getattr(args, 'dump_config', False):
