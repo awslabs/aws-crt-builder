@@ -11,6 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+import sys
 from action import Action
 from config import replace_variables
 from scripts import Scripts
