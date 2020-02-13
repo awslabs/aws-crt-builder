@@ -54,15 +54,12 @@ def run_action(action, env):
             return
 
         compiler = env.build_spec.compiler
-        version = env.build_spec.compiler_version
         if compiler != 'default':
-            for var, suffix in {'CC': '', 'CXX': '++'}.items():
-                exe = compiler + suffix
-                if version != 'default':
-                    exe += '-{}'.format(version)
+            for cvar, evar in {'c': 'CC', 'cxx': 'CXX'}.items():
+                exe = config.get(cvar)
                 compiler_path = env.shell.where(exe)
                 if compiler_path:
-                    env.shell.setenv(var, compiler_path)
+                    env.shell.setenv(evar, compiler_path)
                 else:
                     print('WARNING: Compiler {} could not be found'.format(exe))
 
