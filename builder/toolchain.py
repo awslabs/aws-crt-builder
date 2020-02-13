@@ -234,6 +234,7 @@ class Toolchain(object):
             if not compiler or not version:
                 print('WARNING: Default compiler could not be found')
 
+            print('Default Compiler: {} {}'.format(compiler, version))
             return compiler, version
 
         Toolchain._default_compiler, Toolchain._default_version = _find_compiler()
