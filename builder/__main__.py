@@ -113,7 +113,7 @@ def inspect_host(env):
 
 
 def parse_extra_args(env):
-    args = env.args.args
+    args = getattr(env.args, 'args', [])
     parser = argparse.ArgumentParser()
     parser.add_argument('--compiler', type=str,
                         help="The compiler to use for this build")
