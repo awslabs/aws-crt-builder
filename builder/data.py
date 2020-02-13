@@ -120,6 +120,7 @@ HOSTS = {
         },
 
         'pkg_install': 'brew install',
+        'sudo': False,
     }
 }
 
