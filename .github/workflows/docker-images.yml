@@ -27,14 +27,12 @@ jobs:
       - name: Sanity Test
         if:  matrix.host != 'windows-latest'
         run: |
-          python3 -m builder inspect
           python3 -m builder --project tests run test
       
       - name: Sanity Test
         if: matrix.host == 'windows-latest'
         run: |
           choco install --no-progress vswhere
-          python -m builder inspect
           python -m builder --project tests run test
 
   package:
