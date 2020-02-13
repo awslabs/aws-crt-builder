@@ -24,8 +24,8 @@ class InstallPackages(Action):
 
     pkg_init_done = False
 
-    def __init__(self, *packages):
-        self.packages = list(packages)
+    def __init__(self, packages=[]):
+        self.packages = packages
 
     def run(self, env):
         config = env.config

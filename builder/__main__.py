@@ -150,7 +150,7 @@ if __name__ == '__main__':
                         help="Print the config in use before running a build")
     parser.add_argument('--spec', type=str, dest='build')
     parser.add_argument('-b', '--build-dir', type=str,
-                        help='Directory to work in', default='build')
+                        help='Directory to work in', default='.')
     commands = parser.add_subparsers(dest='command')
 
     build = commands.add_parser(
