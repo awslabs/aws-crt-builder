@@ -93,7 +93,7 @@ class CMakeBuild(Action):
                 "-DBUILD_TESTING=" + ("ON" if build_tests else "OFF"),
                 *cmake_flags,
                 *compiler_flags,
-            ] getattr(project, 'cmake_args', []) + config.get('cmake_args', [])
+            ] + getattr(project, 'cmake_args', []) + config.get('cmake_args', [])
 
             # configure
             sh.exec("cmake", cmake_args, project_source_dir)
