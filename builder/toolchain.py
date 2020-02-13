@@ -106,7 +106,7 @@ class Toolchain(object):
         # resolve default compiler and/or version
         if self.compiler == 'default':
             c, v = Toolchain.default_compiler(env)
-            if c:
+            if c and v:
                 self.compiler, self.compiler_version = c, v
         elif self.compiler_version == 'default':
             self.compiler_version = _compiler_version(
@@ -238,7 +238,9 @@ class Toolchain(object):
                 # resolve CC and /usr/bin/cc
                 for env_cc in (env.shell.where(os.environ.get('CC', None)), env.shell.where('cc')):
                     if env_cc:
-                        return _compiler_version(env, env_cc)
+                        cc, ccver = _compiler_version(env, env_cc)
+                        if cc and ccver:
+                            return cc, ccver
 
                 # Try to find clang or gcc
                 clang_path, clang_version = Toolchain.find_llvm_tool(
