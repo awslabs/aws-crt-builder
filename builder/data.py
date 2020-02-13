@@ -50,7 +50,10 @@ HOSTS = {
         'cmake_args': [
             "-DPERFORM_HEADER_CHECK=ON",
         ],
-
+    },
+    'ubuntu': {
+        # need ld and make and such
+        'packages': ['build-essential'],
         'pkg_setup': [
             'apt-key adv --fetch-keys http://apt.llvm.org/llvm-snapshot.gpg.key',
             'apt-add-repository ppa:ubuntu-toolchain-r/test',
@@ -65,10 +68,6 @@ HOSTS = {
         ],
         'pkg_update': 'apt-get -qq update -y',
         'pkg_install': 'apt-get -qq install -y',
-    },
-    'ubuntu': {
-        # need ld and make and such
-        'packages': ['build-essential']
     },
     'al2012': {
         'cmake_args': [
@@ -105,6 +104,9 @@ HOSTS = {
                 'image': "123124136734.dkr.ecr.us-east-1.amazonaws.com/aws-common-runtime/manylinux1:x64",
             },
         },
+
+        'pkg_update': 'yum update -y',
+        'pkg_install': 'yum install -y',
 
         'variables': {
             'python': "/opt/python/cp37-cp37m/bin/python",
