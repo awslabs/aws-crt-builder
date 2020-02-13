@@ -64,7 +64,7 @@ def current_host():
                 if _file_contains('/etc/redhat-release', 'CentOS Linux release 7.7.1908'):
                     return 'manylinux'
                 if _file_contains('/etc/lsb-release', 'Ubuntu'):
-                    return 'linux'
+                    return 'ubuntu'
                 return 'linux'
             else:
                 return platform

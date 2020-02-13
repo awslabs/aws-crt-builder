@@ -65,6 +65,10 @@ HOSTS = {
         'pkg_update': 'apt-get -qq update -y',
         'pkg_install': 'apt-get -qq install -y',
     },
+    'ubuntu': {
+        # need ld and make and such
+        'packages': ['build-essential']
+    },
     'al2012': {
         'cmake_args': [
             "-DENABLE_SANITIZERS=OFF",
