@@ -54,7 +54,7 @@ class Env(object):
             self.shell = Shell(self.dryrun)
 
         # build environment set up
-        self.source_dir = os.environ.get(os.path.abspath(self.args.build_dir))
+        self.source_dir = os.path.abspath(self.args.build_dir)
         self.build_dir = os.path.join(self.source_dir, 'build')
         self.deps_dir = os.path.join(self.build_dir, 'deps')
         self.install_dir = os.path.join(self.build_dir, 'install')
