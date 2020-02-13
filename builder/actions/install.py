@@ -28,7 +28,7 @@ class InstallTools(Action):
         sudo = ['sudo'] if sudo else []
 
         was_dryrun = sh.dryrun
-        if '--skip-install' in env.args.get('args', []):
+        if '--skip-install' in getattr(env.args, 'args', []):
             sh.dryrun = True
 
         pkg_setup = config.get('pkg_setup', [])
@@ -50,5 +50,5 @@ class InstallTools(Action):
 
         sh.exec(*sudo, pkg_install, check=True)
 
-        if '--skip-install' in env.args.get('args', []):
+        if '--skip-install' in getattr(env.args, 'args', []):
             sh.dryrun = was_dryrun
