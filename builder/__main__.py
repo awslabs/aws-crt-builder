@@ -57,11 +57,12 @@ def run_action(action, env):
         if compiler != 'default':
             for cvar, evar in {'c': 'CC', 'cxx': 'CXX'}.items():
                 exe = config.get(cvar)
-                compiler_path = env.shell.where(exe)
-                if compiler_path:
-                    env.shell.setenv(evar, compiler_path)
-                else:
-                    print('WARNING: Compiler {} could not be found'.format(exe))
+                if exe:
+                    compiler_path = env.shell.where(exe)
+                    if compiler_path:
+                        env.shell.setenv(evar, compiler_path)
+                    else:
+                        print('WARNING: Compiler {} could not be found'.format(exe))
 
     Scripts.run_action(
         Script([
