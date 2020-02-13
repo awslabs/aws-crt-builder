@@ -117,9 +117,7 @@ HOSTS = {
             'python': "python3",
         },
 
-        'pkg_install': 'brew install'
-
-        'use_brew': True,
+        'pkg_install': 'brew install',
     }
 }
 
