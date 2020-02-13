@@ -50,6 +50,7 @@ HOSTS = {
         'cmake_args': [
             "-DPERFORM_HEADER_CHECK=ON",
         ],
+        'sudo': True
     },
     'ubuntu': {
         # need ld and make and such
@@ -129,7 +130,6 @@ HOSTS = {
         },
 
         'pkg_install': 'brew install',
-        'sudo': False,
     }
 }
 
