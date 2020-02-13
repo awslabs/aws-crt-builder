@@ -39,7 +39,7 @@ def _compiler_version(env, cc):
         m = re.match('gcc .+ (\d+)\.', text)
         if m:
             return 'gcc', m.group(1)
-    return 'unknown'
+    return None, None
 
 
 def _find_compiler_tool(env, name, versions):
@@ -235,7 +235,7 @@ class Toolchain(object):
                 # resolve CC and /usr/bin/cc
                 for env_cc in (os.environ.get('CC', None), env.shell.where('cc')):
                     if env_cc:
-                        return env.shell.where(env_cc), _compiler_version(env, env_cc)
+                        return _compiler_version(env, env_cc)
 
                 # Try to find clang or gcc
                 clang_path, clang_version = Toolchain.find_llvm_tool(
