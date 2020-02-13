@@ -62,6 +62,3 @@ class InstallTools(Action):
 
         if args.skip_install:
             sh.dryrun = was_dryrun
-
-    def __str__(self):
-        return '{}({})'.format(self.__class__.__name__, ', '.join(self.packages + config.get('packages', [])))
