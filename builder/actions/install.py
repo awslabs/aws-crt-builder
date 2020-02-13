@@ -29,6 +29,8 @@ class InstallTools(Action):
         if not packages:
             return
 
+        print('Installing packages: {}'.format(', '.join(packages)))
+
         sh = env.shell
         sudo = config.get('sudo', current_platform() == 'linux')
         sudo = ['sudo'] if sudo else []
