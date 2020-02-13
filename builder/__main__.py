@@ -78,6 +78,10 @@ def default_spec(env):
     host = current_host()
     arch = current_arch()
     compiler, version = Toolchain.default_compiler(env)
+    print('Using Default Spec:')
+    print('  Host: {} {}'.format(host, arch))
+    print('  Target: {} {}'.format(target, arch))
+    print('  Compiler: {} {}'.format(compiler, version))
     return BuildSpec(host=host, compiler=compiler, compiler_version='{}'.format(version), target=target, arch=arch)
 
 
