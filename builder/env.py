@@ -53,7 +53,6 @@ class Env(object):
 
         print('Source directory: {}'.format(self.source_dir))
 
-        # Once initialized, switch to the source dir before running actions
         if os.path.exists(self.build_dir):
             self.shell.rm(self.build_dir)
         self.shell.mkdir(self.build_dir)
@@ -79,6 +78,8 @@ class Env(object):
             project = Project.find_project(project.name)
             assert project.path
         self.project = project
+
+        # Once initialized, switch to the source dir before running actions
         if self.project:
             self.shell.cd(self.project.path)
 
