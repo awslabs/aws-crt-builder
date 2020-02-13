@@ -49,6 +49,7 @@ class Shell(object):
             self._flatten_command(*command)), flush=True)
 
     def _run_command(self, *command, **kwargs):
+        ExecResult = namedtuple('ExecResult', ['returncode', 'pid', 'output'])
         if not kwargs.get('quiet', False):
             self._log_command(*command)
         if not self.dryrun:
@@ -69,12 +70,12 @@ class Shell(object):
                     line = proc.stdout.readline()
                 proc.wait()
 
-                return namedtuple('ExecResult', ['returncode', 'pid', 'output'])(proc.returncode, proc.pid, output)
+                return ExecResult(proc.returncode, proc.pid, output)
 
             except Exception as ex:
                 print('Failed to run {}: {}'.format(
                     ' '.join(self._flatten_command(*command)), ex))
-                return None
+                return ExecResult(-1, -1, ex)
 
     def _cd(self, directory):
         if self.dryrun:
@@ -184,14 +185,14 @@ class Shell(object):
 
     def exec(self, *command, **kwargs):
         """ Executes a shell command, or just logs it for dry runs """
-        output = ''
+        result = None
         if kwargs.get('always', False):
             prev_dryrun = self.dryrun
             self.dryrun = False
-            output = self._run_command(
+            result = self._run_command(
                 *command, quiet=kwargs.get('quiet', False), stderr=kwargs.get('stderr', False))
             self.dryrun = prev_dryrun
         else:
-            output = self._run_command(
+            result = self._run_command(
                 *command, quiet=kwargs.get('quiet', False), stderr=kwargs.get('stderr', False))
-        return output
+        return result
