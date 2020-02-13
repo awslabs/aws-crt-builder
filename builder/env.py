@@ -71,7 +71,7 @@ class Env(object):
             DownloadSource(
                 project=project, branch=self.branch).run(self)
             # Now that the project is downloaded, look it up again
-            project = self.find_project(project.name)
+            project = Project.find_project(project.name)
             assert project.path
         self.project = project
 
