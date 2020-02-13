@@ -15,6 +15,7 @@ import os
 
 from action import Action
 from toolchain import Toolchain
+from project import Project
 
 
 class CMakeBuild(Action):
@@ -50,7 +51,7 @@ class CMakeBuild(Action):
 
         def build_project(project, build_tests=False):
             # build dependencies first, let cmake decide what needs doing
-            for dep in [env.find_project(p.name) for p in project.get_dependencies(env.build_spec)]:
+            for dep in [Project.find_project(p.name) for p in project.get_dependencies(env.build_spec)]:
                 sh.pushd(dep.path)
                 build_project(dep)
                 sh.popd()
@@ -59,6 +60,10 @@ class CMakeBuild(Action):
             project_build_dir = os.path.join(project_source_dir, 'build')
             sh.mkdir(project_build_dir)
             sh.pushd(project_build_dir)
+
+            # If cmake has already run, assume we're good
+            if os.path.isfile(os.path.join(project_build_dir, 'CMakeCache.txt')):
+                return
 
             # Set compiler flags
             compiler_flags = []
@@ -111,7 +116,7 @@ class CMakeBuild(Action):
             sh.pushd(deps_dir)
 
             for proj in projects:
-                project = env.find_project(proj)
+                project = Project.find_project(proj)
                 sh.pushd(project.path)
                 build_project(project)
                 sh.popd()
@@ -120,16 +125,14 @@ class CMakeBuild(Action):
 
         sh.pushd(source_dir)
 
-        build_projects(
-            [p.name for p in env.project.get_dependencies(env.build_spec)])
+        spec = env.build_spec
+        build_projects([p.name for p in env.project.get_dependencies(spec)])
 
         # BUILD
         build_project(env.project, getattr(env, 'build_tests', False))
 
-        spec = getattr(env, 'build_spec', None)
         if spec and spec.downstream:
-            build_projects(
-                [p.name for p in env.project.get_consumers(env.build_spec)])
+            build_projects([p.name for p in env.project.get_consumers(spec)])
 
         sh.popd()
 

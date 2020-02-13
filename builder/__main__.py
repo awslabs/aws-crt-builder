@@ -24,6 +24,7 @@ from actions.install import InstallPackages, InstallCompiler
 from actions.git import DownloadDependencies
 from actions.cmake import CMakeBuild, CTestRun
 from env import Env
+from project import Project
 from scripts import Scripts
 from config import produce_config, validate_build
 from toolchain import Toolchain
@@ -115,7 +116,7 @@ def inspect_host(env):
     compilers = ['{} {}'.format(c[0], c[1])
                  for c in Toolchain.all_compilers(env)]
     print('  Available Compilers: {}'.format(', '.join(compilers)))
-    print('  Available Projects: {}'.format(', '.join(env.projects())))
+    print('  Available Projects: {}'.format(', '.join(Project.projects())))
 
 
 def parse_extra_args(env):
