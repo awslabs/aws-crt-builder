@@ -33,6 +33,8 @@ KEYS = {
     'pkg_install': None,
     'pkg_update': None,
     'packages': [],
+    'compiler_packages': [],
+    'needs_compiler': True,
 
     # Linux
     'sudo': False
@@ -194,30 +196,30 @@ COMPILERS = {
                 '!cmake_args': [],
             },
             '3': {
-                'packages': ["clang-3.9"],
+                'compiler_packages': ["clang-3.9"],
                 'c': "clang-3.9",
                 'cxx': "clang-3.9",
             },
             '6': {
-                'packages': ["clang-6.0", "clang-tidy-6.0"],
+                'compiler_packages': ["clang-6.0", "clang-tidy-6.0"],
 
                 'c': "clang-6.0",
                 'cxx': "clang-6.0",
             },
             '7': {
-                'packages': ["clang-7", "clang-tidy-7"],
+                'compiler_packages': ["clang-7", "clang-tidy-7"],
 
                 'c': "clang-7",
                 'cxx': "clang-7",
             },
             '8': {
-                'packages': ["clang-8", "clang-tidy-8"],
+                'compiler_packages': ["clang-8", "clang-tidy-8"],
 
                 'c': "clang-8",
                 'cxx': "clang-8",
             },
             '9': {
-                'packages': ["clang-9", "clang-tidy-9"],
+                'compiler_packages': ["clang-9", "clang-tidy-9"],
 
                 'c': "clang-9",
                 'cxx': "clang-9",
@@ -237,7 +239,7 @@ COMPILERS = {
 
         'c': "gcc-{version}",
         'cxx': "g++-{version}",
-        'packages': ["gcc-{version}", "g++-{version}"],
+        'compiler_packages': ["gcc-{version}", "g++-{version}"],
 
         'versions': {
             '4.8': {},
@@ -249,7 +251,7 @@ COMPILERS = {
 
         'architectures': {
             'x86': {
-                'packages': ["gcc-{version}-multilib", "g++-{version}-multilib"],
+                'compiler_packages': ["gcc-{version}-multilib", "g++-{version}-multilib"],
             },
         },
     },

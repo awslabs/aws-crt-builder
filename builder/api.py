@@ -19,7 +19,7 @@ from scripts import Scripts
 from project import Project
 from actions.cmake import CMakeBuild, CTestRun
 from actions.git import DownloadSource, DownloadDependencies
-from actions.install import InstallTools
+from actions.install import InstallPackages, InstallCompiler
 from actions.script import Script
 from toolchain import Toolchain
 import host
@@ -45,5 +45,7 @@ class Builder(VirtualModule):
     CTestRun = CTestRun
     DownloadDependencies = DownloadDependencies
     DownloadSource = DownloadSource
-    InstallTools = InstallTools
+    InstallTools = InstallPackages  # backward compat, deprecated
+    InstallPackages = InstallPackages
+    InstallCompiler = InstallCompiler
     Script = Script

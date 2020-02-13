@@ -20,7 +20,7 @@ sys.path.append(os.path.abspath(os.path.dirname(__file__)))  # nopep8
 
 from spec import BuildSpec
 from actions.script import Script
-from actions.install import InstallTools
+from actions.install import InstallPackages, InstallCompiler
 from actions.git import DownloadDependencies
 from actions.cmake import CMakeBuild, CTestRun
 from env import Env
@@ -49,42 +49,10 @@ def run_action(action, env):
         action_cls = Scripts.find_action(action)
         action = action_cls()
 
-    # verify compiler
-    compiler = env.build_spec.compiler
-    version = env.build_spec.compiler_version
-    if version == 'default':
-        version = None
-
-    # Remove compiler packages if the compiler is already installed
-    compiler_path, found_version = Toolchain.find_compiler(
-        env, compiler, version)
-    if compiler_path:
-        print('Compiler {} {} is already installed ({})'.format(
-            compiler, version, compiler_path))
-        compiler_packages = frozenset(
-            Toolchain.compiler_packages(compiler, version))
-        all_packages = frozenset(env.config.get('packages', []))
-        remaining_packages = all_packages.difference(compiler_packages)
-        env.config['packages'] = list(remaining_packages)
-
-    def _export_compiler(_env):
-        if current_platform() == 'windows':
-            return
-
-        if compiler != 'default':
-            for cvar, evar in {'c': 'CC', 'cxx': 'CXX'}.items():
-                exe = config.get(cvar)
-                if exe:
-                    compiler_path = env.shell.where(exe)
-                    if compiler_path:
-                        env.shell.setenv(evar, compiler_path)
-                    else:
-                        print('WARNING: Compiler {} could not be found'.format(exe))
-
     Scripts.run_action(
         Script([
-            InstallTools(),
-            _export_compiler,
+            InstallCompiler(),
+            InstallPackages(),
             DownloadDependencies(),
             action,
         ], name='run_build'),
