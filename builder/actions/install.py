@@ -23,6 +23,8 @@ class InstallTools(Action):
     def run(self, env):
         config = env.config
         sh = env.shell
+        sudo = config.get('sudo', current_platform() == 'linux')
+        sudo = ['sudo'] if sudo else []
 
         was_dryrun = sh.dryrun
         if '--skip-install' in env.args.args:
@@ -34,18 +36,18 @@ class InstallTools(Action):
                 if isinstance(cmd, str):
                     cmd = cmd.split(' ')
                 assert isinstance(cmd, list)
-                sh.exec(cmd)
+                sh.exec(*sudo, cmd)
 
         pkg_update = config.get('pkg_update', None)
         if pkg_update:
             pkg_update = pkg_update.split(' ')
-            sh.exec(pkg_update)
+            sh.exec(*sudo, pkg_update)
 
         pkg_install = config['pkg_install']
         pkg_install = pkg_install.split(' ')
         pkg_install += self.packages + config.get('packages', [])
 
-        sh.exec(pkg_install)
+        sh.exec(*sudo, pkg_install)
 
         if '--skip-install' in env.args.args:
             sh.dryrun = was_dryrun

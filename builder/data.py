@@ -35,9 +35,7 @@ KEYS = {
     'packages': [],
 
     # Linux
-    'apt_keys': [],
-    'apt_repos': [],
-    'apt_packages': [],
+    'sudo': True
 }
 
 HOSTS = {
