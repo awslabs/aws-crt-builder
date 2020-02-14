@@ -16,6 +16,7 @@ import glob
 import os
 import sys
 
+from config import produce_config
 from scripts import Scripts
 
 
@@ -45,6 +46,7 @@ class Project(object):
         self.url = "https://github.com/{}/{}.git".format(
             self.account, self.name)
         self.path = kwargs.get('path', None)
+        self.config = kwargs.get('config', dict(kwargs))
         self._resolved_refs = False
 
     def __repr__(self):
@@ -83,6 +85,9 @@ class Project(object):
                 consumers.append(c)
         return consumers
 
+    def get_config(spec, **additional_vars):
+        return produce_config(spec, self, ** additional_vars)
+
     # project cache
     _projects = {}
 
@@ -106,7 +111,7 @@ class Project(object):
         project_config_file = os.path.join(path, "builder.json")
         if os.path.exists(project_config_file):
             import json
-            with open(project_config_file, 'r') as config_fp:
+            with open(project_config_file, 'r', encoding='ascii') as config_fp:
                 try:
                     project_config = json.load(config_fp)
                 except Exception as e:
@@ -118,7 +123,7 @@ class Project(object):
                     project_config['name'] = name_hint if name_hint else os.path.dirname(
                         os.getcwd())
                 print('    Found project: {}'.format(project_config['name']))
-                return Project._cache_project(Project(**project_config, path=path))
+                return Project._cache_project(Project(**project_config, path=path, config=project_config))
 
         # load any builder scripts and check them
         Scripts.load()

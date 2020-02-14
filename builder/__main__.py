@@ -26,7 +26,7 @@ from actions.cmake import CMakeBuild, CTestRun
 from env import Env
 from project import Project
 from scripts import Scripts
-from config import produce_config, validate_build
+from config import validate_build
 from toolchain import Toolchain
 from host import current_platform, current_host, current_arch
 
@@ -64,6 +64,7 @@ def run_action(action, env):
 
 
 def run_build(env):
+    validate_build(env.build_spec)
     print("Running build", env.build_spec.name, flush=True)
     build_action = CMakeBuild()
     test_action = CTestRun()
@@ -193,9 +194,8 @@ if __name__ == '__main__':
         sys.exit(1)
 
     # Build the config object
-    config_file = os.path.join(env.project.path, "builder.json")
-    config = env.config = produce_config(
-        env.build_spec, config_file,
+    env.config = env.project.produce_config(
+        env.build_spec,
         source_dir=env.source_dir,
         build_dir=env.build_dir,
         install_dir=env.install_dir,
@@ -211,9 +211,7 @@ if __name__ == '__main__':
         print('Spec: ', end='')
         pprint(env.build_spec)
         print('Config:')
-        pprint(config)
-
-    validate_build(env.build_spec)
+        pprint(env.config)
 
     # Run a build with a specific spec/toolchain
     if args.command == 'build':

@@ -15,6 +15,7 @@ import os
 
 from data import *
 from host import current_platform
+from project import Project
 
 ########################################################################################################################
 # CONFIG
@@ -105,7 +106,7 @@ def replace_variables(value, variables):
 # Traverse the configurations to produce one for the specified
 
 
-def produce_config(build_spec, config_file, **additional_variables):
+def produce_config(build_spec, project, **additional_variables):
 
     platform = current_platform()
 
@@ -156,21 +157,10 @@ def produce_config(build_spec, config_file, **additional_variables):
     process_config(defaults)
 
     # then override with config file
-    if config_file:
-        if not os.path.exists(config_file):
-            raise Exception(
-                "Config file {} specified, but could not be found".format(config_file))
-
-        import json
-        with open(config_file, 'r') as config_fp:
-            try:
-                project_config = json.load(config_fp)
-                process_config(project_config)
-                if project_config not in configs:
-                    configs.append(project_config)
-            except Exception as e:
-                print("Failed to parse config file", config_file, e)
-                sys.exit(1)
+    project_config = project.config
+    process_config(project_config)
+    if project_config not in configs:
+        configs.append(project_config)
 
     new_version = {
         'spec': build_spec,
