@@ -73,7 +73,7 @@ class Shell(object):
                 while (line):
                     # ignore weird characters coming back from the shell (colors, etc)
                     if not isinstance(line, str):
-                        line = line.decode('UTF-8', 'ignore')
+                        line = line.decode('ascii', 'ignore')
                     output += line
                     if not kwargs.get('quiet', False):
                         print(line, end='', flush=True)
