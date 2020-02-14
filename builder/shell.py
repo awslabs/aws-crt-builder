@@ -66,7 +66,7 @@ class Shell(object):
                     stdout=subprocess.PIPE,
                     stderr=subprocess.STDOUT,
                     shell=(self.platform == 'windows'),
-                    text=True,
+                    universal_newlines=True,
                     bufsize=0)  # do not buffer output
 
                 output = ""
