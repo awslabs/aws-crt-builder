@@ -13,8 +13,8 @@
 
 import sys
 from action import Action
-from config import replace_variables
 from scripts import Scripts
+from util import replace_variables
 
 
 class Script(Action):

@@ -26,7 +26,6 @@ from actions.cmake import CMakeBuild, CTestRun
 from env import Env
 from project import Project
 from scripts import Scripts
-from config import validate_build
 from toolchain import Toolchain
 from host import current_platform, current_host, current_arch
 
@@ -38,7 +37,7 @@ import api  # force API to load and expose the virtual module
 ########################################################################################################################
 
 def run_action(action, env):
-
+    config = env.config
     # Set build environment from config
     env.shell.pushenv()
     for var, value in config.get('build_env', {}).items():
@@ -64,7 +63,8 @@ def run_action(action, env):
 
 
 def run_build(env):
-    validate_build(env.build_spec)
+    config = env.config
+
     print("Running build", env.build_spec.name, flush=True)
     build_action = CMakeBuild()
     test_action = CTestRun()
@@ -194,14 +194,12 @@ if __name__ == '__main__':
         sys.exit(1)
 
     # Build the config object
-    env.config = env.project.produce_config(
+    env.config = env.project.get_config(
         env.build_spec,
         source_dir=env.source_dir,
         build_dir=env.build_dir,
         install_dir=env.install_dir,
-        project=env.project.name,
-        project_dir=env.project.path,
-        spec=str(env.build_spec))
+        project_dir=env.project.path)
 
     if not env.config.get('enabled', True):
         raise Exception("The project is disabled in this configuration")

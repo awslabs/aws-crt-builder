@@ -14,7 +14,31 @@
 import os
 import sys
 
+from data import *
 from host import current_host, current_platform, current_arch
+
+
+def validate_spec(build_spec):
+
+    assert build_spec.host in HOSTS, "Host name {} is invalid".format(
+        build_spec.host)
+    assert build_spec.target in TARGETS, "Target {} is invalid".format(
+        build_spec.target)
+
+    assert build_spec.compiler in COMPILERS, "Compiler {} is invalid".format(
+        build_spec.compiler)
+    compiler = COMPILERS[build_spec.compiler]
+
+    assert build_spec.compiler_version in compiler['versions'], "Compiler version {} is invalid for compiler {}".format(
+        build_spec.compiler_version, build_spec.compiler)
+
+    supported_hosts = compiler['hosts']
+    assert build_spec.host in supported_hosts or current_platform() in supported_hosts, "Compiler {} does not support host {}".format(
+        build_spec.compiler, build_spec.host)
+
+    supported_targets = compiler['targets']
+    assert build_spec.target in supported_targets, "Compiler {} does not support target {}".format(
+        build_spec.compiler, build_spec.target)
 
 
 class BuildSpec(object):
@@ -58,6 +82,8 @@ class BuildSpec(object):
                               self.compiler_version, self.target, self.arch])
         if self.downstream:
             self.name += "-downstream"
+
+        validate_spec(self)
 
     def __str__(self):
         return self.name
