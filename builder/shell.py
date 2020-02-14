@@ -17,6 +17,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import traceback
 
 from host import current_platform
 
@@ -73,7 +74,7 @@ class Shell(object):
                 while (line):
                     output += line
                     if not kwargs.get('quiet', False):
-                        line = line.decode('UTF-8')  # ensure utf8
+                        line = line.decode('UTF-8', 'ignore')  # ensure utf8
                         if self.platform == 'windows':
                             line = line.replace('\r\n', '\n')
                         print(line, end='', flush=True)
@@ -83,8 +84,8 @@ class Shell(object):
                 return ExecResult(proc.returncode, proc.pid, output)
 
             except Exception as ex:
-                print('Failed to run {}: {}\n{}'.format(
-                    ' '.join(self._flatten_command(*command)), ex, ex.__traceback__))
+                print('Failed to run {}: \n{}'.format(
+                    ' '.join(self._flatten_command(*command)), traceback.format_exc(ex)))
                 if kwargs.get('check', False):
                     sys.exit(5)
                 return ExecResult(-1, -1, ex)
