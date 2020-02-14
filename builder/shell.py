@@ -66,17 +66,14 @@ class Shell(object):
                     stdout=subprocess.PIPE,
                     stderr=subprocess.STDOUT,
                     shell=(self.platform == 'windows'),
-                    encoding='UTF-8',
+                    text=True,
                     bufsize=0)  # do not buffer output
 
-                output = bytes("", 'UTF-8')
+                output = ""
                 line = proc.stdout.readline()
                 while (line):
-                    line = bytes(line, 'UTF-8')
                     output += line
                     if not kwargs.get('quiet', False):
-                        if self.platform == 'windows':
-                            line = line.replace('\r\n', '\n')
                         print(line, end='', flush=True)
                     line = proc.stdout.readline()
                 proc.wait()
