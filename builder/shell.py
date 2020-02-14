@@ -57,9 +57,7 @@ class Shell(object):
             self._log_command(*command)
         if not self.dryrun:
             try:
-                # strip weird characters
-                cmds = [cmd.encode('ascii', 'ignore').decode('UTF-8')
-                        for cmd in self._flatten_command(*command)]
+                cmds = self._flatten_command(*command)
                 proc = subprocess.Popen(
                     cmds,
                     stdout=subprocess.PIPE,
@@ -82,7 +80,7 @@ class Shell(object):
 
             except Exception as ex:
                 print('Failed to run {}: {}'.format(
-                    ' '.join(self._flatten_command(*command)), ex))
+                    ' '.join(self._flatten_command(*command)), ex, ex.__traceback__))
                 if kwargs.get('check', False):
                     sys.exit(5)
                 return ExecResult(-1, -1, ex)
