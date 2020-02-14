@@ -66,9 +66,17 @@ class Env(object):
             return
 
         project_name = self.project if self.project else self.args.project
+
+        # see if the project is a path, if so, split it and give the path as a hint
+        parts = project_name.split(os.path.sep)
+        hints = []
+        if len(parts) > 1:
+            project_path = os.path.abspath(os.path.join(*parts))
+            hints = [project_path]
+            project_name = parts[-1]
         # Ensure that the specified project exists, this may return a ref or the project if
         # it is present on disk
-        project = Project.find_project(project_name)
+        project = Project.find_project(project_name, hints=hints)
         if not project.path:  # got a ref
             print('Project {} could not be found locally, downloading'.format(
                 project.name))

@@ -103,8 +103,6 @@ def produce_config(build_spec, project, **additional_variables):
     # then override with config file
     project_config = project.config
     process_config(project_config)
-    if project_config not in configs:
-        configs.append(project_config)
 
     new_version = {
         'spec': build_spec,
