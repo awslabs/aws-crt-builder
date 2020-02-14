@@ -244,7 +244,7 @@ class Project(object):
         project_config_file = os.path.join(path, "builder.json")
         if os.path.exists(project_config_file):
             import json
-            with open(project_config_file, 'r', encoding='ascii') as config_fp:
+            with open(project_config_file, 'r') as config_fp:
                 try:
                     project_config = json.load(config_fp)
                 except Exception as e:

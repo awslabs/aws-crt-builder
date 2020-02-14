@@ -68,12 +68,15 @@ class Shell(object):
                     shell=(self.platform == 'windows'),
                     bufsize=0)  # do not buffer output
 
+                # Convert all output to strings, which makes it much easier to both print
+                # and process, since all known uses of parsing output want strings anyway
                 output = ""
                 line = proc.stdout.readline()
                 while (line):
                     # ignore weird characters coming back from the shell (colors, etc)
                     if not isinstance(line, str):
                         line = line.decode('ascii', 'ignore')
+                    # We're reading in binary mode, so no automatic newline translation
                     if self.platform == 'windows':
                         line = line.replace('\r\n', '\n')
                     output += line
@@ -87,8 +90,8 @@ class Shell(object):
             except Exception as ex:
                 print('Failed to run {}: {}'.format(
                     ' '.join(self._flatten_command(*command)), ex))
-                # if kwargs.get('check', False):
-                raise
+                if kwargs.get('check', False):
+                    raise
                 return ExecResult(-1, -1, ex)
 
     def _cd(self, directory):
