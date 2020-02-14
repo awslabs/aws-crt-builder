@@ -70,7 +70,6 @@ class Shell(object):
                 while (line):
                     output += line
                     if not kwargs.get('quiet', False):
-                        line = line.decode(encoding='UTF-8')
                         line = line.replace('\r\n', '\n')
                         print(line, end='', flush=True)
                     line = proc.stdout.readline()
@@ -79,7 +78,7 @@ class Shell(object):
                 return ExecResult(proc.returncode, proc.pid, output)
 
             except Exception as ex:
-                print('Failed to run {}: {}'.format(
+                print('Failed to run {}: {}\n{}'.format(
                     ' '.join(self._flatten_command(*command)), ex, ex.__traceback__))
                 if kwargs.get('check', False):
                     sys.exit(5)
