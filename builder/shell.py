@@ -70,7 +70,9 @@ class Shell(object):
                 while (line):
                     output += line
                     if not kwargs.get('quiet', False):
-                        line = line.replace('\r\n', '\n')
+                        if self.platform == 'windows':
+                            line = line.encode()  # ensure utf8
+                            line = line.replace('\r\n', '\n')
                         print(line, end='', flush=True)
                     line = proc.stdout.readline()
                 proc.wait()
