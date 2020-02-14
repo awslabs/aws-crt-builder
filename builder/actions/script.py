@@ -43,7 +43,7 @@ class Script(Action):
         for cmd in self.commands:
             cmd_type = type(cmd)
             if cmd_type == str:
-                result = sh.exec(cmd)
+                result = sh.exec(*cmd.split(' '))
                 if result.returncode != 0:
                     print('Command failed, exiting')
                     sys.exit(12)

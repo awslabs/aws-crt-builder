@@ -54,8 +54,11 @@ class Shell(object):
             self._log_command(*command)
         if not self.dryrun:
             try:
+                # shell interaction must be in ascii
+                cmds = [cmd.encode('ascii', 'ignore')
+                        for cmd in self._flatten_command(*command)]
                 proc = subprocess.Popen(
-                    self._flatten_command(*command),
+                    cmds,
                     stdout=subprocess.PIPE,
                     stderr=subprocess.STDOUT,
                     bufsize=0)  # do not buffer output
