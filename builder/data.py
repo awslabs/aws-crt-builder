@@ -108,6 +108,7 @@ HOSTS = {
 
         'pkg_update': 'yum update -y',
         'pkg_install': 'yum install -y',
+        'sudo': False,
 
         'variables': {
             'python': "/opt/python/cp37-cp37m/bin/python",
