@@ -159,6 +159,7 @@ class Toolchain(object):
             # Grab installed version
             result = env.shell.exec('vswhere', '-legacy', '-version', version,
                                     '-property', 'installationVersion', quiet=True)
+            print(result, flush=True)
             text = result.output.decode(encoding='UTF-8')
             m = re.match('(\d+)\.?', text)
             if m:
