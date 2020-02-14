@@ -56,16 +56,7 @@ HOSTS = {
         # need ld and make and such
         'compiler_packages': ['build-essential'],
         'pkg_setup': [
-            'apt-key adv --fetch-keys http://apt.llvm.org/llvm-snapshot.gpg.key',
             'apt-add-repository ppa:ubuntu-toolchain-r/test',
-            ['apt-add-repository',
-                'deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-6.0 main'],
-            ['apt-add-repository',
-                'deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-7 main'],
-            ['apt-add-repository',
-                'deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-8 main'],
-            ['apt-add-repository',
-                'deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-9 main'],
         ],
         'pkg_update': 'apt-get -qq update -y',
         'pkg_install': 'apt-get -qq install -y',
@@ -209,24 +200,44 @@ COMPILERS = {
                 'cxx': "clang-3.9",
             },
             '6': {
+                'pkg_setup': [
+                    'apt-key adv --fetch-keys http://apt.llvm.org/llvm-snapshot.gpg.key',
+                    ['apt-add-repository',
+                     'deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-6.0 main']
+                ],
                 'compiler_packages': ["clang-6.0", "clang-tidy-6.0"],
 
                 'c': "clang-6.0",
                 'cxx': "clang-6.0",
             },
             '7': {
+                'pkg_setup': [
+                    'apt-key adv --fetch-keys http://apt.llvm.org/llvm-snapshot.gpg.key',
+                    ['apt-add-repository',
+                     'deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-7 main']
+                ],
                 'compiler_packages': ["clang-7", "clang-tidy-7"],
 
                 'c': "clang-7",
                 'cxx': "clang-7",
             },
             '8': {
+                'pkg_setup': [
+                    'apt-key adv --fetch-keys http://apt.llvm.org/llvm-snapshot.gpg.key',
+                    ['apt-add-repository',
+                     'deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-8 main']
+                ],
                 'compiler_packages': ["clang-8", "clang-tidy-8"],
 
                 'c': "clang-8",
                 'cxx': "clang-8",
             },
             '9': {
+                'pkg_setup': [
+                    'apt-key adv --fetch-keys http://apt.llvm.org/llvm-snapshot.gpg.key',
+                    ['apt-add-repository',
+                     'deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-9 main']
+                ],
                 'compiler_packages': ["clang-9", "clang-tidy-9"],
 
                 'c': "clang-9",

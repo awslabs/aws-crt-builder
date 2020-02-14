@@ -74,6 +74,8 @@ class Shell(object):
                     # ignore weird characters coming back from the shell (colors, etc)
                     if not isinstance(line, str):
                         line = line.decode('ascii', 'ignore')
+                    if self.platform == 'windows':
+                        line = line.replace('\r\n', '\n')
                     output += line
                     if not kwargs.get('quiet', False):
                         print(line, end='', flush=True)
