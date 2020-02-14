@@ -72,7 +72,7 @@ class Shell(object):
                 output = bytes("", 'UTF-8')
                 line = proc.stdout.readline()
                 while (line):
-                    output += bytes(line)
+                    output += bytes(line, 'UTF-8')
                     if not kwargs.get('quiet', False):
                         if self.platform == 'windows':
                             line = line.replace('\r\n', '\n')
