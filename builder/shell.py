@@ -18,6 +18,8 @@ import subprocess
 import sys
 import tempfile
 
+from host import current_platform
+
 
 class Shell(object):
     """ Virtual shell that abstracts away dry run and tracks/logs state """
@@ -29,6 +31,7 @@ class Shell(object):
         self.dir_stack = []
         self.env_stack = []
         self.dryrun = dryrun
+        self.platform = current_platform()
 
     def _flatten_command(self, *command):
         # Process out lists
@@ -61,6 +64,7 @@ class Shell(object):
                     cmds,
                     stdout=subprocess.PIPE,
                     stderr=subprocess.STDOUT,
+                    shell=(self.platform == 'windows'),
                     bufsize=0)  # do not buffer output
 
                 output = bytes("", 'UTF-8')
