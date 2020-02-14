@@ -80,6 +80,7 @@ def produce_config(build_spec, project, **additional_variables):
 
             configs.append(new_config)
 
+            # target, host, and compiler can contain architectures
             config_archs = new_config.get('architectures')
             if config_archs:
                 config_arch = config_archs.get(build_spec.arch)
@@ -88,12 +89,26 @@ def produce_config(build_spec, project, **additional_variables):
 
             return new_config
 
+        # Pull out any top level defaults
+        defaults = {}
+        for key, value in config.items():
+            if key not in ('hosts', 'targets', 'compilers'):
+                defaults[key] = value
+        if len(defaults) > 0:
+            configs.append(defaults)
+
+        # pull out any host named default, then spec platform and host to override
+        process_element(config, 'hosts', 'default')
         # Get defaults from platform (linux) then override with host (al2, manylinux, etc)
         if platform != build_spec.host:
             process_element(config, 'hosts', platform)
         process_element(config, 'hosts', build_spec.host)
+
+        # pull out default target, then spec target to override
+        process_element(config, 'targets', 'default')
         process_element(config, 'targets', build_spec.target)
 
+        # pull out spec compiler and version info
         compiler = process_element(config, 'compilers', build_spec.compiler)
         process_element(compiler, 'versions', build_spec.compiler_version)
 
