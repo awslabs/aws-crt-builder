@@ -58,6 +58,9 @@ class Shell(object):
         if not self.dryrun:
             try:
                 cmds = self._flatten_command(*command)
+                if self.platform == 'windows':
+                    cmds = [cmd.encode('ascii', 'ignore').decode()
+                            for cmd in cmds]
                 proc = subprocess.Popen(
                     cmds,
                     stdout=subprocess.PIPE,
@@ -71,7 +74,7 @@ class Shell(object):
                     output += line
                     if not kwargs.get('quiet', False):
                         if self.platform == 'windows':
-                            line = line.encode()  # ensure utf8
+                            line = line.decode('UTF-8')  # ensure utf8
                             line = line.replace('\r\n', '\n')
                         print(line, end='', flush=True)
                     line = proc.stdout.readline()
