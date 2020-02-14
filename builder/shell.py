@@ -17,7 +17,6 @@ import shutil
 import subprocess
 import sys
 import tempfile
-import traceback
 
 from host import current_platform
 
@@ -67,27 +66,28 @@ class Shell(object):
                     stdout=subprocess.PIPE,
                     stderr=subprocess.STDOUT,
                     shell=(self.platform == 'windows'),
+                    encoding='UTF-8',
                     bufsize=0)  # do not buffer output
 
                 output = bytes("", 'UTF-8')
                 line = proc.stdout.readline()
                 while (line):
+                    line = line.encode()  # ensure utf8
                     output += line
                     if not kwargs.get('quiet', False):
-                        line = line.decode('UTF-8', 'ignore')  # ensure utf8
                         if self.platform == 'windows':
                             line = line.replace('\r\n', '\n')
-                        print(line, end='', flush=True)
+                        print(line.decode('UTF-8', 'ignore'), end='', flush=True)
                     line = proc.stdout.readline()
                 proc.wait()
 
                 return ExecResult(proc.returncode, proc.pid, output)
 
             except Exception as ex:
-                print('Failed to run {}: \n{}'.format(
-                    ' '.join(self._flatten_command(*command)), traceback.format_exc(ex)))
-                if kwargs.get('check', False):
-                    sys.exit(5)
+                print('Failed to run {}: {}'.format(
+                    ' '.join(self._flatten_command(*command)), ex))
+                # if kwargs.get('check', False):
+                raise
                 return ExecResult(-1, -1, ex)
 
     def _cd(self, directory):
