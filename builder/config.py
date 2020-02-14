@@ -14,6 +14,7 @@
 import os
 
 from data import *
+from host import current_platform
 
 ########################################################################################################################
 # CONFIG
@@ -37,7 +38,7 @@ def validate_build(build_spec):
         build_spec.compiler_version, build_spec.compiler)
 
     supported_hosts = compiler['hosts']
-    assert build_spec.host in supported_hosts, "Compiler {} does not support host {}".format(
+    assert build_spec.host in supported_hosts or current_platform() in supported_hosts, "Compiler {} does not support host {}".format(
         build_spec.compiler, build_spec.host)
 
     supported_targets = compiler['targets']
@@ -106,6 +107,8 @@ def replace_variables(value, variables):
 
 def produce_config(build_spec, config_file, **additional_variables):
 
+    platform = current_platform()
+
     defaults = {
         'hosts': HOSTS,
         'targets': TARGETS,
@@ -140,6 +143,9 @@ def produce_config(build_spec, config_file, **additional_variables):
 
             return new_config
 
+        # Get defaults from platform (linux) then override with host (al2, manylinux, etc)
+        if platform != build_spec.host:
+            process_element(config, 'hosts', platform)
         process_element(config, 'hosts', build_spec.host)
         process_element(config, 'targets', build_spec.target)
 

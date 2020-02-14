@@ -17,33 +17,28 @@
 
 KEYS = {
     # Build
-    'python': "",
-    'c': None,
-    'cxx': None,
-    'pre_build_steps': [],
-    'post_build_steps': [],
-    'build_env': {},
-    'cmake_args': [],
-    'run_tests': True,
-    'build': [],
-    'test': [],
+    'python': "",  # where to find python on the machine
+    'c': None,  # c compiler
+    'cxx': None,  # c++ compiler
+    'pre_build_steps': [],  # steps to run before build
+    'post_build_steps': [],  # steps to run after build
+    'build_env': {},  # environment variables to set before starting build
+    'cmake_args': [],  # additional cmake arguments
+    'run_tests': True,  # whether or not to run tests
+    'build': [],  # deprecated, use build_steps
+    'build_steps': [],  # steps to run instead of the default cmake compile
+    'test': [],  # deprecated, use test_steps
+    'test_steps': [],  # steps to run instead of the default ctest
+    'pkg_setup': [],  # commands required to configure the package system
+    # command to install packages, should be of the form 'pkgmanager arg1 arg2 {packages will go here}'
+    'pkg_install': None,
+    'pkg_update': None,  # command to update the package manager's database
+    'packages': [],  # packages to install
+    'compiler_packages': [],  # packages to support compiler
+    'needs_compiler': True,  # whether or not this build needs a compiler
 
     # Linux
-    'use_apt': False,
-    'apt_keys': [],
-    'apt_repos': [],
-    'apt_packages': [],
-
-    # macOS
-    'use_brew': False,
-    'brew_packages': [],
-
-    # CodeBuild
-    'enabled': True,
-    'image': "",
-    'image_type': "",
-    'compute_type': "",
-    'requires_privilege': False,
+    'sudo': False  # whether or not sudo is necessary for installs
 }
 
 HOSTS = {
@@ -55,17 +50,34 @@ HOSTS = {
         'cmake_args': [
             "-DPERFORM_HEADER_CHECK=ON",
         ],
-
-        'use_apt': True,
-        'apt_repos': [
-            "ppa:ubuntu-toolchain-r/test",
+        'sudo': True
+    },
+    'ubuntu': {
+        # need ld and make and such
+        'compiler_packages': ['build-essential'],
+        'pkg_setup': [
+            'apt-key adv --fetch-keys http://apt.llvm.org/llvm-snapshot.gpg.key',
+            'apt-add-repository ppa:ubuntu-toolchain-r/test',
+            ['apt-add-repository',
+                'deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-6.0 main'],
+            ['apt-add-repository',
+                'deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-7 main'],
+            ['apt-add-repository',
+                'deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-8 main'],
+            ['apt-add-repository',
+                'deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-9 main'],
         ],
+        'pkg_update': 'apt-get -qq update -y',
+        'pkg_install': 'apt-get -qq install -y',
     },
     'al2012': {
         'cmake_args': [
             "-DENABLE_SANITIZERS=OFF",
             "-DPERFORM_HEADER_CHECK=OFF",
         ],
+
+        'pkg_update': 'yum update -y',
+        'pkg_install': 'yum install -y',
 
         'variables': {
             'python': "python3",
@@ -76,6 +88,9 @@ HOSTS = {
             "-DENABLE_SANITIZERS=OFF",
             "-DPERFORM_HEADER_CHECK=OFF",
         ],
+
+        'pkg_update': 'yum update -y',
+        'pkg_install': 'yum install -y',
 
         'variables': {
             'python': "python3",
@@ -91,6 +106,9 @@ HOSTS = {
             },
         },
 
+        'pkg_update': 'yum update -y',
+        'pkg_install': 'yum install -y',
+
         'variables': {
             'python': "/opt/python/cp37-cp37m/bin/python",
         },
@@ -100,6 +118,7 @@ HOSTS = {
             'python': "python.exe",
         },
 
+        'pkg_install': 'choco install --no-progress',
 
         'cmake_args': [
             "-DPERFORM_HEADER_CHECK=ON",
@@ -110,7 +129,7 @@ HOSTS = {
             'python': "python3",
         },
 
-        'use_brew': True,
+        'pkg_install': 'brew install',
     }
 }
 
@@ -164,7 +183,7 @@ TARGETS = {
 
 COMPILERS = {
     'default': {
-        'hosts': ['macos', 'al2012', 'al2', 'manylinux', 'linux', 'windows'],
+        'hosts': ['macos', 'linux', 'windows'],
         'targets': ['macos', 'linux', 'windows'],
 
         'versions': {
@@ -180,57 +199,54 @@ COMPILERS = {
         'apt_keys': ["http://apt.llvm.org/llvm-snapshot.gpg.key"],
 
         'versions': {
-            '3': {
-                '!post_build_steps': [],
-                '!apt_repos': [],
+            'default': {
                 '!cmake_args': [],
-
-                'apt_packages': ["clang-3.9"],
+            },
+            '3': {
+                'compiler_packages': ["clang-3.9"],
                 'c': "clang-3.9",
                 'cxx': "clang-3.9",
             },
             '6': {
-                'apt_repos': [
-                    "deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-6.0 main",
-                ],
-                'apt_packages': ["clang-6.0", "clang-tidy-6.0"],
+                'compiler_packages': ["clang-6.0", "clang-tidy-6.0"],
 
                 'c': "clang-6.0",
                 'cxx': "clang-6.0",
+            },
+            '7': {
+                'compiler_packages': ["clang-7", "clang-tidy-7"],
 
-                'requires_privilege': True,
+                'c': "clang-7",
+                'cxx': "clang-7",
             },
             '8': {
-                'apt_repos': [
-                    "deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-8 main",
-                ],
-                'apt_packages': ["clang-8", "clang-tidy-8"],
+                'compiler_packages': ["clang-8", "clang-tidy-8"],
 
                 'c': "clang-8",
                 'cxx': "clang-8",
-
-                'requires_privilege': True,
             },
             '9': {
-                'apt_repos': [
-                    "deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-9 main",
-                ],
-                'apt_packages': ["clang-9", "clang-tidy-9"],
+                'compiler_packages': ["clang-9", "clang-tidy-9"],
 
                 'c': "clang-9",
                 'cxx': "clang-9",
-
-                'requires_privilege': True,
+            },
+            # 10 and 11 are XCode Apple clang/LLVM
+            '10': {
+                '!cmake_args': [],
+            },
+            '11': {
+                '!cmake_args': [],
             },
         },
     },
     'gcc': {
-        'hosts': ['linux'],
+        'hosts': ['linux', 'manylinux', 'al2012', 'al2'],
         'targets': ['linux'],
 
         'c': "gcc-{version}",
         'cxx': "g++-{version}",
-        'apt_packages': ["gcc-{version}", "g++-{version}"],
+        'compiler_packages': ["gcc-{version}", "g++-{version}"],
 
         'versions': {
             '4.8': {},
@@ -242,7 +258,7 @@ COMPILERS = {
 
         'architectures': {
             'x86': {
-                'apt_packages': ["gcc-{version}-multilib", "g++-{version}-multilib"],
+                'compiler_packages': ["gcc-{version}-multilib", "g++-{version}-multilib"],
             },
         },
     },
@@ -289,3 +305,7 @@ COMPILERS = {
         }
     }
 }
+
+COMPILERS['msvc']['versions']['14'] = COMPILERS['msvc']['versions']['2015']
+COMPILERS['msvc']['versions']['15'] = COMPILERS['msvc']['versions']['2017']
+COMPILERS['msvc']['versions']['16'] = COMPILERS['msvc']['versions']['2019']

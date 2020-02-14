@@ -20,7 +20,7 @@ from action import Action
 
 
 class Scripts(object):
-    """ Manages loading and context of per-project scripts """
+    """ Manages loading, context, and running of per-project scripts """
     all_actions = set()
 
     def __init__(self):
@@ -33,12 +33,16 @@ class Scripts(object):
 
         path = os.path.abspath(os.path.join(path, '.builder'))
 
+        print('Loading scripts from {}'.format(path))
         if not os.path.isdir(path):
             print(
-                'Scripts.load: path {} is not a directory, no scripts loaded'.format(path))
+                'Scripts.load: {} is not a directory, no scripts loaded'.format(path))
             return
 
-        scripts = glob.glob('{}/**'.format(path))
+        scripts = glob.glob(os.path.join(path, '*.py'))
+        scripts += glob.glob(os.path.join(path, '**', '*.py'))
+        # Update to get the latest action set right before we load
+        Scripts.all_actions = set(Action.__subclasses__())
         for script in scripts:
             if not script.endswith('.py'):
                 continue
@@ -57,7 +61,46 @@ class Scripts(object):
 
             # Report newly loaded actions
             actions = frozenset(Action.__subclasses__())
-            new_actions = actions.difference(all_actions)
-            print("Imported {}".format(
-                ', '.join([a.__name__ for a in new_actions])))
-            all_actions.update(new_actions)
+            new_actions = actions.difference(Scripts.all_actions)
+            if new_actions:
+                print("Imported {}".format(
+                    ', '.join([a.__name__ for a in new_actions])))
+                Scripts.all_actions.update(new_actions)
+
+    @staticmethod
+    def _find_actions():
+        _all_actions = set(Action.__subclasses__())
+        return _all_actions
+
+    @staticmethod
+    def find_action(name):
+        """ Finds any loaded action class by name and returns it """
+        name = name.replace('-', '').lower()
+        all_actions = Scripts._find_actions()
+        for action in all_actions:
+            if action.__name__.lower() == name:
+                return action
+
+    @staticmethod
+    def run_action(action, env):
+        """ Runs an action, and any generated child actions recursively """
+        action_type = type(action)
+        if action_type is str:
+            try:
+                action_cls = Scripts.find_action(action)
+                action = action_cls()
+            except:
+                print("Unable to find action {} to run".format(action))
+                all_actions = [a.__name__ for a in Scripts._find_actions()]
+                print("Available actions: \n\t{}".format(
+                    '\n\t'.join(all_actions)))
+                sys.exit(2)
+
+        print("Running: {}".format(action), flush=True)
+        children = action.run(env)
+        if children:
+            if not isinstance(children, list) and not isinstance(children, tuple):
+                children = [children]
+            for child in children:
+                Scripts.run_action(child, env)
+        print("Finished: {}".format(action), flush=True)

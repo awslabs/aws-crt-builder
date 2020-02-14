@@ -14,21 +14,7 @@
 import os
 import sys
 
-
-def current_platform():
-    if sys.platform == 'win32':
-        return 'windows'
-    elif sys.platform == 'darwin':
-        return 'macos'
-    elif 'linux' in sys.platform or sys.platform in ('cygwin', 'msys'):
-        return 'linux'
-
-
-def current_arch():
-    if current_platform() == 'linux':
-        if os.uname()[4][:3].startswith('arm'):
-            arch = ('armv8' if sys.maxsize > 2**32 else 'armv7')
-    return ('x64' if sys.maxsize > 2**32 else 'x86')
+from host import current_host, current_platform, current_arch
 
 
 class BuildSpec(object):
@@ -56,13 +42,13 @@ class BuildSpec(object):
                     setattr(self, variant, False)
 
         # Pull out individual fields. Note this is not in an else to support overriding at construction time
-        for slot in ('host', 'target', 'arch', 'compiler', 'compiler_version'):
-            if slot in kwargs:
+        for slot in ('host', 'target', 'arch', 'compiler', 'compiler_version', 'downstream'):
+            if slot in kwargs and kwargs[slot]:
                 setattr(self, slot, kwargs[slot])
 
         # Convert defaults to be based on running environment
         if self.host == 'default':
-            self.host = current_platform()
+            self.host = current_host()
         if self.target == 'default':
             self.target = current_platform()
         if self.arch == 'default':

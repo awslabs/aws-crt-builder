@@ -11,6 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+from collections import namedtuple
 import os
 import shutil
 import subprocess
@@ -47,11 +48,37 @@ class Shell(object):
         print('>', subprocess.list2cmdline(
             self._flatten_command(*command)), flush=True)
 
-    def _run_command(self, *command):
-        self._log_command(*command)
+    def _run_command(self, *command, **kwargs):
+        ExecResult = namedtuple('ExecResult', ['returncode', 'pid', 'output'])
+        if not kwargs.get('quiet', False):
+            self._log_command(*command)
         if not self.dryrun:
-            subprocess.check_call(self._flatten_command(
-                *command), stdout=sys.stdout, stderr=sys.stderr)
+            try:
+                proc = subprocess.Popen(
+                    self._flatten_command(*command),
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    bufsize=0)  # do not buffer output
+
+                output = bytes("", 'UTF-8')
+                line = proc.stdout.readline()
+                while (line):
+                    output += line
+                    if not kwargs.get('quiet', False):
+                        line = line.decode(encoding='UTF-8')
+                        line = line.replace('\r\n', '\n')
+                        print(line, end='', flush=True)
+                    line = proc.stdout.readline()
+                proc.wait()
+
+                return ExecResult(proc.returncode, proc.pid, output)
+
+            except Exception as ex:
+                print('Failed to run {}: {}'.format(
+                    ' '.join(self._flatten_command(*command)), ex))
+                if kwargs.get('check', False):
+                    sys.exit(5)
+                return ExecResult(-1, -1, ex)
 
     def _cd(self, directory):
         if self.dryrun:
@@ -138,6 +165,8 @@ class Shell(object):
 
     def where(self, exe, path=None):
         """ Platform agnostic `where executable` command """
+        if exe is None:
+            return None
         if path is None:
             path = os.environ['PATH']
         paths = path.split(os.pathsep)
@@ -145,6 +174,7 @@ class Shell(object):
 
         def is_executable(path):
             return os.path.isfile(path) and os.access(path, os.X_OK)
+
         if sys.platform == 'win32':
             pathext = os.environ['PATHEXT'].lower().split(os.pathsep)
             (base, ext) = os.path.splitext(exe)
@@ -161,10 +191,14 @@ class Shell(object):
 
     def exec(self, *command, **kwargs):
         """ Executes a shell command, or just logs it for dry runs """
+        result = None
         if kwargs.get('always', False):
             prev_dryrun = self.dryrun
             self.dryrun = False
-            self._run_command(*command)
+            result = self._run_command(
+                *command, quiet=kwargs.get('quiet', False), check=kwargs.get('check', False))
             self.dryrun = prev_dryrun
         else:
-            self._run_command(*command)
+            result = self._run_command(
+                *command, quiet=kwargs.get('quiet', False), check=kwargs.get('check', False))
+        return result

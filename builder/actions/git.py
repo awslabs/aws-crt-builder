@@ -11,7 +11,9 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+import os
 from action import Action
+from project import Project
 
 
 class DownloadSource(Action):
@@ -20,6 +22,8 @@ class DownloadSource(Action):
     def __init__(self, **kwargs):
         self.project = kwargs['project']
         self.branch = kwargs.get('branch', 'master')
+        self.path = os.path.abspath(os.path.join(
+            kwargs.get('path', '.'), self.project.name))
 
     def run(self, env):
         if self.project.path:
@@ -28,17 +32,19 @@ class DownloadSource(Action):
 
         sh = env.shell
 
-        sh.exec("git", "clone", self.project.url, always=True)
-        sh.pushd(self.project.name)
+        sh.exec("git", "clone", self.project.url, self.path, always=True)
+        sh.pushd(self.path)
         try:
             sh.exec("git", "checkout", self.branch, always=True)
         except:
             print("Project {} does not have a branch named {}, using master".format(
                 self.project.name, self.branch))
-        sh.popd()
+
+        sh.exec('git', 'submodule', 'update', '--init')
 
         # reload project now that it's on disk
-        self.project = env.find_project(self.project.name)
+        self.project = Project.find_project(self.project.name)
+        sh.popd()
 
 
 class DownloadDependencies(Action):
@@ -48,11 +54,10 @@ class DownloadDependencies(Action):
         project = env.project
         sh = env.shell
         branch = env.branch
-        deps = project.get_dependencies(env.build_spec)
+        spec = env.build_spec
+        deps = project.get_dependencies(spec)
 
-        config = getattr(env, 'config', {})
-        spec = config.get('spec', None)
-        if spec and spec.downstream:
+        if spec.downstream:
             deps += project.downstream
 
         if deps:
@@ -62,19 +67,19 @@ class DownloadDependencies(Action):
 
             while deps:
                 dep = deps.pop()
-                dep_proj = env.find_project(dep.name)
+                dep_proj = Project.find_project(dep.name)
                 if dep_proj.path:
                     continue
 
                 dep_branch = getattr(dep, 'revision', branch)
                 DownloadSource(
-                    project=dep_proj, branch=dep_branch).run(env)
+                    project=dep_proj, branch=dep_branch, path=env.deps_dir).run(env)
 
                 # grab updated project, collect transitive dependencies/consumers
-                dep_proj = env.find_project(dep.name)
-                deps += dep_proj.get_dependencies(env.build_spec)
+                dep_proj = Project.find_project(dep.name)
+                deps += dep_proj.get_dependencies(spec)
                 if spec and spec.downstream:
-                    deps += dep_proj.get_consumers(env.build_spec)
+                    deps += dep_proj.get_consumers(spec)
                 sh.popd()
 
             sh.popd()

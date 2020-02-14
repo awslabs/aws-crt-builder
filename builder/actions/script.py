@@ -11,9 +11,10 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from build import Builder
+import sys
 from action import Action
 from config import replace_variables
+from scripts import Scripts
 
 
 class Script(Action):
@@ -42,11 +43,17 @@ class Script(Action):
         for cmd in self.commands:
             cmd_type = type(cmd)
             if cmd_type == str:
-                sh.exec(cmd)
+                result = sh.exec(cmd)
+                if result.returncode != 0:
+                    print('Command failed, exiting')
+                    sys.exit(12)
             elif cmd_type == list:
-                sh.exec(*cmd)
+                result = sh.exec(*cmd)
+                if result.returncode != 0:
+                    print('Command failed, exiting')
+                    sys.exit(12)
             elif isinstance(cmd, Action):
-                Builder.run_action(cmd, env)
+                Scripts.run_action(cmd, env)
             elif callable(cmd):
                 return cmd(env)
             else:
@@ -56,6 +63,9 @@ class Script(Action):
     def __str__(self):
         if len(self.commands) == 0:
             return 'Script({}): Empty'.format(self.name)
+        if self.name != self.__class__.__name__:
+            return 'Script({})'.format(self.name)
+
         cmds = []
         for cmd in self.commands:
             cmd_type = type(cmd)
@@ -66,7 +76,7 @@ class Script(Action):
             elif isinstance(cmd, Action):
                 cmds.append(str(cmd))
             elif callable(cmd):
-                cmds.append(cmd.__func__.__name__)
+                cmds.append(cmd.__name__)
             else:
                 cmds.append("UNKNOWN: {}".format(cmd))
         return 'Script({}): (\n\t{}\n)'.format(self.name, '\n\t'.join(cmds))
