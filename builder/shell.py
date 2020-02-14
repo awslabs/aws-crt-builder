@@ -72,7 +72,6 @@ class Shell(object):
                 output = bytes("", 'UTF-8')
                 line = proc.stdout.readline()
                 while (line):
-                    line = line.encode()  # ensure utf8
                     output += line
                     if not kwargs.get('quiet', False):
                         if self.platform == 'windows':
