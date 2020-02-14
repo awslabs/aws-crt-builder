@@ -54,8 +54,8 @@ class Shell(object):
             self._log_command(*command)
         if not self.dryrun:
             try:
-                # shell interaction must be in ascii
-                cmds = [cmd.encode('ascii', 'ignore')
+                # strip weird characters
+                cmds = [cmd.encode('ascii', 'ignore').decode('UTF-8')
                         for cmd in self._flatten_command(*command)]
                 proc = subprocess.Popen(
                     cmds,
@@ -68,8 +68,7 @@ class Shell(object):
                 while (line):
                     output += line
                     if not kwargs.get('quiet', False):
-                        if isinstance(line, bytes):
-                            line = line.decode(encoding='UTF-8')
+                        line = line.decode(encoding='UTF-8')
                         line = line.replace('\r\n', '\n')
                         print(line, end='', flush=True)
                     line = proc.stdout.readline()
