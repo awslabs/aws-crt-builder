@@ -76,7 +76,9 @@ class Shell(object):
                     if not kwargs.get('quiet', False):
                         if self.platform == 'windows':
                             line = line.replace('\r\n', '\n')
-                        print(line.decode('UTF-8', 'ignore'), end='', flush=True)
+                        if not isinstance(line, bytes):
+                            line = line.decode('UTF-8', 'ignore')
+                        print(line, end='', flush=True)
                     line = proc.stdout.readline()
                 proc.wait()
 
