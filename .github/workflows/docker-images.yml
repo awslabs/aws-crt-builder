@@ -24,16 +24,26 @@ jobs:
       - name: Checkout Source
         uses: actions/checkout@v1
 
-      - name: Sanity Test
+      - name: Sanity Test Run (Unix)
         if:  matrix.host != 'windows-latest'
         run: |
           python3 -m builder --project tests run test
+
+      - name: Sanity Test Build (Unix)
+        if:  matrix.host != 'windows-latest'
+        run: |
+          python3 -m builder --project tests build
       
-      - name: Sanity Test
+      - name: Sanity Test Run (Windows)
         if: matrix.host == 'windows-latest'
         run: |
           choco install --no-progress vswhere
           python -m builder --project tests run test
+
+      - name: Sanity Test Build (Windows)
+        if: matrix.host == 'windows-latest'
+        run: |
+          python -m builder --project tests build
 
   package:
     name: Package builder app

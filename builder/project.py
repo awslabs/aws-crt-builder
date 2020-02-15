@@ -16,7 +16,10 @@ import glob
 import os
 import sys
 
+from data import *
+from host import current_platform
 from scripts import Scripts
+from util import replace_variables
 
 
 def looks_like_code(path):
@@ -28,6 +31,137 @@ def looks_like_code(path):
     if readme:
         return True
     return False
+
+
+def _apply_value(obj, key, new_value):
+    """ Merge values according to type """
+    key_type = type(new_value)
+    if key_type == list:
+        # Apply the config's value before the existing list
+        obj[key] = new_value + obj[key]
+
+    elif key_type == dict:
+        # Iterate each element and recursively apply the values
+        for k, v in new_value.items():
+            _apply_value(obj[key], k, v)
+
+    else:
+        # Unsupported type, just use it
+        obj[key] = new_value
+
+
+def produce_config(build_spec, project, **additional_variables):
+    """ Traverse the configurations to produce one for the given spec """
+    platform = current_platform()
+
+    defaults = {
+        'hosts': HOSTS,
+        'targets': TARGETS,
+        'compilers': COMPILERS,
+    }
+
+    # Build the list of config options to poll
+    configs = []
+
+    # Processes a config object (could come from a file), searching for keys hosts, targets, and compilers
+    def process_config(config):
+
+        def process_element(map, element_name, instance):
+            if not map:
+                return
+
+            element = map.get(element_name)
+            if not element:
+                return
+
+            new_config = element.get(instance)
+            if not new_config:
+                return
+
+            configs.append(new_config)
+
+            # target, host, and compiler can contain architectures
+            config_archs = new_config.get('architectures')
+            if config_archs:
+                config_arch = config_archs.get(build_spec.arch)
+                if config_arch:
+                    configs.append(config_arch)
+
+            return new_config
+
+        # Pull out any top level defaults
+        defaults = {}
+        for key, value in config.items():
+            if key not in ('hosts', 'targets', 'compilers'):
+                defaults[key] = value
+        if len(defaults) > 0:
+            configs.append(defaults)
+
+        # pull out any host named default, then spec platform and host to override
+        process_element(config, 'hosts', 'default')
+        # Get defaults from platform (linux) then override with host (al2, manylinux, etc)
+        if platform != build_spec.host:
+            process_element(config, 'hosts', platform)
+        process_element(config, 'hosts', build_spec.host)
+
+        # pull out default target, then spec target to override
+        process_element(config, 'targets', 'default')
+        process_element(config, 'targets', build_spec.target)
+
+        # pull out spec compiler and version info
+        compiler = process_element(config, 'compilers', build_spec.compiler)
+        process_element(compiler, 'versions', build_spec.compiler_version)
+
+    # Process defaults first
+    process_config(defaults)
+
+    # then override with config file
+    project_config = project.config
+    process_config(project_config)
+
+    new_version = {
+        'spec': build_spec,
+    }
+    # Iterate all keys and apply them
+    for key, default in KEYS.items():
+        new_version[key] = default
+
+        for config in configs:
+            override_key = '!' + key
+            if override_key in config:
+                # Handle overrides
+                new_version[key] = config[override_key]
+
+            elif key in config:
+                # By default, merge all values (except strings)
+                _apply_value(new_version, key, config[key])
+
+    # Default variables
+    replacements = {
+        'host': build_spec.host,
+        'compiler': build_spec.compiler,
+        'version': build_spec.compiler_version,
+        'target': build_spec.target,
+        'arch': build_spec.arch,
+        'cwd': os.getcwd(),
+        **additional_variables,
+    }
+
+    # Pull variables from the configs
+    for config in configs:
+        if 'variables' in config:
+            variables = config['variables']
+            assert type(variables) == dict
+
+            # Copy into the variables list
+            for k, v in variables.items():
+                replacements[k] = v
+
+    # Post process
+    new_version = replace_variables(new_version, replacements)
+    new_version['variables'] = replacements
+
+    return new_version
 
 
 class Project(object):
@@ -45,6 +179,7 @@ class Project(object):
         self.url = "https://github.com/{}/{}.git".format(
             self.account, self.name)
         self.path = kwargs.get('path', None)
+        self.config = kwargs.get('config', dict(kwargs))
         self._resolved_refs = False
 
     def __repr__(self):
@@ -83,6 +218,9 @@ class Project(object):
                 consumers.append(c)
         return consumers
 
+    def get_config(self, spec, **additional_vars):
+        return produce_config(spec, self, ** additional_vars)
+
     # project cache
     _projects = {}
 
@@ -118,7 +256,7 @@ class Project(object):
                     project_config['name'] = name_hint if name_hint else os.path.dirname(
                         os.getcwd())
                 print('    Found project: {}'.format(project_config['name']))
-                return Project._cache_project(Project(**project_config, path=path))
+                return Project._cache_project(Project(**project_config, path=path, config=project_config))
 
         # load any builder scripts and check them
         Scripts.load()
@@ -159,7 +297,7 @@ class Project(object):
         dirs = list(OrderedDict.fromkeys(dirs))
 
         for search_dir in dirs:
-            print('  Looking in {}'.format(search_dir))
+            #print('  Looking in {}'.format(search_dir))
             if (os.path.basename(search_dir) == name) and os.path.isdir(search_dir):
                 project = Project._project_from_path(search_dir, name)
 

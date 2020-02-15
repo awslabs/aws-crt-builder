@@ -32,7 +32,8 @@ class DownloadSource(Action):
 
         sh = env.shell
 
-        sh.exec("git", "clone", self.project.url, self.path, always=True)
+        sh.exec("git", "clone", self.project.url,
+                self.path, always=True, retries=3)
         sh.pushd(self.path)
         try:
             sh.exec("git", "checkout", self.branch, always=True)
@@ -40,7 +41,7 @@ class DownloadSource(Action):
             print("Project {} does not have a branch named {}, using master".format(
                 self.project.name, self.branch))
 
-        sh.exec('git', 'submodule', 'update', '--init')
+        sh.exec('git', 'submodule', 'update', '--init', retries=3)
 
         # reload project now that it's on disk
         self.project = Project.find_project(self.project.name)
