@@ -22,7 +22,7 @@ from host import current_platform
 def _compiler_version(env, cc):
     if current_platform() in ('linux', 'macos'):
         result = env.shell.exec(cc, '--version', quiet=True, stderr=False)
-        text = result.output.decode(encoding='UTF-8')
+        text = result.output
         # Apple clang
         m = re.match('Apple (LLVM|clang) version (\d+)', text)
         if m:
@@ -159,7 +159,7 @@ class Toolchain(object):
             # Grab installed version
             result = env.shell.exec('vswhere', '-legacy', '-version', version,
                                     '-property', 'installationVersion', quiet=True)
-            text = result.output.decode(encoding='UTF-8')
+            text = result.output
             m = re.match('(\d+)\.?', text)
             if m:
                 vc_version = m.group(1)
@@ -170,7 +170,7 @@ class Toolchain(object):
             # Grab installation path
             result = env.shell.exec('vswhere', '-legacy', '-version', version,
                                     '-property', 'installationPath', quiet=True)
-            text = result.output.decode(encoding='UTF-8')
+            text = result.output
             compiler = text.strip()
 
             return compiler, vc_version

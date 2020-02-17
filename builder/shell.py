@@ -18,6 +18,8 @@ import subprocess
 import sys
 import tempfile
 
+from host import current_platform
+
 
 class Shell(object):
     """ Virtual shell that abstracts away dry run and tracks/logs state """
@@ -29,6 +31,7 @@ class Shell(object):
         self.dir_stack = []
         self.env_stack = []
         self.dryrun = dryrun
+        self.platform = current_platform()
 
     def _flatten_command(self, *command):
         # Process out lists
@@ -52,33 +55,49 @@ class Shell(object):
         ExecResult = namedtuple('ExecResult', ['returncode', 'pid', 'output'])
         if not kwargs.get('quiet', False):
             self._log_command(*command)
+        tries = kwargs.get('retries', 1)
         if not self.dryrun:
-            try:
-                proc = subprocess.Popen(
-                    self._flatten_command(*command),
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.STDOUT,
-                    bufsize=0)  # do not buffer output
+            output = None
+            while tries > 0:
+                tries -= 1
+                try:
+                    cmds = self._flatten_command(*command)
+                    if self.platform == 'windows':
+                        cmds = [cmd.encode('ascii', 'ignore').decode()
+                                for cmd in cmds]
+                    proc = subprocess.Popen(
+                        cmds,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.STDOUT,
+                        shell=(self.platform == 'windows'),
+                        bufsize=0)  # do not buffer output
 
-                output = bytes("", 'UTF-8')
-                line = proc.stdout.readline()
-                while (line):
-                    output += line
-                    if not kwargs.get('quiet', False):
-                        line = line.decode(encoding='UTF-8')
-                        line = line.replace('\r\n', '\n')
-                        print(line, end='', flush=True)
+                    # Convert all output to strings, which makes it much easier to both print
+                    # and process, since all known uses of parsing output want strings anyway
+                    output = ""
                     line = proc.stdout.readline()
-                proc.wait()
+                    while (line):
+                        # ignore weird characters coming back from the shell (colors, etc)
+                        if not isinstance(line, str):
+                            line = line.decode('ascii', 'ignore')
+                        # We're reading in binary mode, so no automatic newline translation
+                        if self.platform == 'windows':
+                            line = line.replace('\r\n', '\n')
+                        output += line
+                        if not kwargs.get('quiet', False):
+                            print(line, end='', flush=True)
+                        line = proc.stdout.readline()
+                    proc.wait()
 
-                return ExecResult(proc.returncode, proc.pid, output)
+                    return ExecResult(proc.returncode, proc.pid, output)
 
-            except Exception as ex:
-                print('Failed to run {}: {}'.format(
-                    ' '.join(self._flatten_command(*command)), ex))
-                if kwargs.get('check', False):
-                    sys.exit(5)
-                return ExecResult(-1, -1, ex)
+                except Exception as ex:
+                    print('Failed to run {}: {}'.format(
+                        ' '.join(self._flatten_command(*command)), ex))
+                    if kwargs.get('check', False) and tries == 0:
+                        raise
+                    output = ex
+            return ExecResult(-1, -1, output)
 
     def _cd(self, directory):
         if self.dryrun:
@@ -190,7 +209,13 @@ class Shell(object):
         return None
 
     def exec(self, *command, **kwargs):
-        """ Executes a shell command, or just logs it for dry runs """
+        """ 
+        Executes a shell command, or just logs it for dry runs 
+        Arguments:
+            check: If true, raise an exception when execution fails
+            retries: (default 1) How many times to try the command, useful for network commands
+            quiet: Do not produce any output
+        """
         result = None
         if kwargs.get('always', False):
             prev_dryrun = self.dryrun

@@ -1,3 +1,7 @@
 {
-    "name": "tests"
+    "name": "tests",
+    "build_steps": [
+        "git --version"
+    ],
+    "needs_compiler": false
 }
