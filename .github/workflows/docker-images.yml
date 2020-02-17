@@ -180,9 +180,9 @@ jobs:
     steps:
     - name: Checkout Sources
       uses: actions/checkout@v1
-      
+
     - name: "Install docker-buildx"  
-      run: ./github/docker-images/install_buildx.sh
+      run: ./.github/docker-images/install_buildx.sh
 
     - name: "Build multi-platform image"
       uses: ./.github/actions/buildx-with-cache
