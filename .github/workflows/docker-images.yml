@@ -163,6 +163,24 @@ jobs:
         context: .github/docker-images/${{ matrix.variant }}
         build_extra_args: "--compress=true"  
 
+  linux-arm:
+    name: Build ARM Images
+    needs: package
+    steps:
+    - name: "Install Docker BuildX"  
+      run: ./github/docker-images/install_buildx.sh
+
+    - name: "Build multi-platform image"
+      uses: .github/actions/buildx-with-cache
+      with:
+        username: awslabs
+        password: ${{ secrets.DOCKER_TOKEN }}
+        image_name: awslabs/aws-crt-builder/aws-crt-arm-multi
+        image_tag: ${{ env.IMAGE_TAG }}
+        registry: docker.pkg.github.com
+        context: .github/docker-images/alpine-armv7
+        build_extra_args: '--compress=true --platform=linux/arm/v7'
+
   # When all the images are built, run a downstream test
   aws-c-common-linux:
     name: Linux aws-c-common test build

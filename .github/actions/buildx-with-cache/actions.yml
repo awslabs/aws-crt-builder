@@ -1,0 +1,43 @@
+name: Build docker images using cache/buildx
+
+inputs:
+
+  username:
+    description: Docker's registry user
+    required: true
+  password:
+    description: Docker's registry password
+    required: true
+  registry:
+    description: "(Optional) Docker registry (default: Docker Hub's registry)"
+    required: false
+
+  image_name:
+    description: Name of the image to build
+    required: true
+  image_tag:
+    description: "(Optional) Tag of the image to build (default: latest)"
+    required: false
+    default: latest
+  context:
+    description: "(Optional) Docker context (default: ./)"
+    required: false
+    default: .
+  dockerfile:
+    description: "(Optional) Name of the Dockerfile (default: Dockerfile)"
+    required: false
+    default: Dockerfile
+  build_extra_args:
+    description: "(Optional) Extra arguments to pass to docker build"
+    required: false
+
+runs:
+  using: 'docker'
+  image: 'Dockerfile'
+  env:
+    PULL_STAGES_LOG: pull-stages-output.log
+    BUILD_LOG: build-output.log
+
+branding:
+  icon: 'anchor'
+  color: 'blue'
