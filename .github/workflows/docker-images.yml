@@ -172,7 +172,7 @@ jobs:
       run: ./github/docker-images/install_buildx.sh
 
     - name: "Build multi-platform image"
-      uses: .github/actions/buildx-with-cache
+      uses: ./.github/actions/buildx-with-cache
       with:
         username: awslabs
         password: ${{ secrets.DOCKER_TOKEN }}
