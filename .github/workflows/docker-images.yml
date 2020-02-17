@@ -178,6 +178,9 @@ jobs:
     runs-on: 'ubuntu-latest'
     #needs: package
     steps:
+    - name: Checkout Sources
+      uses: actions/checkout@v1
+      
     - name: "Install docker-buildx"  
       run: ./github/docker-images/install_buildx.sh
 
