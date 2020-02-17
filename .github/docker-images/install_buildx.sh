@@ -1,5 +1,7 @@
 #!/bin/sh
 
+set -ex
+
 BUILDX_TAG=v0.3.1
 DOCKER_PLUGINS_PATH=~/.docker/cli-plugins
 BUILDX_RELEASE_URL=https://github.com/docker/buildx/releases/download/$BUILDX_TAG/buildx-$BUILDX_TAG.linux-amd64
