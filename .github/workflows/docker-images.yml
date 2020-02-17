@@ -176,7 +176,7 @@ jobs:
   linux-arm:
     name: Build ARM Images
     runs-on: 'ubuntu-latest'
-    needs: package
+    #needs: package
     steps:
     - name: "Install docker-buildx"  
       run: ./github/docker-images/install_buildx.sh
