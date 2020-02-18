@@ -15,7 +15,8 @@ RUN apk add \
     python3-dev \
     cmake \
     clang \
-    perl
+    perl \
+    linux-headers
 
 ###############################################################################
 # Python/AWS CLI
