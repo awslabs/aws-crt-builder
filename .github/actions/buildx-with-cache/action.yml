@@ -30,6 +30,10 @@ inputs:
   build_extra_args:
     description: "(Optional) Extra arguments to pass to docker build"
     required: false
+  buildx_version:
+    description: "Version of docker-buildx to use"
+    required: false
+    default: v0.3.1
 
 runs:
   using: 'docker'

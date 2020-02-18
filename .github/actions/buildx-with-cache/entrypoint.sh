@@ -33,6 +33,18 @@ check_required_input() {
   _exit_if_empty PASSWORD "${INPUT_PASSWORD}"
   _exit_if_empty IMAGE_NAME "${INPUT_IMAGE_NAME}"
   _exit_if_empty IMAGE_TAG "${INPUT_IMAGE_TAG}"
+  _exit_if_empty BUILDX_VERSION "${INPUT_BUILDX_VERSION}"
+}
+
+install_buildx() {
+  buildx_tag=$INPUT_BUILDX_VERSION
+  docker_plugins_path=$HOME/.docker/cli-plugins
+  buildx_release_url=https://github.com/docker/buildx/releases/download/$buildx_tag/buildx-$buildx_tag.linux-amd64
+
+  mkdir -p $docker_plugins_path
+  curl -L $buildx_release_url -o $docker_plugins_path/docker-buildx
+  chmod a+x $docker_plugins_path/docker-buildx
+  docker buildx version
 }
 
 login_to_registry() {
@@ -98,6 +110,7 @@ logout_from_registry() {
 
 check_required_input
 login_to_registry
+install_buildx
 pull_cached_stages
 build_image
 
