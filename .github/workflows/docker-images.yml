@@ -200,7 +200,7 @@ jobs:
     - run: cp .github/docker-images/entrypoint.sh .github/docker-images/alpine-arm/entrypoint.sh
     - run: echo "::set-env name=IMAGE_TAG::$(cat release_tag/tag)"
 
-    - name: "Build multi-platform image"
+    - name: "Build arm${{ matrix.arch }} image"
       uses: ./.github/actions/buildx-with-cache
       with:
         username: awslabs
