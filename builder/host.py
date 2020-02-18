@@ -73,6 +73,8 @@ def current_host():
                     return 'manylinux'
                 if _file_contains('/etc/lsb-release', 'Ubuntu'):
                     return 'ubuntu'
+                if _file_contains('/etc/os-release', 'Alpine Linux'):
+                    return 'alpine'
                 return 'linux'
             else:
                 return platform
