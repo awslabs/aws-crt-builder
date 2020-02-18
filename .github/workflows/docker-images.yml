@@ -181,9 +181,6 @@ jobs:
     - name: Checkout Sources
       uses: actions/checkout@v1
 
-    - name: "Install docker-buildx"  
-      run: ./.github/docker-images/install_buildx.sh
-
     # - name: Fetch release_tag
     #   uses: actions/download-artifact@v1
     #   with:
