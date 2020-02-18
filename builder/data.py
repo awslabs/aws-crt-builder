@@ -253,7 +253,7 @@ COMPILERS = {
             'architectures': {
                 # No fuzz tests on ARM
                 'armv7': {
-                    '!cmake_args': [] 
+                    '!cmake_args': []
                 },
                 'armv8': {
                     '!cmake_args': []
