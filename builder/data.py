@@ -250,6 +250,15 @@ COMPILERS = {
             '11': {
                 '!cmake_args': [],
             },
+            'architectures': {
+                # No fuzz tests on ARM
+                'armv7': {
+                    '!cmake_args': [] 
+                },
+                'armv8': {
+                    '!cmake_args': []
+                }
+            }
         },
     },
     'gcc': {
