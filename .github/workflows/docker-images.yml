@@ -192,7 +192,7 @@ jobs:
 
     - name: Fetch libcrypto
       run: |
-        aws s3 cp s3://$AWS_S3_BUCKET/openssl/openssl-1.1.1-arm${{ matrix.arch }}.tar.gz .github/docker-images/alpine-arm/openssl-1.1.1.tar.gz
+        aws s3 cp s3://$AWS_S3_BUCKET/openssl/openssl-1.1.1-arm${{ matrix.arch }}.tar.gz .github/docker-images/alpine-arm${{matrix.arch}}/openssl-1.1.1.tar.gz
 
     - name: Fetch release_tag
       uses: actions/download-artifact@v1
@@ -233,7 +233,7 @@ jobs:
 
     - name: Fetch libcrypto
       run: |
-        aws s3 cp s3://$AWS_S3_BUCKET/openssl/openssl-1.1.1-${{ matrix.arch }}.tar.gz .github/docker-images/alpine-arm/openssl-1.1.1.tar.gz
+        aws s3 cp s3://$AWS_S3_BUCKET/openssl/openssl-1.1.1-${{ matrix.arch }}.tar.gz .github/docker-images/alpine-${{ matrix.arch }}/openssl-1.1.1.tar.gz
 
     - name: Fetch release_tag
       uses: actions/download-artifact@v1
