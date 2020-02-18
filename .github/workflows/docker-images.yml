@@ -184,13 +184,13 @@ jobs:
     - name: "Install docker-buildx"  
       run: ./.github/docker-images/install_buildx.sh
 
-    - name: Fetch release_tag
-      uses: actions/download-artifact@v1
-      with:
-        name: release_tag
-        path: release_tag
+    # - name: Fetch release_tag
+    #   uses: actions/download-artifact@v1
+    #   with:
+    #     name: release_tag
+    #     path: release_tag
 
-    - run: echo "::set-env name=IMAGE_TAG::$(cat release_tag/tag)"
+    # - run: echo "::set-env name=IMAGE_TAG::$(cat release_tag/tag)"
 
     - name: "Build multi-platform image"
       uses: ./.github/actions/buildx-with-cache
@@ -198,7 +198,7 @@ jobs:
         username: awslabs
         password: ${{ secrets.DOCKER_TOKEN }}
         image_name: awslabs/aws-crt-builder/aws-crt-arm-multi
-        image_tag: ${{ env.IMAGE_TAG }}
+        image_tag: arm #${{ env.IMAGE_TAG }}
         registry: docker.pkg.github.com
         context: .github/docker-images/alpine-armv7
         build_extra_args: '--compress=true --platform=linux/arm/v7'
