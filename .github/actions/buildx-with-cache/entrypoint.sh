@@ -42,7 +42,7 @@ install_buildx() {
   buildx_release_url=https://github.com/docker/buildx/releases/download/$buildx_tag/buildx-$buildx_tag.linux-amd64
 
   mkdir -p $docker_plugins_path
-  curl -L $buildx_release_url -o $docker_plugins_path/docker-buildx
+  curl -L -0 $buildx_release_url -o $docker_plugins_path/docker-buildx
   chmod a+x $docker_plugins_path/docker-buildx
   docker buildx version
 }
