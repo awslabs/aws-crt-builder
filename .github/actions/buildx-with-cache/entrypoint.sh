@@ -55,7 +55,7 @@ build_image() {
   # build image using cache
   set -x
   docker buildx build \
-    -t "$(_get_full_image_name)":${INPUT_IMAGE_TAG} \
+    --tag="$(_get_full_image_name)":${INPUT_IMAGE_TAG} \
     --file ${INPUT_CONTEXT}/${INPUT_DOCKERFILE} \
     $cache_from \
     ${INPUT_BUILD_EXTRA_ARGS} \
