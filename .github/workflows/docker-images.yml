@@ -296,7 +296,7 @@ jobs:
     name: Linux aws-c-common test build
     runs-on: 'ubuntu-latest'
     if: github.event_name != 'release'
-    needs: linux-arm64
+    needs: linux-arm32
 
     steps:
     - name: Checkout Source
