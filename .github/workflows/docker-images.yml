@@ -13,6 +13,12 @@ on:
   release:
     types: [published]
 
+env:
+  AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
+  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  AWS_REGION: 'us-east-1'
+
 jobs:
   sanity_test:
     name: Sanity Test builder
@@ -86,13 +92,7 @@ jobs:
           path: tag
 
       - name: Publish builder package to S3
-        env:
-          AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: 'us-east-1'
-        run: |
-          aws s3 cp build/builder s3://$AWS_S3_BUCKET/${{ steps.release.outputs.release_tag }}/builder
+        run: aws s3 cp build/builder s3://$AWS_S3_BUCKET/${{ steps.release.outputs.release_tag }}/builder
 
   manylinux:
     runs-on: ubuntu-latest
@@ -188,8 +188,11 @@ jobs:
       uses: actions/download-artifact@v1
       with:
         name: builder
-
     - run: mv builder/builder .github/docker-images/alpine-arm/
+
+    - name: Fetch libcrypto
+      run: |
+        aws s3 cp s3://$AWS_S3_BUCKET/openssl/openssl-1.1.1-arm${{ matrix.arch }}.tar.gz .github/docker-images/alpine-arm/openssl-1.1.1.tar.gz
 
     - name: Fetch release_tag
       uses: actions/download-artifact@v1
@@ -226,8 +229,11 @@ jobs:
       uses: actions/download-artifact@v1
       with:
         name: builder
-
     - run: mv builder/builder .github/docker-images/alpine-arm/
+
+    - name: Fetch libcrypto
+      run: |
+        aws s3 cp s3://$AWS_S3_BUCKET/openssl/openssl-1.1.1-${{ matrix.arch }}.tar.gz .github/docker-images/alpine-arm/openssl-1.1.1.tar.gz
 
     - name: Fetch release_tag
       uses: actions/download-artifact@v1
