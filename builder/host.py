@@ -12,6 +12,7 @@
 # permissions and limitations under the License.
 
 import os
+import re
 import sys
 
 
@@ -29,8 +30,11 @@ def current_arch():
         machine_id = os.uname()[4]
         print('UNAME: {} | {} | {} | {} | {}'.format(*os.uname()))
         print('MACHINE_ID: {}'.format(machine_id))
-        if machine_id.startswith('arm') or machine_id.startswith('aarch'):
-            arch = ('armv8' if sys.maxsize > 2**32 else 'armv7')
+        m = re.match(r'^(aarch|arm)(64|v[67])', machine_id.strip())
+        if m:
+            arch = m.group(1)
+            if arch == 'aarch64':
+                arch = 'armv8'
     return ('x64' if sys.maxsize > 2**32 else 'x86')
 
 
