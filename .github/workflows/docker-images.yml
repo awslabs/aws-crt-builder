@@ -251,7 +251,7 @@ jobs:
 
   # When all the images are built, run a downstream test
   aws-c-common-linux:
-    name: Linux aws-c-common test build
+    name: Linux x64 aws-c-common test build
     runs-on: 'ubuntu-latest'
     if: github.event_name != 'release'
     needs: linux-variants
@@ -272,7 +272,7 @@ jobs:
         docker run --env GITHUB_REF docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-ubuntu-16-x64:${{ steps.release.outputs.release_tag }} -p aws-c-common build default-downstream --compiler=clang-9
 
   aws-c-common-linux-arm64:
-    name: Linux aws-c-common test build
+    name: Linux arm64 aws-c-common test build
     runs-on: 'ubuntu-latest'
     if: github.event_name != 'release'
     needs: linux-arm64
@@ -293,7 +293,7 @@ jobs:
         docker run --env GITHUB_REF docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-linux-arm64:${{ steps.release.outputs.release_tag }} -p aws-c-common build default-downstream --compiler=clang-9
 
   aws-c-common-linux-armv7:
-    name: Linux aws-c-common test build
+    name: Linux ARMv7 aws-c-common test build
     runs-on: 'ubuntu-latest'
     if: github.event_name != 'release'
     needs: linux-arm32
