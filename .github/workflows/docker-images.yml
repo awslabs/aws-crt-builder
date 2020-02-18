@@ -208,7 +208,7 @@ jobs:
       with:
         username: awslabs
         password: ${{ secrets.DOCKER_TOKEN }}
-        image_name: awslabs/aws-crt-builder/aws-crt-alpine-arm-${{ matrix.arch }}
+        image_name: awslabs/aws-crt-builder/aws-crt-alpine-arm${{ matrix.arch }}
         image_tag: ${{ env.IMAGE_TAG }}
         registry: docker.pkg.github.com
         context: .github/docker-images/alpine-arm${{ matrix.arch }}
