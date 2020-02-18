@@ -46,8 +46,9 @@ RUN python3 -m pip install --upgrade pip setuptools virtualenv \
 COPY openssl-1.1.1.tar.gz /tmp/openssl-1.1.1.tar.gz
 WORKDIR /tmp
 RUN mkdir -p /opt/openssl \
-    && tar xvzf /tmp/openssl-1.1.1.tar.gz -C /opt/openssl
-    
+    && tar xvzf /tmp/openssl-1.1.1.tar.gz -C /opt/openssl \
+    && LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/openssl/lib /opt/openssl/bin/openssl version
+
 ###############################################################################
 # Cleanup
 ###############################################################################
