@@ -205,7 +205,7 @@ jobs:
       with:
         username: awslabs
         password: ${{ secrets.DOCKER_TOKEN }}
-        image_name: awslabs/aws-crt-builder/aws-crt-arm-${{ matrix.arch }}
+        image_name: awslabs/aws-crt-builder/aws-crt-alpine-arm-${{ matrix.arch }}
         image_tag: ${{ env.IMAGE_TAG }}
         registry: docker.pkg.github.com
         context: .github/docker-images/alpine-arm
@@ -243,7 +243,7 @@ jobs:
       with:
         username: awslabs
         password: ${{ secrets.DOCKER_TOKEN }}
-        image_name: awslabs/aws-crt-builder/aws-crt-arm-${{ matrix.arch }}
+        image_name: awslabs/aws-crt-builder/aws-crt-alpine-arm-${{ matrix.arch }}
         image_tag: ${{ env.IMAGE_TAG }}
         registry: docker.pkg.github.com
         context: .github/docker-images/alpine-arm
@@ -271,6 +271,48 @@ jobs:
         docker pull docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-ubuntu-16-x64:${{ steps.release.outputs.release_tag }}
         docker run --env GITHUB_REF docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-ubuntu-16-x64:${{ steps.release.outputs.release_tag }} -p aws-c-common build default-downstream --compiler=clang-9
 
+  aws-c-common-linux-arm64:
+    name: Linux aws-c-common test build
+    runs-on: 'ubuntu-latest'
+    if: github.event_name != 'release'
+    needs: linux-arm64
+
+    steps:
+    - name: Checkout Source
+      uses: actions/checkout@v1
+    
+    - name: Get Release Tag
+      uses: ./.github/actions/release-tag
+      id: release
+
+    # We can't use the `uses: docker://image` version yet, GitHub lacks authentication for actions -> packages
+    - name: Build aws-c-common + consumers
+      run: |
+        echo "${{ secrets.GITHUB_TOKEN }}" | docker login docker.pkg.github.com -u awslabs --password-stdin
+        docker pull docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-linux-arm64:${{ steps.release.outputs.release_tag }}
+        docker run --env GITHUB_REF docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-linux-arm64:${{ steps.release.outputs.release_tag }} -p aws-c-common build default-downstream --compiler=clang-9
+
+  aws-c-common-linux-armv7:
+    name: Linux aws-c-common test build
+    runs-on: 'ubuntu-latest'
+    if: github.event_name != 'release'
+    needs: linux-arm64
+
+    steps:
+    - name: Checkout Source
+      uses: actions/checkout@v1
+    
+    - name: Get Release Tag
+      uses: ./.github/actions/release-tag
+      id: release
+
+    # We can't use the `uses: docker://image` version yet, GitHub lacks authentication for actions -> packages
+    - name: Build aws-c-common + consumers
+      run: |
+        echo "${{ secrets.GITHUB_TOKEN }}" | docker login docker.pkg.github.com -u awslabs --password-stdin
+        docker pull docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-linux-arm-v7:${{ steps.release.outputs.release_tag }}
+        docker run --env GITHUB_REF docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-linux-arm-v7:${{ steps.release.outputs.release_tag }} -p aws-c-common build default-downstream --compiler=clang-9
+  
   aws-c-common-osx:
     name: OSX aws-c-common test build
     runs-on: 'macos-latest'
