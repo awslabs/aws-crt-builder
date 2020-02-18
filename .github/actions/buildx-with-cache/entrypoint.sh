@@ -47,6 +47,12 @@ install_buildx() {
   docker buildx version
 }
 
+configure_buildx() {
+  docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+  docker buildx create --name builder --driver docker-container --use
+  docker buildx inspect --bootstrap
+}
+
 login_to_registry() {
   echo "${INPUT_PASSWORD}" | docker login -u "${INPUT_USERNAME}" --password-stdin "${INPUT_REGISTRY}"
 }
@@ -111,6 +117,7 @@ logout_from_registry() {
 check_required_input
 login_to_registry
 install_buildx
+configure_buildx
 pull_cached_stages
 build_image
 
