@@ -355,6 +355,11 @@ jobs:
   ci-passed:
     name: Downstream Tests Passed
     runs-on: 'ubuntu-latest'
-    needs: [aws-c-common-linux, aws-c-common-osx, aws-c-common-windows-vs2019]
+    needs: 
+    - aws-c-common-linux
+    - aws-c-common-osx
+    - aws-c-common-windows-vs2019
+    - aws-c-common-linux-arm64
+    - aws-c-common-linux-armv7
     steps:
       - run: echo "All downstream tests passed"
