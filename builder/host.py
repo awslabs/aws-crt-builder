@@ -32,7 +32,7 @@ def current_arch():
         print('MACHINE_ID: {}'.format(machine_id))
         m = re.match(r'^(aarch|arm)(64|v[67])', machine_id.strip())
         if m:
-            arch = m.group(1)
+            arch = m.group(1) + m.group(2)
             if arch == 'aarch64':
                 arch = 'armv8'
             return arch
