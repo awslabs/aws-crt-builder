@@ -200,7 +200,7 @@ jobs:
         name: release_tag
         path: release_tag
 
-    - run: cp .github/docker-images/entrypoint.sh .github/docker-images/alpine-arm/entrypoint.sh
+    - run: cp .github/docker-images/entrypoint.sh .github/docker-images/alpine-arm${{ matrix.arch }}/entrypoint.sh
     - run: echo "::set-env name=IMAGE_TAG::$(cat release_tag/tag)"
 
     - name: "Build arm${{ matrix.arch }} image"
@@ -241,7 +241,7 @@ jobs:
         name: release_tag
         path: release_tag
 
-    - run: cp .github/docker-images/entrypoint.sh .github/docker-images/alpine-arm/entrypoint.sh
+    - run: cp .github/docker-images/entrypoint.sh .github/docker-images/alpine-${{ matrix.arch }}/entrypoint.sh
     - run: echo "::set-env name=IMAGE_TAG::$(cat release_tag/tag)"
 
     - name: "Build ${{ matrix.arch }} image"
