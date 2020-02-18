@@ -186,7 +186,7 @@ jobs:
       with:
         name: builder
 
-    - run: mv builder/builder .github/docker-images/${{ matrix.variant }}/
+    - run: mv builder/builder .github/docker-images/alpine-arm/
 
     - name: Fetch release_tag
       uses: actions/download-artifact@v1
