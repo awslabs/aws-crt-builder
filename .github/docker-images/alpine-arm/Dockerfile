@@ -3,12 +3,12 @@ FROM alpine AS builder
 ###############################################################################
 # Update apt
 ###############################################################################
-RUN apk add build-base
+RUN apk --no-cache add build-base
 
 ###############################################################################
 # Install prereqs
 ###############################################################################
-RUN apk add \
+RUN apk --no-cache add \
     git \
     curl \
     sudo \
@@ -46,12 +46,11 @@ RUN ([ -d /opt/openssl ] && rm -rf /opt/openssl) || true \
 ###############################################################################
 # Cleanup
 ###############################################################################
-RUN apk clean \
-    && rm -rf /tmp/*
+RUN rm -rf /tmp/*
 
 ###############################################################################
 # Install builder package
 ###############################################################################
-ADD builder /usr/local/bin/builder
-COPY entrypoint.sh /entrypoint.sh
-ENTRYPOINT ["/entrypoint.sh"]
+# ADD builder /usr/local/bin/builder
+# COPY entrypoint.sh /entrypoint.sh
+# ENTRYPOINT ["/entrypoint.sh"]
