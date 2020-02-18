@@ -173,8 +173,8 @@ jobs:
         context: .github/docker-images/${{ matrix.variant }}
         build_extra_args: "--compress=true"  
 
-  linux-arm32:
-    name: Build ARM Images
+  linux-armv32:
+    name: Build ARM$${{ matrix.arch }} Images
     runs-on: 'ubuntu-latest'
     needs: package
     strategy:
@@ -211,7 +211,7 @@ jobs:
         image_name: awslabs/aws-crt-builder/aws-crt-alpine-arm-${{ matrix.arch }}
         image_tag: ${{ env.IMAGE_TAG }}
         registry: docker.pkg.github.com
-        context: .github/docker-images/alpine-arm
+        context: .github/docker-images/alpine-arm${{ matrix.arch }}
         build_extra_args: '--compress=true --platform=linux/arm/${{ matrix.arch }}'
 
   linux-arm64:
@@ -252,7 +252,7 @@ jobs:
         image_name: awslabs/aws-crt-builder/aws-crt-alpine-arm-${{ matrix.arch }}
         image_tag: ${{ env.IMAGE_TAG }}
         registry: docker.pkg.github.com
-        context: .github/docker-images/alpine-arm
+        context: .github/docker-images/alpine-${{ matrix.arch }}
         build_extra_args: '--compress=true --platform=linux/${{ matrix.arch }}'
 
   # When all the images are built, run a downstream test
