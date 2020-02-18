@@ -186,8 +186,6 @@ COMPILERS = {
         'hosts': ['linux', 'macos'],
         'targets': ['linux', 'macos'],
 
-        'cmake_args': ['-DCMAKE_EXPORT_COMPILE_COMMANDS=ON', '-DENABLE_FUZZ_TESTS=ON'],
-
         'apt_keys': ["http://apt.llvm.org/llvm-snapshot.gpg.key"],
 
         'versions': {
@@ -198,6 +196,7 @@ COMPILERS = {
                 'compiler_packages': ["clang-3.9"],
                 'c': "clang-3.9",
                 'cxx': "clang-3.9",
+                'cmake_args': ['-DCMAKE_EXPORT_COMPILE_COMMANDS=ON', '-DENABLE_FUZZ_TESTS=ON'],
             },
             '6': {
                 'pkg_setup': [
@@ -209,6 +208,7 @@ COMPILERS = {
 
                 'c': "clang-6.0",
                 'cxx': "clang-6.0",
+                'cmake_args': ['-DCMAKE_EXPORT_COMPILE_COMMANDS=ON', '-DENABLE_FUZZ_TESTS=ON'],
             },
             '7': {
                 'pkg_setup': [
@@ -217,6 +217,7 @@ COMPILERS = {
                      'deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-7 main']
                 ],
                 'compiler_packages': ["clang-7", "clang-tidy-7"],
+                'cmake_args': ['-DCMAKE_EXPORT_COMPILE_COMMANDS=ON', '-DENABLE_FUZZ_TESTS=ON'],
 
                 'c': "clang-7",
                 'cxx': "clang-7",
@@ -231,6 +232,7 @@ COMPILERS = {
 
                 'c': "clang-8",
                 'cxx': "clang-8",
+                'cmake_args': ['-DCMAKE_EXPORT_COMPILE_COMMANDS=ON', '-DENABLE_FUZZ_TESTS=ON'],
             },
             '9': {
                 'pkg_setup': [
@@ -242,6 +244,7 @@ COMPILERS = {
 
                 'c': "clang-9",
                 'cxx': "clang-9",
+                'cmake_args': ['-DCMAKE_EXPORT_COMPILE_COMMANDS=ON', '-DENABLE_FUZZ_TESTS=ON'],
             },
             # 10 and 11 are XCode Apple clang/LLVM
             '10': {
@@ -252,6 +255,9 @@ COMPILERS = {
             },
             'architectures': {
                 # No fuzz tests on ARM
+                'armv6': {
+                    '!cmake_args': []
+                },
                 'armv7': {
                     '!cmake_args': []
                 },
