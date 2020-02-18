@@ -101,14 +101,15 @@ class CMakeBuild(Action):
             ] + getattr(project, 'cmake_args', []) + config.get('cmake_args', [])
 
             # configure
-            sh.exec("cmake", cmake_args, project_source_dir)
+            sh.exec("cmake", cmake_args, project_source_dir, check=True)
 
             # build
-            sh.exec("cmake", "--build", ".", "--config", build_config)
+            sh.exec("cmake", "--build", ".", "--config",
+                    build_config, check=True)
 
             # install
             sh.exec("cmake", "--build", ".", "--config",
-                    build_config, "--target", "install")
+                    build_config, "--target", "install", check=True)
 
             sh.popd()
 
@@ -157,6 +158,6 @@ class CTestRun(Action):
         project_build_dir = os.path.join(project_source_dir, 'build')
         sh.pushd(project_build_dir)
 
-        sh.exec("ctest", "--output-on-failure")
+        sh.exec("ctest", "--output-on-failure", check=True)
 
         sh.popd()
