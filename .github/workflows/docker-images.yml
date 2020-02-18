@@ -173,7 +173,7 @@ jobs:
         context: .github/docker-images/${{ matrix.variant }}
         build_extra_args: "--compress=true"  
 
-  linux-armv32:
+  linux-arm32:
     name: Build ARM$${{ matrix.arch }} Images
     runs-on: 'ubuntu-latest'
     needs: package
