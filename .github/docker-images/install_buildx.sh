@@ -8,3 +8,5 @@ BUILDX_RELEASE_URL=https://github.com/docker/buildx/releases/download/$BUILDX_TA
 
 mkdir -p $DOCKER_PLUGINS_PATH
 curl -L $BUILDX_RELEASE_URL -o $DOCKER_PLUGINS_PATH/docker-buildx
+docker buildx version
+docker buildx build --help
