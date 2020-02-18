@@ -290,6 +290,9 @@ jobs:
     - name: Get Release Tag
       uses: ./.github/actions/release-tag
       id: release
+    
+    - name: Bootstrap docker-buildx
+      run: ./.github/workflows/install_buildx.sh
 
     # We can't use the `uses: docker://image` version yet, GitHub lacks authentication for actions -> packages
     - name: Build aws-c-common + consumers
@@ -311,6 +314,9 @@ jobs:
     - name: Get Release Tag
       uses: ./.github/actions/release-tag
       id: release
+    
+    - name: Bootstrap docker-buildx
+      run: ./.github/workflows/install_buildx.sh
 
     # We can't use the `uses: docker://image` version yet, GitHub lacks authentication for actions -> packages
     - name: Build aws-c-common + consumers
