@@ -184,6 +184,14 @@ jobs:
     - name: "Install docker-buildx"  
       run: ./.github/docker-images/install_buildx.sh
 
+    - name: Fetch release_tag
+      uses: actions/download-artifact@v1
+      with:
+        name: release_tag
+        path: release_tag
+
+    - run: echo "::set-env name=IMAGE_TAG::$(cat release_tag/tag)"
+
     - name: "Build multi-platform image"
       uses: ./.github/actions/buildx-with-cache
       with:
