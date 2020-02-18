@@ -174,7 +174,7 @@ jobs:
         build_extra_args: "--compress=true"  
 
   linux-arm32:
-    name: Build ARM$${{ matrix.arch }} Images
+    name: Build ARM${{ matrix.arch }} Image
     runs-on: 'ubuntu-latest'
     needs: package
     strategy:
@@ -188,7 +188,7 @@ jobs:
       uses: actions/download-artifact@v1
       with:
         name: builder
-    - run: mv builder/builder .github/docker-images/alpine-arm/
+    - run: mv builder/builder .github/docker-images/alpine-arm${{ matrix.arch }}/
 
     - name: Fetch libcrypto
       run: |
@@ -215,7 +215,7 @@ jobs:
         build_extra_args: '--compress=true --platform=linux/arm/${{ matrix.arch }}'
 
   linux-arm64:
-    name: Build ARM Images
+    name: Build ARM${{ matrix.arch }} Image
     runs-on: 'ubuntu-latest'
     needs: package
     strategy:
@@ -229,7 +229,7 @@ jobs:
       uses: actions/download-artifact@v1
       with:
         name: builder
-    - run: mv builder/builder .github/docker-images/alpine-arm/
+    - run: mv builder/builder .github/docker-images/alpine-${{ matrix.arch }}/
 
     - name: Fetch libcrypto
       run: |
