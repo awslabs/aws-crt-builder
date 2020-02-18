@@ -176,18 +176,26 @@ jobs:
   linux-arm:
     name: Build ARM Images
     runs-on: 'ubuntu-latest'
-    #needs: package
+    needs: package
     steps:
     - name: Checkout Sources
       uses: actions/checkout@v1
 
-    # - name: Fetch release_tag
-    #   uses: actions/download-artifact@v1
-    #   with:
-    #     name: release_tag
-    #     path: release_tag
+    - name: Fetch builder
+      uses: actions/download-artifact@v1
+      with:
+        name: builder
 
-    # - run: echo "::set-env name=IMAGE_TAG::$(cat release_tag/tag)"
+    - run: mv builder/builder .github/docker-images/${{ matrix.variant }}/
+
+    - name: Fetch release_tag
+      uses: actions/download-artifact@v1
+      with:
+        name: release_tag
+        path: release_tag
+
+    - run: cp .github/docker-images/entrypoint.sh .github/docker-images/alpine-arm/entrypoint.sh
+    - run: echo "::set-env name=IMAGE_TAG::$(cat release_tag/tag)"
 
     - name: "Build multi-platform image"
       uses: ./.github/actions/buildx-with-cache
@@ -195,10 +203,10 @@ jobs:
         username: awslabs
         password: ${{ secrets.DOCKER_TOKEN }}
         image_name: awslabs/aws-crt-builder/aws-crt-arm-multi
-        image_tag: arm #${{ env.IMAGE_TAG }}
+        image_tag: ${{ env.IMAGE_TAG }}
         registry: docker.pkg.github.com
-        context: .github/docker-images/alpine-armv7
-        build_extra_args: '--compress=true --platform=linux/arm/v7'
+        context: .github/docker-images/alpine-arm
+        build_extra_args: '--compress=true --platform=linux/arm/v7,linux/arm/v6,linux/arm64'
 
   # When all the images are built, run a downstream test
   aws-c-common-linux:
