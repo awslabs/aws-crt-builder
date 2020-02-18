@@ -120,9 +120,6 @@ install_buildx
 configure_buildx
 pull_cached_stages
 build_image
-
-if [ "$INPUT_PUSH_IMAGE_AND_STAGES" = true ]; then
-  push_image_and_stages
-fi
+push_image_and_stages
 
 logout_from_registry
