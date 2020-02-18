@@ -39,7 +39,7 @@ RUN ([ -d /opt/openssl ] && rm -rf /opt/openssl) || true \
         no-unit-test no-tests \
         -DSSL_FORBID_ENULL -DOPENSSL_NO_DTLS1 -DOPENSSL_NO_HEARTBEATS \
         --prefix=/opt/openssl --openssldir=/opt/openssl \
-    && make \
+    && make -j 2 \
     && make install_sw \
     && LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/openssl/lib /opt/openssl/bin/openssl version
     
