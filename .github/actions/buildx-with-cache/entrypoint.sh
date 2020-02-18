@@ -51,6 +51,7 @@ configure_buildx() {
   docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
   docker buildx create --name builder --driver docker-container --use
   docker buildx inspect --bootstrap
+  docker buildx install
 }
 
 login_to_registry() {
@@ -72,7 +73,7 @@ build_image() {
 
   # build image using cache
   set -x
-  docker buildx build \
+  docker build \
     --file=${INPUT_CONTEXT}/${INPUT_DOCKERFILE} \
     --tag="$(_get_full_image_name)":${INPUT_IMAGE_TAG} \
     $cache_from \
