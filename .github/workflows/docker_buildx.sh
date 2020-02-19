@@ -48,11 +48,11 @@ login_to_registry() {
 
 build_image() {
   # pull cache, ignore failure if it doesn't exist
-  docker pull "$(_get_full_image_name)-cache":${INPUT_IMAGE_TAG}-builder || true
+  docker pull "$(_get_full_image_name)-cache":${INPUT_IMAGE_TAG} || true
   # build builder target image
   docker build \
     --target=builder \
-    --tag="$(_get_full_image_name)":${INPUT_IMAGE_TAG}-builder \
+    --tag="$(_get_full_image_name)":${INPUT_IMAGE_TAG} \
     --load \
     --cache-from="$(_get_full_image_name)-cache":${INPUT_IMAGE_TAG} \
     ${INPUT_BUILD_EXTRA_ARGS} \
@@ -63,16 +63,17 @@ build_image() {
   # build final image
   docker build \
     --target=builder \
-    --tag="$(_get_full_image_name)":${INPUT_IMAGE_TAG}-builder \
+    --tag="$(_get_full_image_name)":${INPUT_IMAGE_TAG} \
     --load \
     --cache-from="$(_get_full_image_name)-cache":${INPUT_IMAGE_TAG} \
+    --cache-from="$(_get_full_image_name)":${INPUT_IMAGE_TAG} \
     ${INPUT_BUILD_EXTRA_ARGS} \
     ${INPUT_CONTEXT}
 
   # push image
   docker push "$(_get_full_image_name)":${INPUT_IMAGE_TAG}
   # push cache
-  docker push "$(_get_full_image_name)":${INPUT_IMAGE_TAG}-builder
+  docker push "$(_get_full_image_name)-cache":${INPUT_IMAGE_TAG}
 }
 
 logout_from_registry() {
