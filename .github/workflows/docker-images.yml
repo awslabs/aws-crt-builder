@@ -294,14 +294,16 @@ jobs:
         docker images
 
     - name: "Build arm${{ matrix.arch }} image"
-      run: ./.github/workflows/docker_buildx.sh \
-        docker.pkg.github.com \
-        awslabs \
-        ${{ secrets.DOCKER_TOKEN }} \
-        awslabs/aws-crt-builder/aws-crt-raspbian-arm${{ matrix.arch }} \
-        ${{ env.IMAGE_TAG }} \
-        .github/docker-images/raspbian-arm${{ matrix.arch }} \
-        --compress=true --platform=linux/arm/${{ matrix.arch }}
+      run: | 
+        docker images
+        ./.github/workflows/docker_buildx.sh \
+          docker.pkg.github.com \
+          awslabs \
+          ${{ secrets.DOCKER_TOKEN }} \
+          awslabs/aws-crt-builder/aws-crt-raspbian-arm${{ matrix.arch }} \
+          ${{ env.IMAGE_TAG }} \
+          .github/docker-images/raspbian-arm${{ matrix.arch }} \
+          --compress=true --platform=linux/arm/${{ matrix.arch }}
 
   # When all the images are built, run a downstream test
   aws-c-common-linux:
