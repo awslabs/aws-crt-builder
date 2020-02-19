@@ -291,6 +291,7 @@ jobs:
         aws s3 cp s3://aws-crt-builder/raspbian/raspbian-arm${{ matrix.arch }}.tar.gz /tmp/raspbian-arm${{ matrix.arch }}.tar.gz
         gunzip --stdout /tmp/raspbian-arm${{ matrix.arch }}.tar.gz > /tmp/raspbian-arm${{ matrix.arch }}.tar
         docker load -i /tmp/raspbian-arm${{ matrix.arch }}.tar
+        docker images
 
     - name: "Build arm${{ matrix.arch }} image"
       run: ./.github/workflows/docker_buildx.sh \
