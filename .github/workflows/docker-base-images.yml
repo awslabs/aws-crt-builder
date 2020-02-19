@@ -19,8 +19,9 @@ jobs:
     steps:
     - name: Checkout Sources
       uses: actions/checkout@v1
-      
-    - run: ./.github/workflows/docker_buildx.sh \
+    
+    - name: Build raspbian-arm${{ matrix.arch}} image
+      run: ./.github/workflows/docker_buildx.sh \
         docker.pkg.github.com \
         awslabs \
         ${{ secrets.DOCKER_TOKEN }} \
