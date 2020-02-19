@@ -61,6 +61,12 @@ HOSTS = {
         'pkg_update': 'apt-get -qq update -y',
         'pkg_install': 'apt-get -qq install -y',
     },
+    'alpine': {
+        'compiler_packages': ['build-base'],
+        'pkg_setup': [],
+        'pkg_update': [],
+        'pkg_install': 'apk --no-cache install',
+    },
     'al2012': {
         'cmake_args': [
             "-DENABLE_SANITIZERS=OFF",
