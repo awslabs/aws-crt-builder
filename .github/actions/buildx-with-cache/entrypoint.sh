@@ -58,9 +58,9 @@ login_to_registry() {
   echo "${INPUT_PASSWORD}" | docker login -u "${INPUT_USERNAME}" --password-stdin "${INPUT_REGISTRY}"
 }
 
-pull_cached_stages() {
-  docker pull "$(_get_full_image_name)"-cache:${INPUT_IMAGE_TAG} 2> /dev/null | tee "$PULL_STAGES_LOG" || true
-}
+# pull_cached_stages() {
+#   docker pull "$(_get_full_image_name)"-cache:${INPUT_IMAGE_TAG} 2> /dev/null | tee "$PULL_STAGES_LOG" || true
+# }
 
 build_image() {
   # max_stage=$(_get_max_stage_number)
@@ -76,8 +76,7 @@ build_image() {
     --file=${INPUT_CONTEXT}/${INPUT_DOCKERFILE} \
     --tag="$(_get_full_image_name)":${INPUT_IMAGE_TAG} \
     --push \
-    --cache-from=$(_get_full_image_name)-cache:${INPUT_IMAGE_TAG} \
-    --cache-to=$(_get_full_image_name)-cache:${INPUT_IMAGE_TAG} \
+    --cache-from=$(_get_full_image_name):${INPUT_IMAGE_TAG} \
     ${INPUT_BUILD_EXTRA_ARGS} \
     ${INPUT_CONTEXT} | tee "$BUILD_LOG"
 }
@@ -119,7 +118,7 @@ check_required_input
 login_to_registry
 install_buildx
 configure_buildx
-pull_cached_stages
+#pull_cached_stages
 build_image
 #push_image_and_stages
 
