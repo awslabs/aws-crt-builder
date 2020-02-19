@@ -19,7 +19,7 @@ shift
 INPUT_CONTEXT=$1
 shift
 # gather up whatever is left
-INPUT_BUILD_EXTRA_ARGS=$1 $2 $3 $4 $5 $6 $7 $8 $9
+INPUT_BUILD_EXTRA_ARGS="$1 $2 $3 $4 $5 $6 $7 $8 $9"
 
 BUILDX_VERSION=v0.3.1
 
