@@ -84,3 +84,4 @@ login_to_registry
 install_buildx
 build_image
 logout_from_registry
+
