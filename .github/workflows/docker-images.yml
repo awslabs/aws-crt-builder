@@ -303,7 +303,7 @@ jobs:
           awslabs/aws-crt-builder/aws-crt-raspbian-arm${{ matrix.arch }} \
           ${{ env.IMAGE_TAG }} \
           .github/docker-images/raspbian-arm${{ matrix.arch }} \
-          --compress=true --platform=linux/arm/${{ matrix.arch }}
+          --compress=true --platform=linux/arm/${{ matrix.arch }} --cache-from=raspbian-armv6:latest
 
   # When all the images are built, run a downstream test
   aws-c-common-linux:
