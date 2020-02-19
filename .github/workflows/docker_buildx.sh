@@ -52,7 +52,7 @@ build_image() {
   # build builder target image
   docker build \
     --target=builder \
-    --tag="$(_get_full_image_name)":${INPUT_IMAGE_TAG} \
+    --tag="$(_get_full_image_name)-cache":${INPUT_IMAGE_TAG} \
     --load \
     --cache-from="$(_get_full_image_name)-cache":${INPUT_IMAGE_TAG} \
     ${INPUT_BUILD_EXTRA_ARGS} \
