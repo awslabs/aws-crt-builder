@@ -150,7 +150,7 @@ if __name__ == '__main__':
                         help='The native code configuration to build with')
     parser.add_argument('--dump-config', action='store_true',
                         help="Print the config in use before running a build")
-    parser.add_argument('--spec', type=str, dest='build')
+    parser.add_argument('--spec', type=str)
     parser.add_argument('-b', '--build-dir', type=str,
                         help='Directory to work in', default='.')
     commands = parser.add_subparsers(dest='command')
@@ -179,7 +179,7 @@ if __name__ == '__main__':
     parse_extra_args(env)
 
     if not getattr(env, 'build_spec', None):
-        build_name = getattr(args, 'build', None)
+        build_name = getattr(args, 'spec', getattr(args, 'build', None))
         if build_name:
             env.build_spec = BuildSpec(spec=build_name)
         else:

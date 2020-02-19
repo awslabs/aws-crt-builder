@@ -270,19 +270,19 @@ COMPILERS = {
             '11': {
                 '!cmake_args': [],
             },
-            'architectures': {
-                # No fuzz tests on ARM
-                'armv6': {
-                    '!cmake_args': []
-                },
-                'armv7': {
-                    '!cmake_args': []
-                },
-                'armv8': {
-                    '!cmake_args': []
-                }
-            }
         },
+        'architectures': {
+            # No fuzz tests on ARM
+            'armv6': {
+                '!cmake_args': []
+            },
+            'armv7': {
+                '!cmake_args': []
+            },
+            'armv8': {
+                '!cmake_args': []
+            }
+        }
     },
     'gcc': {
         'hosts': ['linux', 'manylinux', 'al2012', 'al2'],

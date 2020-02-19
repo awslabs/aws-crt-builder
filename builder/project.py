@@ -58,7 +58,7 @@ def produce_config(build_spec, project, **additional_variables):
         'hosts': HOSTS,
         'targets': TARGETS,
         'compilers': COMPILERS,
-        'archs': ARCHS,
+        'architectures': ARCHS,
     }
 
     # Build the list of config options to poll
