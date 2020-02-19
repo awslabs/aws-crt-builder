@@ -28,11 +28,9 @@ def current_platform():
 def current_arch():
     if current_platform() == 'linux':
         machine_id = os.uname()[4]
-        print('UNAME: {} | {} | {} | {} | {}'.format(*os.uname()))
-        print('MACHINE_ID: {}'.format(machine_id))
-        m = re.match(r'^(aarch|arm)(64|v[67])', machine_id.strip())
+        m = re.match(r'^(aarch64|armv[6-8])', machine_id.strip())
         if m:
-            arch = m.group(1) + m.group(2)
+            arch = m.group(1)
             if arch == 'aarch64':
                 arch = 'armv8'
             return arch
