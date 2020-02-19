@@ -17,6 +17,9 @@ jobs:
       matrix:
         arch: [v6]
     steps:
+    - name: Checkout Sources
+      uses: actions/checkout@v1
+      
     - run: ./.github/workflows/docker_buildx.sh \
         docker.pkg.github.com \
         awslabs \
