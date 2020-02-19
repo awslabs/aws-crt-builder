@@ -58,6 +58,7 @@ def produce_config(build_spec, project, **additional_variables):
         'hosts': HOSTS,
         'targets': TARGETS,
         'compilers': COMPILERS,
+        'archs': ARCHS,
     }
 
     # Build the list of config options to poll
@@ -92,10 +93,13 @@ def produce_config(build_spec, project, **additional_variables):
         # Pull out any top level defaults
         defaults = {}
         for key, value in config.items():
-            if key not in ('hosts', 'targets', 'compilers'):
+            if key not in ('hosts', 'targets', 'compilers', 'architectures'):
                 defaults[key] = value
         if len(defaults) > 0:
             configs.append(defaults)
+
+        # pull out arch
+        process_element(config, 'architectures', build_spec.arch)
 
         # pull out any host named default, then spec platform and host to override
         process_element(config, 'hosts', 'default')
@@ -111,6 +115,7 @@ def produce_config(build_spec, project, **additional_variables):
         # pull out spec compiler and version info
         compiler = process_element(config, 'compilers', build_spec.compiler)
         process_element(compiler, 'versions', build_spec.compiler_version)
+        process_element(compiler, 'architectures', build_spec.arch)
 
     # Process defaults first
     process_config(defaults)

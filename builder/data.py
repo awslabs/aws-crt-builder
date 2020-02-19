@@ -11,6 +11,8 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+from util import dict_alias
+
 ########################################################################################################################
 # DATA DEFINITIONS
 ########################################################################################################################
@@ -39,6 +41,15 @@ KEYS = {
 
     # Linux
     'sudo': False  # whether or not sudo is necessary for installs
+}
+
+# Be sure to use these monikers in this file, aliases are applied after all tables are built
+ARCHS = {
+    'x86': {},
+    'x64': {},
+    'armv6': {},
+    'armv7': {},
+    'armv8': {}
 }
 
 HOSTS = {
@@ -339,6 +350,15 @@ COMPILERS = {
     }
 }
 
+# Aliases
 COMPILERS['msvc']['versions']['14'] = COMPILERS['msvc']['versions']['2015']
 COMPILERS['msvc']['versions']['15'] = COMPILERS['msvc']['versions']['2017']
 COMPILERS['msvc']['versions']['16'] = COMPILERS['msvc']['versions']['2019']
+
+# Aliases
+# armv8 == aarch64, arm64
+for v8 in ('aarch64', 'arm64'):
+    dict_alias(ARCHS, 'armv8', v8)
+    dict_alias(HOSTS, 'armv8', v8)
+    dict_alias(TARGETS, 'armv8', v8)
+    dict_alias(COMPILERS, 'armv8', v8)

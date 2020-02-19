@@ -51,3 +51,14 @@ def replace_variables(value, variables):
     else:
         # Unsupported, just return it
         return value
+
+
+def dict_alias(tree, key, alias):
+    # depth first, should result in the least tree traversal
+    for val in tree.values():
+        if isinstance(val, dict):
+            dict_alias(val, key, alias)
+    original_keys = list(tree.keys())
+    for tkey in original_keys:
+        if tkey == key:
+            tree[alias] = tree[tkey]
