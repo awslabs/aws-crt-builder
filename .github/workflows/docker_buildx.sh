@@ -6,20 +6,29 @@ if [ $# -lt 6 ]; then
   echo "Usage: $0 REGISTRY USERNAME PASSWORD IMAGE_NAME IMAGE_TAG CONTEXT (EXTRA_ARGS)"
 fi
 
-INPUT_REGISTRY=$1
+trim() {
+    local var="$*"
+    # remove leading whitespace characters
+    var="${var#"${var%%[![:space:]]*}"}"
+    # remove trailing whitespace characters
+    var="${var%"${var##*[![:space:]]}"}"   
+    echo -n "$var"
+}
+
+INPUT_REGISTRY=$(trim $1)
 shift
-INPUT_USERNAME=$1
+INPUT_USERNAME=$(trim $1)
 shift
-INPUT_PASSWORD=$1
+INPUT_PASSWORD=$(trim $1)
 shift
-INPUT_IMAGE_NAME=$1
+INPUT_IMAGE_NAME=$(trim $1)
 shift
-INPUT_IMAGE_TAG=$1
+INPUT_IMAGE_TAG=$(trim $1)
 shift
-INPUT_CONTEXT=$1
+INPUT_CONTEXT=$(trim $1)
 shift
 # gather up whatever is left
-INPUT_BUILD_EXTRA_ARGS="$1 $2 $3 $4 $5 $6 $7 $8 $9"
+INPUT_BUILD_EXTRA_ARGS="$(trim $1) $(trim $2) $(trim $3) $(trim $4) $(trim $5) $(trim $6) $(trim $7) $(trim $8) $(trim $9)"
 
 BUILDX_VERSION=v0.3.1
 
