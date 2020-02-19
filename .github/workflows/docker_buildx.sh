@@ -7,12 +7,14 @@ if [ $# -lt 6 ]; then
 fi
 
 trim() {
-    local var="$*"
-    # remove leading whitespace characters
-    var="${var#"${var%%[![:space:]]*}"}"
-    # remove trailing whitespace characters
-    var="${var%"${var##*[![:space:]]}"}"   
-    echo -n "$var"
+  set +x
+  local var="$*"
+  # remove leading whitespace characters
+  var="${var#"${var%%[![:space:]]*}"}"
+  # remove trailing whitespace characters
+  var="${var%"${var##*[![:space:]]}"}"   
+  echo -n "$var"
+  set -x
 }
 
 INPUT_REGISTRY=$(trim $1)
