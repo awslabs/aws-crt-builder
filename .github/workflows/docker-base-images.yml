@@ -1,0 +1,24 @@
+name: Docker Base Images
+
+on: 
+  push:
+    branches: 
+      - '*'
+      - '!master'
+    paths:
+      - '.github/docker-images/raspbian-armv6/**'
+      - '.github/workflows/docker-base-images.yml'
+      - '.github/workflows/*.sh'
+
+jobs:
+  raspbian-armv6:
+    steps:
+      run: ./.github/workflows/docker_buildx.sh \
+        docker.pkg.github.com \
+        awslabs \
+        ${{ secrets.DOCKER_TOKEN }} \
+        awslabs/aws-crt-builder/raspbian-arm${{ matrix.arch }} \
+        latest \
+        .github/docker-images/raspbian-arm${{ matrix.arch }} \
+        --file=.github/docker-images/raspbian-arm${{ matrix.arch }}/base.Dockerfile
+        --compress=true --platform=linux/arm/${{ matrix.arch }}

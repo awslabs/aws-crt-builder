@@ -1,17 +1,7 @@
-# This image is in S3, because there are no public raspbian buster images
-FROM raspbian-armv6 as builder
+# This image is in S3, built from Dockerfile.bootstrap in this directory
+FROM awslabs/aws-crt-builder/raspbian-armv6 as builder
 
 SHELL ["/bin/bash", "-c"]
-
-###############################################################################
-# # Upgrade to buster
-###############################################################################
-# sed -i 's/jessie/buster/' /etc/apt/sources.list
-# apt-get update -y
-# apt-get upgrade -y
-# apt-get dist-upgrade -y
-# apt-get autoremove -y
-# apt-get -y purge $(dpkg -l | awk '/^rc/ { print $2 }')
 
 ###############################################################################
 # Install prereqs
