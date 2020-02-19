@@ -25,6 +25,9 @@ def validate_spec(build_spec):
     assert build_spec.target in TARGETS, "Target {} is invalid".format(
         build_spec.target)
 
+    assert build_spec.arch in ARCHS, "Architecture {} is invalid".format(
+        build_spec.target)
+
     assert build_spec.compiler in COMPILERS, "Compiler {} is invalid".format(
         build_spec.compiler)
     compiler = COMPILERS[build_spec.compiler]
