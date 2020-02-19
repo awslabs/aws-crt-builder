@@ -60,7 +60,6 @@ build_image() {
   docker pull "$(_get_full_image_name)":${INPUT_IMAGE_TAG} || true
   # build final image
   docker build \
-    --file=${INPUT_CONTEXT}/${INPUT_DOCKERFILE} \
     --target=builder \
     --tag="$(_get_full_image_name)":${INPUT_IMAGE_TAG}-builder \
     --load \
