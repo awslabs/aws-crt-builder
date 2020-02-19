@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -e
+set -ex
 
 # helper functions
 _exit_if_empty() {
@@ -72,7 +72,6 @@ build_image() {
   fi
 
   # build image using cache
-  set -x
   docker build \
     --file=${INPUT_CONTEXT}/${INPUT_DOCKERFILE} \
     --tag="$(_get_full_image_name)":${INPUT_IMAGE_TAG} \
@@ -80,7 +79,6 @@ build_image() {
     $cache_from \
     ${INPUT_BUILD_EXTRA_ARGS} \
     ${INPUT_CONTEXT} | tee "$BUILD_LOG"
-  set +x
 }
 
 push_git_tag() {
