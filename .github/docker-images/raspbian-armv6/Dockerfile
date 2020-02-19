@@ -1,5 +1,5 @@
 # This image is in S3, because there are no public raspbian buster images
-FROM raspbian-armv6:latest
+FROM raspbian-armv6:latest as builder
 
 SHELL ["/bin/bash", "-c"]
 
