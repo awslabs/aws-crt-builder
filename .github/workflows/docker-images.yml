@@ -9,6 +9,7 @@ on:
       - '.github/actions/**'
       - '.github/docker-images/**'
       - '.github/workflows/docker-images.yml'
+      - '.github/workflows/*.sh'
       - 'builder/**'
   release:
     types: [published]
