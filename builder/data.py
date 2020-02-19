@@ -31,8 +31,8 @@ KEYS = {
     'test_steps': [],  # steps to run instead of the default ctest
     'pkg_setup': [],  # commands required to configure the package system
     # command to install packages, should be of the form 'pkgmanager arg1 arg2 {packages will go here}'
-    'pkg_install': None,
-    'pkg_update': None,  # command to update the package manager's database
+    'pkg_install': [],
+    'pkg_update': [],  # command to update the package manager's database
     'packages': [],  # packages to install
     'compiler_packages': [],  # packages to support compiler
     'needs_compiler': True,  # whether or not this build needs a compiler
