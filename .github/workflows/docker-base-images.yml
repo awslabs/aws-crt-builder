@@ -13,6 +13,9 @@ on:
 jobs:
   raspbian-armv6:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        arch: [v6]
     steps:
     - run: ./.github/workflows/docker_buildx.sh \
         docker.pkg.github.com \
