@@ -12,6 +12,7 @@ on:
 
 jobs:
   raspbian-armv6:
+    runs-on: ubuntu-latest
     steps:
     - run: ./.github/workflows/docker_buildx.sh \
         docker.pkg.github.com \
