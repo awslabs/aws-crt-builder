@@ -324,8 +324,8 @@ jobs:
     - name: Build aws-c-common + consumers
       run: |
         echo "${{ secrets.GITHUB_TOKEN }}" | docker login docker.pkg.github.com -u awslabs --password-stdin
-        docker pull docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-alpine-arm-v7:${{ steps.release.outputs.release_tag }}
-        docker run --env GITHUB_REF docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-alpine-arm-v7:${{ steps.release.outputs.release_tag }} -p aws-c-common build default-downstream --compiler=clang-9
+        docker pull docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-alpine-armv7:${{ steps.release.outputs.release_tag }}
+        docker run --env GITHUB_REF docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-alpine-armv7:${{ steps.release.outputs.release_tag }} -p aws-c-common build default-downstream --compiler=clang-9
   
   aws-c-common-osx:
     name: OSX aws-c-common test build
