@@ -28,5 +28,5 @@ jobs:
         awslabs/aws-crt-builder/raspbian-arm${{ matrix.arch }} \
         latest \
         .github/docker-images/raspbian-arm${{ matrix.arch }} \
-        --file=.github/docker-images/raspbian-arm${{ matrix.arch }}/base.Dockerfile
-        --compress=true --platform=linux/arm/${{ matrix.arch }}
+        --file=.github/docker-images/raspbian-arm${{ matrix.arch }}/base.Dockerfile \
+        --compress=true --platform=linux/arm/${{ matrix.arch }} --target=base

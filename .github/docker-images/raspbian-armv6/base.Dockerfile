@@ -1,7 +1,7 @@
 # This image starts with raspbian/jessie and upgrades it to buster, since there
 # are no trustworthy curated buster images. This is then used as a base for our
 # downstream images after export via docker save -o
-FROM raspbian/jessie
+FROM raspbian/jessie as base
 
 SHELL ["/bin/bash", "-c"]
 ENV DEBIAN_FRONTEND=noninteractive

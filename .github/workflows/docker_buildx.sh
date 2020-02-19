@@ -50,19 +50,17 @@ build_image() {
   # build builder target image
   docker build \
     --build-arg BUILDKIT_INLINE_CACHE=1 \
-    --target=builder \
     --tag="$(_get_full_image_name)-cache":${INPUT_IMAGE_TAG} \
     --load \
     --cache-from="$(_get_full_image_name)-cache":${INPUT_IMAGE_TAG} \
     ${INPUT_BUILD_EXTRA_ARGS} \
     ${INPUT_CONTEXT}
 
-  # pull previous image
+  # pull previous image, ignore failure if it doesn't exist
   docker pull "$(_get_full_image_name)":${INPUT_IMAGE_TAG} || true
   # build final image
   docker build \
     --build-arg BUILDKIT_INLINE_CACHE=1 \
-    --target=builder \
     --tag="$(_get_full_image_name)":${INPUT_IMAGE_TAG} \
     --load \
     --cache-from="$(_get_full_image_name)-cache":${INPUT_IMAGE_TAG} \
