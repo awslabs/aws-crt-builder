@@ -12,16 +12,16 @@ _exit_if_empty() {
   fi
 }
 
-_get_max_stage_number() {
-  sed -nr 's/^([0-9]+): Pulling from.+/\1/p' "$PULL_STAGES_LOG" |
-    sort -n |
-    tail -n 1
-}
+# _get_max_stage_number() {
+#   sed -nr 's/^([0-9]+): Pulling from.+/\1/p' "$PULL_STAGES_LOG" |
+#     sort -n |
+#     tail -n 1
+# }
 
-_get_stages() {
-  grep -EB1 '^Step [0-9]+/[0-9]+ : FROM' "$BUILD_LOG" |
-    sed -rn 's/ *-*> (.+)/\1/p'
-}
+# _get_stages() {
+#   grep -EB1 '^Step [0-9]+/[0-9]+ : FROM' "$BUILD_LOG" |
+#     sed -rn 's/ *-*> (.+)/\1/p'
+# }
 
 _get_full_image_name() {
   echo ${INPUT_REGISTRY:+$INPUT_REGISTRY/}${INPUT_IMAGE_NAME}
@@ -59,56 +59,57 @@ login_to_registry() {
 }
 
 pull_cached_stages() {
-  docker pull --all-tags "$(_get_full_image_name)"-stages 2> /dev/null | tee "$PULL_STAGES_LOG" || true
+  docker pull "$(_get_full_image_name)"-cache:${INPUT_IMAGE_TAG} 2> /dev/null | tee "$PULL_STAGES_LOG" || true
 }
 
 build_image() {
-  max_stage=$(_get_max_stage_number)
+  # max_stage=$(_get_max_stage_number)
 
-  # create param to use (multiple) --cache-from options
-  if [ "$max_stage" ]; then
-    cache_from=$(eval "echo --cache-from=$(_get_full_image_name)-stages:{1..$max_stage}")
-    echo "Use cache: $cache_from"
-  fi
+  # # create param to use (multiple) --cache-from options
+  # if [ "$max_stage" ]; then
+  #   cache_from=$(eval "echo --cache-from=$(_get_full_image_name)-stages:{1..$max_stage}")
+  #   echo "Use cache: $cache_from"
+  # fi
 
   # build image using cache
   docker build \
     --file=${INPUT_CONTEXT}/${INPUT_DOCKERFILE} \
     --tag="$(_get_full_image_name)":${INPUT_IMAGE_TAG} \
-    --load \
-    $cache_from \
+    --push \
+    --cache-from=$(_get_full_image_name)-cache:${INPUT_IMAGE_TAG} \
+    --cache-to=$(_get_full_image_name)-cache:${INPUT_IMAGE_TAG} \
     ${INPUT_BUILD_EXTRA_ARGS} \
     ${INPUT_CONTEXT} | tee "$BUILD_LOG"
 }
 
-push_git_tag() {
-  [[ "$GITHUB_REF" =~ /tags/ ]] || return 0
-  local git_tag=${GITHUB_REF##*/tags/}
-  local image_with_git_tag
-  image_with_git_tag="$(_get_full_image_name)":$git_tag
-  docker tag "$(_get_full_image_name)":${INPUT_IMAGE_TAG} "$image_with_git_tag"
-  docker push "$image_with_git_tag"
-}
+# push_git_tag() {
+#   [[ "$GITHUB_REF" =~ /tags/ ]] || return 0
+#   local git_tag=${GITHUB_REF##*/tags/}
+#   local image_with_git_tag
+#   image_with_git_tag="$(_get_full_image_name)":$git_tag
+#   docker tag "$(_get_full_image_name)":${INPUT_IMAGE_TAG} "$image_with_git_tag"
+#   docker push "$image_with_git_tag"
+# }
 
-push_image_and_stages() {
-  # push image
-  docker push "$(_get_full_image_name)":${INPUT_IMAGE_TAG}
-  push_git_tag
+# push_image_and_stages() {
+#   # push image
+#   docker push "$(_get_full_image_name)":${INPUT_IMAGE_TAG}
+#   push_git_tag
 
-  # push each building stage
-  stage_number=1
-  for stage in $(_get_stages); do
-    stage_image=$(_get_full_image_name)-stages:$stage_number
-    docker tag "$stage" "$stage_image"
-    docker push "$stage_image"
-    stage_number=$(( stage_number+1 ))
-  done
+#   # push each building stage
+#   stage_number=1
+#   for stage in $(_get_stages); do
+#     stage_image=$(_get_full_image_name)-stages:$stage_number
+#     docker tag "$stage" "$stage_image"
+#     docker push "$stage_image"
+#     stage_number=$(( stage_number+1 ))
+#   done
 
-  # push the image itself as a stage (the last one)
-  stage_image=$(_get_full_image_name)-stages:$stage_number
-  docker tag "$(_get_full_image_name)":${INPUT_IMAGE_TAG} $stage_image
-  docker push $stage_image
-}
+#   # push the image itself as a stage (the last one)
+#   stage_image=$(_get_full_image_name)-stages:$stage_number
+#   docker tag "$(_get_full_image_name)":${INPUT_IMAGE_TAG} $stage_image
+#   docker push $stage_image
+# }
 
 logout_from_registry() {
   docker logout "${INPUT_REGISTRY}"
@@ -120,6 +121,6 @@ install_buildx
 configure_buildx
 pull_cached_stages
 build_image
-push_image_and_stages
+#push_image_and_stages
 
 logout_from_registry
