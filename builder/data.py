@@ -105,15 +105,6 @@ HOSTS = {
         },
     },
     'manylinux': {
-        'architectures': {
-            'x86': {
-                'image': "123124136734.dkr.ecr.us-east-1.amazonaws.com/aws-common-runtime/manylinux1:x86",
-            },
-            'x64': {
-                'image': "123124136734.dkr.ecr.us-east-1.amazonaws.com/aws-common-runtime/manylinux1:x64",
-            },
-        },
-
         'pkg_update': 'yum update -y',
         'pkg_install': 'yum install -y',
         'sudo': False,
@@ -350,12 +341,13 @@ COMPILERS = {
     }
 }
 
+###############################################################################
 # Aliases
+###############################################################################
 COMPILERS['msvc']['versions']['14'] = COMPILERS['msvc']['versions']['2015']
 COMPILERS['msvc']['versions']['15'] = COMPILERS['msvc']['versions']['2017']
 COMPILERS['msvc']['versions']['16'] = COMPILERS['msvc']['versions']['2019']
 
-# Aliases
 # armv8 == aarch64, arm64
 for v8 in ('aarch64', 'arm64'):
     dict_alias(ARCHS, 'armv8', v8)
