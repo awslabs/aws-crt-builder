@@ -76,7 +76,8 @@ build_image() {
     --file=${INPUT_CONTEXT}/${INPUT_DOCKERFILE} \
     --tag="$(_get_full_image_name)":${INPUT_IMAGE_TAG} \
     --push \
-    --cache-from="$(_get_full_image_name)":${INPUT_IMAGE_TAG} \
+    --cache-from="$(_get_full_image_name)-cache":${INPUT_IMAGE_TAG} \
+    --cache-to="$(_get_full_image_name)-cache":${INPUT_IMAGE_TAG} \
     ${INPUT_BUILD_EXTRA_ARGS} \
     ${INPUT_CONTEXT} | tee "$BUILD_LOG"
 }
