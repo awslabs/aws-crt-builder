@@ -49,6 +49,7 @@ build_image() {
   docker pull "$(_get_full_image_name)-cache":${INPUT_IMAGE_TAG} || true
   # build builder target image
   docker build \
+    --build-arg BUILDKIT_INLINE_CACHE=1 \
     --target=builder \
     --tag="$(_get_full_image_name)-cache":${INPUT_IMAGE_TAG} \
     --load \
@@ -60,6 +61,7 @@ build_image() {
   docker pull "$(_get_full_image_name)":${INPUT_IMAGE_TAG} || true
   # build final image
   docker build \
+    --build-arg BUILDKIT_INLINE_CACHE=1 \
     --target=builder \
     --tag="$(_get_full_image_name)":${INPUT_IMAGE_TAG} \
     --load \
