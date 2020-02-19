@@ -49,7 +49,6 @@ build_image() {
   docker pull "$(_get_full_image_name)-cache":${INPUT_IMAGE_TAG}-builder || true
   # build builder target image
   docker build \
-    --file=${INPUT_CONTEXT}/${INPUT_DOCKERFILE} \
     --target=builder \
     --tag="$(_get_full_image_name)":${INPUT_IMAGE_TAG}-builder \
     --load \
