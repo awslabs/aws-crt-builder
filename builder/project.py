@@ -19,7 +19,7 @@ import sys
 from data import *
 from host import current_platform
 from scripts import Scripts
-from util import replace_variables
+from util import replace_variables, merge_unique_attrs
 
 
 def looks_like_code(path):
@@ -194,14 +194,23 @@ class Project(object):
     def _resolve_refs(self):
         if self._resolved_refs:
             return
-        upstream = []
-        for u in self.upstream:
-            upstream.append(Project.find_project(u.name))
-        self.upstream = self.dependencies = upstream
-        downstream = []
-        for d in self.downstream:
-            downstream.append(Project.find_project(d.name))
-        self.downstream = self.consumers = downstream
+
+        def _resolve(refs):
+            projects = []
+            for r in refs:
+                if isinstance(r, Project):
+                    projects.append(r)
+                else:
+                    project = Project.find_project(r.name)
+                    project = merge_unique_attrs(r, project)
+                    projects.append(project)
+            return projects
+
+        # Resolve upstream and downstream references into their
+        # real projects, making sure to retain any reference-specific
+        # data stored on the ref (targets, etc)
+        self.upstream = self.dependencies = _resolve(self.upstream)
+        self.downstream = self.consumers = _resolve(self.downstream)
 
     def get_dependencies(self, spec):
         """ Gets dependencies for a given BuildSpec, filters by target """
