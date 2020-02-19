@@ -273,9 +273,9 @@ jobs:
         name: builder
     - run: mv builder/builder .github/docker-images/raspbian-arm${{ matrix.arch }}/
 
-    - name: Fetch libcrypto
-      run: |
-        aws s3 cp s3://$AWS_S3_BUCKET/openssl/openssl-1.1.1-raspbian-arm${{ matrix.arch }}.tar.gz .github/docker-images/raspbian-arm${{matrix.arch}}/openssl-1.1.1.tar.gz
+    # - name: Fetch libcrypto
+    #   run: |
+    #     aws s3 cp s3://$AWS_S3_BUCKET/openssl/openssl-1.1.1-raspbian-arm${{ matrix.arch }}.tar.gz .github/docker-images/raspbian-arm${{matrix.arch}}/openssl-1.1.1.tar.gz
 
     - name: Fetch release_tag
       uses: actions/download-artifact@v1
