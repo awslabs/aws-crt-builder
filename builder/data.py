@@ -55,7 +55,7 @@ KEYS = {
 }
 
 # Add apt_setup, et al
-for suffix in ('setup'):
+for suffix in ['setup']:
     for pkg in PKG_TOOLS:
         key = '{}_{}'.format(pkg.value, suffix)
         KEYS[key] = []
