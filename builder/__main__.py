@@ -47,6 +47,9 @@ def run_action(action, env):
 
     if isinstance(action, str):
         action_cls = Scripts.find_action(action)
+        if not action_cls:
+            print('Action {} not found'.format(action))
+            sys.exit(13)
         action = action_cls()
 
     Scripts.run_action(
@@ -143,9 +146,8 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     # just ignore run for backwards compatibility
-    parser.add_argument('run', nargs='?', choices=['run'])
     parser.add_argument('command', type=str, action='store',
-                        default='inspect', nargs='?')
+                        default='inspect')
     parser.add_argument('spec', type=str, action='store', nargs='?')
     parser.add_argument('-d', '--dry-run', action='store_true',
                         help="Don't run the build, just print the commands that would run")
@@ -163,6 +165,10 @@ if __name__ == '__main__':
     # parse the args we know, put the rest in args.args for others to parse
     args, extras = parser.parse_known_args()
     args.args += extras
+    # Backwards compat for `builder run $action`
+    if args.command == 'run':
+        args.command = args.spec
+        args.spec = None
 
     # set up environment
     env = Env({
