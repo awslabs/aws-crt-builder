@@ -286,12 +286,12 @@ jobs:
     - run: cp .github/docker-images/entrypoint.sh .github/docker-images/raspbian-arm${{ matrix.arch }}/entrypoint.sh
     - run: echo "::set-env name=IMAGE_TAG::$(cat release_tag/tag)"
 
-    - name: Import raspbian image from S3
-      run: |
-        aws s3 cp s3://aws-crt-builder/raspbian/raspbian-arm${{ matrix.arch }}.tar.gz /tmp/raspbian-arm${{ matrix.arch }}.tar.gz
-        gunzip --stdout /tmp/raspbian-arm${{ matrix.arch }}.tar.gz > /tmp/raspbian-arm${{ matrix.arch }}.tar
-        docker load -i /tmp/raspbian-arm${{ matrix.arch }}.tar
-        docker images
+    # - name: Import raspbian image from S3
+    #   run: |
+    #     aws s3 cp s3://aws-crt-builder/raspbian/raspbian-arm${{ matrix.arch }}.tar.gz /tmp/raspbian-arm${{ matrix.arch }}.tar.gz
+    #     gunzip --stdout /tmp/raspbian-arm${{ matrix.arch }}.tar.gz > /tmp/raspbian-arm${{ matrix.arch }}.tar
+    #     docker load -i /tmp/raspbian-arm${{ matrix.arch }}.tar
+    #     docker images
 
     - name: "Build arm${{ matrix.arch }} image"
       run: | 
@@ -303,7 +303,7 @@ jobs:
           awslabs/aws-crt-builder/aws-crt-raspbian-arm${{ matrix.arch }} \
           ${{ env.IMAGE_TAG }} \
           .github/docker-images/raspbian-arm${{ matrix.arch }} \
-          --compress=true --platform=linux/arm/${{ matrix.arch }} --cache-from=raspbian-armv6:latest
+          --compress=true --platform=linux/arm/${{ matrix.arch }}
 
   # When all the images are built, run a downstream test
   aws-c-common-linux:
