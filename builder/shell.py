@@ -89,6 +89,10 @@ class Shell(object):
                         line = proc.stdout.readline()
                     proc.wait()
 
+                    if proc.returncode != 0:
+                        raise Exception(
+                            'Command exited with code {}'.format(proc.returncode))
+
                     return ExecResult(proc.returncode, proc.pid, output)
 
                 except Exception as ex:

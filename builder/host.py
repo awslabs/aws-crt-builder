@@ -12,6 +12,7 @@
 # permissions and limitations under the License.
 
 import os
+import re
 import sys
 
 
@@ -26,8 +27,13 @@ def current_platform():
 
 def current_arch():
     if current_platform() == 'linux':
-        if os.uname()[4][:3].startswith('arm'):
-            arch = ('armv8' if sys.maxsize > 2**32 else 'armv7')
+        machine_id = os.uname()[4]
+        m = re.match(r'^(aarch64|armv[6-8])', machine_id.strip())
+        if m:
+            arch = m.group(1)
+            if arch == 'aarch64':
+                arch = 'armv8'
+            return arch
     return ('x64' if sys.maxsize > 2**32 else 'x86')
 
 
@@ -65,6 +71,8 @@ def current_host():
                     return 'manylinux'
                 if _file_contains('/etc/lsb-release', 'Ubuntu'):
                     return 'ubuntu'
+                if _file_contains('/etc/os-release', 'Alpine Linux'):
+                    return 'alpine'
                 return 'linux'
             else:
                 return platform

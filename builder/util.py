@@ -51,3 +51,23 @@ def replace_variables(value, variables):
     else:
         # Unsupported, just return it
         return value
+
+
+def dict_alias(tree, key, alias):
+    """ At any level in the tree, if key is found, a new entry with name alias will reference it """
+    # depth first, should result in the least tree traversal
+    for val in tree.values():
+        if isinstance(val, dict):
+            dict_alias(val, key, alias)
+    original_keys = list(tree.keys())
+    for tkey in original_keys:
+        if tkey == key:
+            tree[alias] = tree[tkey]
+
+
+def merge_unique_attrs(src, target):
+    """ Returns target with any fields unique to src added to it """
+    for key, val in src._asdict().items():
+        if not hasattr(target, key):
+            setattr(target, key, val)
+    return target

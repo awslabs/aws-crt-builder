@@ -19,7 +19,7 @@ import sys
 from data import *
 from host import current_platform
 from scripts import Scripts
-from util import replace_variables
+from util import replace_variables, merge_unique_attrs
 
 
 def looks_like_code(path):
@@ -58,6 +58,7 @@ def produce_config(build_spec, project, **additional_variables):
         'hosts': HOSTS,
         'targets': TARGETS,
         'compilers': COMPILERS,
+        'architectures': ARCHS,
     }
 
     # Build the list of config options to poll
@@ -92,10 +93,13 @@ def produce_config(build_spec, project, **additional_variables):
         # Pull out any top level defaults
         defaults = {}
         for key, value in config.items():
-            if key not in ('hosts', 'targets', 'compilers'):
+            if key not in ('hosts', 'targets', 'compilers', 'architectures'):
                 defaults[key] = value
         if len(defaults) > 0:
             configs.append(defaults)
+
+        # pull out arch
+        process_element(config, 'architectures', build_spec.arch)
 
         # pull out any host named default, then spec platform and host to override
         process_element(config, 'hosts', 'default')
@@ -111,6 +115,7 @@ def produce_config(build_spec, project, **additional_variables):
         # pull out spec compiler and version info
         compiler = process_element(config, 'compilers', build_spec.compiler)
         process_element(compiler, 'versions', build_spec.compiler_version)
+        process_element(compiler, 'architectures', build_spec.arch)
 
     # Process defaults first
     process_config(defaults)
@@ -189,14 +194,23 @@ class Project(object):
     def _resolve_refs(self):
         if self._resolved_refs:
             return
-        upstream = []
-        for u in self.upstream:
-            upstream.append(Project.find_project(u.name))
-        self.upstream = self.dependencies = upstream
-        downstream = []
-        for d in self.downstream:
-            downstream.append(Project.find_project(d.name))
-        self.downstream = self.consumers = downstream
+
+        def _resolve(refs):
+            projects = []
+            for r in refs:
+                if isinstance(r, Project):
+                    projects.append(r)
+                else:
+                    project = Project.find_project(r.name)
+                    project = merge_unique_attrs(r, project)
+                    projects.append(project)
+            return projects
+
+        # Resolve upstream and downstream references into their
+        # real projects, making sure to retain any reference-specific
+        # data stored on the ref (targets, etc)
+        self.upstream = self.dependencies = _resolve(self.upstream)
+        self.downstream = self.consumers = _resolve(self.downstream)
 
     def get_dependencies(self, spec):
         """ Gets dependencies for a given BuildSpec, filters by target """

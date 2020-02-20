@@ -9,13 +9,20 @@ on:
       - '.github/actions/**'
       - '.github/docker-images/**'
       - '.github/workflows/docker-images.yml'
+      - '.github/workflows/*.sh'
       - 'builder/**'
   release:
     types: [published]
 
+env:
+  AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
+  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  AWS_REGION: 'us-east-1'
+
 jobs:
   sanity_test:
-    name: Sanity Test builder
+    name: Sanity Test
     strategy:
       matrix:
         host: [ubuntu-latest, macos-latest, windows-latest]
@@ -86,15 +93,10 @@ jobs:
           path: tag
 
       - name: Publish builder package to S3
-        env:
-          AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: 'us-east-1'
-        run: |
-          aws s3 cp build/builder s3://$AWS_S3_BUCKET/${{ steps.release.outputs.release_tag }}/builder
+        run: aws s3 cp build/builder s3://$AWS_S3_BUCKET/${{ steps.release.outputs.release_tag }}/builder
 
   manylinux:
+    name: ${{ matrix.image_name }}-${{ matrix.image_arch }}
     runs-on: ubuntu-latest
     needs: package
     strategy:
@@ -134,6 +136,7 @@ jobs:
         build_extra_args: "--compress=true"  
 
   linux-variants:
+    name: linux (${{ matrix.variant }})
     runs-on: ubuntu-latest
     needs: package
     strategy:
@@ -173,9 +176,141 @@ jobs:
         context: .github/docker-images/${{ matrix.variant }}
         build_extra_args: "--compress=true"  
 
+  alpine-arm32:
+    name: ARM (alpine arm${{ matrix.arch }})
+    runs-on: 'ubuntu-latest'
+    needs: package
+    strategy:
+      matrix:
+        arch: [v6, v7]
+    steps:
+    - name: Checkout Sources
+      uses: actions/checkout@v1
+
+    - name: Fetch builder
+      uses: actions/download-artifact@v1
+      with:
+        name: builder
+    - run: mv builder/builder .github/docker-images/alpine-arm${{ matrix.arch }}/
+
+    - name: Fetch libcrypto
+      run: |
+        aws s3 cp s3://$AWS_S3_BUCKET/openssl/openssl-1.1.1-arm${{ matrix.arch }}.tar.gz .github/docker-images/alpine-arm${{matrix.arch}}/openssl-1.1.1.tar.gz
+
+    - name: Fetch release_tag
+      uses: actions/download-artifact@v1
+      with:
+        name: release_tag
+        path: release_tag
+
+    - run: cp .github/docker-images/entrypoint.sh .github/docker-images/alpine-arm${{ matrix.arch }}/entrypoint.sh
+    - run: echo "::set-env name=IMAGE_TAG::$(cat release_tag/tag)"
+
+    - name: "Build arm${{ matrix.arch }} image"
+      run: ./.github/workflows/docker_buildx.sh \
+        docker.pkg.github.com \
+        awslabs \
+        ${{ secrets.DOCKER_TOKEN }} \
+        awslabs/aws-crt-builder/aws-crt-alpine-arm${{ matrix.arch }} \
+        ${{ env.IMAGE_TAG }} \
+        .github/docker-images/alpine-arm${{ matrix.arch }} \
+        --compress=true --platform=linux/arm/${{ matrix.arch }}
+
+  alpine-arm64:
+    name: ARM (alpine ${{ matrix.arch }})
+    runs-on: 'ubuntu-latest'
+    needs: package
+    strategy:
+      matrix:
+        arch: [arm64]
+    steps:
+    - name: Checkout Sources
+      uses: actions/checkout@v1
+
+    - name: Fetch builder
+      uses: actions/download-artifact@v1
+      with:
+        name: builder
+    - run: mv builder/builder .github/docker-images/alpine-${{ matrix.arch }}/
+
+    - name: Fetch libcrypto
+      run: |
+        aws s3 cp s3://$AWS_S3_BUCKET/openssl/openssl-1.1.1-${{ matrix.arch }}.tar.gz .github/docker-images/alpine-${{ matrix.arch }}/openssl-1.1.1.tar.gz
+
+    - name: Fetch release_tag
+      uses: actions/download-artifact@v1
+      with:
+        name: release_tag
+        path: release_tag
+
+    - run: cp .github/docker-images/entrypoint.sh .github/docker-images/alpine-${{ matrix.arch }}/entrypoint.sh
+    - run: echo "::set-env name=IMAGE_TAG::$(cat release_tag/tag)"
+
+    - name: "Build ${{ matrix.arch }} image"
+      run: ./.github/workflows/docker_buildx.sh \
+        docker.pkg.github.com \
+        awslabs \
+        ${{ secrets.DOCKER_TOKEN }} \
+        awslabs/aws-crt-builder/aws-crt-alpine-arm-${{ matrix.arch }} \
+        ${{ env.IMAGE_TAG }} \
+        .github/docker-images/alpine-${{ matrix.arch }} \
+        --compress=true --platform=linux/${{ matrix.arch }}
+
+  # raspbian-armv6:
+  #   name: ARM (raspbian arm${{ matrix.arch }})
+  #   runs-on: 'ubuntu-latest'
+  #   needs: package
+  #   strategy:
+  #     matrix:
+  #       arch: [v6]
+  #   steps:
+  #   - name: Checkout Sources
+  #     uses: actions/checkout@v1
+
+  #   - name: Fetch builder
+  #     uses: actions/download-artifact@v1
+  #     with:
+  #       name: builder
+  #   - run: mv builder/builder .github/docker-images/raspbian-arm${{ matrix.arch }}/
+
+  #   # - name: Fetch libcrypto
+  #   #   run: |
+  #   #     aws s3 cp s3://$AWS_S3_BUCKET/openssl/openssl-1.1.1-raspbian-arm${{ matrix.arch }}.tar.gz .github/docker-images/raspbian-arm${{matrix.arch}}/openssl-1.1.1.tar.gz
+
+  #   - name: Fetch release_tag
+  #     uses: actions/download-artifact@v1
+  #     with:
+  #       name: release_tag
+  #       path: release_tag
+
+  #   - run: cp .github/docker-images/entrypoint.sh .github/docker-images/raspbian-arm${{ matrix.arch }}/entrypoint.sh
+  #   - run: echo "::set-env name=IMAGE_TAG::$(cat release_tag/tag)"
+
+  #   - name: Import raspbian image from S3
+  #     run: |
+  #       aws s3 cp s3://aws-crt-builder/raspbian/raspbian-arm${{ matrix.arch }}.tar.gz /tmp/raspbian-arm${{ matrix.arch }}.tar.gz
+  #       gunzip --stdout /tmp/raspbian-arm${{ matrix.arch }}.tar.gz | docker load
+  #       docker images
+  #   - name: Pull base image
+  #     run: |
+  #       echo "${{ secrets.DOCKER_TOKEN }}" | docker login -u awslabs --password-stdin docker.pkg.github.com
+  #       docker pull docker.pkg.github.com/awslabs/aws-crt-builder/raspbian-armv6:latest
+
+  #   - name: "Build arm${{ matrix.arch }} image"
+  #     run: | 
+  #       docker images
+  #       ./.github/workflows/docker_buildx.sh \
+  #         docker.pkg.github.com \
+  #         awslabs \
+  #         ${{ secrets.DOCKER_TOKEN }} \
+  #         awslabs/aws-crt-builder/aws-crt-raspbian-arm${{ matrix.arch }} \
+  #         ${{ env.IMAGE_TAG }} \
+  #         .github/docker-images/raspbian-arm${{ matrix.arch }} \
+  #         --compress=true --platform=linux/arm/${{ matrix.arch }}
+
   # When all the images are built, run a downstream test
   aws-c-common-linux:
-    name: Linux aws-c-common test build
+    name: Linux x64 aws-c-common test build
     runs-on: 'ubuntu-latest'
     if: github.event_name != 'release'
     needs: linux-variants
@@ -195,6 +330,54 @@ jobs:
         docker pull docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-ubuntu-16-x64:${{ steps.release.outputs.release_tag }}
         docker run --env GITHUB_REF docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-ubuntu-16-x64:${{ steps.release.outputs.release_tag }} -p aws-c-common build default-downstream --compiler=clang-9
 
+  aws-c-common-alpine-arm64:
+    name: Linux arm64 aws-c-common test build
+    runs-on: 'ubuntu-latest'
+    if: github.event_name != 'release'
+    needs: alpine-arm64
+
+    steps:
+    - name: Checkout Source
+      uses: actions/checkout@v1
+    
+    - name: Get Release Tag
+      uses: ./.github/actions/release-tag
+      id: release
+    
+    - name: Bootstrap docker-buildx
+      run: ./.github/workflows/install_buildx.sh
+
+    # We can't use the `uses: docker://image` version yet, GitHub lacks authentication for actions -> packages
+    - name: Build aws-c-common + consumers
+      run: |
+        echo "${{ secrets.GITHUB_TOKEN }}" | docker login docker.pkg.github.com -u awslabs --password-stdin
+        docker pull docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-alpine-arm-arm64:${{ steps.release.outputs.release_tag }}
+        docker run --env GITHUB_REF docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-alpine-arm-arm64:${{ steps.release.outputs.release_tag }} -p aws-c-common build default-downstream --compiler=clang-9
+
+  aws-c-common-alpine-armv7:
+    name: Linux ARMv7 aws-c-common test build
+    runs-on: 'ubuntu-latest'
+    if: github.event_name != 'release'
+    needs: alpine-arm32
+
+    steps:
+    - name: Checkout Source
+      uses: actions/checkout@v1
+    
+    - name: Get Release Tag
+      uses: ./.github/actions/release-tag
+      id: release
+    
+    - name: Bootstrap docker-buildx
+      run: ./.github/workflows/install_buildx.sh
+
+    # We can't use the `uses: docker://image` version yet, GitHub lacks authentication for actions -> packages
+    - name: Build aws-c-common + consumers
+      run: |
+        echo "${{ secrets.GITHUB_TOKEN }}" | docker login docker.pkg.github.com -u awslabs --password-stdin
+        docker pull docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-alpine-armv7:${{ steps.release.outputs.release_tag }}
+        docker run --env GITHUB_REF docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-alpine-armv7:${{ steps.release.outputs.release_tag }} -p aws-c-common build default-downstream --compiler=clang-9
+  
   aws-c-common-osx:
     name: OSX aws-c-common test build
     runs-on: 'macos-latest'
@@ -237,6 +420,11 @@ jobs:
   ci-passed:
     name: Downstream Tests Passed
     runs-on: 'ubuntu-latest'
-    needs: [aws-c-common-linux, aws-c-common-osx, aws-c-common-windows-vs2019]
+    needs: 
+    - aws-c-common-linux
+    - aws-c-common-osx
+    - aws-c-common-windows-vs2019
+    #- aws-c-common-alpine-arm64
+    - aws-c-common-alpine-armv7
     steps:
       - run: echo "All downstream tests passed"

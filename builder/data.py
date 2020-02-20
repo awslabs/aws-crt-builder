@@ -11,6 +11,8 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+from util import dict_alias
+
 ########################################################################################################################
 # DATA DEFINITIONS
 ########################################################################################################################
@@ -31,14 +33,23 @@ KEYS = {
     'test_steps': [],  # steps to run instead of the default ctest
     'pkg_setup': [],  # commands required to configure the package system
     # command to install packages, should be of the form 'pkgmanager arg1 arg2 {packages will go here}'
-    'pkg_install': None,
-    'pkg_update': None,  # command to update the package manager's database
+    'pkg_install': [],
+    'pkg_update': [],  # command to update the package manager's database
     'packages': [],  # packages to install
     'compiler_packages': [],  # packages to support compiler
     'needs_compiler': True,  # whether or not this build needs a compiler
 
     # Linux
     'sudo': False  # whether or not sudo is necessary for installs
+}
+
+# Be sure to use these monikers in this file, aliases are applied after all tables are built
+ARCHS = {
+    'x86': {},
+    'x64': {},
+    'armv6': {},
+    'armv7': {},
+    'armv8': {}
 }
 
 HOSTS = {
@@ -60,6 +71,12 @@ HOSTS = {
         ],
         'pkg_update': 'apt-get -qq update -y',
         'pkg_install': 'apt-get -qq install -y',
+    },
+    'alpine': {
+        'compiler_packages': ['build-base'],
+        'pkg_setup': [],
+        'pkg_update': [],
+        'pkg_install': 'apk --no-cache install',
     },
     'al2012': {
         'cmake_args': [
@@ -88,15 +105,6 @@ HOSTS = {
         },
     },
     'manylinux': {
-        'architectures': {
-            'x86': {
-                'image': "123124136734.dkr.ecr.us-east-1.amazonaws.com/aws-common-runtime/manylinux1:x86",
-            },
-            'x64': {
-                'image': "123124136734.dkr.ecr.us-east-1.amazonaws.com/aws-common-runtime/manylinux1:x64",
-            },
-        },
-
         'pkg_update': 'yum update -y',
         'pkg_install': 'yum install -y',
         'sudo': False,
@@ -149,6 +157,7 @@ TARGETS = {
                 ],
             },
         },
+        '!cmake_args': [],
     },
     'android': {
         'cmake_args': [
@@ -186,8 +195,6 @@ COMPILERS = {
         'hosts': ['linux', 'macos'],
         'targets': ['linux', 'macos'],
 
-        'cmake_args': ['-DCMAKE_EXPORT_COMPILE_COMMANDS=ON', '-DENABLE_FUZZ_TESTS=ON'],
-
         'apt_keys': ["http://apt.llvm.org/llvm-snapshot.gpg.key"],
 
         'versions': {
@@ -198,6 +205,7 @@ COMPILERS = {
                 'compiler_packages': ["clang-3.9"],
                 'c': "clang-3.9",
                 'cxx': "clang-3.9",
+                'cmake_args': ['-DCMAKE_EXPORT_COMPILE_COMMANDS=ON', '-DENABLE_FUZZ_TESTS=ON'],
             },
             '6': {
                 'pkg_setup': [
@@ -209,6 +217,7 @@ COMPILERS = {
 
                 'c': "clang-6.0",
                 'cxx': "clang-6.0",
+                'cmake_args': ['-DCMAKE_EXPORT_COMPILE_COMMANDS=ON', '-DENABLE_FUZZ_TESTS=ON'],
             },
             '7': {
                 'pkg_setup': [
@@ -217,6 +226,7 @@ COMPILERS = {
                      'deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-7 main']
                 ],
                 'compiler_packages': ["clang-7", "clang-tidy-7"],
+                'cmake_args': ['-DCMAKE_EXPORT_COMPILE_COMMANDS=ON', '-DENABLE_FUZZ_TESTS=ON'],
 
                 'c': "clang-7",
                 'cxx': "clang-7",
@@ -231,6 +241,7 @@ COMPILERS = {
 
                 'c': "clang-8",
                 'cxx': "clang-8",
+                'cmake_args': ['-DCMAKE_EXPORT_COMPILE_COMMANDS=ON', '-DENABLE_FUZZ_TESTS=ON'],
             },
             '9': {
                 'pkg_setup': [
@@ -242,6 +253,7 @@ COMPILERS = {
 
                 'c': "clang-9",
                 'cxx': "clang-9",
+                'cmake_args': ['-DCMAKE_EXPORT_COMPILE_COMMANDS=ON', '-DENABLE_FUZZ_TESTS=ON'],
             },
             # 10 and 11 are XCode Apple clang/LLVM
             '10': {
@@ -251,6 +263,18 @@ COMPILERS = {
                 '!cmake_args': [],
             },
         },
+        'architectures': {
+            # No fuzz tests on ARM
+            'armv6': {
+                '!cmake_args': []
+            },
+            'armv7': {
+                '!cmake_args': []
+            },
+            'armv8': {
+                '!cmake_args': []
+            }
+        }
     },
     'gcc': {
         'hosts': ['linux', 'manylinux', 'al2012', 'al2'],
@@ -318,6 +342,16 @@ COMPILERS = {
     }
 }
 
+###############################################################################
+# Aliases
+###############################################################################
 COMPILERS['msvc']['versions']['14'] = COMPILERS['msvc']['versions']['2015']
 COMPILERS['msvc']['versions']['15'] = COMPILERS['msvc']['versions']['2017']
 COMPILERS['msvc']['versions']['16'] = COMPILERS['msvc']['versions']['2019']
+
+# armv8 == aarch64, arm64
+for v8 in ('aarch64', 'arm64'):
+    dict_alias(ARCHS, 'armv8', v8)
+    dict_alias(HOSTS, 'armv8', v8)
+    dict_alias(TARGETS, 'armv8', v8)
+    dict_alias(COMPILERS, 'armv8', v8)
