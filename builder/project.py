@@ -115,7 +115,6 @@ def produce_config(build_spec, project, **additional_variables):
         # pull out spec compiler and version info
         compiler = process_element(config, 'compilers', build_spec.compiler)
         process_element(compiler, 'versions', build_spec.compiler_version)
-        process_element(compiler, 'targets', build_spec.target)
         process_element(compiler, 'architectures', build_spec.arch)
 
     # Process defaults first
