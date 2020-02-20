@@ -36,7 +36,7 @@ class InstallPackages(Action):
 
         pkg_tool = package_tool()
         print('Installing packages via {}: {}'.format(
-            pkg_tool, ', '.join(packages)))
+            pkg_tool.value, ', '.join(packages)))
 
         sh = env.shell
         sudo = config.get('sudo', current_platform() == 'linux')
