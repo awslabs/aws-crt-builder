@@ -224,10 +224,8 @@ class Shell(object):
         if kwargs.get('always', False):
             prev_dryrun = self.dryrun
             self.dryrun = False
-            result = self._run_command(
-                *command, quiet=kwargs.get('quiet', False), check=kwargs.get('check', False))
+            result = self._run_command(*command, **kwargs)
             self.dryrun = prev_dryrun
         else:
-            result = self._run_command(
-                *command, quiet=kwargs.get('quiet', False), check=kwargs.get('check', False))
+            result = self._run_command(*command, **kwargs)
         return result
