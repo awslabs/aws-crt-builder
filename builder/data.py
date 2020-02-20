@@ -95,7 +95,7 @@ HOSTS = {
         'compiler_packages': ['build-base'],
         'pkg_setup': [],
         'pkg_update': [],
-        'pkg_install': 'apk --no-cache install',
+        'pkg_install': 'apk install --no-cache',
     },
     'al2012': {
         'cmake_args': [
