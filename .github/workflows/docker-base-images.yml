@@ -6,7 +6,7 @@ on:
       - '*'
       - '!master'
     paths:
-      - '.github/docker-images/raspbian-armv6/**'
+      - '.github/docker-images/raspbian-armv6/base.Dockerfile'
       - '.github/workflows/docker-base-images.yml'
       - '.github/workflows/*.sh'
 
