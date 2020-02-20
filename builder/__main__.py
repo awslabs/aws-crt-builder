@@ -169,7 +169,7 @@ if __name__ == '__main__':
 
     # parse the args we know, put the rest in args.args for others to parse
     args, extras = parser.parse_known_args()
-    args.args = extras
+    args.args += extras
 
     # set up environment
     env = Env({
