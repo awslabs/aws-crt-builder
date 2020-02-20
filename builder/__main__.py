@@ -142,6 +142,8 @@ if __name__ == '__main__':
     import argparse
 
     parser = argparse.ArgumentParser()
+    # just ignore run for backwards compatibility
+    parser.add_argument('run', nargs='?', choices=['run'])
     parser.add_argument('command', type=str, action='store',
                         default='inspect', nargs='?')
     parser.add_argument('spec', type=str, action='store', nargs='?')

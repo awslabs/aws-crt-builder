@@ -18,5 +18,5 @@ class Test(Builder.Action):
     def run(self, env):
         def _doit(env):
             sh = env.shell
-            sh.exec('false', retries=3)
+            sh.exec('true', retries=3)
         return Builder.Script([_doit])

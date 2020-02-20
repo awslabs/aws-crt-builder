@@ -45,7 +45,7 @@ KEYS = {
     'pkg_setup': [],  # commands required to configure the package system
     # command to install packages, should be of the form 'pkgmanager arg1 arg2 {packages will go here}'
     'pkg_install': [],
-    'pkg_update': [],  # command to update the package manager's database
+    'pkg_update': '',  # command to update the package manager's database
     'packages': [],  # packages to install
     'compiler_packages': [],  # packages to support compiler
     'needs_compiler': True,  # whether or not this build needs a compiler
@@ -94,7 +94,7 @@ HOSTS = {
         'pkg_tool': PKG_TOOLS.APK,
         'compiler_packages': ['build-base'],
         'pkg_setup': [],
-        'pkg_update': [],
+        'pkg_update': '',
         'pkg_install': 'apk add --no-cache',
     },
     'al2012': {
