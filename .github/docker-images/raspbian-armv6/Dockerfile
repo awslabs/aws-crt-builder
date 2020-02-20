@@ -1,5 +1,5 @@
 # This image is in S3, built from Dockerfile.bootstrap in this directory
-FROM docker.pkg.github.com/awslabs/aws-crt-builder/raspbian-armv6 as builder
+FROM docker.pkg.github.com/awslabs/aws-crt-builder/raspbian-armv6:latest as builder
 
 SHELL ["/bin/bash", "-c"]
 
