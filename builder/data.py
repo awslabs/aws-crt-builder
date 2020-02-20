@@ -219,8 +219,6 @@ COMPILERS = {
         'hosts': ['linux', 'macos'],
         'targets': ['linux', 'macos'],
 
-        'apt_keys': ["http://apt.llvm.org/llvm-snapshot.gpg.key"],
-
         'versions': {
             'default': {
                 '!cmake_args': [],
