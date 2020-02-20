@@ -1,5 +1,5 @@
 # This image is in S3, built from Dockerfile.bootstrap in this directory
-FROM raspbian-armv6:buster as builder
+FROM --platform=linux/arm/v6 raspbian-armv6:buster as builder
 
 SHELL ["/bin/bash", "-c"]
 
