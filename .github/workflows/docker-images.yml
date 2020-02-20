@@ -206,8 +206,10 @@ jobs:
     - run: cp .github/docker-images/entrypoint.sh .github/docker-images/alpine-arm${{ matrix.arch }}/entrypoint.sh
     - run: echo "::set-env name=IMAGE_TAG::$(cat release_tag/tag)"
 
-    - run: echo "${{ secrets.DOCKER_TOKEN }}" | docker login -u awslabs --password-stdin docker.pkg.github.com
-    - run: docker pull docker.pkg.github.com/awslabs/aws-crt-builder/raspbian-armv6:latest
+    - name: Pull base image
+      run: |
+        echo "${{ secrets.DOCKER_TOKEN }}" | docker login -u awslabs --password-stdin docker.pkg.github.com
+        docker pull docker.pkg.github.com/awslabs/aws-crt-builder/raspbian-armv6:latest
 
     - name: "Build arm${{ matrix.arch }} image"
       run: ./.github/workflows/docker_buildx.sh \
