@@ -167,7 +167,9 @@ if __name__ == '__main__':
     inspect = commands.add_parser(
         'inspect', help='Dump information about the current host')
 
-    args = parser.parse_args()
+    # parse the args we know, put the rest in args.args for others to parse
+    args, extras = parser.parse_known_args()
+    args.args = extras
 
     # set up environment
     env = Env({
