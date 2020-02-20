@@ -142,8 +142,9 @@ if __name__ == '__main__':
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('command', type=str, action='store', default='inspect')
-    parser.add_argument('spec', type=str, action='store')
+    parser.add_argument('command', type=str, action='store',
+                        default='inspect', nargs='?')
+    parser.add_argument('spec', type=str, action='store', nargs='?')
     parser.add_argument('-d', '--dry-run', action='store_true',
                         help="Don't run the build, just print the commands that would run")
     parser.add_argument('-p', '--project', action='store',
