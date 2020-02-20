@@ -262,6 +262,11 @@ COMPILERS = {
                 '!cmake_args': [],
             },
         },
+        'targets': {
+            'macos': {
+                '!cmake_args': []
+            }
+        },
         'architectures': {
             # No fuzz tests on ARM
             'armv6': {
