@@ -51,7 +51,7 @@ class InstallPackages(Action):
             sh.dryrun = True
 
         if not InstallPackages.pkg_init_done:
-            tool_setup = config.get('{}_setup'.format(pkg_tool), [])
+            tool_setup = config.get('{}_setup'.format(pkg_tool.value), [])
             pkg_setup = tool_setup + config.get('pkg_setup', [])
             if pkg_setup:
                 for cmd in pkg_setup:
