@@ -142,6 +142,7 @@ if __name__ == '__main__':
     import argparse
 
     parser = argparse.ArgumentParser()
+    parser.add_argument('command', type=str, action='store', default='inspect')
     parser.add_argument('-d', '--dry-run', action='store_true',
                         help="Don't run the build, just print the commands that would run")
     parser.add_argument('-p', '--project', action='store',
@@ -153,19 +154,7 @@ if __name__ == '__main__':
     parser.add_argument('--spec', type=str)
     parser.add_argument('-b', '--build-dir', type=str,
                         help='Directory to work in', default='.')
-    commands = parser.add_subparsers(dest='command')
-
-    build = commands.add_parser(
-        'build', help="Run target build, formatted 'host-compiler-compilerversion-target-arch'. Ex: linux-ndk-19-android-arm64v8a")
-    build.add_argument('build', type=str, default='default', nargs='?')
-    build.add_argument('args', nargs=argparse.REMAINDER)
-
-    run = commands.add_parser('run', help='Run action. Ex: do-thing')
-    run.add_argument('run', type=str)
-    run.add_argument('args', nargs=argparse.REMAINDER)
-
-    inspect = commands.add_parser(
-        'inspect', help='Dump information about the current host')
+    parser.add_argument('args', nargs=argparse.REMAINDER)
 
     # parse the args we know, put the rest in args.args for others to parse
     args, extras = parser.parse_known_args()
@@ -216,7 +205,6 @@ if __name__ == '__main__':
     # Run a build with a specific spec/toolchain
     if args.command == 'build':
         run_build(env)
-
     # run a single action, usually local to a project
-    elif args.command == 'run':
-        run_action(args.run, env)
+    else:
+        run_action(args.command, env)
