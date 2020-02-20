@@ -11,6 +11,8 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+from data import HOSTS, PKG_TOOLS
+
 import os
 import re
 import sys
@@ -78,3 +80,8 @@ def current_host():
                 return platform
         _current_host = _discover_host()
         return _current_host
+
+
+def package_tool(host=current_host()):
+    host_info = HOSTS.get(host, {})
+    return host_info['pkg_tool']

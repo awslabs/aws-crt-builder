@@ -11,11 +11,21 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+from enum import Enum
 from util import dict_alias
 
 ########################################################################################################################
 # DATA DEFINITIONS
 ########################################################################################################################
+
+
+class PKG_TOOLS(Enum):
+    APT = 'apt'
+    BREW = 'brew'
+    YUM = 'yum'
+    APK = 'apk'
+    CHOCO = 'choco'
+
 
 KEYS = {
     # Build
@@ -31,6 +41,7 @@ KEYS = {
     'build_steps': [],  # steps to run instead of the default cmake compile
     'test': [],  # deprecated, use test_steps
     'test_steps': [],  # steps to run instead of the default ctest
+    'pkg_tool': None,  # apt, brew, yum, apk, etc
     'pkg_setup': [],  # commands required to configure the package system
     # command to install packages, should be of the form 'pkgmanager arg1 arg2 {packages will go here}'
     'pkg_install': [],
@@ -42,6 +53,12 @@ KEYS = {
     # Linux
     'sudo': False  # whether or not sudo is necessary for installs
 }
+
+# Add apt_setup, et al
+for suffix in ('setup'):
+    for pkg in PKG_TOOLS:
+        key = '{}_{}'.format(pkg.value, suffix)
+        KEYS[key] = []
 
 # Be sure to use these monikers in this file, aliases are applied after all tables are built
 ARCHS = {
@@ -64,6 +81,7 @@ HOSTS = {
         'sudo': True
     },
     'ubuntu': {
+        'pkg_tool': PKG_TOOLS.APT,
         # need ld and make and such
         'compiler_packages': ['build-essential'],
         'pkg_setup': [
@@ -73,6 +91,7 @@ HOSTS = {
         'pkg_install': 'apt-get -qq install -y',
     },
     'alpine': {
+        'pkg_tool': PKG_TOOLS.APK,
         'compiler_packages': ['build-base'],
         'pkg_setup': [],
         'pkg_update': [],
@@ -84,6 +103,7 @@ HOSTS = {
             "-DPERFORM_HEADER_CHECK=OFF",
         ],
 
+        'pkg_tool': PKG_TOOLS.YUM,
         'pkg_update': 'yum update -y',
         'pkg_install': 'yum install -y',
 
@@ -97,6 +117,7 @@ HOSTS = {
             "-DPERFORM_HEADER_CHECK=OFF",
         ],
 
+        'pkg_tool': PKG_TOOLS.YUM,
         'pkg_update': 'yum update -y',
         'pkg_install': 'yum install -y',
 
@@ -105,6 +126,7 @@ HOSTS = {
         },
     },
     'manylinux': {
+        'pkg_tool': PKG_TOOLS.YUM,
         'pkg_update': 'yum update -y',
         'pkg_install': 'yum install -y',
         'sudo': False,
@@ -118,6 +140,7 @@ HOSTS = {
             'python': "python.exe",
         },
 
+        'pkg_tool': PKG_TOOLS.CHOCO,
         'pkg_install': 'choco install --no-progress',
 
         'cmake_args': [
@@ -129,6 +152,7 @@ HOSTS = {
             'python': "python3",
         },
 
+        'pkg_tool': PKG_TOOLS.BREW,
         'pkg_install': 'brew install',
     }
 }
@@ -208,7 +232,7 @@ COMPILERS = {
                 'cmake_args': ['-DCMAKE_EXPORT_COMPILE_COMMANDS=ON', '-DENABLE_FUZZ_TESTS=ON'],
             },
             '6': {
-                'pkg_setup': [
+                'apt_setup': [
                     'apt-key adv --fetch-keys http://apt.llvm.org/llvm-snapshot.gpg.key',
                     ['apt-add-repository',
                      'deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-6.0 main']
@@ -220,7 +244,7 @@ COMPILERS = {
                 'cmake_args': ['-DCMAKE_EXPORT_COMPILE_COMMANDS=ON', '-DENABLE_FUZZ_TESTS=ON'],
             },
             '7': {
-                'pkg_setup': [
+                'apt_setup': [
                     'apt-key adv --fetch-keys http://apt.llvm.org/llvm-snapshot.gpg.key',
                     ['apt-add-repository',
                      'deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-7 main']
@@ -232,7 +256,7 @@ COMPILERS = {
                 'cxx': "clang-7",
             },
             '8': {
-                'pkg_setup': [
+                'apt_setup': [
                     'apt-key adv --fetch-keys http://apt.llvm.org/llvm-snapshot.gpg.key',
                     ['apt-add-repository',
                      'deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-8 main']
@@ -244,7 +268,7 @@ COMPILERS = {
                 'cmake_args': ['-DCMAKE_EXPORT_COMPILE_COMMANDS=ON', '-DENABLE_FUZZ_TESTS=ON'],
             },
             '9': {
-                'pkg_setup': [
+                'apt_setup': [
                     'apt-key adv --fetch-keys http://apt.llvm.org/llvm-snapshot.gpg.key',
                     ['apt-add-repository',
                      'deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-9 main']

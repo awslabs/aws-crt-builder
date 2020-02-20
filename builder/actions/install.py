@@ -14,7 +14,7 @@
 import argparse
 
 from action import Action
-from host import current_platform
+from host import current_platform, package_tool
 from actions.script import Script
 from toolchain import Toolchain
 
@@ -34,7 +34,9 @@ class InstallPackages(Action):
         if not packages:
             return
 
-        print('Installing packages: {}'.format(', '.join(packages)))
+        pkg_tool = package_tool()
+        print('Installing packages via {}: {}'.format(
+            pkg_tool, ', '.join(packages)))
 
         sh = env.shell
         sudo = config.get('sudo', current_platform() == 'linux')
@@ -49,7 +51,8 @@ class InstallPackages(Action):
             sh.dryrun = True
 
         if not InstallPackages.pkg_init_done:
-            pkg_setup = config.get('pkg_setup', [])
+            tool_setup = config.get('{}_setup'.format(pkg_tool), [])
+            pkg_setup = tool_setup + config.get('pkg_setup', [])
             if pkg_setup:
                 for cmd in pkg_setup:
                     if isinstance(cmd, str):
