@@ -53,7 +53,7 @@ def _apply_value(obj, key, new_value):
 def _coalesce_pkg_options(spec, config):
     """ Promotes specific package manager config to pkg_ keys, e.g. apt_setup -> pkg_setup """
     pkg_tool = package_tool(spec.host)
-    for suffix, default in [('setup', []),  ('update', []), ('install', '')]:
+    for suffix, default in [('setup', []),  ('update', ''), ('install', '')]:
         tool_value = config.get('{}_{}'.format(
             pkg_tool.value, suffix), default)
         pkg_key = 'pkg_{}'.format(suffix)
