@@ -1,5 +1,5 @@
 FROM scratch
-ADD base.tar.gz /
+ADD base.tar /
 
 ###############################################################################
 # Install builder package
