@@ -68,14 +68,6 @@ jobs:
 
     - name: Export IMAGE_TAG
       run: echo "::set-env name=IMAGE_TAG::$(cat release_tag/tag)"
-
-    - name: Import ${{ matrix.variant }} to cache
-      run: |
-        aws s3 cp --no-progress \
-          s3://${{env.AWS_S3_BUCKET}}/docker/aws-crt-${{ matrix.variant }}-${{ env.IMAGE_TAG }}.tar \
-          /tmp/aws-crt-${{ matrix.variant }}-${{ env.IMAGE_TAG }}.tar || true
-        docker load < /tmp/aws-crt-${{ matrix.variant }}-${{ env.IMAGE_TAG }}.tar || true
-        docker images
         
     - name: Build ${{ matrix.variant }} image
       run: ./.github/workflows/docker_buildx.sh \
@@ -90,10 +82,9 @@ jobs:
         --compress=true
     
     - name: Export ${{ matrix.variant }} image
-      run: |
-        docker images
-        docker save docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:${{ env.IMAGE_TAG }} > /tmp/aws-crt-${{ matrix.variant }}-${{ env.IMAGE_TAG }}.tar
-        aws s3 cp --no-progress /tmp/aws-crt-${{ matrix.variant }}-${{ env.IMAGE_TAG }}.tar s3://${{env.AWS_S3_BUCKET}}/docker/aws-crt-${{ matrix.variant }}-${{ env.IMAGE_TAG }}.tar
+      run: aws s3 cp --no-progress \
+        /tmp/aws-crt-${{ matrix.variant }}-${{ env.IMAGE_TAG }}.tar \
+        s3://${{env.AWS_S3_BUCKET}}/docker/aws-crt-${{ matrix.variant }}-${{ env.IMAGE_TAG }}.tar
 
   linux-arm64:
     name: ${{ matrix.variant }}-${{ matrix.arch }}
@@ -116,14 +107,6 @@ jobs:
     - name: Export IMAGE_TAG
       run: echo "::set-env name=IMAGE_TAG::$(cat release_tag/tag)"
 
-    - name: Import ${{ matrix.variant }} image to cache
-      run: |
-        aws s3 cp --no-progress \
-          s3://${{env.AWS_S3_BUCKET}}/docker/aws-crt-${{ matrix.variant }}-${{ matrix.arch }}-${{ env.IMAGE_TAG }}.tar \
-          /tmp/aws-crt-${{ matrix.variant }}-${{ matrix.arch }}-${{ env.IMAGE_TAG }}.tar || true
-        docker load < /tmp/aws-crt-${{ matrix.variant }}-${{ matrix.arch }}-${{ env.IMAGE_TAG }}.tar || true
-        docker images
-
     - name: "Build ${{ matrix.variant }}-${{ matrix.arch }} image"
       run: ./.github/workflows/docker_buildx.sh \
         docker.pkg.github.com \
@@ -137,10 +120,9 @@ jobs:
         --compress=true --platform=linux/${{ matrix.arch }}
 
     - name: Export ${{ matrix.variant }} ${{ matrix.arch }} image
-      run: |
-        docker images
-        docker save docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}-${{ matrix.arch }}:${{ env.IMAGE_TAG }} > /tmp/aws-crt-${{ matrix.variant }}-${{ matrix.arch }}-${{ env.IMAGE_TAG }}.tar
-        aws s3 cp --no-progress /tmp/aws-crt-${{ matrix.variant }}-${{ matrix.arch }}-${{ env.IMAGE_TAG }}.tar s3://${{env.AWS_S3_BUCKET}}/docker/aws-crt-${{ matrix.variant }}-${{ matrix.arch }}-${{ env.IMAGE_TAG }}.tar
+      run: aws s3 cp --no-progress \
+        /tmp/aws-crt-${{ matrix.variant }}-${{ matrix.arch }}-${{ env.IMAGE_TAG }}.tar \
+        s3://${{env.AWS_S3_BUCKET}}/docker/aws-crt-${{ matrix.variant }}-${{ matrix.arch }}-${{ env.IMAGE_TAG }}.tar
 
   linux-arm32:
     name: ${{ matrix.variant }}-arm${{ matrix.arch }}
@@ -164,14 +146,6 @@ jobs:
     - name: Export IMAGE_TAG
       run: echo "::set-env name=IMAGE_TAG::$(cat release_tag/tag)"
 
-    - name: Import ${{ matrix.variant }} image to cache
-      run: |
-        aws s3 cp --no-progress \
-          s3://${{env.AWS_S3_BUCKET}}/docker/aws-crt-${{ matrix.variant }}-arm${{ matrix.arch }}-${{ env.IMAGE_TAG }}.tar \
-          /tmp/aws-crt-${{ matrix.variant }}-arm${{ matrix.arch }}-${{ env.IMAGE_TAG }}.tar || true
-        docker load < /tmp/aws-crt-${{ matrix.variant }}-arm${{ matrix.arch }}-${{ env.IMAGE_TAG }}.tar || true
-        docker images
-
     - name: "Build ${{ matrix.variant }}-arm${{ matrix.arch }} image"
       run: ./.github/workflows/docker_buildx.sh \
         docker.pkg.github.com \
@@ -185,7 +159,6 @@ jobs:
         --compress=true --platform=linux/arm/${{ matrix.arch }}
 
     - name: Export ${{ matrix.variant }} arm${{ matrix.arch }} image
-      run: |
-        docker images
-        docker save docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}-arm${{ matrix.arch }}:${{ env.IMAGE_TAG }} > /tmp/aws-crt-${{ matrix.variant }}-arm${{ matrix.arch }}-${{ env.IMAGE_TAG }}.tar
-        aws s3 cp --no-progress /tmp/aws-crt-${{ matrix.variant }}-arm${{ matrix.arch }}-${{ env.IMAGE_TAG }}.tar s3://${{env.AWS_S3_BUCKET}}/docker/aws-crt-${{ matrix.variant }}-arm${{ matrix.arch }}-${{ env.IMAGE_TAG }}.tar
+      run: aws s3 cp --no-progress \
+        /tmp/aws-crt-${{ matrix.variant }}-arm${{ matrix.arch }}-${{ env.IMAGE_TAG }}.tar \
+        s3://${{env.AWS_S3_BUCKET}}/docker/aws-crt-${{ matrix.variant }}-arm${{ matrix.arch }}-${{ env.IMAGE_TAG }}.tar
