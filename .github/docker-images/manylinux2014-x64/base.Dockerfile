@@ -2,14 +2,10 @@
 # and: https://github.com/pypa/python-manylinux-demo	
 FROM quay.io/pypa/manylinux2014_x86_64
 
-# 3.13.5 is the last version to work with ancient glibc	
-ENV CMAKE_VERSION=3.13.5	
-
 ###############################################################################	
 # Basics
 ###############################################################################	
-RUN yum -y update \ 
-    && yum -y install sudo cmake3 \
+RUN yum -y install sudo cmake3 \
     && yum clean all
 
 ###############################################################################	
