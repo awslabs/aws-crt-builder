@@ -1,4 +1,5 @@
-FROM stephank/archlinux:armv6-latest
+FROM scratch
+ADD http://os.archlinuxarm.org/os/ArchLinuxARM-rpi-latest.tar.gz /
 
 ###############################################################################
 # Install prereqs

@@ -1,4 +1,5 @@
-FROM stephank/archlinux:armv7-latest
+FROM scratch
+ADD http://os.archlinuxarm.org/os/ArchLinuxARM-rpi-2-latest.tar.gz /
 
 ###############################################################################
 # Install prereqs
