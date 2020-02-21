@@ -1,4 +1,4 @@
-name: Docker Images
+name: Test & Deploy
 
 on: 
   push:
@@ -194,7 +194,7 @@ jobs:
       matrix:
         variant: [alpine, arch]
         arch: [v6, v7]
-        
+
     steps:
     - name: Checkout Sources
       uses: actions/checkout@v1
