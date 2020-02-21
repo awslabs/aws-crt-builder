@@ -21,9 +21,27 @@ env:
   AWS_REGION: 'us-east-1'
 
 jobs:
+  tag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get release tag
+        uses: ./.github/actions/release-tag
+        id: release
+        with:
+          output: tag
+
+      - run: echo TAG ${{ steps.release.outputs.release_tag }}
+
+      - name: Store release_tag
+        uses: actions/upload-artifact@v1
+        with:
+          name: release_tag
+          path: tag
+
   linux-x86-x64:
     name: ${{ matrix.variant }}
     runs-on: ubuntu-latest
+    needs: tag
     strategy:
       matrix:
         variant: 
@@ -64,8 +82,9 @@ jobs:
         aws s3 cp /tmp/aws-crt-${{ matrix.variant }}.tar.gz s3://${{env.AWS_S3_BUCKET}}/docker/aws-crt-${{ matrix.variant }}-${IMAGE_TAG}.tar.gz
 
   linux-arm64:
-    name: ${{ matrix.variant }} ${{ matrix.arch }}
+    name: ${{ matrix.variant }}-${{ matrix.arch }}
     runs-on: 'ubuntu-latest'
+    needs: tag
     strategy:
       matrix:
         variant: [al2]
@@ -99,8 +118,9 @@ jobs:
         aws s3 cp /tmp/aws-crt-${{ matrix.variant }}-${{ matrix.arch }}.tar.gz s3://${{env.AWS_S3_BUCKET}}/docker/aws-crt-${{ matrix.variant }}-${{ matrix.arch }}-${IMAGE_TAG}.tar.gz
 
   linux-arm32:
-    name: ${{ matrix.variant }} arm${{ matrix.arch }}
+    name: ${{ matrix.variant }}-arm${{ matrix.arch }}
     runs-on: 'ubuntu-latest'
+    needs: tag
     strategy:
       matrix:
         variant: [alpine, arch]
