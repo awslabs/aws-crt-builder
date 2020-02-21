@@ -73,7 +73,7 @@ jobs:
         docker.pkg.github.com \
         awslabs \
         ${{ secrets.DOCKER_TOKEN }} \
-        aws-crt-${{ matrix.variant }}-${{ matrix.variant }} \
+        awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}-${{ matrix.variant }} \
         ${{ env.IMAGE_TAG }} \
         .github/docker-images/${{ matrix.variant }} \
         --file=.github/docker-images/${{ matrix.variant }}/base.Dockerfile \
@@ -81,7 +81,7 @@ jobs:
     
     - name: Export ${{ matrix.variant }} image
       run: |
-        docker save aws-crt-${{ matrix.variant }} | gzip > /tmp/aws-crt-${{ matrix.variant }}-${IMAGE_TAG}.tar.gz
+        docker save awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:${IMAGE_TAG} | gzip > /tmp/aws-crt-${{ matrix.variant }}-${IMAGE_TAG}.tar.gz
         aws s3 cp /tmp/aws-crt-${{ matrix.variant }}.tar.gz s3://${{env.AWS_S3_BUCKET}}/docker/aws-crt-${{ matrix.variant }}-${IMAGE_TAG}.tar.gz
 
   linux-arm64:
@@ -109,7 +109,7 @@ jobs:
         docker.pkg.github.com \
         awslabs \
         ${{ secrets.DOCKER_TOKEN }} \
-        aws-crt-${{ matrix.variant }}-${{ matrix.arch }} \
+        awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}-${{ matrix.arch }} \
         ${{ env.IMAGE_TAG }} \
         .github/docker-images/${{ matrix.variant }}-${{ matrix.arch }} \
         --file=.github/docker-images/${{ matrix.variant }}-${{ matrix.arch }}/base.Dockerfile \
@@ -117,7 +117,7 @@ jobs:
 
     - name: Export ${{ matrix.variant }} ${{ matrix.arch }} image
       run: |
-        docker save aws-crt-${{ matrix.variant }}-${{ matrix.arch }} | gzip > /tmp/aws-crt-${{ matrix.variant }}-${{ matrix.arch }}-${IMAGE_TAG}.tar.gz
+        docker save awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}-${{ matrix.arch }}:${IMAGE_TAG} | gzip > /tmp/aws-crt-${{ matrix.variant }}-${{ matrix.arch }}-${IMAGE_TAG}.tar.gz
         aws s3 cp /tmp/aws-crt-${{ matrix.variant }}-${{ matrix.arch }}.tar.gz s3://${{env.AWS_S3_BUCKET}}/docker/aws-crt-${{ matrix.variant }}-${{ matrix.arch }}-${IMAGE_TAG}.tar.gz
 
   linux-arm32:
@@ -146,7 +146,7 @@ jobs:
         docker.pkg.github.com \
         awslabs \
         ${{ secrets.DOCKER_TOKEN }} \
-        aws-crt-${{ matrix.variant }}-arm${{ matrix.arch }} \
+        awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}-arm${{ matrix.arch }} \
         ${{ env.IMAGE_TAG }} \
         .github/docker-images/${{ matrix.variant }}-arm${{ matrix.arch }} \
         --file=.github/docker-images/${{ matrix.variant }}-arm${{ matrix.arch }}/base.Dockerfile \
@@ -154,5 +154,5 @@ jobs:
 
     - name: Export ${{ matrix.variant }} arm${{ matrix.arch }} image
       run: |
-        docker save aws-crt-${{ matrix.variant }}-arm${{ matrix.arch }} | gzip > /tmp/aws-crt-${{ matrix.variant }}-arm${{ matrix.arch }}-${IMAGE_TAG}.tar.gz
+        docker save awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}-arm${{ matrix.arch }}:${IMAGE_TAG} | gzip > /tmp/aws-crt-${{ matrix.variant }}-arm${{ matrix.arch }}-${IMAGE_TAG}.tar.gz
         aws s3 cp /tmp/aws-crt-${{ matrix.variant }}-arm${{ matrix.arch }}.tar.gz s3://${{env.AWS_S3_BUCKET}}/docker/aws-crt-${{ matrix.variant }}-arm${{ matrix.arch }}-${IMAGE_TAG}.tar.gz
