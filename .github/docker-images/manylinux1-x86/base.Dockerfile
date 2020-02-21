@@ -20,6 +20,8 @@ RUN /opt/python/cp37-cp37m/bin/python -m pip install --upgrade pip setuptools vi
     && echo 'export PATH=$PATH:`find /opt -name aws`' >> ~/.login \
     && echo 'export PATH=$PATH:`find /opt -name aws`' >> ~/.bashrc \
     && . ~/.login \
+    && echo $PATH \
+    && which aws \
     && aws --version
 
 ###############################################################################
