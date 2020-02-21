@@ -50,8 +50,8 @@ build_image() {
   # build builder target image
   docker build \
     --build-arg BUILDKIT_INLINE_CACHE=1 \
-    --output=type=tar,dest=/tmp/$(basename $INPUT_IMAGE_NAME)-${INPUT_IMAGE_TAG}.tar
-    --cache-to=type=registry,mode=max
+    --output=type=tar,dest=/tmp/$(basename $INPUT_IMAGE_NAME)-${INPUT_IMAGE_TAG}.tar \
+    --cache-to=type=registry,mode=max \
     --tag="$(_get_full_image_name)":${INPUT_IMAGE_TAG} \
     ${INPUT_BUILD_EXTRA_ARGS} \
     ${INPUT_CONTEXT}
