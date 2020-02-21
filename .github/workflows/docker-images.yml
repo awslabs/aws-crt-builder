@@ -71,8 +71,10 @@ jobs:
 
     - name: Import ${{ matrix.variant }} to cache
       run: |
-        aws s3 cp --no-progress s3://${{env.AWS_S3_BUCKET}}/docker/aws-crt-${{ matrix.variant }}-${{ env.IMAGE_TAG }}.tar /tmp/aws-crt-${{ matrix.variant }}-${{ env.IMAGE_TAG }}.tar
-        docker load < /tmp/aws-crt-${{ matrix.variant }}-${{ env.IMAGE_TAG }}.tar
+        aws s3 cp --no-progress \
+          s3://${{env.AWS_S3_BUCKET}}/docker/aws-crt-${{ matrix.variant }}-${{ env.IMAGE_TAG }}.tar \
+          /tmp/aws-crt-${{ matrix.variant }}-${{ env.IMAGE_TAG }}.tar || true
+        docker load < /tmp/aws-crt-${{ matrix.variant }}-${{ env.IMAGE_TAG }}.tar || true
         docker images
         
     - name: Build ${{ matrix.variant }} image
@@ -115,8 +117,10 @@ jobs:
 
     - name: Import ${{ matrix.variant }} image to cache
       run: |
-        aws s3 cp --no-progress s3://${{env.AWS_S3_BUCKET}}/docker/aws-crt-${{ matrix.variant }}-${{ matrix.arch }}-${{ env.IMAGE_TAG }}.tar /tmp/aws-crt-${{ matrix.variant }}-${{ matrix.arch }}-${{ env.IMAGE_TAG }}.tar
-        docker load < /tmp/aws-crt-${{ matrix.variant }}-${{ matrix.arch }}-${{ env.IMAGE_TAG }}.tar
+        aws s3 cp --no-progress \
+          s3://${{env.AWS_S3_BUCKET}}/docker/aws-crt-${{ matrix.variant }}-${{ matrix.arch }}-${{ env.IMAGE_TAG }}.tar \
+          /tmp/aws-crt-${{ matrix.variant }}-${{ matrix.arch }}-${{ env.IMAGE_TAG }}.tar || true
+        docker load < /tmp/aws-crt-${{ matrix.variant }}-${{ matrix.arch }}-${{ env.IMAGE_TAG }}.tar || true
         docker images
 
     - name: "Build ${{ matrix.variant }}-${{ matrix.arch }} image"
@@ -160,8 +164,10 @@ jobs:
 
     - name: Import ${{ matrix.variant }} image to cache
       run: |
-        aws s3 cp --no-progress s3://${{env.AWS_S3_BUCKET}}/docker/aws-crt-${{ matrix.variant }}-arm${{ matrix.arch }}-${{ env.IMAGE_TAG }}.tar /tmp/aws-crt-${{ matrix.variant }}-arm${{ matrix.arch }}-${{ env.IMAGE_TAG }}.tar
-        docker load < /tmp/aws-crt-${{ matrix.variant }}-arm${{ matrix.arch }}-${{ env.IMAGE_TAG }}.tar
+        aws s3 cp --no-progress \
+          s3://${{env.AWS_S3_BUCKET}}/docker/aws-crt-${{ matrix.variant }}-arm${{ matrix.arch }}-${{ env.IMAGE_TAG }}.tar \
+          /tmp/aws-crt-${{ matrix.variant }}-arm${{ matrix.arch }}-${{ env.IMAGE_TAG }}.tar || true
+        docker load < /tmp/aws-crt-${{ matrix.variant }}-arm${{ matrix.arch }}-${{ env.IMAGE_TAG }}.tar || true
         docker images
 
     - name: "Build ${{ matrix.variant }}-arm${{ matrix.arch }} image"
