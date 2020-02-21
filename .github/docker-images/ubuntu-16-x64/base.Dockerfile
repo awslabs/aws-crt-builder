@@ -42,7 +42,7 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get -y install gcc g++ \
     no-unit-test no-tests \
     -DSSL_FORBID_ENULL -DOPENSSL_NO_DTLS1 -DOPENSSL_NO_HEARTBEATS \
     --prefix=/opt/openssl --openssldir=/opt/openssl \
-    && make -j build_generated libcrypto.a libcrypto.so \
+    && make build_generated && make -j libcrypto.a \
     && make install_sw \
     && LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/openssl/lib /opt/openssl/bin/openssl version \
     && DEBIAN_FRONTEND=noninteractive apt-get remove -y gcc g++ \
