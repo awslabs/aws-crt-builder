@@ -78,7 +78,6 @@ jobs:
         ${{ env.IMAGE_TAG }} \
         .github/docker-images/${{ matrix.variant }} \
         --file=.github/docker-images/${{ matrix.variant }}/base.Dockerfile \
-        --cache-from=docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:${{ env.IMAGE_TAG }} \
         --compress=true
     
     - name: Export ${{ matrix.variant }} image
@@ -117,7 +116,6 @@ jobs:
         ${{ env.IMAGE_TAG }} \
         .github/docker-images/${{ matrix.variant }}-${{ matrix.arch }} \
         --file=.github/docker-images/${{ matrix.variant }}-${{ matrix.arch }}/base.Dockerfile \
-        --cache-from=docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}-${{ matrix.arch }}:${{ env.IMAGE_TAG }} \
         --compress=true --platform=linux/${{ matrix.arch }}
 
     - name: Export ${{ matrix.variant }} ${{ matrix.arch }} image
@@ -157,7 +155,6 @@ jobs:
         ${{ env.IMAGE_TAG }} \
         .github/docker-images/${{ matrix.variant }}-arm${{ matrix.arch }} \
         --file=.github/docker-images/${{ matrix.variant }}-arm${{ matrix.arch }}/base.Dockerfile \
-        --cache-from=docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}-arm${{ matrix.arch }}:${{ env.IMAGE_TAG }} \
         --compress=true --platform=linux/arm/${{ matrix.arch }}
 
     - name: Export ${{ matrix.variant }} arm${{ matrix.arch }} image
