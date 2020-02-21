@@ -24,19 +24,21 @@ jobs:
   tag:
     runs-on: ubuntu-latest
     steps:
-      - name: Get release tag
-        uses: ./.github/actions/release-tag
-        id: release
-        with:
-          output: tag
+    - name: Checkout Sources
+      uses: actions/checkout@v1
+    - name: Get release tag
+      uses: ./.github/actions/release-tag
+      id: release
+      with:
+        output: tag
 
-      - run: echo TAG ${{ steps.release.outputs.release_tag }}
+    - run: echo TAG ${{ steps.release.outputs.release_tag }}
 
-      - name: Store release_tag
-        uses: actions/upload-artifact@v1
-        with:
-          name: release_tag
-          path: tag
+    - name: Store release_tag
+      uses: actions/upload-artifact@v1
+      with:
+        name: release_tag
+        path: tag
 
   linux-x86-x64:
     name: ${{ matrix.variant }}
