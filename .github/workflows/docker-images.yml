@@ -24,7 +24,6 @@ jobs:
   linux-x86-x64:
     name: ${{ matrix.variant }}
     runs-on: ubuntu-latest
-    needs: package
     strategy:
       matrix:
         variant: 
@@ -67,7 +66,6 @@ jobs:
   linux-arm64:
     name: ${{ matrix.variant }} ${{ matrix.arch }}
     runs-on: 'ubuntu-latest'
-    needs: package
     strategy:
       matrix:
         variant: [al2]
@@ -103,7 +101,6 @@ jobs:
   linux-arm32:
     name: ${{ matrix.variant }} arm${{ matrix.arch }}
     runs-on: 'ubuntu-latest'
-    needs: package
     strategy:
       matrix:
         variant: [alpine, arch]
