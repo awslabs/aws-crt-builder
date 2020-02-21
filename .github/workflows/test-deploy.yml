@@ -202,7 +202,7 @@ jobs:
     needs: package
     strategy:
       matrix:
-        variant: [alpine, arch]
+        variant: [alpine, raspbian]
         arch: [v6, v7]
 
     steps:
