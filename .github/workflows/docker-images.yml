@@ -22,6 +22,7 @@ env:
 
 jobs:
   tag:
+    name: Artifact release tag
     runs-on: ubuntu-latest
     steps:
     - name: Checkout Sources
@@ -111,7 +112,7 @@ jobs:
         aws-crt-${{ matrix.variant }}-${{ matrix.arch }} \
         ${{ env.IMAGE_TAG }} \
         .github/docker-images/${{ matrix.variant }}-${{ matrix.arch }} \
-        --file=base.Dockerfile \
+        --file=.github/docker-images/${{ matrix.variant }}-${{ matrix.arch }}/base.Dockerfile \
         --compress=true --platform=linux/${{ matrix.arch }}
 
     - name: Export ${{ matrix.variant }} ${{ matrix.arch }} image
@@ -147,7 +148,7 @@ jobs:
         aws-crt-${{ matrix.variant }}-arm${{ matrix.arch }} \
         ${{ env.IMAGE_TAG }} \
         .github/docker-images/${{ matrix.variant }}-arm${{ matrix.arch }} \
-        --file=base.Dockerfile \
+        --file=.github/docker-images/${{ matrix.variant }}-${{ matrix.arch }}/base.Dockerfile \
         --compress=true --platform=linux/arm/${{ matrix.arch }}
 
     - name: Export ${{ matrix.variant }} arm${{ matrix.arch }} image
