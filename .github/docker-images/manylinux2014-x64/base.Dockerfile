@@ -9,21 +9,8 @@ ENV CMAKE_VERSION=3.13.5
 # Basics
 ###############################################################################	
 RUN yum -y update \ 
-    && yum -y install sudo \
+    && yum -y install sudo cmake3 \
     && yum clean all
-
-###############################################################################	
-# CMake	
-###############################################################################	
-WORKDIR /tmp/build
-RUN curl -LO https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}.tar.gz \	
-    && tar xzf cmake-${CMAKE_VERSION}.tar.gz \	
-    && cd cmake-${CMAKE_VERSION} \	
-    && ./bootstrap -- -DCMAKE_BUILD_TYPE=Release \	
-    && make \	
-    && make install \	
-    && cmake --version \
-    && rm -rf /tmp/build
 
 ###############################################################################	
 # OpenSSL	
