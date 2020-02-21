@@ -33,7 +33,6 @@ RUN python3 -m pip install --upgrade pip setuptools virtualenv \
 ###############################################################################
 WORKDIR /tmp/build
 RUN DEBIAN_FRONTEND=noninteractive apt-get -y install gcc g++ \
-    && ([ -d /opt/openssl ] && rm -rf /opt/openssl) || true \
     && git clone https://github.com/openssl/openssl.git \
     && pushd openssl \
     && git checkout OpenSSL_1_1_1-stable \
@@ -43,7 +42,7 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get -y install gcc g++ \
     no-unit-test no-tests \
     -DSSL_FORBID_ENULL -DOPENSSL_NO_DTLS1 -DOPENSSL_NO_HEARTBEATS \
     --prefix=/opt/openssl --openssldir=/opt/openssl \
-    && make -j \
+    && make -j build_generated libcrypto.a libcrypto.so \
     && make install_sw \
     && LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/openssl/lib /opt/openssl/bin/openssl version \
     && DEBIAN_FRONTEND=noninteractive apt-get remove -y gcc g++ \
