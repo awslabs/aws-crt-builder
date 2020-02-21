@@ -17,6 +17,8 @@ RUN yum -y update \
 ###############################################################################
 RUN /opt/python/cp37-cp37m/bin/python -m pip install --upgrade pip setuptools virtualenv \
     && /opt/python/cp37-cp37m/bin/python -m pip install --upgrade awscli \
+    && echo 'export PATH=$PATH:opt/_internal/cpython-3.7.3/bin' >> ~/.login \
+    && . ~/.login \
     && aws --version
 
 ###############################################################################
