@@ -135,4 +135,3 @@ jobs:
       run: |
         docker save aws-crt-${{ matrix.variant }}-arm${{ matrix.arch }} | gzip > /tmp/aws-crt-${{ matrix.variant }}-arm${{ matrix.arch }}-${IMAGE_TAG}.tar.gz
         aws s3 cp /tmp/aws-crt-${{ matrix.variant }}-arm${{ matrix.arch }}.tar.gz s3://${{env.AWS_S3_BUCKET}}/docker/aws-crt-${{ matrix.variant }}-arm${{ matrix.arch }}-${IMAGE_TAG}.tar.gz
-
