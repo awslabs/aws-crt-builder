@@ -82,8 +82,8 @@ jobs:
     
     - name: Export ${{ matrix.variant }} image
       run: |
-        docker save awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:${IMAGE_TAG} | gzip > /tmp/aws-crt-${{ matrix.variant }}-${IMAGE_TAG}.tar.gz
-        aws s3 cp /tmp/aws-crt-${{ matrix.variant }}.tar.gz s3://${{env.AWS_S3_BUCKET}}/docker/aws-crt-${{ matrix.variant }}-${IMAGE_TAG}.tar.gz
+        docker save awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:${{ env.IMAGE_TAG }} | gzip > /tmp/aws-crt-${{ matrix.variant }}-${{ env.IMAGE_TAG }}.tar.gz
+        aws s3 cp /tmp/aws-crt-${{ matrix.variant }}.tar.gz s3://${{env.AWS_S3_BUCKET}}/docker/aws-crt-${{ matrix.variant }}-${{ env.IMAGE_TAG }}.tar.gz
 
   linux-arm64:
     name: ${{ matrix.variant }}-${{ matrix.arch }}
@@ -119,8 +119,8 @@ jobs:
 
     - name: Export ${{ matrix.variant }} ${{ matrix.arch }} image
       run: |
-        docker save awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}-${{ matrix.arch }}:${IMAGE_TAG} | gzip > /tmp/aws-crt-${{ matrix.variant }}-${{ matrix.arch }}-${IMAGE_TAG}.tar.gz
-        aws s3 cp /tmp/aws-crt-${{ matrix.variant }}-${{ matrix.arch }}.tar.gz s3://${{env.AWS_S3_BUCKET}}/docker/aws-crt-${{ matrix.variant }}-${{ matrix.arch }}-${IMAGE_TAG}.tar.gz
+        docker save awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}-${{ matrix.arch }}:${{ env.IMAGE_TAG }} | gzip > /tmp/aws-crt-${{ matrix.variant }}-${{ matrix.arch }}-${{ env.IMAGE_TAG }}.tar.gz
+        aws s3 cp /tmp/aws-crt-${{ matrix.variant }}-${{ matrix.arch }}.tar.gz s3://${{env.AWS_S3_BUCKET}}/docker/aws-crt-${{ matrix.variant }}-${{ matrix.arch }}-${{ env.IMAGE_TAG }}.tar.gz
 
   linux-arm32:
     name: ${{ matrix.variant }}-arm${{ matrix.arch }}
@@ -157,5 +157,5 @@ jobs:
 
     - name: Export ${{ matrix.variant }} arm${{ matrix.arch }} image
       run: |
-        docker save awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}-arm${{ matrix.arch }}:${IMAGE_TAG} | gzip > /tmp/aws-crt-${{ matrix.variant }}-arm${{ matrix.arch }}-${IMAGE_TAG}.tar.gz
-        aws s3 cp /tmp/aws-crt-${{ matrix.variant }}-arm${{ matrix.arch }}.tar.gz s3://${{env.AWS_S3_BUCKET}}/docker/aws-crt-${{ matrix.variant }}-arm${{ matrix.arch }}-${IMAGE_TAG}.tar.gz
+        docker save awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}-arm${{ matrix.arch }}:${{ env.IMAGE_TAG }} | gzip > /tmp/aws-crt-${{ matrix.variant }}-arm${{ matrix.arch }}-${{ env.IMAGE_TAG }}.tar.gz
+        aws s3 cp /tmp/aws-crt-${{ matrix.variant }}-arm${{ matrix.arch }}.tar.gz s3://${{env.AWS_S3_BUCKET}}/docker/aws-crt-${{ matrix.variant }}-arm${{ matrix.arch }}-${{ env.IMAGE_TAG }}.tar.gz
