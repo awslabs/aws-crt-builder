@@ -74,7 +74,7 @@ jobs:
         docker.pkg.github.com \
         awslabs \
         ${{ secrets.DOCKER_TOKEN }} \
-        awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}-${{ matrix.variant }} \
+        awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }} \
         ${{ env.IMAGE_TAG }} \
         .github/docker-images/${{ matrix.variant }} \
         --file=.github/docker-images/${{ matrix.variant }}/base.Dockerfile \
