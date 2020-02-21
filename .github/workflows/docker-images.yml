@@ -1,8 +1,8 @@
 name: Docker Images
 
-on: 
+on:
   push:
-    branches: 
+    branches:
       - '*'
       - '!master'
     paths:
@@ -10,7 +10,6 @@ on:
       - '.github/docker-images/**'
       - '.github/workflows/docker-images.yml'
       - '.github/workflows/*.sh'
-      - 'builder/**'
   release:
     types: [published]
 
@@ -48,7 +47,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        variant: 
+        variant:
         - manylinux1-x86
         - manylinux1-x64
         - manylinux2014-x86
@@ -68,7 +67,7 @@ jobs:
 
     - name: Export IMAGE_TAG
       run: echo "::set-env name=IMAGE_TAG::$(cat release_tag/tag)"
-        
+
     - name: Build ${{ matrix.variant }} image
       run: ./.github/workflows/docker_buildx.sh \
         docker.pkg.github.com \
@@ -79,7 +78,7 @@ jobs:
         .github/docker-images/${{ matrix.variant }} \
         --file=.github/docker-images/${{ matrix.variant }}/base.Dockerfile \
         --compress=true
-    
+
     - name: Export ${{ matrix.variant }} image
       run: |
         docker images

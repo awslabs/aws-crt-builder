@@ -13,6 +13,13 @@ RUN yum -y update \
     && yum clean all
 
 ###############################################################################
+# Python/AWS CLI
+###############################################################################
+RUN /opt/python/cp37-cp37m/bin/python -m pip install --upgrade pip setuptools virtualenv \
+    && /opt/python/cp37-cp37m/bin/python -m pip install --upgrade awscli \
+    && aws --version
+
+###############################################################################
 # CMake
 ###############################################################################
 WORKDIR /tmp/build
