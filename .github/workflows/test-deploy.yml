@@ -1,0 +1,372 @@
+name: Docker Images
+
+on: 
+  push:
+    branches: 
+      - '*'
+      - '!master'
+    paths:
+      - '.github/actions/**'
+      - '.github/workflows/test-deploy.yml'
+      - 'builder/**'
+  release:
+    types: [published]
+
+env:
+  AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
+  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  AWS_REGION: 'us-east-1'
+
+jobs:
+  sanity_test:
+    name: Sanity Test
+    strategy:
+      matrix:
+        host: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.host }}
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@v1
+
+      - name: Sanity Test Run Compat (Unix)
+        if:  matrix.host != 'windows-latest'
+        run: |
+          python3 -m builder --project tests run test
+
+      - name: Sanity Test Action (Unix)
+        if:  matrix.host != 'windows-latest'
+        run: |
+          python3 -m builder --project tests test
+
+      - name: Sanity Test Build (Unix)
+        if:  matrix.host != 'windows-latest'
+        run: |
+          python3 -m builder --project tests build
+      
+      - name: Sanity Test Run Compat (Windows)
+        if: matrix.host == 'windows-latest'
+        run: |
+          choco install --no-progress vswhere
+          python -m builder --project tests run test
+
+      - name: Sanity Test Action (Windows)
+        if: matrix.host == 'windows-latest'
+        run: |
+          choco install --no-progress vswhere
+          python -m builder --project tests test
+
+      - name: Sanity Test Build (Windows)
+        if: matrix.host == 'windows-latest'
+        run: |
+          python -m builder --project tests build
+
+  package:
+    name: Package builder app
+    runs-on: ubuntu-latest
+    needs: sanity_test
+
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@v1
+
+      # re-enable this when requirements.txt has actual dependencies
+      # - name: Bundle dependencies
+      #   run: |
+      #     python3 -m pip install -r requirements.txt --target builder
+      #     rm -rf builder/*.dist-info
+
+      - name: Package builder
+        run: |
+          mkdir -p build
+          python3 -m zipapp --python="/usr/bin/env python3" --output=build/builder builder
+
+      - name: Store builder
+        uses: actions/upload-artifact@v1
+        with:
+          name: builder
+          path: build/builder
+
+      - name: Get release tag
+        uses: ./.github/actions/release-tag
+        id: release
+        with:
+          output: tag
+
+      - run: echo TAG ${{ steps.release.outputs.release_tag }}
+
+      - name: Store release_tag
+        uses: actions/upload-artifact@v1
+        with:
+          name: release_tag
+          path: tag
+
+      - name: Publish builder package to S3
+        run: aws s3 cp build/builder s3://$AWS_S3_BUCKET/${{ steps.release.outputs.release_tag }}/builder
+
+  linux-x86-x64:
+  - name: ${{ matrix.variant }}
+    runs-on: ubuntu-latest
+    needs: package
+    strategy:
+      matrix:
+        variant: |
+          manylinux1-x86
+          manylinux1-x64
+          manylinux2014-x86
+          manylinux2014-x64
+          al2-x64
+          ubuntu-16-x64
+
+    - name: Fetch builder
+      uses: actions/download-artifact@v1
+      with:
+        name: builder
+      
+    - run: mv builder/builder .github/docker-images/${{ matrix.image_name }}-${{ matrix.image_arch }}/
+
+    - name: Fetch release_tag
+      uses: actions/download-artifact@v1
+      with:
+        name: release_tag
+        path: release_tag
+
+    - run: cp .github/docker-images/entrypoint-manylinux.sh .github/docker-images/${{ matrix.variant }}/entrypoint.sh
+    - run: echo "::set-env name=IMAGE_TAG::$(cat release_tag/tag)"
+    
+    - name: Build ${{ matrix.variant }} image
+      uses: whoan/docker-build-with-cache-action@v3
+      with:
+        username: "awslabs"
+        password: "${{ secrets.DOCKER_TOKEN }}"
+        image_name: awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}
+        image_tag: ${{ env.IMAGE_TAG }}
+        registry: docker.pkg.github.com
+        context: .github/docker-images/${{ matrix.variant }}
+        build_extra_args: "--compress=true"  
+
+  linux-arm64:
+    name: ${{ matrix.variant }}-${{ matrix.arch }}
+    runs-on: 'ubuntu-latest'
+    needs: package
+    strategy:
+      matrix:
+        variant: [al2]
+        arch: [arm64]
+    steps:
+    - name: Checkout Sources
+      uses: actions/checkout@v1
+    
+    - name: Fetch builder
+      uses: actions/download-artifact@v1
+      with:
+        name: builder
+
+    - run: mv builder/builder .github/docker-images/${{ matrix.variant }}-${{ matrix.arch }}/
+
+    - name: Fetch release_tag
+      uses: actions/download-artifact@v1
+      with:
+        name: release_tag
+        path: release_tag
+
+    - run: cp .github/docker-images/entrypoint.sh .github/docker-images/${{ matrix.variant }}-${{ matrix.arch }}/entrypoint.sh
+    - run: echo "::set-env name=IMAGE_TAG::$(cat release_tag/tag)"
+    
+    - name: Build ${{ matrix.variant }}-${{ matrix.arch }} image
+      uses: whoan/docker-build-with-cache-action@v3
+      with:
+        username: "awslabs"
+        password: "${{ secrets.DOCKER_TOKEN }}"
+        image_name: awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}-${{ matrix.arch }}
+        image_tag: ${{ env.IMAGE_TAG }}
+        registry: docker.pkg.github.com
+        context: .github/docker-images/${{ matrix.variant }}-${{ matrix.arch }}
+        build_extra_args: "--compress=true"  
+
+  linux-arm32:
+    name: ${{ matrix.variant }} arm${{ matrix.arch }}
+    runs-on: 'ubuntu-latest'
+    needs: package
+    strategy:
+      matrix:
+        variant: [alpine, arch]
+        arch: [v6, v7]
+    steps:
+    - name: Checkout Sources
+      uses: actions/checkout@v1
+
+    - name: Fetch builder
+      uses: actions/download-artifact@v1
+      with:
+        name: builder
+    - run: mv builder/builder .github/docker-images/${{ matrix.variant }}-arm${{ matrix.arch }}/
+
+    - name: Fetch libcrypto
+      run: |
+        aws s3 cp s3://$AWS_S3_BUCKET/openssl/openssl-1.1.1-arm${{ matrix.arch }}.tar.gz .github/docker-images/${{ matrix.variant }}-arm${{matrix.arch}}/openssl-1.1.1.tar.gz
+
+    - name: Fetch release_tag
+      uses: actions/download-artifact@v1
+      with:
+        name: release_tag
+        path: release_tag
+
+    - run: cp .github/docker-images/entrypoint.sh .github/docker-images/${{ matrix.variant }}-arm${{ matrix.arch }}/entrypoint.sh
+    - run: echo "::set-env name=IMAGE_TAG::$(cat release_tag/tag)"
+
+    - name: "Build arm${{ matrix.arch }} image"
+      run: ./.github/workflows/docker_buildx.sh \
+        docker.pkg.github.com \
+        awslabs \
+        ${{ secrets.DOCKER_TOKEN }} \
+        awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}-arm${{ matrix.arch }} \
+        ${{ env.IMAGE_TAG }} \
+        .github/docker-images/${{ matrix.variant }}-arm${{ matrix.arch }} \
+        --compress=true --platform=linux/arm/${{ matrix.arch }}
+
+  # When all the images are built, run a downstream test
+  aws-c-common-linux-x64:
+    name: Linux x64 aws-c-common test build
+    runs-on: 'ubuntu-latest'
+    if: github.event_name != 'release'
+    needs: linux-x86-x64
+
+    steps:
+    - name: Checkout Source
+      uses: actions/checkout@v1
+    
+    - name: Get Release Tag
+      uses: ./.github/actions/release-tag
+      id: release
+
+    # We can't use the `uses: docker://image` version yet, GitHub lacks authentication for actions -> packages
+    - name: Build aws-c-common + consumers
+      run: |
+        echo "${{ secrets.GITHUB_TOKEN }}" | docker login docker.pkg.github.com -u awslabs --password-stdin
+        docker pull docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-ubuntu-16-x64:${{ steps.release.outputs.release_tag }}
+        docker run --env GITHUB_REF docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-ubuntu-16-x64:${{ steps.release.outputs.release_tag }} -p aws-c-common build default-downstream --compiler=clang-9
+
+  aws-c-common-arch-armv6:
+    name: Arch armv6 aws-c-common test build
+    runs-on: 'ubuntu-latest'
+    if: github.event_name != 'release'
+    needs: linux-arm32
+
+    steps:
+    - name: Checkout Source
+      uses: actions/checkout@v1
+    
+    - name: Get Release Tag
+      uses: ./.github/actions/release-tag
+      id: release
+    
+    - name: Bootstrap docker-buildx
+      run: ./.github/workflows/install_buildx.sh
+
+    # We can't use the `uses: docker://image` version yet, GitHub lacks authentication for actions -> packages
+    - name: Build aws-c-common + consumers
+      run: |
+        echo "${{ secrets.GITHUB_TOKEN }}" | docker login docker.pkg.github.com -u awslabs --password-stdin
+        docker pull docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-arch-armv6:${{ steps.release.outputs.release_tag }}
+        docker run --env GITHUB_REF docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-arch-armv6:${{ steps.release.outputs.release_tag }} -p aws-c-common build default-downstream --compiler=clang-9
+
+  aws-c-common-alpine-armv7:
+    name: Alpine ARMv7 aws-c-common test build
+    runs-on: 'ubuntu-latest'
+    if: github.event_name != 'release'
+    needs: alpine-arm32
+
+    steps:
+    - name: Checkout Source
+      uses: actions/checkout@v1
+    
+    - name: Get Release Tag
+      uses: ./.github/actions/release-tag
+      id: release
+    
+    - name: Bootstrap docker-buildx
+      run: ./.github/workflows/install_buildx.sh
+
+    # We can't use the `uses: docker://image` version yet, GitHub lacks authentication for actions -> packages
+    - name: Build aws-c-common + consumers
+      run: |
+        echo "${{ secrets.GITHUB_TOKEN }}" | docker login docker.pkg.github.com -u awslabs --password-stdin
+        docker pull docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-alpine-armv7:${{ steps.release.outputs.release_tag }}
+        docker run --env GITHUB_REF docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-alpine-armv7:${{ steps.release.outputs.release_tag }} -p aws-c-common build default-downstream --compiler=clang-9
+  
+  aws-c-common-al2-armv8:
+    name: al2 armv8 aws-c-common test build
+    runs-on: 'ubuntu-latest'
+    if: github.event_name != 'release'
+    needs: linux-arm32
+
+    steps:
+    - name: Checkout Source
+      uses: actions/checkout@v1
+    
+    - name: Get Release Tag
+      uses: ./.github/actions/release-tag
+      id: release
+    
+    - name: Bootstrap docker-buildx
+      run: ./.github/workflows/install_buildx.sh
+
+    # We can't use the `uses: docker://image` version yet, GitHub lacks authentication for actions -> packages
+    - name: Build aws-c-common + consumers
+      run: |
+        echo "${{ secrets.GITHUB_TOKEN }}" | docker login docker.pkg.github.com -u awslabs --password-stdin
+        docker pull docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-al2-arm64:${{ steps.release.outputs.release_tag }}
+        docker run --env GITHUB_REF docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-al2-arm64:${{ steps.release.outputs.release_tag }} -p aws-c-common build default-downstream --compiler=clang-9
+
+  aws-c-common-osx:
+    name: OSX aws-c-common test build
+    runs-on: 'macos-latest'
+    if: github.event_name != 'release'
+    needs: package
+
+    steps:
+    - name: Checkout Source
+      uses: actions/checkout@v1
+    
+    - name: Install builder
+      uses: actions/download-artifact@v1
+      with:
+        name: builder
+    - run: |
+        cp builder/builder /usr/local/bin/
+        chmod a+x /usr/local/bin/builder
+
+    - name: Build aws-c-common + consumers
+      run: builder -p aws-c-common --dump-config build default-downstream
+
+  aws-c-common-windows-vs2019:
+      name: Windows (VS2019) aws-c-common test build
+      runs-on: 'windows-latest'
+      if: github.event_name != 'release'
+      needs: package
+
+      steps:
+      - name: Checkout Source
+        uses: actions/checkout@v1
+      
+      - name: Install builder
+        uses: actions/download-artifact@v1
+        with:
+          name: builder
+
+      - name: Build aws-c-common + consumers
+        run: python builder\builder -p aws-c-common --dump-config build default-downstream
+
+  ci-passed:
+    name: Downstream Tests Passed
+    runs-on: 'ubuntu-latest'
+    needs: 
+    - aws-c-common-linux-x64
+    - aws-c-common-osx
+    - aws-c-common-windows-vs2019
+    - aws-c-common-alpine-armv7
+    - aws-c-common-arch-armv6
+    - aws-c-common-al2-armv8
+    steps:
+      - run: echo "All downstream tests passed"
