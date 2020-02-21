@@ -6,19 +6,19 @@ ENV DEBIAN_FRONTEND=noninteractive
 ###############################################################################	
 # Install prereqs	
 ###############################################################################	
-RUN apt-get update \	
-    apt-get install -y \	
-    git \	
-    curl \	
-    libssl-dev \	
+RUN apt-get update \
+    && apt-get install -y \
+    git \
+    curl \
+    libssl-dev \
     # Python	
-    python3 \	
-    python3-dev \	
-    python3-pip \	
-    build-essential \	
-    cmake \	
+    python3 \
+    python3-dev \
+    python3-pip \
+    build-essential \
+    cmake \
     # For PPAs	
-    software-properties-common \	
+    software-properties-common \
     apt-transport-https	\
     && apt-get clean
 
