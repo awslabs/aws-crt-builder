@@ -44,7 +44,6 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get -y install gcc g++ \
     --prefix=/opt/openssl --openssldir=/opt/openssl \
     && make build_generated && make -j libcrypto.a \
     && make install_sw \
-    && LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/openssl/lib /opt/openssl/bin/openssl version \
     && DEBIAN_FRONTEND=noninteractive apt-get remove -y gcc g++ \
     && apt autoremove -y \
     && apt-get clean \

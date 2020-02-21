@@ -39,6 +39,5 @@ RUN git clone https://github.com/openssl/openssl.git \
     -DSSL_FORBID_ENULL -DOPENSSL_NO_DTLS1 -DOPENSSL_NO_HEARTBEATS \	
     --prefix=/opt/openssl --openssldir=/opt/openssl \	
     && make build_generated && make -j libcrypto.a \		
-    && make install_sw \	
-    && LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/openssl/lib /opt/openssl/bin/openssl version \
+    && make install_sw \
     && rm -rf /tmp/build

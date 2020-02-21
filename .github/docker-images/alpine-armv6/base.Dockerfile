@@ -36,5 +36,4 @@ RUN git clone https://github.com/openssl/openssl.git \
     --prefix=/opt/openssl --openssldir=/opt/openssl \
     && make build_generated && make -j 3 libcrypto.a \
     && make install_sw \
-    && LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/openssl/lib /opt/openssl/bin/openssl version \
     && rm -rf /tmp/build
