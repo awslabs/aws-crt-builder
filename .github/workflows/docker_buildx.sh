@@ -45,8 +45,6 @@ login_to_registry() {
 }
 
 build_image() {
-  # pull previous image, ignore failure if it doesn't exist
-  docker pull "$(_get_full_image_name)":${INPUT_IMAGE_TAG} || true
   # build builder target image
   docker build \
     --build-arg BUILDKIT_INLINE_CACHE=1 \
@@ -54,9 +52,6 @@ build_image() {
     --load \
     ${INPUT_BUILD_EXTRA_ARGS} \
     ${INPUT_CONTEXT}
-
-  # push image
-  docker push "$(_get_full_image_name)":${INPUT_IMAGE_TAG}
 }
 
 logout_from_registry() {

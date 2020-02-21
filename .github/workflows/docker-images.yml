@@ -69,16 +69,15 @@ jobs:
     - run: echo "::set-env name=IMAGE_TAG::$(cat release_tag/tag)"
     
     - name: Build ${{ matrix.variant }} image
-      uses: whoan/docker-build-with-cache-action@v3
-      with:
-        username: awslabs
-        password: ${{ secrets.DOCKER_TOKEN }}
-        image_name: aws-crt-${{ matrix.variant }}
-        image_tag: ${{ env.IMAGE_TAG }}
-        registry: docker.pkg.github.com
-        context: .github/docker-images/${{ matrix.variant }}
-        dockerfile: base.Dockerfile
-        build_extra_args: '--compress=true'
+      run: ./.github/workflows/docker_buildx.sh \
+        docker.pkg.github.com \
+        awslabs \
+        ${{ secrets.DOCKER_TOKEN }} \
+        aws-crt-${{ matrix.variant }}-${{ matrix.variant }} \
+        ${{ env.IMAGE_TAG }} \
+        .github/docker-images/${{ matrix.variant }} \
+        --file=.github/docker-images/${{ matrix.variant }}/base.Dockerfile \
+        --compress=true
     
     - name: Export ${{ matrix.variant }} image
       run: |
@@ -105,7 +104,7 @@ jobs:
 
     - run: echo "::set-env name=IMAGE_TAG::$(cat release_tag/tag)"
 
-    - name: "Build ${{ matrix.arch }} image"
+    - name: "Build ${{ matrix.variant }}-${{ matrix.arch }} image"
       run: ./.github/workflows/docker_buildx.sh \
         docker.pkg.github.com \
         awslabs \
@@ -142,7 +141,7 @@ jobs:
 
     - run: echo "::set-env name=IMAGE_TAG::$(cat release_tag/tag)"
 
-    - name: "Build arm${{ matrix.arch }} image"
+    - name: "Build ${{ matrix.variant }}-arm${{ matrix.arch }} image"
       run: ./.github/workflows/docker_buildx.sh \
         docker.pkg.github.com \
         awslabs \
