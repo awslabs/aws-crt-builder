@@ -46,6 +46,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: tag
     strategy:
+      fail-fast: false
       matrix:
         variant: 
         - manylinux1-x86
@@ -125,6 +126,7 @@ jobs:
     runs-on: 'ubuntu-latest'
     needs: tag
     strategy:
+      fail-fast: false
       matrix:
         variant: [alpine, arch]
         arch: [v6, v7]
@@ -148,7 +150,7 @@ jobs:
         aws-crt-${{ matrix.variant }}-arm${{ matrix.arch }} \
         ${{ env.IMAGE_TAG }} \
         .github/docker-images/${{ matrix.variant }}-arm${{ matrix.arch }} \
-        --file=.github/docker-images/${{ matrix.variant }}-${{ matrix.arch }}/base.Dockerfile \
+        --file=.github/docker-images/${{ matrix.variant }}-arm${{ matrix.arch }}/base.Dockerfile \
         --compress=true --platform=linux/arm/${{ matrix.arch }}
 
     - name: Export ${{ matrix.variant }} arm${{ matrix.arch }} image
