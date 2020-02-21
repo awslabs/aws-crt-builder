@@ -50,6 +50,7 @@ build_image() {
   # build builder target image
   docker build \
     --build-arg BUILDKIT_INLINE_CACHE=1 \
+    --cache-to=type=inline,mode=max \
     --tag="$(_get_full_image_name)":${INPUT_IMAGE_TAG} \
     ${INPUT_BUILD_EXTRA_ARGS} \
     ${INPUT_CONTEXT}
