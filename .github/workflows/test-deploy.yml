@@ -105,7 +105,7 @@ jobs:
         run: aws s3 cp build/builder s3://$AWS_S3_BUCKET/${{ steps.release.outputs.release_tag }}/builder
 
   linux-x86-x64:
-  - name: ${{ matrix.variant }}
+    name: ${{ matrix.variant }}
     runs-on: ubuntu-latest
     needs: package
     strategy:
@@ -118,6 +118,7 @@ jobs:
           al2-x64
           ubuntu-16-x64
 
+    steps:
     - name: Fetch builder
       uses: actions/download-artifact@v1
       with:
@@ -153,6 +154,7 @@ jobs:
       matrix:
         variant: [al2]
         arch: [arm64]
+
     steps:
     - name: Checkout Sources
       uses: actions/checkout@v1
@@ -192,6 +194,7 @@ jobs:
       matrix:
         variant: [alpine, arch]
         arch: [v6, v7]
+        
     steps:
     - name: Checkout Sources
       uses: actions/checkout@v1

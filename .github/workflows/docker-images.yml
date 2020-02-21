@@ -22,7 +22,7 @@ env:
 
 jobs:
   linux-x86-x64:
-  - name: ${{ matrix.variant }}
+    name: ${{ matrix.variant }}
     runs-on: ubuntu-latest
     needs: package
     strategy:
