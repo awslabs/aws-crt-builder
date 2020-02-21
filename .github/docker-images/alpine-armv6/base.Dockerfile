@@ -25,8 +25,7 @@ RUN python3 -m pip install --upgrade pip setuptools virtualenv \
 # OpenSSL
 ###############################################################################
 WORKDIR /tmp/build
-RUN ([ -d /opt/openssl ] && rm -rf /opt/openssl) || true \
-    && git clone https://github.com/openssl/openssl.git \
+RUN git clone https://github.com/openssl/openssl.git \
     && cd openssl \
     && git checkout OpenSSL_1_1_1-stable \
     && ./config -fPIC \
