@@ -6,8 +6,8 @@ ENV DEBIAN_FRONTEND=noninteractive
 ###############################################################################	
 # Install prereqs	
 ###############################################################################	
-RUN apt-get update -qq \	
-    apt-get install -qq -y \	
+RUN apt-get update \	
+    apt-get install -y \	
     git \	
     curl \	
     libssl-dev \	
