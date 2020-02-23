@@ -36,7 +36,7 @@ RUN python3 -m pip install --upgrade pip setuptools virtualenv \
 ###############################################################################
 # OpenSSL
 ###############################################################################
-ADD https://d19elf31gohf1l.cloudfront.net/libcrypto/libcrypto-1.1.1-al2-arm64.tar.gz /opt/openssl
+ADD https://d19elf31gohf1l.cloudfront.net/_binaries/libcrypto/libcrypto-1.1.1-al2-arm64.tar.gz /opt/openssl
 # WORKDIR /tmp/build
 # RUN git clone https://github.com/openssl/openssl.git \
 #     && pushd openssl \

@@ -20,16 +20,17 @@ RUN /opt/python/cp37-cp37m/bin/python -m pip install --upgrade pip setuptools vi
 ###############################################################################
 # OpenSSL
 ###############################################################################
-WORKDIR /tmp/build
-RUN git clone https://github.com/openssl/openssl.git \
-    && pushd openssl \
-    && git checkout OpenSSL_1_1_1-stable \
-    && ./config -fPIC \
-    no-md2 no-rc5 no-rfc3779 no-sctp no-ssl-trace no-zlib no-hw no-mdc2 \
-    no-seed no-idea no-camellia no-bf no-dsa no-ssl3 no-capieng \
-    no-unit-test no-tests \
-    -DSSL_FORBID_ENULL -DOPENSSL_NO_DTLS1 -DOPENSSL_NO_HEARTBEATS \
-    --prefix=/opt/openssl --openssldir=/opt/openssl \
-    && make build_generated && make -j libcrypto.a \
-    && make install_sw \
-    && rm -rf /tmp/build
+ADD https://d19elf31gohf1l.cloudfront.net/_binaries/libcrypto/libcrypto-1.1.1-manylinux2014-x64.tar.gz /opt/openssl
+# WORKDIR /tmp/build
+# RUN git clone https://github.com/openssl/openssl.git \
+#     && pushd openssl \
+#     && git checkout OpenSSL_1_1_1-stable \
+#     && ./config -fPIC \
+#     no-md2 no-rc5 no-rfc3779 no-sctp no-ssl-trace no-zlib no-hw no-mdc2 \
+#     no-seed no-idea no-camellia no-bf no-dsa no-ssl3 no-capieng \
+#     no-unit-test no-tests \
+#     -DSSL_FORBID_ENULL -DOPENSSL_NO_DTLS1 -DOPENSSL_NO_HEARTBEATS \
+#     --prefix=/opt/openssl --openssldir=/opt/openssl \
+#     && make build_generated && make -j libcrypto.a \
+#     && make install_sw \
+#     && rm -rf /tmp/build
