@@ -110,13 +110,13 @@ jobs:
     needs: package
     strategy:
       matrix:
-        variant: |
-          manylinux1-x86
-          manylinux1-x64
-          manylinux2014-x86
-          manylinux2014-x64
-          al2-x64
-          ubuntu-16-x64
+        variant:
+        - manylinux1-x86
+        - manylinux1-x64
+        - manylinux2014-x86
+        - manylinux2014-x64
+        - al2-x64
+        - ubuntu-16-x64
 
     steps:
     - name: Fetch builder
