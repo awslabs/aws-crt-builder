@@ -6,4 +6,5 @@ ADD base.tar /
 ###############################################################################
 ADD builder /usr/local/bin/builder
 COPY entrypoint.sh /entrypoint.sh
-CMD ["/bin/sh", "/entrypoint.sh"]
+CMD ["/bin/sh", "-c"]
+ENTRYPOINT ["/entrypoint.sh"]
