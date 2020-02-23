@@ -1,6 +1,5 @@
 FROM arm64v8/amazonlinux:latest
 
-SHELL ["/bin/bash", "-c"]
 
 ###############################################################################
 # Install prereqs

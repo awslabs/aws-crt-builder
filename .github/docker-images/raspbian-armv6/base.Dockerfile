@@ -1,6 +1,5 @@
 FROM raspbian/stretch
 
-SHELL ["/bin/bash", "-c"]
 ENV DEBIAN_FRONTEND=noninteractive
 
 ###############################################################################

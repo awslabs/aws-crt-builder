@@ -1,6 +1,5 @@
 FROM amazonlinux:latest
 
-SHELL ["/bin/bash", "-c"]
 
 ###############################################################################
 # Install prereqs
