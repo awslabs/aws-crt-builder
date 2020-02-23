@@ -7,4 +7,4 @@ ADD base.tar /
 ADD builder /usr/local/bin/builder.pyz
 COPY entrypoint.sh /usr/local/bin/builder
 CMD ["/bin/sh", "-c"]
-ENTRYPOINT ["/entrypoint.sh"]
+ENTRYPOINT ["/usr/local/bin/builder"]
