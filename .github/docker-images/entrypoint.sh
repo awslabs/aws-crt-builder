@@ -2,7 +2,7 @@
 
 set -ex
 
-builder=/usr/local/bin/builder
+builder=/usr/local/bin/builder.pyz
 chmod a+x $builder
 # on manylinux, use the latest python3
 if [ -x /opt/python/cp37-cp37m/bin/python ]; then
