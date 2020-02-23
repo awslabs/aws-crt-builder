@@ -1,6 +1,5 @@
 FROM scratch
 ADD base.tar /
-CMD ["/bin/sh", "-c"]
 
 ###############################################################################
 # Install builder package
