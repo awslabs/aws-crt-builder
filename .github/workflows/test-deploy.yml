@@ -139,7 +139,7 @@ jobs:
     - run: echo "::set-env name=IMAGE_TAG::$(cat release_tag/tag)"
 
     - name: Import ${{ matrix.variant }}:${{ env.IMAGE_TAG }} image from S3
-      run: aws s3 cp --no-progress s3://${{env.AWS_S3_BUCKET}}/_docker/aws-crt-${{ matrix.variant }}-${{ env.IMAGE_TAG }}.tar .github/docker-images/${{ matrix.variant }}-arm${{ matrix.arch }}/base.tar
+      run: aws s3 cp --no-progress s3://${{env.AWS_S3_BUCKET}}/_docker/aws-crt-${{ matrix.variant }}-${{ env.IMAGE_TAG }}.tar .github/docker-images/${{ matrix.variant }}/base.tar
 
     - name: Build ${{ matrix.variant }} image
       uses: whoan/docker-build-with-cache-action@v3
