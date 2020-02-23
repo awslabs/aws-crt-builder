@@ -377,7 +377,7 @@ jobs:
     - aws-c-common-osx
     - aws-c-common-windows-vs2019
     - aws-c-common-alpine-armv7
-    - aws-c-common-arch-armv6
+    - aws-c-common-raspbian-armv6
     - aws-c-common-al2-armv8
     steps:
       - run: echo "All downstream tests passed"
