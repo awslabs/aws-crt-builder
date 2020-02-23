@@ -24,15 +24,16 @@ RUN /opt/python/cp37-cp37m/bin/python -m pip install --upgrade pip setuptools vi
 ###############################################################################
 # CMake
 ###############################################################################
-WORKDIR /tmp/build
-RUN curl -LO https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}.tar.gz \
-    && tar xzf cmake-${CMAKE_VERSION}.tar.gz \
-    && cd cmake-${CMAKE_VERSION} \
-    && ./bootstrap -- -DCMAKE_BUILD_TYPE=Release \
-    && make \
-    && make install \
-    && cmake --version \
-    && rm -rf /tmp/build
+ADD https://d19elf31gohf1l.cloudfront.net/_binaries/cmake/cmake-3.13-manylinux1-x64.tar.gz /usr/local
+# WORKDIR /tmp/build
+# RUN curl -LO https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}.tar.gz \
+#     && tar xzf cmake-${CMAKE_VERSION}.tar.gz \
+#     && cd cmake-${CMAKE_VERSION} \
+#     && ./bootstrap -- -DCMAKE_BUILD_TYPE=Release \
+#     && make \
+#     && make install \
+#     && cmake --version \
+#     && rm -rf /tmp/build
 
 ###############################################################################
 # OpenSSL
