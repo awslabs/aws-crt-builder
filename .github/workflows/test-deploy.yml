@@ -138,8 +138,8 @@ jobs:
     - run: cp .github/docker-images/entrypoint.sh .github/docker-images/${{ matrix.variant }}/entrypoint.sh
     - run: echo "::set-env name=IMAGE_TAG::$(cat release_tag/tag)"
 
-    - name: Import ${{ matrix.variant }}:${{ env.IMAGE_TAG }} image from S3
-      run: aws s3 cp --no-progress s3://${{env.AWS_S3_BUCKET}}/_docker/aws-crt-${{ matrix.variant }}-${{ env.IMAGE_TAG }}.tar .github/docker-images/${{ matrix.variant }}/base.tar
+    - name: Import ${{ matrix.variant }}:base-${{ env.IMAGE_TAG }} image from S3
+      run: aws s3 cp --no-progress s3://${{env.AWS_S3_BUCKET}}/_docker/aws-crt-${{ matrix.variant }}-base-${{ env.IMAGE_TAG }}.tar .github/docker-images/${{ matrix.variant }}/base.tar
 
     - name: Build ${{ matrix.variant }} image
       uses: whoan/docker-build-with-cache-action@v3
@@ -181,8 +181,8 @@ jobs:
     - run: cp .github/docker-images/entrypoint.sh .github/docker-images/${{ matrix.variant }}-${{ matrix.arch }}/entrypoint.sh
     - run: echo "::set-env name=IMAGE_TAG::$(cat release_tag/tag)"
 
-    - name: Import ${{ matrix.variant }}-${{ matrix.arch }}-${{ env.IMAGE_TAG }} image from S3
-      run: aws s3 cp --no-progress s3://${{env.AWS_S3_BUCKET}}/_docker/aws-crt-${{ matrix.variant }}-${{ matrix.arch }}-${{ env.IMAGE_TAG }}.tar .github/docker-images/${{ matrix.variant }}-${{ matrix.arch }}/base.tar
+    - name: Import ${{ matrix.variant }}-${{ matrix.arch }}-base-${{ env.IMAGE_TAG }} image from S3
+      run: aws s3 cp --no-progress s3://${{env.AWS_S3_BUCKET}}/_docker/aws-crt-${{ matrix.variant }}-${{ matrix.arch }}-base-${{ env.IMAGE_TAG }}.tar .github/docker-images/${{ matrix.variant }}-${{ matrix.arch }}/base.tar
 
     - name: Build ${{ matrix.variant }}-${{ matrix.arch }} image
       uses: whoan/docker-build-with-cache-action@v3
@@ -223,8 +223,8 @@ jobs:
     - run: cp .github/docker-images/entrypoint.sh .github/docker-images/${{ matrix.variant }}-arm${{ matrix.arch }}/entrypoint.sh
     - run: echo "::set-env name=IMAGE_TAG::$(cat release_tag/tag)"
 
-    - name: Import ${{ matrix.variant }}-arm${{ matrix.arch }}-${{ env.IMAGE_TAG }} image from S3
-      run: aws s3 cp --no-progress s3://${{env.AWS_S3_BUCKET}}/_docker/aws-crt-${{ matrix.variant }}-arm${{ matrix.arch }}-${{ env.IMAGE_TAG }}.tar .github/docker-images/${{ matrix.variant }}-arm${{ matrix.arch }}/base.tar
+    - name: Import ${{ matrix.variant }}-arm${{ matrix.arch }}-base-${{ env.IMAGE_TAG }} image from S3
+      run: aws s3 cp --no-progress s3://${{env.AWS_S3_BUCKET}}/_docker/aws-crt-${{ matrix.variant }}-arm${{ matrix.arch }}-base-${{ env.IMAGE_TAG }}.tar .github/docker-images/${{ matrix.variant }}-arm${{ matrix.arch }}/base.tar
 
     - name: "Build arm${{ matrix.arch }} image"
       run: ./.github/workflows/docker_buildx.sh \
