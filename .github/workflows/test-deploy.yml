@@ -6,7 +6,6 @@ on:
       - '*'
       - '!master'
     paths:
-      - '.github/actions/**'
       - '.github/workflows/test-deploy.yml'
       - 'builder/**'
   release:
