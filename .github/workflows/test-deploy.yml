@@ -7,7 +7,7 @@ on:
       - '!master'
     paths:
       - '.github/workflows/test-deploy.yml'
-      - '.github/docker-images/**/Dockerfile'
+      - '.github/docker-images/Dockerfile'
       - 'builder/**'
   release:
     types: [published]
