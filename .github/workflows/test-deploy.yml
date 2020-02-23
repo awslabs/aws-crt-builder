@@ -293,7 +293,7 @@ jobs:
     name: Alpine ARMv7 aws-c-common test build
     runs-on: 'ubuntu-latest'
     if: github.event_name != 'release'
-    needs: alpine-arm32
+    needs: linux-arm32
 
     steps:
     - name: Checkout Source
@@ -317,7 +317,7 @@ jobs:
     name: al2 armv8 aws-c-common test build
     runs-on: 'ubuntu-latest'
     if: github.event_name != 'release'
-    needs: linux-arm32
+    needs: linux-arm64
 
     steps:
     - name: Checkout Source
