@@ -150,6 +150,7 @@ jobs:
         image_tag: ${{ env.IMAGE_TAG }}
         registry: docker.pkg.github.com
         context: .github/docker-images/${{ matrix.variant }}
+        dockerfile: .github/docker-images/Dockerfile
         build_extra_args: "--compress=true"
 
   linux-arm64:
@@ -193,6 +194,7 @@ jobs:
         image_tag: ${{ env.IMAGE_TAG }}
         registry: docker.pkg.github.com
         context: .github/docker-images/${{ matrix.variant }}-${{ matrix.arch }}
+        dockerfile: .github/docker-images/Dockerfile
         build_extra_args: "--compress=true"
 
   linux-arm32:
@@ -234,7 +236,8 @@ jobs:
         awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}-arm${{ matrix.arch }} \
         ${{ env.IMAGE_TAG }} \
         .github/docker-images/${{ matrix.variant }}-arm${{ matrix.arch }} \
-        --compress=true --platform=linux/arm/${{ matrix.arch }}
+        --compress=true --platform=linux/arm/${{ matrix.arch }} \
+        --file=.github/docker-images/Dockerfile
 
   # When all the images are built, run a downstream test
   aws-c-common-linux-x64:
