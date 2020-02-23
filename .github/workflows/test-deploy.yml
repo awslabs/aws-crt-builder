@@ -135,7 +135,7 @@ jobs:
     - run: cp .github/docker-images/entrypoint-manylinux.sh .github/docker-images/${{ matrix.variant }}/entrypoint.sh
     - run: echo "::set-env name=IMAGE_TAG::$(cat release_tag/tag)"
 
-    - name: Import ${{ matrix.variant }}:${{ env.IMAGE_TAG }} image to cache
+    - name: Import ${{ matrix.variant }}:${{ env.IMAGE_TAG }} image from S3
       run: aws s3 cp --no-progress \
         s3://${{env.AWS_S3_BUCKET}}/_docker/aws-crt-${{ matrix.variant }}-${{ env.IMAGE_TAG }}.tar \
         .github/docker-images/${{ matrix.variant }}-arm${{ matrix.arch }}/base.tar
@@ -180,7 +180,7 @@ jobs:
     - run: cp .github/docker-images/entrypoint.sh .github/docker-images/${{ matrix.variant }}-${{ matrix.arch }}/entrypoint.sh
     - run: echo "::set-env name=IMAGE_TAG::$(cat release_tag/tag)"
 
-    - name: Import ${{ matrix.variant }}-${{ matrix.arch }}-${{ env.IMAGE_TAG }} image to cache
+    - name: Import ${{ matrix.variant }}-${{ matrix.arch }}-${{ env.IMAGE_TAG }} image from S3
       run: aws s3 cp --no-progress \
         s3://${{env.AWS_S3_BUCKET}}/_docker/aws-crt-${{ matrix.variant }}-${{ matrix.arch }}-${{ env.IMAGE_TAG }}.tar \
         .github/docker-images/${{ matrix.variant }}-${{ matrix.arch }}/base.tar
@@ -228,7 +228,7 @@ jobs:
     - run: cp .github/docker-images/entrypoint.sh .github/docker-images/${{ matrix.variant }}-arm${{ matrix.arch }}/entrypoint.sh
     - run: echo "::set-env name=IMAGE_TAG::$(cat release_tag/tag)"
 
-    - name: Import ${{ matrix.variant }}-arm${{ matrix.arch }}-${{ env.IMAGE_TAG }} image to cache
+    - name: Import ${{ matrix.variant }}-arm${{ matrix.arch }}-${{ env.IMAGE_TAG }} image from S3
       run: aws s3 cp --no-progress \
         s3://${{env.AWS_S3_BUCKET}}/_docker/aws-crt-${{ matrix.variant }}-arm${{ matrix.arch }}-${{ env.IMAGE_TAG }}.tar \
         .github/docker-images/${{ matrix.variant }}-arm${{ matrix.arch }}/base.tar
