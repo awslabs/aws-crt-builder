@@ -124,7 +124,7 @@ jobs:
       with:
         name: builder
 
-    - run: mv builder/builder .github/docker-images/${{ matrix.image_name }}-${{ matrix.image_arch }}/
+    - run: mv builder/builder .github/docker-images/${{ matrix.variant }}/
 
     - name: Fetch release_tag
       uses: actions/download-artifact@v1
@@ -136,9 +136,7 @@ jobs:
     - run: echo "::set-env name=IMAGE_TAG::$(cat release_tag/tag)"
 
     - name: Import ${{ matrix.variant }}:${{ env.IMAGE_TAG }} image from S3
-      run: aws s3 cp --no-progress \
-        s3://${{env.AWS_S3_BUCKET}}/_docker/aws-crt-${{ matrix.variant }}-${{ env.IMAGE_TAG }}.tar \
-        .github/docker-images/${{ matrix.variant }}-arm${{ matrix.arch }}/base.tar
+      run: aws s3 cp --no-progress s3://${{env.AWS_S3_BUCKET}}/_docker/aws-crt-${{ matrix.variant }}-${{ env.IMAGE_TAG }}.tar .github/docker-images/${{ matrix.variant }}-arm${{ matrix.arch }}/base.tar
 
     - name: Build ${{ matrix.variant }} image
       uses: whoan/docker-build-with-cache-action@v3
@@ -181,9 +179,7 @@ jobs:
     - run: echo "::set-env name=IMAGE_TAG::$(cat release_tag/tag)"
 
     - name: Import ${{ matrix.variant }}-${{ matrix.arch }}-${{ env.IMAGE_TAG }} image from S3
-      run: aws s3 cp --no-progress \
-        s3://${{env.AWS_S3_BUCKET}}/_docker/aws-crt-${{ matrix.variant }}-${{ matrix.arch }}-${{ env.IMAGE_TAG }}.tar \
-        .github/docker-images/${{ matrix.variant }}-${{ matrix.arch }}/base.tar
+      run: aws s3 cp --no-progress s3://${{env.AWS_S3_BUCKET}}/_docker/aws-crt-${{ matrix.variant }}-${{ matrix.arch }}-${{ env.IMAGE_TAG }}.tar .github/docker-images/${{ matrix.variant }}-${{ matrix.arch }}/base.tar
 
     - name: Build ${{ matrix.variant }}-${{ matrix.arch }} image
       uses: whoan/docker-build-with-cache-action@v3
@@ -216,8 +212,7 @@ jobs:
     - run: mv builder/builder .github/docker-images/${{ matrix.variant }}-arm${{ matrix.arch }}/
 
     - name: Fetch libcrypto
-      run: |
-        aws s3 cp s3://$AWS_S3_BUCKET/openssl/openssl-1.1.1-arm${{ matrix.arch }}.tar.gz .github/docker-images/${{ matrix.variant }}-arm${{matrix.arch}}/openssl-1.1.1.tar.gz
+      run: aws s3 cp s3://$AWS_S3_BUCKET/openssl/openssl-1.1.1-arm${{ matrix.arch }}.tar.gz .github/docker-images/${{ matrix.variant }}-arm${{matrix.arch}}/openssl-1.1.1.tar.gz
 
     - name: Fetch release_tag
       uses: actions/download-artifact@v1
@@ -229,9 +224,7 @@ jobs:
     - run: echo "::set-env name=IMAGE_TAG::$(cat release_tag/tag)"
 
     - name: Import ${{ matrix.variant }}-arm${{ matrix.arch }}-${{ env.IMAGE_TAG }} image from S3
-      run: aws s3 cp --no-progress \
-        s3://${{env.AWS_S3_BUCKET}}/_docker/aws-crt-${{ matrix.variant }}-arm${{ matrix.arch }}-${{ env.IMAGE_TAG }}.tar \
-        .github/docker-images/${{ matrix.variant }}-arm${{ matrix.arch }}/base.tar
+      run: aws s3 cp --no-progress s3://${{env.AWS_S3_BUCKET}}/_docker/aws-crt-${{ matrix.variant }}-arm${{ matrix.arch }}-${{ env.IMAGE_TAG }}.tar .github/docker-images/${{ matrix.variant }}-arm${{ matrix.arch }}/base.tar
 
     - name: "Build arm${{ matrix.arch }} image"
       run: ./.github/workflows/docker_buildx.sh \
