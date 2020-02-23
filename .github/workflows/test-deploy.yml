@@ -127,7 +127,7 @@ jobs:
       with:
         name: builder
 
-    - run: mv builder/builder .github/docker-images/${{ matrix.variant }}/
+    - run: cp builder/builder .github/docker-images/Dockerfile .github/docker-images/${{ matrix.variant }}/
 
     - name: Fetch release_tag
       uses: actions/download-artifact@v1
@@ -150,7 +150,6 @@ jobs:
         image_tag: ${{ env.IMAGE_TAG }}
         registry: docker.pkg.github.com
         context: .github/docker-images/${{ matrix.variant }}
-        dockerfile: .github/docker-images/Dockerfile
         build_extra_args: "--compress=true"
 
   linux-arm64:
@@ -171,7 +170,7 @@ jobs:
       with:
         name: builder
 
-    - run: mv builder/builder .github/docker-images/${{ matrix.variant }}-${{ matrix.arch }}/
+    - run: cp builder/builder .github/docker-images/Dockerfile .github/docker-images/${{ matrix.variant }}-${{ matrix.arch }}/
 
     - name: Fetch release_tag
       uses: actions/download-artifact@v1
@@ -194,7 +193,6 @@ jobs:
         image_tag: ${{ env.IMAGE_TAG }}
         registry: docker.pkg.github.com
         context: .github/docker-images/${{ matrix.variant }}-${{ matrix.arch }}
-        dockerfile: .github/docker-images/Dockerfile
         build_extra_args: "--compress=true"
 
   linux-arm32:
@@ -214,7 +212,7 @@ jobs:
       uses: actions/download-artifact@v1
       with:
         name: builder
-    - run: mv builder/builder .github/docker-images/${{ matrix.variant }}-arm${{ matrix.arch }}/
+    - run: cp builder/builder .github/docker-images/Dockerfile .github/docker-images/${{ matrix.variant }}-arm${{ matrix.arch }}/
 
     - name: Fetch release_tag
       uses: actions/download-artifact@v1
