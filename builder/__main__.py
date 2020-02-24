@@ -12,6 +12,7 @@
 # permissions and limitations under the License.
 
 from __future__ import print_function
+import argparse
 import os
 import sys
 
@@ -144,8 +145,6 @@ def parse_extra_args(env):
 
 
 def parse_args():
-    import argparse
-
     parser = argparse.ArgumentParser()
     parser.add_argument('-d', '--dry-run', action='store_true',
                         help="Don't run the build, just print the commands that would run")
