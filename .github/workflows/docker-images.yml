@@ -114,8 +114,8 @@ jobs:
 
     - name: Install builder
       run: |
-        aws s3 cp s3://$AWS_S3_BUCKET/$IMAGE_TAG/builder .github/docker-images/${{ matrix.variant }}/builder
-        cp .github/docker-images/entrypoint.sh .github/docker-images/${{ matrix.variant }}/entrypoint.sh
+        aws s3 cp s3://$AWS_S3_BUCKET/$IMAGE_TAG/builder ./.github/docker-images/${{ matrix.variant }}/builder
+        cp ./.github/docker-images/entrypoint.sh ./.github/docker-images/${{ matrix.variant }}/entrypoint.sh
 
     - name: Build ${{ matrix.variant }} image
       run: ./.github/workflows/docker_buildx.sh \
@@ -124,8 +124,7 @@ jobs:
         ${{ secrets.DOCKER_TOKEN }} \
         awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }} \
         ${{ env.IMAGE_TAG }} \
-        .github/docker-images/${{ matrix.variant }} \
-        --file=.github/docker-images/${{ matrix.variant }}/Dockerfile \
+        ./.github/docker-images/${{ matrix.variant }} \
         --compress=true
 
     - name: Export ${{ matrix.variant }} image
@@ -156,8 +155,8 @@ jobs:
 
     - name: Install builder
       run: |
-        aws s3 cp s3://$AWS_S3_BUCKET/$IMAGE_TAG/builder .github/docker-images/${{ matrix.variant }}-${{ matrix.arch }}/builder
-        cp .github/docker-images/entrypoint.sh .github/docker-images/${{ matrix.variant }}-${{ matrix.arch }}/entrypoint.sh
+        aws s3 cp s3://$AWS_S3_BUCKET/$IMAGE_TAG/builder ./.github/docker-images/${{ matrix.variant }}-${{ matrix.arch }}/builder
+        cp ./.github/docker-images/entrypoint.sh ./.github/docker-images/${{ matrix.variant }}-${{ matrix.arch }}/entrypoint.sh
 
     - name: "Build ${{ matrix.variant }}-${{ matrix.arch }} image"
       run: ./.github/workflows/docker_buildx.sh \
@@ -166,8 +165,7 @@ jobs:
         ${{ secrets.DOCKER_TOKEN }} \
         awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}-${{ matrix.arch }} \
         ${{ env.IMAGE_TAG }} \
-        .github/docker-images/${{ matrix.variant }}-${{ matrix.arch }} \
-        --file=.github/docker-images/${{ matrix.variant }}-${{ matrix.arch }}/Dockerfile \
+        ./.github/docker-images/${{ matrix.variant }}-${{ matrix.arch }} \
         --compress=true --platform=linux/${{ matrix.arch }}
 
     - name: Export ${{ matrix.variant }} ${{ matrix.arch }} image
@@ -199,8 +197,8 @@ jobs:
 
     - name: Install builder
       run: |
-        aws s3 cp s3://$AWS_S3_BUCKET/$IMAGE_TAG/builder .github/docker-images/${{ matrix.variant }}-${{ matrix.arch }}/builder
-        cp .github/docker-images/entrypoint.sh .github/docker-images/${{ matrix.variant }}-${{ matrix.arch }}/entrypoint.sh
+        aws s3 cp s3://$AWS_S3_BUCKET/$IMAGE_TAG/builder ./.github/docker-images/${{ matrix.variant }}-${{ matrix.arch }}/builder
+        cp ./.github/docker-images/entrypoint.sh ./.github/docker-images/${{ matrix.variant }}-${{ matrix.arch }}/entrypoint.sh
 
     - name: "Build ${{ matrix.variant }}-arm${{ matrix.arch }} image"
       run: ./.github/workflows/docker_buildx.sh \
@@ -209,8 +207,7 @@ jobs:
         ${{ secrets.DOCKER_TOKEN }} \
         awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}-arm${{ matrix.arch }} \
         ${{ env.IMAGE_TAG }} \
-        .github/docker-images/${{ matrix.variant }}-arm${{ matrix.arch }} \
-        --file=.github/docker-images/${{ matrix.variant }}-arm${{ matrix.arch }}/Dockerfile \
+        ./.github/docker-images/${{ matrix.variant }}-arm${{ matrix.arch }} \
         --compress=true --platform=linux/arm/${{ matrix.arch }}
 
     - name: Export ${{ matrix.variant }} arm${{ matrix.arch }} image
