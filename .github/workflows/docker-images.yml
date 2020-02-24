@@ -113,11 +113,9 @@ jobs:
       run: echo "::set-env name=IMAGE_TAG::$(cat release_tag/tag)"
 
     - name: Install builder
-      uses: actions/download-artifact@v1
-      with:
-        name: builder
-    - run: cp builder/builder .github/docker-images/${{ matrix.variant }}/builder
-    - run: cp .github/docker-images/entrypoint.sh .github/docker-images/${{ matrix.variant }}/entrypoint.sh
+      run: |
+        aws s3 cp s3://$AWS_S3_BUCKET/${{ steps.release.outputs.release_tag }}/builder .github/docker-images/${{ matrix.variant }}/builder
+        cp .github/docker-images/entrypoint.sh .github/docker-images/${{ matrix.variant }}/entrypoint.sh
 
     - name: Build ${{ matrix.variant }} image
       run: ./.github/workflows/docker_buildx.sh \
@@ -157,12 +155,9 @@ jobs:
       run: echo "::set-env name=IMAGE_TAG::$(cat release_tag/tag)"
 
     - name: Install builder
-      uses: actions/download-artifact@v1
-      with:
-        name: builder
-
-    - run: cp builder/builder .github/docker-images/${{ matrix.variant }}-${{ matrix.arch }}/builder
-    - run: cp .github/docker-images/entrypoint.sh .github/docker-images/${{ matrix.variant }}-${{ matrix.arch }}/entrypoint.sh
+      run: |
+        aws s3 cp s3://$AWS_S3_BUCKET/${{ steps.release.outputs.release_tag }}/builder .github/docker-images/${{ matrix.variant }}-${{ matrix.arch }}/builder
+        cp .github/docker-images/entrypoint.sh .github/docker-images/${{ matrix.variant }}-${{ matrix.arch }}/entrypoint.sh
 
     - name: "Build ${{ matrix.variant }}-${{ matrix.arch }} image"
       run: ./.github/workflows/docker_buildx.sh \
@@ -203,12 +198,9 @@ jobs:
       run: echo "::set-env name=IMAGE_TAG::$(cat release_tag/tag)"
 
     - name: Install builder
-      uses: actions/download-artifact@v1
-      with:
-        name: builder
-
-    - run: cp builder/builder .github/docker-images/${{ matrix.variant }}-${{ matrix.arch }}/builder
-    - run: cp .github/docker-images/entrypoint.sh .github/docker-images/${{ matrix.variant }}-${{ matrix.arch }}/entrypoint.sh
+      run: |
+        aws s3 cp s3://$AWS_S3_BUCKET/${{ steps.release.outputs.release_tag }}/builder .github/docker-images/${{ matrix.variant }}-${{ matrix.arch }}/builder
+        cp .github/docker-images/entrypoint.sh .github/docker-images/${{ matrix.variant }}-${{ matrix.arch }}/entrypoint.sh
 
     - name: "Build ${{ matrix.variant }}-arm${{ matrix.arch }} image"
       run: ./.github/workflows/docker_buildx.sh \
