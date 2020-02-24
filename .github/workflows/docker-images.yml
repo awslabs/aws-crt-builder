@@ -114,7 +114,7 @@ jobs:
 
     - name: Install builder
       run: |
-        aws s3 cp s3://$AWS_S3_BUCKET/${{ steps.release.outputs.release_tag }}/builder .github/docker-images/${{ matrix.variant }}/builder
+        aws s3 cp s3://$AWS_S3_BUCKET/$IMAGE_TAG/builder .github/docker-images/${{ matrix.variant }}/builder
         cp .github/docker-images/entrypoint.sh .github/docker-images/${{ matrix.variant }}/entrypoint.sh
 
     - name: Build ${{ matrix.variant }} image
@@ -156,7 +156,7 @@ jobs:
 
     - name: Install builder
       run: |
-        aws s3 cp s3://$AWS_S3_BUCKET/${{ steps.release.outputs.release_tag }}/builder .github/docker-images/${{ matrix.variant }}-${{ matrix.arch }}/builder
+        aws s3 cp s3://$AWS_S3_BUCKET/$IMAGE_TAG/builder .github/docker-images/${{ matrix.variant }}-${{ matrix.arch }}/builder
         cp .github/docker-images/entrypoint.sh .github/docker-images/${{ matrix.variant }}-${{ matrix.arch }}/entrypoint.sh
 
     - name: "Build ${{ matrix.variant }}-${{ matrix.arch }} image"
@@ -199,7 +199,7 @@ jobs:
 
     - name: Install builder
       run: |
-        aws s3 cp s3://$AWS_S3_BUCKET/${{ steps.release.outputs.release_tag }}/builder .github/docker-images/${{ matrix.variant }}-${{ matrix.arch }}/builder
+        aws s3 cp s3://$AWS_S3_BUCKET/$IMAGE_TAG/builder .github/docker-images/${{ matrix.variant }}-${{ matrix.arch }}/builder
         cp .github/docker-images/entrypoint.sh .github/docker-images/${{ matrix.variant }}-${{ matrix.arch }}/entrypoint.sh
 
     - name: "Build ${{ matrix.variant }}-arm${{ matrix.arch }} image"
