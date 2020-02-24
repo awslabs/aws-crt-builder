@@ -197,8 +197,8 @@ jobs:
 
     - name: Install builder
       run: |
-        aws s3 cp s3://$AWS_S3_BUCKET/$IMAGE_TAG/builder .github/docker-images/${{ matrix.variant }}-${{ matrix.arch }}/builder
-        cp -v .github/docker-images/entrypoint.sh .github/docker-images/${{ matrix.variant }}-${{ matrix.arch }}/entrypoint.sh
+        aws s3 cp s3://$AWS_S3_BUCKET/$IMAGE_TAG/builder .github/docker-images/${{ matrix.variant }}-arm${{ matrix.arch }}/builder
+        cp -v .github/docker-images/entrypoint.sh .github/docker-images/${{ matrix.variant }}-arm${{ matrix.arch }}/entrypoint.sh
 
     - name: "Build ${{ matrix.variant }}-arm${{ matrix.arch }} image"
       run: .github/workflows/docker_buildx.sh \
