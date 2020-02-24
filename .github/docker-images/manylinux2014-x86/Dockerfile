@@ -56,6 +56,6 @@ ADD https://d19elf31gohf1l.cloudfront.net/_binaries/libcrypto/libcrypto-1.1.1-ma
 # Install builder package
 ###############################################################################
 ADD builder /usr/local/bin/builder.pyz
-COPY entrypoint.sh /usr/local/bin/builder
+ADD entrypoint.sh /usr/local/bin/builder
 RUN chmod a+x /usr/local/bin/builder.pyz /usr/local/bin/builder
 ENTRYPOINT ["/usr/local/bin/builder"]
