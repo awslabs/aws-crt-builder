@@ -1,4 +1,4 @@
-name: Test & Deploy
+name: Sanity Tests
 
 on:
   push:
