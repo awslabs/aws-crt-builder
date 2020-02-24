@@ -44,7 +44,7 @@ jobs:
   package:
     name: Package builder app
     runs-on: ubuntu-latest
-    needs: sanity_test
+    needs: tag
 
     steps:
       - name: Checkout Source
