@@ -147,10 +147,6 @@ if __name__ == '__main__':
     import argparse
 
     parser = argparse.ArgumentParser()
-    # just ignore run for backwards compatibility
-    parser.add_argument('command', type=str, action='store',
-                        default='inspect')
-    parser.add_argument('spec', type=str, action='store', nargs='?')
     parser.add_argument('-d', '--dry-run', action='store_true',
                         help="Don't run the build, just print the commands that would run")
     parser.add_argument('-p', '--project', action='store',
@@ -164,8 +160,26 @@ if __name__ == '__main__':
                         help='Directory to work in', default='.')
     parser.add_argument('args', nargs=argparse.REMAINDER)
 
+    # hand parse command and spec from within the args given
+    argv = []
+    command = None
+    spec = None
+    args = list(sys.argv[1:])
+    arg = args.pop(0)
+    while arg:
+        if not command and not arg.startswith('-'):
+            command = arg
+            if len(args) >= 1 and not args[0].startswith('-'):
+                spec = args.pop(0)
+        else:
+            argv.append(arg)
+        arg = args.pop(0) if len(args) > 0 else None
+
     # parse the args we know, put the rest in args.args for others to parse
-    args, extras = parser.parse_known_args()
+    args, extras = parser.parse_known_args(argv)
+    args.command = command
+    if not args.spec:
+        args.spec = spec
     args.args += extras
     # Backwards compat for `builder run $action`
     if args.command == 'run':
