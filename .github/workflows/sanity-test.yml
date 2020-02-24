@@ -23,31 +23,31 @@ jobs:
       - name: Sanity Test Run Compat (Unix)
         if:  matrix.host != 'windows-latest'
         run: |
-          python3 -m builder --project tests run test
+          python3 -m builder run test --project tests
 
       - name: Sanity Test Action (Unix)
         if:  matrix.host != 'windows-latest'
         run: |
-          python3 -m builder --project tests test
+          python3 -m builder test --project tests
 
       - name: Sanity Test Build (Unix)
         if:  matrix.host != 'windows-latest'
         run: |
-          python3 -m builder --project tests build
+          python3 -m builder build --project tests
 
       - name: Sanity Test Run Compat (Windows)
         if: matrix.host == 'windows-latest'
         run: |
           choco install --no-progress vswhere
-          python -m builder --project tests run test
+          python -m builder run test --project tests
 
       - name: Sanity Test Action (Windows)
         if: matrix.host == 'windows-latest'
         run: |
           choco install --no-progress vswhere
-          python -m builder --project tests test
+          python -m builder test --project tests
 
       - name: Sanity Test Build (Windows)
         if: matrix.host == 'windows-latest'
         run: |
-          python -m builder --project tests build
+          python -m builder build --project tests
