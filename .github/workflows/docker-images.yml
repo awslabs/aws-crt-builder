@@ -331,7 +331,7 @@ jobs:
         chmod a+x /usr/local/bin/builder
 
     - name: Build aws-c-common + consumers
-      run: builder -p aws-c-common --dump-config build default-downstream
+      run: builder build default-downstream -p aws-c-common --dump-config
 
   aws-c-common-windows-vs2019:
       name: Windows (VS2019) aws-c-common test build
@@ -349,7 +349,7 @@ jobs:
           name: builder
 
       - name: Build aws-c-common + consumers
-        run: python builder\builder -p aws-c-common --dump-config build default-downstream
+        run: python builder\builder build default-downstream -p aws-c-common --dump-config
 
   ci-passed:
     name: Downstream Tests Passed

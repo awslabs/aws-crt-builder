@@ -161,19 +161,13 @@ if __name__ == '__main__':
     parser.add_argument('args', nargs=argparse.REMAINDER)
 
     # hand parse command and spec from within the args given
-    argv = []
     command = None
     spec = None
-    args = list(sys.argv[1:])
-    arg = args.pop(0)
-    while arg:
-        if not command and not arg.startswith('-'):
-            command = arg
-            if len(args) >= 1 and not args[0].startswith('-'):
-                spec = args.pop(0)
-        else:
-            argv.append(arg)
-        arg = args.pop(0) if len(args) > 0 else None
+    argv = sys.argv[1:]
+    if argv and not argv[0].startswith('-'):
+        command = argv.pop(0)
+        if len(argv) >= 1 and not argv[0].startswith('-'):
+            spec = argv.pop(0)
 
     # parse the args we know, put the rest in args.args for others to parse
     args, extras = parser.parse_known_args(argv)
