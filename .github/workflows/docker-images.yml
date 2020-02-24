@@ -201,7 +201,7 @@ jobs:
         cp -v ./.github/docker-images/entrypoint.sh ./.github/docker-images/${{ matrix.variant }}-${{ matrix.arch }}/entrypoint.sh
 
     - name: "Build ${{ matrix.variant }}-arm${{ matrix.arch }} image"
-      run: ./.github/workflows/docker_buildx.sh \
+      run: pwd && ls -l && ./.github/workflows/docker_buildx.sh \
         docker.pkg.github.com \
         awslabs \
         ${{ secrets.DOCKER_TOKEN }} \
