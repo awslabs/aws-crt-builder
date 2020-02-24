@@ -1,0 +1,53 @@
+name: Test & Deploy
+
+on:
+  push:
+    branches:
+      - '*'
+      - '!master'
+    paths:
+      - '.github/workflows/sanity-test.yml'
+      - 'builder/**'
+
+jobs:
+  sanity_test:
+    name: Sanity Test
+    strategy:
+      matrix:
+        host: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.host }}
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@v1
+
+      - name: Sanity Test Run Compat (Unix)
+        if:  matrix.host != 'windows-latest'
+        run: |
+          python3 -m builder --project tests run test
+
+      - name: Sanity Test Action (Unix)
+        if:  matrix.host != 'windows-latest'
+        run: |
+          python3 -m builder --project tests test
+
+      - name: Sanity Test Build (Unix)
+        if:  matrix.host != 'windows-latest'
+        run: |
+          python3 -m builder --project tests build
+
+      - name: Sanity Test Run Compat (Windows)
+        if: matrix.host == 'windows-latest'
+        run: |
+          choco install --no-progress vswhere
+          python -m builder --project tests run test
+
+      - name: Sanity Test Action (Windows)
+        if: matrix.host == 'windows-latest'
+        run: |
+          choco install --no-progress vswhere
+          python -m builder --project tests test
+
+      - name: Sanity Test Build (Windows)
+        if: matrix.host == 'windows-latest'
+        run: |
+          python -m builder --project tests build
