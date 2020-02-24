@@ -65,9 +65,22 @@ def dict_alias(tree, key, alias):
             tree[alias] = tree[tkey]
 
 
+def _isnamedtuple(x):
+    """ namedtuples are subclasses of tuple with a list of _fields """
+    t = type(x)
+    b = t.__bases__
+    if len(b) != 1 or b[0] != tuple:
+        return False
+    f = getattr(t, '_fields', None)
+    if not isinstance(f, tuple):
+        return False
+    return all(type(n) == str for n in f)
+
+
 def merge_unique_attrs(src, target):
     """ Returns target with any fields unique to src added to it """
-    for key, val in src._asdict().items():
+    src_dict = src._asdict() if _isnamedtuple(src) else src.__dict__
+    for key, val in src_dict.items():
         if not hasattr(target, key):
             setattr(target, key, val)
     return target

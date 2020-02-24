@@ -211,7 +211,7 @@ class Project(object):
         def _resolve(refs):
             projects = []
             for r in refs:
-                if isinstance(r, Project):
+                if isinstance(r, Project) and r.path:
                     projects.append(r)
                 else:
                     project = Project.find_project(r.name)

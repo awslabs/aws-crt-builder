@@ -137,8 +137,10 @@ def parse_extra_args(env):
         compiler, version = (None, None)
         if args.compiler:
             compiler, version = args.compiler.split('-')
+        spec = str(env.build_spec) if hasattr(
+            env, 'build_spec') else getattr(env.args, 'spec', None)
         env.build_spec = BuildSpec(compiler=compiler,
-                                   compiler_version=version, target=args.target)
+                                   compiler_version=version, target=args.target, spec=spec)
 
 
 if __name__ == '__main__':
