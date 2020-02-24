@@ -28,7 +28,7 @@ jobs:
     - name: Checkout Sources
       uses: actions/checkout@v1
     - name: Get release tag
-      uses: ./.github/actions/release-tag
+      uses: .github/actions/release-tag
       id: release
       with:
         output: tag
@@ -68,7 +68,7 @@ jobs:
           path: build/builder
 
       - name: Get release tag
-        uses: ./.github/actions/release-tag
+        uses: .github/actions/release-tag
         id: release
         with:
           output: tag
@@ -114,11 +114,11 @@ jobs:
 
     - name: Install builder
       run: |
-        aws s3 cp s3://$AWS_S3_BUCKET/$IMAGE_TAG/builder ./.github/docker-images/${{ matrix.variant }}/builder
-        cp -v ./.github/docker-images/entrypoint.sh ./.github/docker-images/${{ matrix.variant }}/entrypoint.sh
+        aws s3 cp s3://$AWS_S3_BUCKET/$IMAGE_TAG/builder .github/docker-images/${{ matrix.variant }}/builder
+        cp -v .github/docker-images/entrypoint.sh .github/docker-images/${{ matrix.variant }}/entrypoint.sh
 
     - name: Build ${{ matrix.variant }} image
-      run: ./.github/workflows/docker_buildx.sh \
+      run: .github/workflows/docker_buildx.sh \
         docker.pkg.github.com \
         awslabs \
         ${{ secrets.DOCKER_TOKEN }} \
@@ -155,11 +155,11 @@ jobs:
 
     - name: Install builder
       run: |
-        aws s3 cp s3://$AWS_S3_BUCKET/$IMAGE_TAG/builder ./.github/docker-images/${{ matrix.variant }}-${{ matrix.arch }}/builder
-        cp -v ./.github/docker-images/entrypoint.sh ./.github/docker-images/${{ matrix.variant }}-${{ matrix.arch }}/entrypoint.sh
+        aws s3 cp s3://$AWS_S3_BUCKET/$IMAGE_TAG/builder .github/docker-images/${{ matrix.variant }}-${{ matrix.arch }}/builder
+        cp -v .github/docker-images/entrypoint.sh .github/docker-images/${{ matrix.variant }}-${{ matrix.arch }}/entrypoint.sh
 
     - name: "Build ${{ matrix.variant }}-${{ matrix.arch }} image"
-      run: ./.github/workflows/docker_buildx.sh \
+      run: .github/workflows/docker_buildx.sh \
         docker.pkg.github.com \
         awslabs \
         ${{ secrets.DOCKER_TOKEN }} \
@@ -197,11 +197,11 @@ jobs:
 
     - name: Install builder
       run: |
-        aws s3 cp s3://$AWS_S3_BUCKET/$IMAGE_TAG/builder ./.github/docker-images/${{ matrix.variant }}-${{ matrix.arch }}/builder
-        cp -v ./.github/docker-images/entrypoint.sh ./.github/docker-images/${{ matrix.variant }}-${{ matrix.arch }}/entrypoint.sh
+        aws s3 cp s3://$AWS_S3_BUCKET/$IMAGE_TAG/builder .github/docker-images/${{ matrix.variant }}-${{ matrix.arch }}/builder
+        cp -v .github/docker-images/entrypoint.sh .github/docker-images/${{ matrix.variant }}-${{ matrix.arch }}/entrypoint.sh
 
     - name: "Build ${{ matrix.variant }}-arm${{ matrix.arch }} image"
-      run: pwd && ls -l && ./.github/workflows/docker_buildx.sh \
+      run: .github/workflows/docker_buildx.sh \
         docker.pkg.github.com \
         awslabs \
         ${{ secrets.DOCKER_TOKEN }} \
@@ -229,7 +229,7 @@ jobs:
       uses: actions/checkout@v1
 
     - name: Get Release Tag
-      uses: ./.github/actions/release-tag
+      uses: .github/actions/release-tag
       id: release
 
     # We can't use the `uses: docker://image` version yet, GitHub lacks authentication for actions -> packages
@@ -250,11 +250,11 @@ jobs:
       uses: actions/checkout@v1
 
     - name: Get Release Tag
-      uses: ./.github/actions/release-tag
+      uses: .github/actions/release-tag
       id: release
 
     - name: Bootstrap docker-buildx
-      run: ./.github/workflows/install_buildx.sh
+      run: .github/workflows/install_buildx.sh
 
     # We can't use the `uses: docker://image` version yet, GitHub lacks authentication for actions -> packages
     - name: Build aws-c-common + consumers
@@ -274,11 +274,11 @@ jobs:
       uses: actions/checkout@v1
 
     - name: Get Release Tag
-      uses: ./.github/actions/release-tag
+      uses: .github/actions/release-tag
       id: release
 
     - name: Bootstrap docker-buildx
-      run: ./.github/workflows/install_buildx.sh
+      run: .github/workflows/install_buildx.sh
 
     # We can't use the `uses: docker://image` version yet, GitHub lacks authentication for actions -> packages
     - name: Build aws-c-common + consumers
@@ -298,11 +298,11 @@ jobs:
       uses: actions/checkout@v1
 
     - name: Get Release Tag
-      uses: ./.github/actions/release-tag
+      uses: .github/actions/release-tag
       id: release
 
     - name: Bootstrap docker-buildx
-      run: ./.github/workflows/install_buildx.sh
+      run: .github/workflows/install_buildx.sh
 
     # We can't use the `uses: docker://image` version yet, GitHub lacks authentication for actions -> packages
     - name: Build aws-c-common + consumers
