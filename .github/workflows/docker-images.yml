@@ -229,7 +229,7 @@ jobs:
       uses: actions/checkout@v1
 
     - name: Get Release Tag
-      uses: .github/actions/release-tag
+      uses: ./.github/actions/release-tag
       id: release
 
     # We can't use the `uses: docker://image` version yet, GitHub lacks authentication for actions -> packages
@@ -250,7 +250,7 @@ jobs:
       uses: actions/checkout@v1
 
     - name: Get Release Tag
-      uses: .github/actions/release-tag
+      uses: ./.github/actions/release-tag
       id: release
 
     - name: Bootstrap docker-buildx
@@ -274,7 +274,7 @@ jobs:
       uses: actions/checkout@v1
 
     - name: Get Release Tag
-      uses: .github/actions/release-tag
+      uses: ./.github/actions/release-tag
       id: release
 
     - name: Bootstrap docker-buildx
@@ -298,7 +298,7 @@ jobs:
       uses: actions/checkout@v1
 
     - name: Get Release Tag
-      uses: .github/actions/release-tag
+      uses: ./.github/actions/release-tag
       id: release
 
     - name: Bootstrap docker-buildx
