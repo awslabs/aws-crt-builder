@@ -143,7 +143,7 @@ def parse_extra_args(env):
                                    compiler_version=version, target=args.target, spec=spec)
 
 
-if __name__ == '__main__':
+def parse_args():
     import argparse
 
     parser = argparse.ArgumentParser()
@@ -179,6 +179,12 @@ if __name__ == '__main__':
     if args.command == 'run':
         args.command = args.spec
         args.spec = None
+
+    return args
+
+
+if __name__ == '__main__':
+    args = parse_args()
 
     # set up environment
     env = Env({
