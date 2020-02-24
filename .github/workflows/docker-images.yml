@@ -28,7 +28,7 @@ jobs:
     - name: Checkout Sources
       uses: actions/checkout@v1
     - name: Get release tag
-      uses: .github/actions/release-tag
+      uses: ./.github/actions/release-tag
       id: release
       with:
         output: tag
@@ -68,7 +68,7 @@ jobs:
           path: build/builder
 
       - name: Get release tag
-        uses: .github/actions/release-tag
+        uses: ./.github/actions/release-tag
         id: release
         with:
           output: tag
