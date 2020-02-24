@@ -116,7 +116,7 @@ jobs:
       uses: actions/download-artifact@v1
       with:
         name: builder
-    - run: cp builder/builder .github/docker-images/${{ matrix.variant }}/
+    - run: cp builder/builder .github/docker-images/${{ matrix.variant }}/builder
     - run: cp .github/docker-images/entrypoint.sh .github/docker-images/${{ matrix.variant }}/entrypoint.sh
 
     - name: Build ${{ matrix.variant }} image
@@ -161,7 +161,7 @@ jobs:
       with:
         name: builder
 
-    - run: cp builder/builder .github/docker-images/${{ matrix.variant }}-${{ matrix.arch }}/
+    - run: cp builder/builder .github/docker-images/${{ matrix.variant }}-${{ matrix.arch }}/builder
     - run: cp .github/docker-images/entrypoint.sh .github/docker-images/${{ matrix.variant }}-${{ matrix.arch }}/entrypoint.sh
 
     - name: "Build ${{ matrix.variant }}-${{ matrix.arch }} image"
@@ -207,7 +207,7 @@ jobs:
       with:
         name: builder
 
-    - run: cp builder/builder .github/docker-images/${{ matrix.variant }}-${{ matrix.arch }}/
+    - run: cp builder/builder .github/docker-images/${{ matrix.variant }}-${{ matrix.arch }}/builder
     - run: cp .github/docker-images/entrypoint.sh .github/docker-images/${{ matrix.variant }}-${{ matrix.arch }}/entrypoint.sh
 
     - name: "Build ${{ matrix.variant }}-arm${{ matrix.arch }} image"
