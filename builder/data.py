@@ -97,6 +97,13 @@ HOSTS = {
         'pkg_update': '',
         'pkg_install': 'apk add --no-cache',
     },
+    'raspbian': {
+        'pkg_tool': PKG_TOOLS.APT,
+        # need ld and make and such
+        'compiler_packages': ['build-essential'],
+        'pkg_update': 'apt-get -qq update -y',
+        'pkg_install': 'apt-get -qq install -y',
+    },
     'al2012': {
         'cmake_args': [
             "-DENABLE_SANITIZERS=OFF",

@@ -75,6 +75,8 @@ def current_host():
                     return 'ubuntu'
                 if _file_contains('/etc/os-release', 'Alpine Linux'):
                     return 'alpine'
+                if _file_contains('/etc/os-release', 'Raspbian'):
+                    return 'raspbian'
                 return 'linux'
             else:
                 return platform
