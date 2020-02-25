@@ -41,7 +41,8 @@ class DownloadSource(Action):
             print("Project {} does not have a branch named {}, using master".format(
                 self.project.name, self.branch))
 
-        sh.exec('git', 'submodule', 'update', '--init', retries=3)
+        sh.exec('git', 'submodule', 'update',
+                '--init', '--recursive', retries=3)
 
         # reload project now that it's on disk
         self.project = Project.find_project(self.project.name)
