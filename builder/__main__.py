@@ -78,12 +78,13 @@ def run_build(env):
     postbuild_action = Script(config.get(
         'post_build_steps', []), name='post_build_steps')
 
-    build_steps = config.get('build_steps', config.get('build', None))
-    if build_steps:
+    # check for attrs, and blindly apply them. Allows a project to specify an empty list.
+    if hasattr(config, 'build_steps') or hasattr(config, 'build'):
+        build_steps = config.get('build_steps', config.get('build', None))
         build_action = Script(build_steps, name='build_steps')
 
-    test_steps = config.get('test_steps', config.get('test', None))
-    if test_steps:
+    if hasattr(config, 'test_steps') or hasattr(config, 'test'):
+        test_steps = config.get('test_steps', config.get('test', None))
         test_action = Script(test_steps, name='test_steps')
 
     build = Script([
