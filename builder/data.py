@@ -44,7 +44,7 @@ KEYS = {
     'pkg_tool': None,  # apt, brew, yum, apk, etc
     'pkg_setup': [],  # commands required to configure the package system
     # command to install packages, should be of the form 'pkgmanager arg1 arg2 {packages will go here}'
-    'pkg_install': [],
+    'pkg_install': '',
     'pkg_update': '',  # command to update the package manager's database
     'packages': [],  # packages to install
     'compiler_packages': [],  # packages to support compiler
@@ -55,10 +55,10 @@ KEYS = {
 }
 
 # Add apt_setup, et al
-for suffix in ['setup']:
-    for pkg in PKG_TOOLS:
-        key = '{}_{}'.format(pkg.value, suffix)
-        KEYS[key] = []
+# for suffix, default in [('setup', []), ('install', ''), ('update', ''), ('packages', []), ('compiler_packages', [])]:
+#     for pkg in PKG_TOOLS:
+#         key = '{}_{}'.format(pkg.value, suffix)
+#         KEYS[key] = default
 
 # Be sure to use these monikers in this file, aliases are applied after all tables are built
 ARCHS = {
