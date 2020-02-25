@@ -282,7 +282,8 @@ class Project(object):
                 if not project_config.get('name', None):
                     project_config['name'] = name_hint if name_hint else os.path.dirname(
                         os.getcwd())
-                print('    Found project: {}'.format(project_config['name']))
+                print('    Found project: {} at {}'.format(
+                    project_config['name'], path))
                 return Project._cache_project(Project(**project_config, path=path, config=project_config))
 
         # load any builder scripts and check them
@@ -333,7 +334,8 @@ class Project(object):
 
                 # might be a project without a config
                 if looks_like_code(search_dir):
-                    print(('    Found source code that looks like a project'))
+                    print(
+                        ('    Found source code that looks like a project at {}'.format(search_dir)))
                     project = Project._cache_project(
                         Project(name=name, path=search_dir))
                     return project
