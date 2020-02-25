@@ -67,7 +67,8 @@ class InstallPackages(Action):
             InstallPackages.pkg_init_done = True
 
         pkg_install = config['pkg_install']
-        pkg_install = pkg_install.split(' ')
+        if not isinstance(pkg_install, list):
+            pkg_install = pkg_install.split(' ')
         pkg_install += packages
 
         sh.exec(*sudo, pkg_install, check=True, retries=3)
