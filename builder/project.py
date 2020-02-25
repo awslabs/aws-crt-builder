@@ -17,7 +17,7 @@ import os
 import sys
 
 from data import *
-from host import current_platform
+from host import current_platform, package_tool
 from scripts import Scripts
 from util import replace_variables, merge_unique_attrs
 
@@ -48,6 +48,17 @@ def _apply_value(obj, key, new_value):
     else:
         # Unsupported type, just use it
         obj[key] = new_value
+
+
+def _coalesce_pkg_options(spec, config):
+    """ Promotes specific package manager config to pkg_ keys, e.g. apt_setup -> pkg_setup """
+    pkg_tool = package_tool(spec.host)
+    for suffix, default in [('setup', []),  ('update', ''), ('install', '')]:
+        tool_value = config.get('{}_{}'.format(
+            pkg_tool.value, suffix), default)
+        pkg_key = 'pkg_{}'.format(suffix)
+        config[pkg_key] = tool_value + config.get(pkg_key, default)
+    return config
 
 
 def produce_config(build_spec, project, **additional_variables):
@@ -141,6 +152,8 @@ def produce_config(build_spec, project, **additional_variables):
                 # By default, merge all values (except strings)
                 _apply_value(new_version, key, config[key])
 
+    new_version = _coalesce_pkg_options(build_spec, new_version)
+
     # Default variables
     replacements = {
         'host': build_spec.host,
@@ -198,7 +211,7 @@ class Project(object):
         def _resolve(refs):
             projects = []
             for r in refs:
-                if isinstance(r, Project):
+                if isinstance(r, Project) and r.path:
                     projects.append(r)
                 else:
                     project = Project.find_project(r.name)
@@ -269,7 +282,8 @@ class Project(object):
                 if not project_config.get('name', None):
                     project_config['name'] = name_hint if name_hint else os.path.dirname(
                         os.getcwd())
-                print('    Found project: {}'.format(project_config['name']))
+                print('    Found project: {} at {}'.format(
+                    project_config['name'], path))
                 return Project._cache_project(Project(**project_config, path=path, config=project_config))
 
         # load any builder scripts and check them
@@ -320,7 +334,8 @@ class Project(object):
 
                 # might be a project without a config
                 if looks_like_code(search_dir):
-                    print(('    Found source code that looks like a project'))
+                    print(
+                        ('    Found source code that looks like a project at {}'.format(search_dir)))
                     project = Project._cache_project(
                         Project(name=name, path=search_dir))
                     return project

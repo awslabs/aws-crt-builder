@@ -3,5 +3,6 @@
     "build_steps": [
         "git --version"
     ],
+    "test_steps": [],
     "needs_compiler": false
 }

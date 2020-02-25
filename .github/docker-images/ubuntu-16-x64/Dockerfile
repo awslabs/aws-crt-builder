@@ -1,16 +1,11 @@
 FROM ubuntu:16.04
 
-SHELL ["/bin/bash", "-c"]
-
-###############################################################################
-# Update apt
-###############################################################################
-RUN apt-get update -qq
 
 ###############################################################################
 # Install prereqs
 ###############################################################################
-RUN DEBIAN_FRONTEND=noninteractive apt-get -y install \
+RUN apt-get update -qq \
+    && DEBIAN_FRONTEND=noninteractive apt-get -y install \
     git \
     curl \
     sudo \
@@ -22,7 +17,8 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get -y install \
     cmake \
     # For PPAs
     software-properties-common \
-    apt-transport-https
+    apt-transport-https \
+    && apt-get clean
 
 ###############################################################################
 # Python/AWS CLI
@@ -32,35 +28,14 @@ RUN python3 -m pip install --upgrade pip setuptools virtualenv \
     && aws --version
 
 ###############################################################################
-# OpenSSL
+# Install pre-built libcrypto
 ###############################################################################
-WORKDIR /tmp/build
-RUN DEBIAN_FRONTEND=noninteractive apt-get -y install gcc g++ \
-    && ([ -d /opt/openssl ] && rm -rf /opt/openssl) || true \
-    && git clone https://github.com/openssl/openssl.git \
-    && pushd openssl \
-    && git checkout OpenSSL_1_1_1-stable \
-    && ./config -fPIC \
-        no-md2 no-rc5 no-rfc3779 no-sctp no-ssl-trace no-zlib no-hw no-mdc2 \
-        no-seed no-idea no-camellia no-bf no-dsa no-ssl3 no-capieng \
-        no-unit-test no-tests \
-        -DSSL_FORBID_ENULL -DOPENSSL_NO_DTLS1 -DOPENSSL_NO_HEARTBEATS \
-        --prefix=/opt/openssl --openssldir=/opt/openssl \
-    && make -j \
-    && make install_sw \
-    && LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/openssl/lib /opt/openssl/bin/openssl version \
-    && DEBIAN_FRONTEND=noninteractive apt-get remove -y gcc g++ \
-    && apt autoremove -y
-    
-###############################################################################
-# Cleanup
-###############################################################################
-RUN apt-get clean \
-    && rm -rf /tmp/*
+ADD https://d19elf31gohf1l.cloudfront.net/_binaries/libcrypto/libcrypto-1.1.1-ubuntu-16-x64.tar.gz /opt/openssl
 
 ###############################################################################
 # Install builder package
 ###############################################################################
-ADD builder /usr/local/bin/builder
-COPY entrypoint.sh /entrypoint.sh
-ENTRYPOINT ["/entrypoint.sh"]
+ADD builder /usr/local/bin/builder.pyz
+ADD entrypoint.sh /usr/local/bin/builder
+RUN chmod a+x /usr/local/bin/builder.pyz /usr/local/bin/builder
+ENTRYPOINT ["/usr/local/bin/builder"]

@@ -45,33 +45,17 @@ login_to_registry() {
 }
 
 build_image() {
-  # pull cache, ignore failure if it doesn't exist
-  docker pull "$(_get_full_image_name)-cache":${INPUT_IMAGE_TAG} || true
+  # pull previous image, ignore failure if it doesn't exist
+  docker pull "$(_get_full_image_name)":${INPUT_IMAGE_TAG} || true
   # build builder target image
   docker build \
     --build-arg BUILDKIT_INLINE_CACHE=1 \
-    --tag="$(_get_full_image_name)-cache":${INPUT_IMAGE_TAG} \
     --load \
-    --cache-from="$(_get_full_image_name)-cache":${INPUT_IMAGE_TAG} \
-    ${INPUT_BUILD_EXTRA_ARGS} \
-    ${INPUT_CONTEXT}
-
-  # pull previous image, ignore failure if it doesn't exist
-  docker pull "$(_get_full_image_name)":${INPUT_IMAGE_TAG} || true
-  # build final image
-  docker build \
-    --build-arg BUILDKIT_INLINE_CACHE=1 \
     --tag="$(_get_full_image_name)":${INPUT_IMAGE_TAG} \
-    --load \
-    --cache-from="$(_get_full_image_name)-cache":${INPUT_IMAGE_TAG} \
-    --cache-from="$(_get_full_image_name)":${INPUT_IMAGE_TAG} \
     ${INPUT_BUILD_EXTRA_ARGS} \
     ${INPUT_CONTEXT}
 
-  # push image
   docker push "$(_get_full_image_name)":${INPUT_IMAGE_TAG}
-  # push cache
-  docker push "$(_get_full_image_name)-cache":${INPUT_IMAGE_TAG}
 }
 
 logout_from_registry() {

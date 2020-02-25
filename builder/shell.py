@@ -17,8 +17,11 @@ import shutil
 import subprocess
 import sys
 import tempfile
+from time import sleep
 
 from host import current_platform
+
+_retry_wait_secs = 3  # wait 3 seconds between retries of commands
 
 
 class Shell(object):
@@ -101,6 +104,10 @@ class Shell(object):
                     if kwargs.get('check', False) and tries == 0:
                         raise
                     output = ex
+                    if tries > 0:
+                        print('Waiting {} seconds to try again'.format(
+                            _retry_wait_secs))
+                        sleep(_retry_wait_secs)
             return ExecResult(-1, -1, output)
 
     def _cd(self, directory):
@@ -224,10 +231,8 @@ class Shell(object):
         if kwargs.get('always', False):
             prev_dryrun = self.dryrun
             self.dryrun = False
-            result = self._run_command(
-                *command, quiet=kwargs.get('quiet', False), check=kwargs.get('check', False))
+            result = self._run_command(*command, **kwargs)
             self.dryrun = prev_dryrun
         else:
-            result = self._run_command(
-                *command, quiet=kwargs.get('quiet', False), check=kwargs.get('check', False))
+            result = self._run_command(*command, **kwargs)
         return result

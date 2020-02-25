@@ -51,7 +51,7 @@ class CMakeBuild(Action):
 
         def build_project(project, build_tests=False):
             # build dependencies first, let cmake decide what needs doing
-            for dep in [Project.find_project(p.name) for p in project.get_dependencies(env.build_spec)]:
+            for dep in project.get_dependencies(env.build_spec):
                 sh.pushd(dep.path)
                 build_project(dep)
                 sh.popd()

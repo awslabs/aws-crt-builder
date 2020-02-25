@@ -1,18 +1,29 @@
-FROM arm32v7/alpine
+FROM arm64v8/amazonlinux:latest
+
 
 ###############################################################################
 # Install prereqs
 ###############################################################################
-RUN apk --no-cache add \
-    build-base \
+RUN yum -y update \
+    && yum -y install \
+    tar \
     git \
     curl \
     sudo \
-    python3-dev \
-    cmake \
-    clang \
-    perl \
-    linux-headers
+    # Python
+    python3 \
+    python3-devel \
+    python3-pip \
+    make \
+    cmake3 \
+    gcc \
+    gcc-c++ \
+    && yum clean all \
+    && rm -rf /var/cache/yum \
+    && ln -s /usr/bin/cmake3 /usr/bin/cmake \
+    && ln -s /usr/bin/ctest3 /usr/bin/ctest \
+    && cmake --version \
+    && ctest --version
 
 ###############################################################################
 # Python/AWS CLI
@@ -22,9 +33,9 @@ RUN python3 -m pip install --upgrade pip setuptools virtualenv \
     && aws --version
 
 ###############################################################################
-# Install pre-built libcrypto
+# Install pre-built OpenSSL
 ###############################################################################
-ADD https://d19elf31gohf1l.cloudfront.net/_binaries/libcrypto/libcrypto-1.1.1-alpine-armv7.tar.gz /opt/openssl
+ADD https://d19elf31gohf1l.cloudfront.net/_binaries/libcrypto/libcrypto-1.1.1-al2-arm64.tar.gz /opt/openssl
 
 ###############################################################################
 # Install builder package

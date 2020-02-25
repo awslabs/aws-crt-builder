@@ -12,6 +12,7 @@
 # permissions and limitations under the License.
 
 from __future__ import print_function
+import argparse
 import os
 import sys
 
@@ -47,6 +48,9 @@ def run_action(action, env):
 
     if isinstance(action, str):
         action_cls = Scripts.find_action(action)
+        if not action_cls:
+            print('Action {} not found'.format(action))
+            sys.exit(13)
         action = action_cls()
 
     Scripts.run_action(
@@ -74,12 +78,13 @@ def run_build(env):
     postbuild_action = Script(config.get(
         'post_build_steps', []), name='post_build_steps')
 
-    build_steps = config.get('build_steps', config.get('build', None))
-    if build_steps:
+    # check for attrs, and blindly apply them. Allows a project to specify an empty list.
+    if 'build_steps' in config or 'build' in config:
+        build_steps = config.get('build_steps', config.get('build', None))
         build_action = Script(build_steps, name='build_steps')
 
-    test_steps = config.get('test_steps', config.get('test', None))
-    if test_steps:
+    if 'test_steps' in config or 'test' in config:
+        test_steps = config.get('test_steps', config.get('test', None))
         test_action = Script(test_steps, name='test_steps')
 
     build = Script([
@@ -134,13 +139,13 @@ def parse_extra_args(env):
         compiler, version = (None, None)
         if args.compiler:
             compiler, version = args.compiler.split('-')
+        spec = str(env.build_spec) if hasattr(
+            env, 'build_spec') else getattr(env.args, 'spec', None)
         env.build_spec = BuildSpec(compiler=compiler,
-                                   compiler_version=version, target=args.target)
+                                   compiler_version=version, target=args.target, spec=spec)
 
 
-if __name__ == '__main__':
-    import argparse
-
+def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('-d', '--dry-run', action='store_true',
                         help="Don't run the build, just print the commands that would run")
@@ -153,23 +158,33 @@ if __name__ == '__main__':
     parser.add_argument('--spec', type=str)
     parser.add_argument('-b', '--build-dir', type=str,
                         help='Directory to work in', default='.')
-    commands = parser.add_subparsers(dest='command')
+    parser.add_argument('args', nargs=argparse.REMAINDER)
 
-    build = commands.add_parser(
-        'build', help="Run target build, formatted 'host-compiler-compilerversion-target-arch'. Ex: linux-ndk-19-android-arm64v8a")
-    build.add_argument('build', type=str, default='default', nargs='?')
-    build.add_argument('args', nargs=argparse.REMAINDER)
-
-    run = commands.add_parser('run', help='Run action. Ex: do-thing')
-    run.add_argument('run', type=str)
-    run.add_argument('args', nargs=argparse.REMAINDER)
-
-    inspect = commands.add_parser(
-        'inspect', help='Dump information about the current host')
+    # hand parse command and spec from within the args given
+    command = None
+    spec = None
+    argv = sys.argv[1:]
+    if argv and not argv[0].startswith('-'):
+        command = argv.pop(0)
+        if len(argv) >= 1 and not argv[0].startswith('-'):
+            spec = argv.pop(0)
 
     # parse the args we know, put the rest in args.args for others to parse
-    args, extras = parser.parse_known_args()
+    args, extras = parser.parse_known_args(argv)
+    args.command = command
+    if not args.spec:
+        args.spec = spec
     args.args += extras
+    # Backwards compat for `builder run $action`
+    if args.command == 'run':
+        args.command = args.spec
+        args.spec = None
+
+    return args
+
+
+if __name__ == '__main__':
+    args = parse_args()
 
     # set up environment
     env = Env({
@@ -216,7 +231,6 @@ if __name__ == '__main__':
     # Run a build with a specific spec/toolchain
     if args.command == 'build':
         run_build(env)
-
     # run a single action, usually local to a project
-    elif args.command == 'run':
-        run_action(args.run, env)
+    else:
+        run_action(args.command, env)

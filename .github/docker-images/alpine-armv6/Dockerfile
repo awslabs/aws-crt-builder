@@ -1,14 +1,10 @@
-FROM arm32v6/alpine AS builder
-
-###############################################################################
-# Update apt
-###############################################################################
-RUN apk --no-cache add build-base
+FROM arm32v6/alpine
 
 ###############################################################################
 # Install prereqs
 ###############################################################################
 RUN apk --no-cache add \
+    build-base \
     git \
     curl \
     sudo \
@@ -26,37 +22,14 @@ RUN python3 -m pip install --upgrade pip setuptools virtualenv \
     && aws --version
 
 ###############################################################################
-# OpenSSL
+# Install pre-built libcrypto
 ###############################################################################
-# WORKDIR /tmp/build
-# RUN ([ -d /opt/openssl ] && rm -rf /opt/openssl) || true \
-#     && git clone https://github.com/openssl/openssl.git \
-#     && cd openssl \
-#     && git checkout OpenSSL_1_1_1-stable \
-#     && ./config -fPIC \
-#     no-md2 no-rc5 no-rfc3779 no-sctp no-ssl-trace no-zlib no-hw no-mdc2 \
-#     no-seed no-idea no-camellia no-bf no-dsa no-ssl3 no-capieng \
-#     no-unit-test no-tests \
-#     -DSSL_FORBID_ENULL -DOPENSSL_NO_DTLS1 -DOPENSSL_NO_HEARTBEATS \
-#     --prefix=/opt/openssl --openssldir=/opt/openssl \
-#     && make -j 2 \
-#     && make install_sw \
-#     && LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/openssl/lib /opt/openssl/bin/openssl version
-# Grab libcrypto that was packed in, from S3, compiled from the above
-COPY openssl-1.1.1.tar.gz /tmp/openssl-1.1.1.tar.gz
-WORKDIR /tmp
-RUN mkdir -p /opt/openssl \
-    && tar xvzf /tmp/openssl-1.1.1.tar.gz -C /opt/openssl \
-    && LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/openssl/lib /opt/openssl/bin/openssl version
-
-###############################################################################
-# Cleanup
-###############################################################################
-RUN rm -rf /tmp/*
+ADD https://d19elf31gohf1l.cloudfront.net/_binaries/libcrypto/libcrypto-1.1.1-alpine-armv6.tar.gz /opt/openssl
 
 ###############################################################################
 # Install builder package
 ###############################################################################
-# ADD builder /usr/local/bin/builder
-# COPY entrypoint.sh /entrypoint.sh
-# ENTRYPOINT ["/entrypoint.sh"]
+ADD builder /usr/local/bin/builder.pyz
+ADD entrypoint.sh /usr/local/bin/builder
+RUN chmod a+x /usr/local/bin/builder.pyz /usr/local/bin/builder
+ENTRYPOINT ["/usr/local/bin/builder"]

@@ -1,1 +1,0 @@
-Fork of https://github.com/whoan/docker-build-with-cache-action modified to use buildx

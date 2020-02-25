@@ -16,4 +16,7 @@ import Builder
 
 class Test(Builder.Action):
     def run(self, env):
-        print('Test Action Succeeded')
+        def _doit(env):
+            sh = env.shell
+            sh.exec('true', retries=3)
+        return Builder.Script([_doit])

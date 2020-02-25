@@ -1,18 +1,25 @@
-FROM arm32v7/alpine
+FROM raspbian/stretch
+
+ENV DEBIAN_FRONTEND=noninteractive
 
 ###############################################################################
 # Install prereqs
 ###############################################################################
-RUN apk --no-cache add \
-    build-base \
+RUN apt-get update \
+    && apt-get install -y \
     git \
     curl \
-    sudo \
+    libssl-dev \
+    # Python
+    python3 \
     python3-dev \
+    python3-pip \
+    build-essential \
     cmake \
-    clang \
-    perl \
-    linux-headers
+    # For PPAs
+    software-properties-common \
+    apt-transport-https	\
+    && apt-get clean
 
 ###############################################################################
 # Python/AWS CLI
@@ -24,7 +31,7 @@ RUN python3 -m pip install --upgrade pip setuptools virtualenv \
 ###############################################################################
 # Install pre-built libcrypto
 ###############################################################################
-ADD https://d19elf31gohf1l.cloudfront.net/_binaries/libcrypto/libcrypto-1.1.1-alpine-armv7.tar.gz /opt/openssl
+ADD https://d19elf31gohf1l.cloudfront.net/_binaries/libcrypto/libcrypto-1.1.1-raspbian-armv7.tar.gz /opt/openssl
 
 ###############################################################################
 # Install builder package

@@ -1,14 +1,11 @@
-# This image is in S3, built from Dockerfile.bootstrap in this directory
-FROM --platform=linux/arm/v6 raspbian-armv6:buster as builder
+FROM raspbian/stretch
 
-SHELL ["/bin/bash", "-c"]
+ENV DEBIAN_FRONTEND=noninteractive
 
 ###############################################################################
 # Install prereqs
 ###############################################################################
-RUN DEBIAN_FRONTEND=noninteractive \
-    sed -i 's/jessie/buster/' /etc/apt/sources.list \
-    && apt-get update -y \
+RUN apt-get update \
     && apt-get install -y \
     git \
     curl \
@@ -21,7 +18,8 @@ RUN DEBIAN_FRONTEND=noninteractive \
     cmake \
     # For PPAs
     software-properties-common \
-    apt-transport-https
+    apt-transport-https	\
+    && apt-get clean
 
 # ###############################################################################
 # # Python/AWS CLI
@@ -31,23 +29,14 @@ RUN python3 -m pip install --upgrade pip setuptools virtualenv \
     && aws --version
 
 ###############################################################################
-# OpenSSL
+# Install pre-built libcrypto
 ###############################################################################
-# COPY openssl-1.1.1.tar.gz /tmp/openssl-1.1.1.tar.gz
-# WORKDIR /tmp
-# RUN mkdir -p /opt/openssl \
-#     && tar xvzf /tmp/openssl-1.1.1.tar.gz -C /opt/openssl \
-#     && LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/openssl/lib /opt/openssl/bin/openssl version
-
-###############################################################################
-# Cleanup
-###############################################################################
-RUN apt-get clean \
-    && rm -rf /tmp/*
+ADD https://d19elf31gohf1l.cloudfront.net/_binaries/libcrypto/libcrypto-1.1.1-raspbian-armv6.tar.gz /opt/openssl
 
 ###############################################################################
 # Install builder package
 ###############################################################################
-ADD builder /usr/local/bin/builder
-COPY entrypoint.sh /entrypoint.sh
-ENTRYPOINT ["/entrypoint.sh"]
+ADD builder /usr/local/bin/builder.pyz
+ADD entrypoint.sh /usr/local/bin/builder
+RUN chmod a+x /usr/local/bin/builder.pyz /usr/local/bin/builder
+ENTRYPOINT ["/usr/local/bin/builder"]

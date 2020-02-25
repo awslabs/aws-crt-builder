@@ -52,8 +52,8 @@ class BuildSpec(object):
             setattr(self, slot, 'default')
         self.downstream = False
 
-        if 'spec' in kwargs:
-            spec = kwargs['spec']
+        spec = kwargs.get('spec', None)
+        if spec:
             if spec.startswith('default'):  # default or default(-{variant})
                 _, *rest = spec.split('-')
             elif not '-' in spec:  # just a variant
