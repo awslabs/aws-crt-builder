@@ -35,7 +35,12 @@ RUN python3 -m pip install --upgrade pip setuptools virtualenv \
 ###############################################################################
 # Install pre-built OpenSSL
 ###############################################################################
-ADD https://d19elf31gohf1l.cloudfront.net/_binaries/libcrypto/libcrypto-1.1.1-al2-arm64.tar.gz /opt/openssl
+WORKDIR /tmp
+RUN curl -sSL https://d19elf31gohf1l.cloudfront.net/_binaries/libcrypto/libcrypto-1.1.1-al2-arm64.tar.gz -o libcrypto.tar.gz \
+    && mkdir /opt/openssl \
+    && tar xzf libcrypto.tar.gz -C /opt/openssl \
+    && LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/openssl/lib /opt/openssl/bin/openssl version \
+    && rm -f /tmp/libcrypto.tar.gz
 
 ###############################################################################
 # Install builder package
