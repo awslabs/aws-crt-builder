@@ -106,21 +106,24 @@ class Env(object):
                 print("Found github ref:", branch)
                 return branch
 
-        branches = subprocess.check_output(
-            ["git", "branch", "-a", "--contains", "HEAD"]).decode("utf-8")
-        branches = [branch.strip('*').strip()
-                    for branch in branches.split('\n') if branch]
+        try:
+            branches = subprocess.check_output(
+                ["git", "branch", "-a", "--contains", "HEAD"]).decode("utf-8")
+            branches = [branch.strip('*').strip()
+                        for branch in branches.split('\n') if branch]
 
-        print("Found branches:", branches)
+            print("Found branches:", branches)
 
-        for branch in branches:
-            if branch == "(no branch)":
-                continue
+            for branch in branches:
+                if branch == "(no branch)":
+                    continue
 
-            origin_str = "remotes/origin/"
-            if branch.startswith(origin_str):
-                branch = branch[len(origin_str):]
+                origin_str = "remotes/origin/"
+                if branch.startswith(origin_str):
+                    branch = branch[len(origin_str):]
 
-            return branch
+                return branch
+        except:
+            print("Current directory () is not a git repository".format(os.getcwd()))
 
-        return None
+        return 'master'
