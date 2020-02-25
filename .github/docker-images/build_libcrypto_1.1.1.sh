@@ -4,7 +4,7 @@
 
 set -ex
 
-[ $# -eq 4 ]
+[ $# -eq 3 ]
 variant=$1
 arch=$2
 version=$3
@@ -18,15 +18,15 @@ if [ ! -e /tmp/aws-crt-${variant}-${arch}-${version}.tar ]; then
     docker load < /tmp/aws-crt-${variant}-${arch}-${version}.tar
 fi
 
-container=$(docker run -dit --env AWS_ACCESS_KEY_ID --env AWS_SECRET_ACCESS_KEY docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${variant}-${arch}:${version} sh)
-docker exec ${container} cd /tmp && git clone https://github.com/openssl/openssl.git && cd openssl && git checkout OpenSSL_1_1_1-stable
-docker exec ${container} cd /tmp/openssl && ./config -fPIC \
+container=$(docker run -dit --env AWS_ACCESS_KEY_ID --env AWS_SECRET_ACCESS_KEY --entrypoint /bin/sh docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${variant}-${arch}:${version})
+docker exec ${container} sh -c "rm -rf /opt/openssl; cd /tmp && git clone --single-branch --branch OpenSSL_1_1_1-stable https://github.com/openssl/openssl.git"
+docker exec ${container} sh -c "cd /tmp/openssl && ./config -fPIC \
     no-md2 no-rc5 no-rfc3779 no-sctp no-ssl-trace no-zlib no-hw no-mdc2 \
     no-seed no-idea no-camellia no-bf no-dsa no-ssl3 no-capieng \
     no-unit-test no-tests \
     -DSSL_FORBID_ENULL -DOPENSSL_NO_DTLS1 -DOPENSSL_NO_HEARTBEATS \
-    --prefix=/opt/openssl --openssldir=/opt/openssl
-docker exec ${container} cd /tmp && make build_generated && make -j libcrypto.a && make install_sw
-docker exec ${container} tar czf /tmp/libcrypto-${libcrypto_version}-${variant}-${arch}.tar.gz -C /opt/openssl .
-docker exec ${container} aws s3 cp /tmp/libcrypto-${libcrypto_version}-${variant}-${arch}.tar.gz s3://aws-crt-builder/_binaries/libcrypto/libcrypto-${libcrypto_version}-${variant}-${arch}.tar.gz
+    --prefix=/opt/openssl --openssldir=/opt/openssl"
+docker exec ${container} sh -c "cd /tmp/openssl && make build_generated && make -j libcrypto.a && make install_sw"
+docker exec ${container} sh -c "tar czf /tmp/libcrypto-${libcrypto_version}-${variant}-${arch}.tar.gz -C /opt/openssl ."
+docker exec ${container} sh -c "aws s3 cp /tmp/libcrypto-${libcrypto_version}-${variant}-${arch}.tar.gz s3://aws-crt-builder/_binaries/libcrypto/libcrypto-${libcrypto_version}-${variant}-${arch}.tar.gz"
 docker stop ${container}

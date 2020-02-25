@@ -20,10 +20,10 @@ if [ ! -e /tmp/aws-crt-${variant}-${arch}-${version}.tar ]; then
     docker load < /tmp/aws-crt-${variant}-${arch}-${version}.tar
 fi
 
-container=$(docker run -dit --env AWS_ACCESS_KEY_ID --env AWS_SECRET_ACCESS_KEY docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${variant}-${arch}:${version} sh)
-docker exec ${container} cd /tmp && curl -LO https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}.tar.gz
-docker exec ${container} cd /tmp && tar xzf cmake-${CMAKE_VERSION}.tar.gz && cd cmake-${CMAKE_VERSION} && ./bootstrap -- -DCMAKE_BUILD_TYPE=Release
-docker exec ${container} cd /tmp/cmake-${CMAKE_VERSION} && make -j && make install
-docker exec ${container} tar czf /tmp/cmake-${CMAKE_VERSION}-${variant}-${arch}.tar.gz -C /usr/local share/cmake-${CMAKE_VERSION} bin/cmake bin/ctest bin/cpack doc/cmake-${CMAKE_VERSION}
-docker exec ${container} aws s3 cp /tmp/cmake-${CMAKE_VERSION}-${variant}-${arch}.tar.gz s3://aws-crt-builder/_binaries/cmake/cmake-${CMAKE_VERSION}-${variant}-${arch}.tar.gz
+container=$(docker run -dit --env AWS_ACCESS_KEY_ID --env AWS_SECRET_ACCESS_KEY --entrypoint /bin/sh docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${variant}-${arch}:${version})
+docker exec ${container} sh -c "cd /tmp && curl -LO https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}.tar.gz"
+docker exec ${container} sh -c "cd /tmp && tar xzf cmake-${CMAKE_VERSION}.tar.gz && cd cmake-${CMAKE_VERSION} && ./bootstrap -- -DCMAKE_BUILD_TYPE=Release"
+docker exec ${container} sh -c "cd /tmp/cmake-${CMAKE_VERSION} && make -j && make install"
+docker exec ${container} sh -c "tar czf /tmp/cmake-${CMAKE_VERSION}-${variant}-${arch}.tar.gz -C /usr/local share/cmake-${CMAKE_VERSION} bin/cmake bin/ctest bin/cpack doc/cmake-${CMAKE_VERSION}"
+docker exec ${container} sh -c "aws s3 cp /tmp/cmake-${CMAKE_VERSION}-${variant}-${arch}.tar.gz s3://aws-crt-builder/_binaries/cmake/cmake-${CMAKE_VERSION}-${variant}-${arch}.tar.gz"
 docker stop ${container}
