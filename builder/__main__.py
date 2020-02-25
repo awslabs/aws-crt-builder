@@ -221,7 +221,7 @@ if __name__ == '__main__':
     if not env.config.get('enabled', True):
         raise Exception("The project is disabled in this configuration")
 
-    if getattr(args, 'dump_config', False):
+    if args.dump_config:
         from pprint import pprint
         print('Spec: ', end='')
         pprint(env.build_spec)
