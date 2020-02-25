@@ -59,13 +59,13 @@ class Env(object):
 
         # default the project to whatever can be found, or convert
         # project from a name to a Project
-        if not hasattr(self, 'project'):
+        if not getattr(self, 'project', None):
             self.project = Project.default_project()
 
-        if not self.project and not self.args.project:
+        if not self.args.project:
             return
 
-        project_name = self.project if self.project else self.args.project
+        project_name = self.args.project
 
         # see if the project is a path, if so, split it and give the path as a hint
         parts = project_name.split(os.path.sep)

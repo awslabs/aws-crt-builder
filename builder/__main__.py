@@ -183,6 +183,7 @@ def parse_args():
 
 
 if __name__ == '__main__':
+    os.chdir('../aws-crt-java')
     args = parse_args()
 
     # set up environment
