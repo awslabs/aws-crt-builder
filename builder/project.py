@@ -62,7 +62,7 @@ def _coalesce_pkg_options(spec, config):
     for key, default in [('packages', []), ('compiler_packages', [])]:
         tool_value = config.get('{}_{}'.format(
             pkg_tool.value, key), default)
-        config[pkg_key] = tool_value
+        config[key] = tool_value
     return config
 
 

@@ -55,10 +55,10 @@ KEYS = {
 }
 
 # Add apt_setup, et al
-# for suffix, default in [('setup', []), ('install', ''), ('update', ''), ('packages', []), ('compiler_packages', [])]:
-#     for pkg in PKG_TOOLS:
-#         key = '{}_{}'.format(pkg.value, suffix)
-#         KEYS[key] = default
+for suffix, default in [('setup', []), ('install', ''), ('update', ''), ('packages', []), ('compiler_packages', [])]:
+    for pkg in PKG_TOOLS:
+        key = '{}_{}'.format(pkg.value, suffix)
+        KEYS[key] = default
 
 # Be sure to use these monikers in this file, aliases are applied after all tables are built
 ARCHS = {
