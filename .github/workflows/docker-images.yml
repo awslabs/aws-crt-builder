@@ -151,7 +151,7 @@ jobs:
         aws s3 cp --no-progress /tmp/aws-crt-${{ matrix.variant }}-${{ env.IMAGE_TAG }}.tar.gz s3://${{env.AWS_S3_BUCKET}}/${{ env.IMAGE_TAG }}/aws-crt-${{ matrix.variant }}.tar.gz
 
   linux-arm64:
-    name: ${{ matrix.variant }}-${{ matrix.arch }}
+    name: ${{ matrix.variant }}-arm${{ matrix.arch }}
     runs-on: 'ubuntu-latest'
     needs: [tag, package]
     strategy:
@@ -229,15 +229,15 @@ jobs:
         docker save docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}-arm${{ matrix.arch }}:${{ env.IMAGE_TAG }} > /tmp/aws-crt-${{ matrix.variant }}-arm${{ matrix.arch }}-${{ env.IMAGE_TAG }}.tar.gz
         aws s3 cp --no-progress /tmp/aws-crt-${{ matrix.variant }}-arm${{ matrix.arch }}-${{ env.IMAGE_TAG }}.tar.gz s3://${{env.AWS_S3_BUCKET}}/${{ env.IMAGE_TAG }}/aws-crt-${{ matrix.variant }}-arm${{ matrix.arch }}.tar.gz
 
-  linux-mips32:
-    name: ${{ matrix.variant }}-arm${{ matrix.arch }}
+  linux-mips:
+    name: ${{ matrix.variant }}-${{ matrix.arch }}
     runs-on: 'ubuntu-latest'
     needs: [tag, package]
     strategy:
       fail-fast: false
       matrix:
-        variant: [alpine, raspbian]
-        arch: [v6, v7]
+        variant: [debian]
+        arch: [mips, mipsel, mips64el]
     steps:
     - name: Checkout Sources
       uses: actions/checkout@v1
@@ -253,23 +253,23 @@ jobs:
 
     - name: Install builder
       run: |
-        aws s3 cp s3://$AWS_S3_BUCKET/$IMAGE_TAG/builder .github/docker-images/${{ matrix.variant }}-arm${{ matrix.arch }}/builder
-        cp -v .github/docker-images/entrypoint.sh .github/docker-images/${{ matrix.variant }}-arm${{ matrix.arch }}/entrypoint.sh
+        aws s3 cp s3://$AWS_S3_BUCKET/$IMAGE_TAG/builder .github/docker-images/${{ matrix.variant }}${{ matrix.arch }}/builder
+        cp -v .github/docker-images/entrypoint.sh .github/docker-images/${{ matrix.variant }}${{ matrix.arch }}/entrypoint.sh
 
-    - name: "Build ${{ matrix.variant }}-arm${{ matrix.arch }} image"
+    - name: "Build ${{ matrix.variant }}${{ matrix.arch }} image"
       run: .github/workflows/docker_buildx.sh \
         docker.pkg.github.com \
         awslabs \
         ${{ secrets.DOCKER_TOKEN }} \
-        awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}-arm${{ matrix.arch }} \
+        awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}${{ matrix.arch }} \
         ${{ env.IMAGE_TAG }} \
-        .github/docker-images/${{ matrix.variant }}-arm${{ matrix.arch }} \
-        --compress=true --platform=linux/arm/${{ matrix.arch }}
+        .github/docker-images/${{ matrix.variant }}${{ matrix.arch }} \
+        --compress=true --platform=linux/${{ matrix.arch }}
 
-    - name: Export ${{ matrix.variant }} arm${{ matrix.arch }} image
+    - name: Export ${{ matrix.variant }} ${{ matrix.arch }} image
       run: |
-        docker save docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}-arm${{ matrix.arch }}:${{ env.IMAGE_TAG }} > /tmp/aws-crt-${{ matrix.variant }}-arm${{ matrix.arch }}-${{ env.IMAGE_TAG }}.tar.gz
-        aws s3 cp --no-progress /tmp/aws-crt-${{ matrix.variant }}-arm${{ matrix.arch }}-${{ env.IMAGE_TAG }}.tar.gz s3://${{env.AWS_S3_BUCKET}}/${{ env.IMAGE_TAG }}/aws-crt-${{ matrix.variant }}-arm${{ matrix.arch }}.tar.gz
+        docker save docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}${{ matrix.arch }}:${{ env.IMAGE_TAG }} > /tmp/aws-crt-${{ matrix.variant }}${{ matrix.arch }}-${{ env.IMAGE_TAG }}.tar.gz
+        aws s3 cp --no-progress /tmp/aws-crt-${{ matrix.variant }}${{ matrix.arch }}-${{ env.IMAGE_TAG }}.tar.gz s3://${{env.AWS_S3_BUCKET}}/${{ env.IMAGE_TAG }}/aws-crt-${{ matrix.variant }}${{ matrix.arch }}.tar.gz
 
 ###############################################################################
 # DOWNSTREAM TESTS
