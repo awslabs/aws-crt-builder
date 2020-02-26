@@ -23,7 +23,7 @@ RUN /opt/python/cp37-cp37m/bin/python -m pip install --upgrade pip setuptools vi
 ###############################################################################
 WORKDIR /tmp
 RUN curl -sSL https://d19elf31gohf1l.cloudfront.net/_binaries/cmake/cmake-3.13-manylinux1-x86.tar.gz -o cmake.tar.gz \
-    && tar xzf cmake.tar.gz -C /usr/local \
+    && tar xvzf cmake.tar.gz -C /usr/local \
     && cmake --version \
     && rm -f /tmp/cmake.tar.gz
 
