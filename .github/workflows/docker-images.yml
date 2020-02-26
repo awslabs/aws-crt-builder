@@ -27,7 +27,7 @@ jobs:
     - name: Clean up previous branch jobs
       uses: rokroskar/workflow-run-cleanup-action
       env:
-        GITHUB_TOKEN: ${{ secret.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   tag:
     name: Artifact release tag
