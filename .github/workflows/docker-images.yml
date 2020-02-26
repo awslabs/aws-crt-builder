@@ -157,7 +157,7 @@ jobs:
     strategy:
       matrix:
         variant: [al2]
-        arch: [arm64]
+        arch: [v8]
     steps:
     - name: Checkout Sources
       uses: actions/checkout@v1
@@ -179,10 +179,10 @@ jobs:
         docker.pkg.github.com \
         awslabs \
         ${{ secrets.DOCKER_TOKEN }} \
-        awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}-${{ matrix.arch }} \
+        awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}-arm${{ matrix.arch }} \
         ${{ env.IMAGE_TAG }} \
-        .github/docker-images/${{ matrix.variant }}-${{ matrix.arch }} \
-        --compress=true --platform=linux/${{ matrix.arch }}
+        .github/docker-images/${{ matrix.variant }}-arm${{ matrix.arch }} \
+        --compress=true --platform=linux/arm/${{ matrix.arch }}
 
     - name: Export ${{ matrix.variant }} ${{ matrix.arch }} image
       run: |
@@ -322,8 +322,8 @@ jobs:
     - name: Build aws-c-common + consumers
       run: |
         echo "${{ secrets.GITHUB_TOKEN }}" | docker login docker.pkg.github.com -u awslabs --password-stdin
-        docker pull docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-al2-arm64:${{ steps.release.outputs.release_tag }}
-        docker run --env GITHUB_REF docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-al2-arm64:${{ steps.release.outputs.release_tag }} build -p aws-c-common downstream
+        docker pull docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-al2-armv8:${{ steps.release.outputs.release_tag }}
+        docker run --env GITHUB_REF docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-al2-armv8:${{ steps.release.outputs.release_tag }} build -p aws-c-common downstream
 
   aws-c-common-osx:
     name: OSX aws-c-common test build
