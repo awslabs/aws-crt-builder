@@ -26,12 +26,14 @@ class Env(object):
     def __init__(self, config={}):
         # DEFAULTS
         self.dryrun = False  # overwritten by config
-        # default the branch to whatever the current dir+git says it is
-        self.branch = self._get_git_branch()
 
         # OVERRIDES: copy incoming config, overwriting defaults
         for key, val in config.items():
             setattr(self, key, val)
+
+        # default the branch to whatever the current dir+git says it is
+        if not self.branch:
+            self.branch = self._get_git_branch()
 
         # make sure the shell is initialized
         if not hasattr(self, 'shell'):

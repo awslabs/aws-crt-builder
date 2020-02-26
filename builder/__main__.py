@@ -158,6 +158,7 @@ def parse_args():
     parser.add_argument('--spec', type=str)
     parser.add_argument('-b', '--build-dir', type=str,
                         help='Directory to work in', default='.')
+    parser.add_argument('--branch', help='Branch to build from')
     parser.add_argument('args', nargs=argparse.REMAINDER)
 
     # hand parse command and spec from within the args given
@@ -191,6 +192,7 @@ if __name__ == '__main__':
         'dryrun': args.dry_run,
         'args': args,
         'project': args.project,
+        'branch': args.branch,
     })
 
     parse_extra_args(env)
