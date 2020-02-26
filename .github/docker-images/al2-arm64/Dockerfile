@@ -51,9 +51,8 @@ ADD https://raw.githubusercontent.com/awslabs/aws-crt-java/master/pom.xml pom.xm
 RUN mvn dependency:go-offline -B --fail-never && rm -rf /tmp/maven
 
 ###############################################################################
-# Install builder package
+# Install entrypoint
 ###############################################################################
-ADD builder /usr/local/bin/builder.pyz
 ADD entrypoint.sh /usr/local/bin/builder
-RUN chmod a+x /usr/local/bin/builder.pyz /usr/local/bin/builder
+RUN chmod a+x /usr/local/bin/builder
 ENTRYPOINT ["/usr/local/bin/builder"]
