@@ -78,13 +78,12 @@ def run_build(env):
     postbuild_action = Script(config.get(
         'post_build_steps', []), name='post_build_steps')
 
-    # check for attrs, and blindly apply them. Allows a project to specify an empty list.
-    if 'build_steps' in config or 'build' in config:
-        build_steps = config.get('build_steps', config.get('build', None))
+    build_steps = config.get('build_steps', config.get('build', None))
+    if build_steps is not None:
         build_action = Script(build_steps, name='build_steps')
 
-    if 'test_steps' in config or 'test' in config:
-        test_steps = config.get('test_steps', config.get('test', None))
+    test_steps = config.get('test_steps', config.get('test', None))
+    if test_steps is not None:
         test_action = Script(test_steps, name='test_steps')
 
     build = Script([

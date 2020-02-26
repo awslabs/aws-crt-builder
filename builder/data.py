@@ -37,10 +37,10 @@ KEYS = {
     'build_env': {},  # environment variables to set before starting build
     'cmake_args': [],  # additional cmake arguments
     'run_tests': True,  # whether or not to run tests
-    'build': [],  # deprecated, use build_steps
-    'build_steps': [],  # steps to run instead of the default cmake compile
-    'test': [],  # deprecated, use test_steps
-    'test_steps': [],  # steps to run instead of the default ctest
+    'build': None,  # deprecated, use build_steps
+    'build_steps': None,  # steps to run instead of the default cmake compile
+    'test': None,  # deprecated, use test_steps
+    'test_steps': None,  # steps to run instead of the default ctest
     'pkg_tool': None,  # apt, brew, yum, apk, etc
     'pkg_setup': [],  # commands required to configure the package system
     # command to install packages, should be of the form 'pkgmanager arg1 arg2 {packages will go here}'
