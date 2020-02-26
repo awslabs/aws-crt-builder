@@ -16,6 +16,7 @@ RUN apt-get update \
     python3-pip \
     build-essential \
     cmake \
+    maven \
     # For PPAs
     software-properties-common \
     apt-transport-https	\

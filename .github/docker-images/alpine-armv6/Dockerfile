@@ -12,6 +12,7 @@ RUN apk --no-cache add \
     cmake \
     clang \
     perl \
+    maven \
     linux-headers
 
 ###############################################################################
