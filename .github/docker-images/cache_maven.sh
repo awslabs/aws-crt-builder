@@ -4,7 +4,7 @@
 
 set -ex
 
-[ $# -eq 4 ]
+[ $# -eq 3 ]
 variant=$1
 arch=$2
 version=$3
