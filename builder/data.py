@@ -311,7 +311,11 @@ COMPILERS = {
 
         'c': "gcc-{version}",
         'cxx': "g++-{version}",
-        'compiler_packages': ["gcc-{version}", "g++-{version}"],
+        'compiler_packages': ['gcc', 'g++'],
+
+        'apt_packages': ['gcc-{version}', 'g++-{version}'],
+
+        'yum_packages': ['gcc', 'gcc-c++'],
 
         'versions': {
             '4.8': {},
@@ -323,7 +327,7 @@ COMPILERS = {
 
         'architectures': {
             'x86': {
-                'compiler_packages': ["gcc-{version}-multilib", "g++-{version}-multilib"],
+                'apt_packages': ["gcc-{version}-multilib", "g++-{version}-multilib"],
             },
         },
     },
