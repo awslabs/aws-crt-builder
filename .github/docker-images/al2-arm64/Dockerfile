@@ -18,6 +18,7 @@ RUN yum -y update \
     cmake3 \
     gcc \
     gcc-c++ \
+    maven \
     && yum clean all \
     && rm -rf /var/cache/yum \
     && ln -s /usr/bin/cmake3 /usr/bin/cmake \
@@ -46,6 +47,8 @@ RUN curl -sSL https://d19elf31gohf1l.cloudfront.net/_binaries/libcrypto/libcrypt
 # Maven settings
 ###############################################################################
 ADD settings.xml /root/.m2/settings.xml
+ADD https://raw.githubusercontent.com/awslabs/aws-crt-java/master/pom.xml pom.xml
+RUN mvn dependency:go-offline -B --fail-never && rm -rf /tmp/maven
 
 ###############################################################################
 # Install builder package
