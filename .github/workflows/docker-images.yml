@@ -253,23 +253,23 @@ jobs:
 
     - name: Install builder
       run: |
-        aws s3 cp s3://$AWS_S3_BUCKET/$IMAGE_TAG/builder .github/docker-images/${{ matrix.variant }}${{ matrix.arch }}/builder
-        cp -v .github/docker-images/entrypoint.sh .github/docker-images/${{ matrix.variant }}${{ matrix.arch }}/entrypoint.sh
+        aws s3 cp s3://$AWS_S3_BUCKET/$IMAGE_TAG/builder .github/docker-images/${{ matrix.variant }}-${{ matrix.arch }}/builder
+        cp -v .github/docker-images/entrypoint.sh .github/docker-images/${{ matrix.variant }}-${{ matrix.arch }}/entrypoint.sh
 
-    - name: "Build ${{ matrix.variant }}${{ matrix.arch }} image"
+    - name: "Build ${{ matrix.variant }}-${{ matrix.arch }} image"
       run: .github/workflows/docker_buildx.sh \
         docker.pkg.github.com \
         awslabs \
         ${{ secrets.DOCKER_TOKEN }} \
-        awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}${{ matrix.arch }} \
+        awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}-${{ matrix.arch }} \
         ${{ env.IMAGE_TAG }} \
-        .github/docker-images/${{ matrix.variant }}${{ matrix.arch }} \
+        .github/docker-images/${{ matrix.variant }}-${{ matrix.arch }} \
         --compress=true --platform=linux/${{ matrix.arch }}
 
     - name: Export ${{ matrix.variant }} ${{ matrix.arch }} image
       run: |
-        docker save docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}${{ matrix.arch }}:${{ env.IMAGE_TAG }} > /tmp/aws-crt-${{ matrix.variant }}${{ matrix.arch }}-${{ env.IMAGE_TAG }}.tar.gz
-        aws s3 cp --no-progress /tmp/aws-crt-${{ matrix.variant }}${{ matrix.arch }}-${{ env.IMAGE_TAG }}.tar.gz s3://${{env.AWS_S3_BUCKET}}/${{ env.IMAGE_TAG }}/aws-crt-${{ matrix.variant }}${{ matrix.arch }}.tar.gz
+        docker save docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}-${{ matrix.arch }}:${{ env.IMAGE_TAG }} > /tmp/aws-crt-${{ matrix.variant }}-${{ matrix.arch }}-${{ env.IMAGE_TAG }}.tar.gz
+        aws s3 cp --no-progress /tmp/aws-crt-${{ matrix.variant }}-${{ matrix.arch }}-${{ env.IMAGE_TAG }}.tar.gz s3://${{env.AWS_S3_BUCKET}}/${{ env.IMAGE_TAG }}/aws-crt-${{ matrix.variant }}-${{ matrix.arch }}.tar.gz
 
 ###############################################################################
 # DOWNSTREAM TESTS
