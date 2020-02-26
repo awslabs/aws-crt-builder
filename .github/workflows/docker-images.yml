@@ -7,7 +7,7 @@ on:
       - '!master'
     paths:
       - '.github/actions/**'
-      - '.github/docker-images/**/Dockerfile'
+      - '.github/docker-images/**/*'
       - '.github/docker-images/entrypoint.sh'
       - '.github/workflows/docker-images.yml'
       - '.github/workflows/*.sh'
