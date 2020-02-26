@@ -68,11 +68,12 @@ class CMakeBuild(Action):
             # Set compiler flags
             compiler_flags = []
             if toolchain.compiler != 'default':
-                compiler_path = toolchain.compiler_path(env)
-                if compiler_path:
-                    for opt in ['c', 'cxx']:
+                c_path = toolchain.compiler_path(env)
+                cxx_path = toolchain.cxx_compiler_path(env)
+                for opt, value in [('c', c_path), ('cxx', cxx_path)]:
+                    if value:
                         compiler_flags.append(
-                            '-DCMAKE_{}_COMPILER={}'.format(opt.upper(), compiler_path))
+                            '-DCMAKE_{}_COMPILER={}'.format(opt.upper(), value))
 
                 if config:
                     for opt, variable in {'c': 'CC', 'cxx': 'CXX'}.items():
