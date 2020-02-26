@@ -38,7 +38,8 @@ def _apply_value(obj, key, new_value):
     key_type = type(new_value)
     if key_type == list:
         # Apply the config's value before the existing list
-        obj[key] = new_value + obj[key]
+        val = obj[key]
+        obj[key] = (new_value + val) if val else new_value
 
     elif key_type == dict:
         # Iterate each element and recursively apply the values
@@ -58,6 +59,12 @@ def _coalesce_pkg_options(spec, config):
             pkg_tool.value, suffix), default)
         pkg_key = 'pkg_{}'.format(suffix)
         config[pkg_key] = tool_value + config.get(pkg_key, default)
+    # overwrite packages/compiler_packages if there are overrides
+    for key, default in [('packages', []), ('compiler_packages', [])]:
+        tool_value = config.get('{}_{}'.format(
+            pkg_tool.value, key), default)
+        if tool_value:
+            config[key] = tool_value
     return config
 
 

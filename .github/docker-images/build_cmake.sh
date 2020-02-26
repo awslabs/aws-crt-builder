@@ -16,8 +16,8 @@ CMAKE_VERSION=3.13.5
 [ ! -z "$AWS_ACCESS_KEY_ID" ] && [ ! -z "$AWS_SECRET_ACCESS_KEY" ]
 
 if [ ! -e /tmp/aws-crt-${variant}-${arch}-${version}.tar ]; then
-    aws s3 cp s3://aws-crt-builder/_docker/aws-crt-${variant}-${arch}-${version}.tar /tmp
-    docker load < /tmp/aws-crt-${variant}-${arch}-${version}.tar
+    aws s3 cp s3://aws-crt-builder/_docker/aws-crt-${variant}-${arch}-${version}.tar.gz /tmp
+    docker load < /tmp/aws-crt-${variant}-${arch}-${version}.tar.gz
 fi
 
 container=$(docker run -dit --env AWS_ACCESS_KEY_ID --env AWS_SECRET_ACCESS_KEY --entrypoint /bin/sh docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${variant}-${arch}:${version})

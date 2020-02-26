@@ -68,16 +68,12 @@ class CMakeBuild(Action):
             # Set compiler flags
             compiler_flags = []
             if toolchain.compiler != 'default':
-                compiler_path = toolchain.compiler_path(env)
-                if compiler_path:
-                    for opt in ['c', 'cxx']:
+                c_path = toolchain.compiler_path(env)
+                cxx_path = toolchain.cxx_compiler_path(env)
+                for opt, value in [('c', c_path), ('cxx', cxx_path)]:
+                    if value:
                         compiler_flags.append(
-                            '-DCMAKE_{}_COMPILER={}'.format(opt.upper(), compiler_path))
-
-                if config:
-                    for opt, variable in {'c': 'CC', 'cxx': 'CXX'}.items():
-                        if opt in config and config[opt]:
-                            sh.setenv(variable, config[opt])
+                            '-DCMAKE_{}_COMPILER={}'.format(opt.upper(), value))
 
             cmake_flags = []
             if env.build_spec.target == 'linux':

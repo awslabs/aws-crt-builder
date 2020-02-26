@@ -37,14 +37,14 @@ KEYS = {
     'build_env': {},  # environment variables to set before starting build
     'cmake_args': [],  # additional cmake arguments
     'run_tests': True,  # whether or not to run tests
-    'build': [],  # deprecated, use build_steps
-    'build_steps': [],  # steps to run instead of the default cmake compile
-    'test': [],  # deprecated, use test_steps
-    'test_steps': [],  # steps to run instead of the default ctest
+    'build': None,  # deprecated, use build_steps
+    'build_steps': None,  # steps to run instead of the default cmake compile
+    'test': None,  # deprecated, use test_steps
+    'test_steps': None,  # steps to run instead of the default ctest
     'pkg_tool': None,  # apt, brew, yum, apk, etc
     'pkg_setup': [],  # commands required to configure the package system
     # command to install packages, should be of the form 'pkgmanager arg1 arg2 {packages will go here}'
-    'pkg_install': [],
+    'pkg_install': '',
     'pkg_update': '',  # command to update the package manager's database
     'packages': [],  # packages to install
     'compiler_packages': [],  # packages to support compiler
@@ -55,10 +55,10 @@ KEYS = {
 }
 
 # Add apt_setup, et al
-for suffix in ['setup']:
+for suffix, default in [('setup', []), ('install', ''), ('update', ''), ('packages', []), ('compiler_packages', [])]:
     for pkg in PKG_TOOLS:
         key = '{}_{}'.format(pkg.value, suffix)
-        KEYS[key] = []
+        KEYS[key] = default
 
 # Be sure to use these monikers in this file, aliases are applied after all tables are built
 ARCHS = {
@@ -231,9 +231,9 @@ COMPILERS = {
                 '!cmake_args': [],
             },
             '3': {
-                'compiler_packages': ["clang-3.9"],
+                'compiler_packages': ["clang-3.9", "clang++-3.9"],
                 'c': "clang-3.9",
-                'cxx': "clang-3.9",
+                'cxx': "clang++-3.9",
                 'cmake_args': ['-DCMAKE_EXPORT_COMPILE_COMMANDS=ON', '-DENABLE_FUZZ_TESTS=ON'],
             },
             '6': {
@@ -242,10 +242,10 @@ COMPILERS = {
                     ['apt-add-repository',
                      'deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-6.0 main']
                 ],
-                'compiler_packages': ["clang-6.0", "clang-tidy-6.0"],
+                'compiler_packages': ["clang-6.0", "clang++-6.0", "clang-tidy-6.0"],
 
                 'c': "clang-6.0",
-                'cxx': "clang-6.0",
+                'cxx': "clang++-6.0",
                 'cmake_args': ['-DCMAKE_EXPORT_COMPILE_COMMANDS=ON', '-DENABLE_FUZZ_TESTS=ON'],
             },
             '7': {
@@ -254,11 +254,11 @@ COMPILERS = {
                     ['apt-add-repository',
                      'deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-7 main']
                 ],
-                'compiler_packages': ["clang-7", "clang-tidy-7"],
+                'compiler_packages': ["clang-7", "clang++-7", "clang-tidy-7"],
                 'cmake_args': ['-DCMAKE_EXPORT_COMPILE_COMMANDS=ON', '-DENABLE_FUZZ_TESTS=ON'],
 
                 'c': "clang-7",
-                'cxx': "clang-7",
+                'cxx': "clang++-7",
             },
             '8': {
                 'apt_setup': [
@@ -266,10 +266,10 @@ COMPILERS = {
                     ['apt-add-repository',
                      'deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-8 main']
                 ],
-                'compiler_packages': ["clang-8", "clang-tidy-8"],
+                'compiler_packages': ["clang-8", "clang++-8", "clang-tidy-8"],
 
                 'c': "clang-8",
-                'cxx': "clang-8",
+                'cxx': "clang++-8",
                 'cmake_args': ['-DCMAKE_EXPORT_COMPILE_COMMANDS=ON', '-DENABLE_FUZZ_TESTS=ON'],
             },
             '9': {
@@ -278,10 +278,10 @@ COMPILERS = {
                     ['apt-add-repository',
                      'deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-9 main']
                 ],
-                'compiler_packages': ["clang-9", "clang-tidy-9"],
+                'compiler_packages': ["clang-9", "clang++-9", "clang-tidy-9"],
 
                 'c': "clang-9",
-                'cxx': "clang-9",
+                'cxx': "clang++-9",
                 'cmake_args': ['-DCMAKE_EXPORT_COMPILE_COMMANDS=ON', '-DENABLE_FUZZ_TESTS=ON'],
             },
             # 10 and 11 are XCode Apple clang/LLVM
@@ -311,7 +311,11 @@ COMPILERS = {
 
         'c': "gcc-{version}",
         'cxx': "g++-{version}",
-        'compiler_packages': ["gcc-{version}", "g++-{version}"],
+        'compiler_packages': ['gcc', 'g++'],
+
+        'apt_packages': ['gcc-{version}', 'g++-{version}'],
+
+        'yum_packages': ['gcc', 'gcc-c++'],
 
         'versions': {
             '4.8': {},
@@ -323,7 +327,7 @@ COMPILERS = {
 
         'architectures': {
             'x86': {
-                'compiler_packages': ["gcc-{version}-multilib", "g++-{version}-multilib"],
+                'apt_packages': ["gcc-{version}-multilib", "g++-{version}-multilib"],
             },
         },
     },

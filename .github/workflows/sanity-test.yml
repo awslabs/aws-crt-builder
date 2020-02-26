@@ -10,6 +10,15 @@ on:
       - 'builder/**'
 
 jobs:
+  cleanup:
+    name: Clean up previous branch jobs
+    runs-on: ubuntu-latest
+    steps:
+    - name: Clean up previous branch jobs
+      uses: rokroskar/workflow-run-cleanup-action@master
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
   sanity_test:
     name: Sanity Test
     strategy:
@@ -51,3 +60,22 @@ jobs:
         if: matrix.host == 'windows-latest'
         run: |
           python -m builder build --project tests
+
+  # downstream_test:
+  #   strategy:
+  #     matrix:
+  #       project:
+  #         - aws-c-io
+  #         - aws-c-mqtt
+  #         - aws-c-http
+  #         - aws-crt-python
+  #         - aws-crt-cpp
+  #         - aws-crt-java
+
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Checkout Source
+  #       uses: actions/checkout@v1
+
+  #     - name: Build ${{ matrix.project }}
+  #       run: python3 -m builder build --project ${{ matrix.project }}

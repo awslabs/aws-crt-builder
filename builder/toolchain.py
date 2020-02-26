@@ -122,6 +122,17 @@ class Toolchain(object):
             return Toolchain.default_compiler(env)[0]
         return Toolchain.find_compiler(env, self.compiler, self.compiler_version if self.compiler_version != 'default' else None)[0]
 
+    def cxx_compiler_path(self, env):
+        compiler = self.compiler
+        if self.compiler == 'default':
+            compiler = Toolchain.default_compiler(env)[0]
+        if compiler == 'clang':
+            return Toolchain.find_compiler_tool(env, compiler, 'clang++')[0]
+        elif compiler == 'gcc':
+            return Toolchain.find_compiler_tool(env, compiler, 'g++')[0]
+        # msvc can compile with cl.exe regardless of language
+        return self.compiler_path(env)
+
     def __str__(self):
         return self.name
 
@@ -191,6 +202,16 @@ class Toolchain(object):
             return Toolchain.find_gcc_tool(env, compiler, version)
         elif compiler == 'msvc':
             return Toolchain.find_msvc(env, version)
+        return None, None
+
+    @staticmethod
+    def find_compiler_tool(env, compiler, tool, version=None):
+        """ Returns path, found_version for the requested tool if it is installed """
+        if compiler == 'clang':
+            return Toolchain.find_llvm_tool(env, tool, version)
+        elif compiler == 'gcc':
+            return Toolchain.find_gcc_tool(env, tool, version)
+
         return None, None
 
     @staticmethod

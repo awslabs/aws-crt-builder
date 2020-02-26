@@ -78,13 +78,12 @@ def run_build(env):
     postbuild_action = Script(config.get(
         'post_build_steps', []), name='post_build_steps')
 
-    # check for attrs, and blindly apply them. Allows a project to specify an empty list.
-    if 'build_steps' in config or 'build' in config:
-        build_steps = config.get('build_steps', config.get('build', None))
+    build_steps = config.get('build_steps', config.get('build', None))
+    if build_steps is not None:
         build_action = Script(build_steps, name='build_steps')
 
-    if 'test_steps' in config or 'test' in config:
-        test_steps = config.get('test_steps', config.get('test', None))
+    test_steps = config.get('test_steps', config.get('test', None))
+    if test_steps is not None:
         test_action = Script(test_steps, name='test_steps')
 
     build = Script([
@@ -158,6 +157,7 @@ def parse_args():
     parser.add_argument('--spec', type=str)
     parser.add_argument('-b', '--build-dir', type=str,
                         help='Directory to work in', default='.')
+    parser.add_argument('--branch', help='Branch to build from')
     parser.add_argument('args', nargs=argparse.REMAINDER)
 
     # hand parse command and spec from within the args given
@@ -191,6 +191,7 @@ if __name__ == '__main__':
         'dryrun': args.dry_run,
         'args': args,
         'project': args.project,
+        'branch': args.branch,
     })
 
     parse_extra_args(env)
@@ -221,7 +222,7 @@ if __name__ == '__main__':
     if not env.config.get('enabled', True):
         raise Exception("The project is disabled in this configuration")
 
-    if getattr(args, 'dump_config', False):
+    if args.dump_config:
         from pprint import pprint
         print('Spec: ', end='')
         pprint(env.build_spec)

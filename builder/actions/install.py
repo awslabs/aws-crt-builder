@@ -61,13 +61,15 @@ class InstallPackages(Action):
 
             pkg_update = config.get('pkg_update', None)
             if pkg_update:
-                pkg_update = pkg_update.split(' ')
+                if not isinstance(pkg_update, list):
+                    pkg_update = pkg_update.split(' ')
                 sh.exec(*sudo, pkg_update, check=True, retries=3)
 
             InstallPackages.pkg_init_done = True
 
         pkg_install = config['pkg_install']
-        pkg_install = pkg_install.split(' ')
+        if not isinstance(pkg_install, list):
+            pkg_install = pkg_install.split(' ')
         pkg_install += packages
 
         sh.exec(*sudo, pkg_install, check=True, retries=3)
