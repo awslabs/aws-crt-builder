@@ -61,21 +61,21 @@ jobs:
         run: |
           python -m builder build --project tests
 
-  # downstream_test:
-  #   strategy:
-  #     matrix:
-  #       project:
-  #         - aws-c-io
-  #         - aws-c-mqtt
-  #         - aws-c-http
-  #         - aws-crt-python
-  #         - aws-crt-cpp
-  #         - aws-crt-java
+  downstream_test:
+    strategy:
+      matrix:
+        project:
+          - aws-c-io
+          - aws-c-mqtt
+          - aws-c-http
+          - aws-crt-python
+          - aws-crt-cpp
+          - aws-crt-java
 
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Checkout Source
-  #       uses: actions/checkout@v1
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@v1
 
-  #     - name: Build ${{ matrix.project }}
-  #       run: python3 -m builder build --project ${{ matrix.project }}
+      - name: Build ${{ matrix.project }}
+        run: python3 -m builder build --project ${{ matrix.project }}
