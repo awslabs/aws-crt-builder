@@ -38,7 +38,8 @@ def _apply_value(obj, key, new_value):
     key_type = type(new_value)
     if key_type == list:
         # Apply the config's value before the existing list
-        obj[key] = new_value + obj[key]
+        val = obj[key]
+        obj[key] = (new_value + val) if val else new_value
 
     elif key_type == dict:
         # Iterate each element and recursively apply the values
