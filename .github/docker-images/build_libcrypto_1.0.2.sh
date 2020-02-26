@@ -14,7 +14,7 @@ libcrypto_version=1.0.2
 [ ! -z "$AWS_ACCESS_KEY_ID" ] && [ ! -z "$AWS_SECRET_ACCESS_KEY" ]
 
 if [ ! -e /tmp/aws-crt-${variant}-${arch}-${version}.tar.gz ]; then
-    aws s3 cp s3://aws-crt-builder/_docker/aws-crt-${variant}-${arch}-${version}.tar.gz /tmp
+    aws s3 cp s3://aws-crt-builder/${version}/aws-crt-${variant}-${arch}-${version}.tar.gz /tmp
     docker load < /tmp/aws-crt-${variant}-${arch}-${version}.tar.gz
 fi
 
