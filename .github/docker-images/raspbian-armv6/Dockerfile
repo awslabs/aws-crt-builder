@@ -39,6 +39,11 @@ RUN curl -sSL https://d19elf31gohf1l.cloudfront.net/_binaries/libcrypto/libcrypt
     && rm -f /tmp/libcrypto.tar.gz
 
 ###############################################################################
+# Maven settings
+###############################################################################
+ADD settings.xml /root/.m2/settings.xml
+
+###############################################################################
 # Install builder package
 ###############################################################################
 ADD builder /usr/local/bin/builder.pyz
