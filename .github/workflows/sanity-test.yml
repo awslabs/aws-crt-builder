@@ -11,6 +11,7 @@ on:
 
 jobs:
   cleanup:
+    runs-on: ubuntu-latest
     steps:
     - name: Clean up previous branch jobs
       uses: rokroskar/workflow-run-cleanup-action
