@@ -11,6 +11,7 @@ on:
 
 jobs:
   cleanup:
+    name: Clean up previous branch jobs
     runs-on: ubuntu-latest
     steps:
     - name: Clean up previous branch jobs

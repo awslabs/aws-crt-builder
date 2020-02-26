@@ -231,7 +231,7 @@ COMPILERS = {
                 '!cmake_args': [],
             },
             '3': {
-                'compiler_packages': ["clang-3.9", "clang++3.9"],
+                'compiler_packages': ["clang-3.9", "clang++-3.9"],
                 'c': "clang-3.9",
                 'cxx': "clang++-3.9",
                 'cmake_args': ['-DCMAKE_EXPORT_COMPILE_COMMANDS=ON', '-DENABLE_FUZZ_TESTS=ON'],
