@@ -44,11 +44,13 @@ RUN curl -sSL https://d19elf31gohf1l.cloudfront.net/_binaries/libcrypto/libcrypt
     && rm -f /tmp/libcrypto.tar.gz
 
 ###############################################################################
-# Maven settings
+# Maven cache/settings
 ###############################################################################
+RUN curl -sSL https://d19elf31gohf1l.cloudfront.net/_binaries/maven/maven-al2-arm64.tar.gz -o maven.tar.gz \
+    && mkdir -p /root/.m2 \
+    && tar xzf maven.tar.gz -C /root/.m2 \
+    && rm -f /tmp/maven.tar.gz
 ADD settings.xml /root/.m2/settings.xml
-ADD https://raw.githubusercontent.com/awslabs/aws-crt-java/master/pom.xml pom.xml
-RUN mvn dependency:go-offline -B --fail-never && rm -rf /tmp/maven
 
 ###############################################################################
 # Install entrypoint
