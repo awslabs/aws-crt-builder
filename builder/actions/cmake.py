@@ -75,11 +75,6 @@ class CMakeBuild(Action):
                         compiler_flags.append(
                             '-DCMAKE_{}_COMPILER={}'.format(opt.upper(), value))
 
-                if config:
-                    for opt, variable in {'c': 'CC', 'cxx': 'CXX'}.items():
-                        if opt in config and config[opt]:
-                            sh.setenv(variable, config[opt])
-
             cmake_flags = []
             if env.build_spec.target == 'linux':
                 cmake_flags += [

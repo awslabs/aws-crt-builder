@@ -231,9 +231,9 @@ COMPILERS = {
                 '!cmake_args': [],
             },
             '3': {
-                'compiler_packages': ["clang-3.9"],
+                'compiler_packages': ["clang-3.9", "clang++3.9"],
                 'c': "clang-3.9",
-                'cxx': "clang-3.9",
+                'cxx': "clang++-3.9",
                 'cmake_args': ['-DCMAKE_EXPORT_COMPILE_COMMANDS=ON', '-DENABLE_FUZZ_TESTS=ON'],
             },
             '6': {
@@ -242,10 +242,10 @@ COMPILERS = {
                     ['apt-add-repository',
                      'deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-6.0 main']
                 ],
-                'compiler_packages': ["clang-6.0", "clang-tidy-6.0"],
+                'compiler_packages': ["clang-6.0", "clang++-6.0", "clang-tidy-6.0"],
 
                 'c': "clang-6.0",
-                'cxx': "clang-6.0",
+                'cxx': "clang++-6.0",
                 'cmake_args': ['-DCMAKE_EXPORT_COMPILE_COMMANDS=ON', '-DENABLE_FUZZ_TESTS=ON'],
             },
             '7': {
@@ -254,11 +254,11 @@ COMPILERS = {
                     ['apt-add-repository',
                      'deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-7 main']
                 ],
-                'compiler_packages': ["clang-7", "clang-tidy-7"],
+                'compiler_packages': ["clang-7", "clang++-7", "clang-tidy-7"],
                 'cmake_args': ['-DCMAKE_EXPORT_COMPILE_COMMANDS=ON', '-DENABLE_FUZZ_TESTS=ON'],
 
                 'c': "clang-7",
-                'cxx': "clang-7",
+                'cxx': "clang++-7",
             },
             '8': {
                 'apt_setup': [
@@ -266,10 +266,10 @@ COMPILERS = {
                     ['apt-add-repository',
                      'deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-8 main']
                 ],
-                'compiler_packages': ["clang-8", "clang-tidy-8"],
+                'compiler_packages': ["clang-8", "clang++-8", "clang-tidy-8"],
 
                 'c': "clang-8",
-                'cxx': "clang-8",
+                'cxx': "clang++-8",
                 'cmake_args': ['-DCMAKE_EXPORT_COMPILE_COMMANDS=ON', '-DENABLE_FUZZ_TESTS=ON'],
             },
             '9': {
@@ -278,10 +278,10 @@ COMPILERS = {
                     ['apt-add-repository',
                      'deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-9 main']
                 ],
-                'compiler_packages': ["clang-9", "clang-tidy-9"],
+                'compiler_packages': ["clang-9", "clang++-9", "clang-tidy-9"],
 
                 'c': "clang-9",
-                'cxx': "clang-9",
+                'cxx': "clang++-9",
                 'cmake_args': ['-DCMAKE_EXPORT_COMPILE_COMMANDS=ON', '-DENABLE_FUZZ_TESTS=ON'],
             },
             # 10 and 11 are XCode Apple clang/LLVM
