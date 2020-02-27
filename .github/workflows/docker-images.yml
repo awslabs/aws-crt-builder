@@ -153,7 +153,7 @@ jobs:
   linux-arm64:
     name: ${{ matrix.variant }}-${{ matrix.arch }}
     runs-on: 'ubuntu-latest'
-    needs: [tag, package]
+    needs: [tag]
     strategy:
       matrix:
         variant: [al2]
@@ -192,7 +192,7 @@ jobs:
   linux-arm32:
     name: ${{ matrix.variant }}-arm${{ matrix.arch }}
     runs-on: 'ubuntu-latest'
-    needs: [tag, package]
+    needs: [tag]
     strategy:
       fail-fast: false
       matrix:
@@ -232,7 +232,7 @@ jobs:
   linux-mips:
     name: ${{ matrix.variant }}-${{ matrix.arch }}
     runs-on: 'ubuntu-latest'
-    needs: [tag, package]
+    needs: [tag]
     strategy:
       fail-fast: false
       matrix:
@@ -251,10 +251,8 @@ jobs:
     - name: Export IMAGE_TAG
       run: echo "::set-env name=IMAGE_TAG::$(cat release_tag/tag)"
 
-    - name: Install builder
-      run: |
-        aws s3 cp s3://$AWS_S3_BUCKET/$IMAGE_TAG/builder .github/docker-images/${{ matrix.variant }}-${{ matrix.arch }}/builder
-        cp -v .github/docker-images/entrypoint.sh .github/docker-images/${{ matrix.variant }}-${{ matrix.arch }}/entrypoint.sh
+    - name: Install entrypoint
+      run: cp -v .github/docker-images/entrypoint.sh .github/docker-images/${{ matrix.variant }}-${{ matrix.arch }}/entrypoint.sh
 
     - name: "Build ${{ matrix.variant }}-${{ matrix.arch }} image"
       run: .github/workflows/docker_buildx.sh \
