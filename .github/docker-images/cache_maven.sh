@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# This installs maven in the specified container, and forces it to download enough to to go offline, then caches the result
+# This clones aws-crt-java in the specified container, builds it with maven, then caches maven's respository to S3
 
 set -ex
 

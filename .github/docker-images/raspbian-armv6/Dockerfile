@@ -46,7 +46,7 @@ RUN curl -sSL https://d19elf31gohf1l.cloudfront.net/_binaries/maven/maven-raspbi
     && mkdir -p /root/.m2 \
     && tar xzf maven.tar.gz -C /root/.m2 \
     && rm -f /tmp/maven.tar.gz
-ADD settings.xml /root/.m2/settings.xml
+ADD maven_settings.xml /root/.m2/settings.xml
 
 ###############################################################################
 # Install entrypoint

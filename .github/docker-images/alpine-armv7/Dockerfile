@@ -35,7 +35,7 @@ RUN curl -sSL https://d19elf31gohf1l.cloudfront.net/_binaries/libcrypto/libcrypt
 ###############################################################################
 # Maven settings
 ###############################################################################
-ADD settings.xml /root/.m2/settings.xml
+ADD maven_settings.xml /root/.m2/settings.xml
 
 ###############################################################################
 # Install entrypoint
