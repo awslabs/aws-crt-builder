@@ -19,6 +19,89 @@ from toolchain import Toolchain
 from project import Project
 
 
+# All dirs used should be relative to env.source_dir, as this is where the cross
+# compilation will be mounting to do its work
+def _project_dirs(env, project, base_dir=None):
+    source_dir = str(Path(project.path).relative_to(env.source_dir))
+    build_dir = os.path.join(base_dir if base_dir else source_dir, 'build')
+    install_dir = str(Path(env.install_dir).relative_to(env.source_dir))
+    return source_dir, build_dir, install_dir
+
+
+def _build_project(env, project, build_tests=False, base_dir=None):
+    sh = env.shell
+    config = env.config
+    toolchain = env.toolchain
+    # build dependencies first, let cmake decide what needs doing
+    for dep in project.get_dependencies(env.spec):
+        sh.pushd(dep.path)
+        _build_project(env, dep)
+        sh.popd()
+
+    project_source_dir, project_build_dir, project_install_dir = _project_dirs(
+        env, project, base_dir)
+    sh.mkdir(os.path.abspath(project_build_dir))
+
+    # If cmake has already run, assume we're good
+    if os.path.isfile(os.path.join(project_build_dir, 'CMakeCache.txt')):
+        return
+
+    # TODO These platforms don't succeed when doing a RelWithDebInfo build
+    build_config = env.args.config
+    if toolchain.host in ("al2012", "manylinux"):
+        build_config = "Debug"
+
+    # Set compiler flags
+    compiler_flags = []
+    if toolchain.compiler != 'default' and not toolchain.cross_compile:
+        c_path = toolchain.compiler_path(env)
+        cxx_path = toolchain.cxx_compiler_path(env)
+        for opt, value in [('c', c_path), ('cxx', cxx_path)]:
+            if value:
+                compiler_flags.append(
+                    '-DCMAKE_{}_COMPILER={}'.format(opt.upper(), value))
+
+    cmake_flags = []
+    if env.spec.target == 'linux':
+        cmake_flags += [
+            # Each image has a custom installed openssl build, make sure CMake knows where to find it
+            "-DLibCrypto_INCLUDE_DIR=/opt/openssl/include",
+            "-DLibCrypto_SHARED_LIBRARY=/opt/openssl/lib/libcrypto.so",
+            "-DLibCrypto_STATIC_LIBRARY=/opt/openssl/lib/libcrypto.a",
+        ]
+
+    cmake_args = [
+        "-B{}".format(project_build_dir),
+        "-H{}".format(project_source_dir),
+        "-Werror=dev",
+        "-Werror=deprecated",
+        "-DCMAKE_INSTALL_PREFIX=" + project_install_dir,
+        "-DCMAKE_PREFIX_PATH=" + project_install_dir,
+        "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
+        "-DCMAKE_BUILD_TYPE=" + build_config,
+        "-DBUILD_TESTING=" + ("ON" if build_tests else "OFF"),
+        *cmake_flags,
+        *compiler_flags,
+    ] + getattr(project, 'cmake_args', []) + config.get('cmake_args', [])
+
+    # configure
+    sh.exec(*toolchain.shell_env, "cmake", cmake_args, check=True)
+
+    # build
+    sh.exec(*toolchain.shell_env, "cmake", "--build", project_build_dir, "--config",
+            build_config, check=True)
+
+    # install
+    sh.exec(*toolchain.shell_env, "cmake", "--build", project_build_dir, "--config",
+            build_config, "--target", "install", check=True)
+
+
+def _build_projects(env, projects):
+    for proj in projects:
+        project = Project.find_project(proj)
+        _build_project(project)
+
+
 class CMakeBuild(Action):
     """ Runs cmake configure, build """
 
@@ -26,110 +109,24 @@ class CMakeBuild(Action):
         toolchain = env.toolchain
         sh = env.shell
 
-        # TODO These platforms don't succeed when doing a RelWithDebInfo build
-        build_config = env.args.config
-        if toolchain.host in ("al2012", "manylinux"):
-            build_config = "Debug"
-
-        source_dir = env.source_dir
-        build_dir = env.build_dir
-        deps_dir = env.deps_dir
-        install_dir = env.install_dir
-
-        for d in (build_dir, deps_dir, install_dir):
+        for d in (env.build_dir, env.deps_dir, env.install_dir):
             sh.mkdir(d)
 
         config = getattr(env, 'config', {})
         env.build_tests = config.get('build_tests', True)
 
-        def build_project(project, build_tests=False):
-            # build dependencies first, let cmake decide what needs doing
-            for dep in project.get_dependencies(env.spec):
-                sh.pushd(dep.path)
-                build_project(dep)
-                sh.popd()
-
-            project_source_dir = project.path
-            project_build_dir = os.path.join(project_source_dir, 'build')
-            sh.mkdir(project_build_dir)
-            sh.pushd(project_source_dir)
-
-            project_build_dir = str(Path(
-                project_build_dir).relative_to(project_source_dir))
-            project_source_dir = str(
-                Path(project_source_dir).relative_to(sh.cwd()))
-
-            # If cmake has already run, assume we're good
-            if os.path.isfile(os.path.join(project_build_dir, 'CMakeCache.txt')):
-                return
-
-            # Set compiler flags
-            compiler_flags = []
-            if toolchain.compiler != 'default' and not toolchain.cross_compile:
-                c_path = toolchain.compiler_path(env)
-                cxx_path = toolchain.cxx_compiler_path(env)
-                for opt, value in [('c', c_path), ('cxx', cxx_path)]:
-                    if value:
-                        compiler_flags.append(
-                            '-DCMAKE_{}_COMPILER={}'.format(opt.upper(), value))
-
-            cmake_flags = []
-            if env.spec.target == 'linux':
-                cmake_flags += [
-                    # Each image has a custom installed openssl build, make sure CMake knows where to find it
-                    "-DLibCrypto_INCLUDE_DIR=/opt/openssl/include",
-                    "-DLibCrypto_SHARED_LIBRARY=/opt/openssl/lib/libcrypto.so",
-                    "-DLibCrypto_STATIC_LIBRARY=/opt/openssl/lib/libcrypto.a",
-                ]
-
-            cmake_args = [
-                "-B{}".format(project_build_dir),
-                "-H.",
-                "-Werror=dev",
-                "-Werror=deprecated",
-                "-DCMAKE_INSTALL_PREFIX=" + install_dir,
-                "-DCMAKE_PREFIX_PATH=" + install_dir,
-                "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
-                "-DCMAKE_BUILD_TYPE=" + build_config,
-                "-DBUILD_TESTING=" + ("ON" if build_tests else "OFF"),
-                *cmake_flags,
-                *compiler_flags,
-            ] + getattr(project, 'cmake_args', []) + config.get('cmake_args', [])
-
-            # configure
-            sh.exec(*toolchain.shell_env, "cmake", cmake_args, check=True)
-
-            # build
-            sh.exec(*toolchain.shell_env, "cmake", "--build", project_build_dir, "--config",
-                    build_config, check=True)
-
-            # install
-            sh.exec(*toolchain.shell_env, "cmake", "--build", project_build_dir, "--config",
-                    build_config, "--target", "install", check=True)
-
-            sh.popd()
-
-        def build_projects(projects):
-            sh.pushd(deps_dir)
-
-            for proj in projects:
-                project = Project.find_project(proj)
-                sh.pushd(project.path)
-                build_project(project)
-                sh.popd()
-
-            sh.popd()
-
-        sh.pushd(source_dir)
+        sh.pushd(env.source_dir)
 
         spec = env.spec
-        build_projects([p.name for p in env.project.get_dependencies(spec)])
+        _build_projects(
+            env, [p.name for p in env.project.get_dependencies(spec)])
 
         # BUILD
-        build_project(env.project, getattr(env, 'build_tests', False))
+        _build_project(env, env.project, getattr(env, 'build_tests', False))
 
         if spec and spec.downstream:
-            build_projects([p.name for p in env.project.get_consumers(spec)])
+            _build_projects(
+                env, [p.name for p in env.project.get_consumers(spec)])
 
         sh.popd()
 
@@ -151,11 +148,10 @@ class CTestRun(Action):
         sh = env.shell
         toolchain = env.toolchain
 
-        project_source_dir = env.project.path
-        project_build_dir = os.path.join(project_source_dir, 'build')
-        sh.pushd(project_build_dir)
+        project_source_dir, project_build_dir, project_install_dir = _project_dirs(
+            env, env.project)
 
-        sh.exec(*toolchain.shell_env, "ctest",
+        sh.pushd(env.source_dir)
+        sh.exec(*toolchain.shell_env, "ctest", "--build-exe-dir", project_build_dir,
                 "--output-on-failure", check=True)
-
         sh.popd()
