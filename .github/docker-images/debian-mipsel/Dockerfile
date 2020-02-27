@@ -1,4 +1,7 @@
-FROM multiarch/debian-debootstrap:mipsel-buster-slim
+# https://github.com/dockcross/dockcross
+FROM dockcross/linux-mipsel
+
+ENV DEFAULT_DOCKCROSS_IMAGE=debian-mipsel
 
 ###############################################################################
 # Install prereqs
@@ -13,7 +16,6 @@ RUN apt-get update -qq \
     python3-dev \
     python3-pip \
     build-essential \
-    cmake \
     # For PPAs
     software-properties-common \
     apt-transport-https \

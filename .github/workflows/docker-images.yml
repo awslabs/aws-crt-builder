@@ -237,7 +237,7 @@ jobs:
       fail-fast: false
       matrix:
         variant: [debian]
-        arch: [mips, mipsel, mips64el]
+        arch: [mips, mipsel]
     steps:
     - name: Checkout Sources
       uses: actions/checkout@v1

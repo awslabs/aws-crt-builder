@@ -1,4 +1,7 @@
-FROM multiarch/debian-debootstrap:mips-buster-slim
+# https://github.com/dockcross/dockcross
+FROM dockcross/linux-mips
+
+ENV DEFAULT_DOCKCROSS_IMAGE=debian-mips
 
 ###############################################################################
 # Install prereqs
@@ -12,8 +15,6 @@ RUN apt-get update -qq \
     python3 \
     python3-dev \
     python3-pip \
-    build-essential \
-    cmake \
     # For PPAs
     software-properties-common \
     apt-transport-https \
