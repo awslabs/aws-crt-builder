@@ -12,6 +12,7 @@ RUN apk --no-cache add \
     cmake \
     clang \
     perl \
+    maven \
     linux-headers
 
 ###############################################################################
@@ -32,9 +33,13 @@ RUN curl -sSL https://d19elf31gohf1l.cloudfront.net/_binaries/libcrypto/libcrypt
     && rm -f /tmp/libcrypto.tar.gz
 
 ###############################################################################
-# Install builder package
+# Maven settings
 ###############################################################################
-ADD builder /usr/local/bin/builder.pyz
+ADD maven_settings.xml /root/.m2/settings.xml
+
+###############################################################################
+# Install entrypoint
+###############################################################################
 ADD entrypoint.sh /usr/local/bin/builder
-RUN chmod a+x /usr/local/bin/builder.pyz /usr/local/bin/builder
+RUN chmod a+x /usr/local/bin/builder
 ENTRYPOINT ["/usr/local/bin/builder"]

@@ -16,6 +16,7 @@ RUN apt-get update \
     python3-pip \
     build-essential \
     cmake \
+    maven \
     # For PPAs
     software-properties-common \
     apt-transport-https	\
@@ -39,9 +40,17 @@ RUN curl -sSL https://d19elf31gohf1l.cloudfront.net/_binaries/libcrypto/libcrypt
     && rm -f /tmp/libcrypto.tar.gz
 
 ###############################################################################
-# Install builder package
+# Maven cache/settings
 ###############################################################################
-ADD builder /usr/local/bin/builder.pyz
+RUN curl -sSL https://d19elf31gohf1l.cloudfront.net/_binaries/maven/maven-raspbian-armv6.tar.gz -o maven.tar.gz \
+    && mkdir -p /root/.m2 \
+    && tar xzf maven.tar.gz -C /root/.m2 \
+    && rm -f /tmp/maven.tar.gz
+ADD maven_settings.xml /root/.m2/settings.xml
+
+###############################################################################
+# Install entrypoint
+###############################################################################
 ADD entrypoint.sh /usr/local/bin/builder
-RUN chmod a+x /usr/local/bin/builder.pyz /usr/local/bin/builder
+RUN chmod a+x /usr/local/bin/builder
 ENTRYPOINT ["/usr/local/bin/builder"]

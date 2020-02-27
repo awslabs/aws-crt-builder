@@ -313,9 +313,9 @@ COMPILERS = {
         'cxx': "g++-{version}",
         'compiler_packages': ['gcc', 'g++'],
 
-        'apt_packages': ['gcc-{version}', 'g++-{version}'],
+        'apt_compiler_packages': ['gcc-{version}', 'g++-{version}'],
 
-        'yum_packages': ['gcc', 'gcc-c++'],
+        'yum_compiler_packages': ['gcc', 'gcc-c++'],
 
         'versions': {
             '4.8': {},

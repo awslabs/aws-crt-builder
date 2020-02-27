@@ -6,12 +6,10 @@ on:
       - '*'
       - '!master'
     paths:
-      - '.github/actions/**'
-      - '.github/docker-images/**/Dockerfile'
+      - '.github/docker-images/**/*'
       - '.github/docker-images/entrypoint.sh'
       - '.github/workflows/docker-images.yml'
       - '.github/workflows/*.sh'
-      - 'builder/**'
   release:
     types: [published]
 
@@ -60,23 +58,6 @@ jobs:
       - name: Checkout Source
         uses: actions/checkout@v1
 
-      # re-enable this when requirements.txt has actual dependencies
-      # - name: Bundle dependencies
-      #   run: |
-      #     python3 -m pip install -r requirements.txt --target builder
-      #     rm -rf builder/*.dist-info
-
-      - name: Package builder
-        run: |
-          mkdir -p build
-          python3 -m zipapp --python="/usr/bin/env python3" --output=build/builder builder
-
-      - name: Store builder
-        uses: actions/upload-artifact@v1
-        with:
-          name: builder
-          path: build/builder
-
       - name: Get release tag
         uses: ./.github/actions/release-tag
         id: release
@@ -91,13 +72,42 @@ jobs:
           name: release_tag
           path: tag
 
-      - name: Publish builder package to S3
-        run: aws s3 cp build/builder s3://$AWS_S3_BUCKET/${{ steps.release.outputs.release_tag }}/builder
+      # re-enable this when requirements.txt has actual dependencies
+      # - name: Bundle dependencies
+      #   run: |
+      #     python3 -m pip install -r requirements.txt --target builder
+      #     rm -rf builder/*.dist-info
+
+      - name: Package builder to S3
+        run: |
+          mkdir -p build
+          python3 -m zipapp --python="/usr/bin/env python3" --output=build/builder builder
+          aws s3 cp build/builder s3://$AWS_S3_BUCKET/${{ steps.release.outputs.release_tag }}/builder
+
+      - name: Artifact builder
+        uses: actions/upload-artifact@v1
+        with:
+          name: builder
+          path: build/builder
+
+  release:
+    name: Release builder to S3
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release'
+    steps:
+    - name: Checkout Source
+      uses: actions/checkout@v1
+
+    - name: Publish to S3 (latest)
+      run: |
+        mkdir -p build
+        python3 -m zipapp --python="/usr/bin/env python3" --output=build/builder builder
+        aws s3 cp build/builder s3://$AWS_S3_BUCKET/LATEST/builder
 
   linux-x86-x64:
     name: ${{ matrix.variant }}
     runs-on: ubuntu-latest
-    needs: [tag, package]
+    needs: [tag]
     strategy:
       fail-fast: false
       matrix:
@@ -122,10 +132,8 @@ jobs:
     - name: Export IMAGE_TAG
       run: echo "::set-env name=IMAGE_TAG::$(cat release_tag/tag)"
 
-    - name: Install builder
-      run: |
-        aws s3 cp s3://$AWS_S3_BUCKET/$IMAGE_TAG/builder .github/docker-images/${{ matrix.variant }}/builder
-        cp -v .github/docker-images/entrypoint.sh .github/docker-images/${{ matrix.variant }}/entrypoint.sh
+    - name: Install entrypoint
+      run: cat .github/docker-images/entrypoint.sh | sed s/version=LATEST/version=$IMAGE_TAG/ > .github/docker-images/${{ matrix.variant }}/entrypoint.sh
 
     - name: Build ${{ matrix.variant }} image
       run: .github/workflows/docker_buildx.sh \
@@ -163,10 +171,8 @@ jobs:
     - name: Export IMAGE_TAG
       run: echo "::set-env name=IMAGE_TAG::$(cat release_tag/tag)"
 
-    - name: Install builder
-      run: |
-        aws s3 cp s3://$AWS_S3_BUCKET/$IMAGE_TAG/builder .github/docker-images/${{ matrix.variant }}-${{ matrix.arch }}/builder
-        cp -v .github/docker-images/entrypoint.sh .github/docker-images/${{ matrix.variant }}-${{ matrix.arch }}/entrypoint.sh
+    - name: Install entrypoint
+      run: cat .github/docker-images/entrypoint.sh | sed s/version=LATEST/version=$IMAGE_TAG/ > .github/docker-images/${{ matrix.variant }}-${{ matrix.arch }}/entrypoint.sh
 
     - name: "Build ${{ matrix.variant }}-${{ matrix.arch }} image"
       run: .github/workflows/docker_buildx.sh \
@@ -205,10 +211,8 @@ jobs:
     - name: Export IMAGE_TAG
       run: echo "::set-env name=IMAGE_TAG::$(cat release_tag/tag)"
 
-    - name: Install builder
-      run: |
-        aws s3 cp s3://$AWS_S3_BUCKET/$IMAGE_TAG/builder .github/docker-images/${{ matrix.variant }}-arm${{ matrix.arch }}/builder
-        cp -v .github/docker-images/entrypoint.sh .github/docker-images/${{ matrix.variant }}-arm${{ matrix.arch }}/entrypoint.sh
+    - name: Install entrypoint
+      run: cat -v .github/docker-images/entrypoint.sh | sed s/version=LATEST/version=$IMAGE_TAG/ > .github/docker-images/${{ matrix.variant }}-arm${{ matrix.arch }}/entrypoint.sh
 
     - name: "Build ${{ matrix.variant }}-arm${{ matrix.arch }} image"
       run: .github/workflows/docker_buildx.sh \
@@ -331,7 +335,7 @@ jobs:
     - name: Checkout Source
       uses: actions/checkout@v1
 
-    - name: Install builder
+    - name: Install entrypoint
       uses: actions/download-artifact@v1
       with:
         name: builder
@@ -352,7 +356,7 @@ jobs:
       - name: Checkout Source
         uses: actions/checkout@v1
 
-      - name: Install builder
+      - name: Install entrypoint
         uses: actions/download-artifact@v1
         with:
           name: builder
