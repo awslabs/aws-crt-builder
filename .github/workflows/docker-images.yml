@@ -262,7 +262,7 @@ jobs:
         awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}-${{ matrix.arch }} \
         ${{ env.IMAGE_TAG }} \
         .github/docker-images/${{ matrix.variant }}-${{ matrix.arch }} \
-        --compress=true --platform=linux/${{ matrix.arch }}
+        --compress=true
 
     - name: Export ${{ matrix.variant }} ${{ matrix.arch }} image
       run: |
