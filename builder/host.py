@@ -18,7 +18,7 @@ import re
 import sys
 
 
-def current_platform():
+def current_os():
     if sys.platform == 'win32':
         return 'windows'
     elif sys.platform == 'darwin':
@@ -28,7 +28,7 @@ def current_platform():
 
 
 def current_arch():
-    if current_platform() == 'linux':
+    if current_os() == 'linux':
         machine_id = os.uname()[4]
         m = re.match(r'^(aarch64|armv[6-8])', machine_id.strip())
         if m:
@@ -37,6 +37,10 @@ def current_arch():
                 arch = 'armv8'
             return arch
     return ('x64' if sys.maxsize > 2**32 else 'x86')
+
+
+def current_platform():
+    return '{}-{}'.format(current_os(), current_arch())
 
 
 def _file_contains(path, search):
@@ -61,7 +65,7 @@ def current_host():
         return _current_host
     except:
         def _discover_host():
-            platform = current_platform()
+            platform = current_os()
             if platform == 'linux':
                 if _file_contains('/etc/system-release', 'Amazon Linux release 2'):
                     return 'al2'

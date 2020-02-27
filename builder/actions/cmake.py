@@ -12,6 +12,7 @@
 # permissions and limitations under the License.
 
 import os
+from pathlib import Path
 
 from action import Action
 from toolchain import Toolchain
@@ -22,15 +23,7 @@ class CMakeBuild(Action):
     """ Runs cmake configure, build """
 
     def run(self, env):
-        try:
-            toolchain = env.toolchain
-        except:
-            try:
-                toolchain = env.toolchain = Toolchain(env,
-                                                      spec=env.build_spec)
-            except:
-                toolchain = env.toolchain = Toolchain(env, default=True)
-
+        toolchain = env.toolchain
         sh = env.shell
 
         # TODO These platforms don't succeed when doing a RelWithDebInfo build
@@ -51,7 +44,7 @@ class CMakeBuild(Action):
 
         def build_project(project, build_tests=False):
             # build dependencies first, let cmake decide what needs doing
-            for dep in project.get_dependencies(env.build_spec):
+            for dep in project.get_dependencies(env.spec):
                 sh.pushd(dep.path)
                 build_project(dep)
                 sh.popd()
@@ -59,7 +52,12 @@ class CMakeBuild(Action):
             project_source_dir = project.path
             project_build_dir = os.path.join(project_source_dir, 'build')
             sh.mkdir(project_build_dir)
-            sh.pushd(project_build_dir)
+            sh.pushd(project_source_dir)
+
+            project_build_dir = str(Path(
+                project_build_dir).relative_to(project_source_dir))
+            project_source_dir = str(
+                Path(project_source_dir).relative_to(sh.cwd()))
 
             # If cmake has already run, assume we're good
             if os.path.isfile(os.path.join(project_build_dir, 'CMakeCache.txt')):
@@ -67,7 +65,7 @@ class CMakeBuild(Action):
 
             # Set compiler flags
             compiler_flags = []
-            if toolchain.compiler != 'default':
+            if toolchain.compiler != 'default' and not toolchain.cross_compile:
                 c_path = toolchain.compiler_path(env)
                 cxx_path = toolchain.cxx_compiler_path(env)
                 for opt, value in [('c', c_path), ('cxx', cxx_path)]:
@@ -76,7 +74,7 @@ class CMakeBuild(Action):
                             '-DCMAKE_{}_COMPILER={}'.format(opt.upper(), value))
 
             cmake_flags = []
-            if env.build_spec.target == 'linux':
+            if env.spec.target == 'linux':
                 cmake_flags += [
                     # Each image has a custom installed openssl build, make sure CMake knows where to find it
                     "-DLibCrypto_INCLUDE_DIR=/opt/openssl/include",
@@ -85,6 +83,8 @@ class CMakeBuild(Action):
                 ]
 
             cmake_args = [
+                "-B{}".format(project_build_dir),
+                "-H.",
                 "-Werror=dev",
                 "-Werror=deprecated",
                 "-DCMAKE_INSTALL_PREFIX=" + install_dir,
@@ -97,14 +97,14 @@ class CMakeBuild(Action):
             ] + getattr(project, 'cmake_args', []) + config.get('cmake_args', [])
 
             # configure
-            sh.exec("cmake", cmake_args, project_source_dir, check=True)
+            sh.exec(*toolchain.shell_env, "cmake", cmake_args, check=True)
 
             # build
-            sh.exec("cmake", "--build", ".", "--config",
+            sh.exec(*toolchain.shell_env, "cmake", "--build", project_build_dir, "--config",
                     build_config, check=True)
 
             # install
-            sh.exec("cmake", "--build", ".", "--config",
+            sh.exec(*toolchain.shell_env, "cmake", "--build", project_build_dir, "--config",
                     build_config, "--target", "install", check=True)
 
             sh.popd()
@@ -122,7 +122,7 @@ class CMakeBuild(Action):
 
         sh.pushd(source_dir)
 
-        spec = env.build_spec
+        spec = env.spec
         build_projects([p.name for p in env.project.get_dependencies(spec)])
 
         # BUILD
@@ -149,11 +149,13 @@ class CTestRun(Action):
             return
 
         sh = env.shell
+        toolchain = env.toolchain
 
         project_source_dir = env.project.path
         project_build_dir = os.path.join(project_source_dir, 'build')
         sh.pushd(project_build_dir)
 
-        sh.exec("ctest", "--output-on-failure", check=True)
+        sh.exec(*toolchain.shell_env, "ctest",
+                "--output-on-failure", check=True)
 
         sh.popd()

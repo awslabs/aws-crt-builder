@@ -28,7 +28,8 @@ from env import Env
 from project import Project
 from scripts import Scripts
 from toolchain import Toolchain
-from host import current_platform, current_host, current_arch
+from host import current_os, current_host, current_arch, current_platform
+import data
 
 import api  # force API to load and expose the virtual module
 
@@ -69,7 +70,7 @@ def run_action(action, env):
 def run_build(env):
     config = env.config
 
-    print("Running build", env.build_spec.name, flush=True)
+    print("Running build", env.spec.name, flush=True)
     build_action = CMakeBuild()
     test_action = CTestRun()
 
@@ -96,19 +97,18 @@ def run_build(env):
 
 
 def default_spec(env):
-    target = current_platform()
+    target, arch = env.platform.split('-')
     host = current_host()
-    arch = current_arch()
-    compiler, version = Toolchain.default_compiler(env)
-    print('Using Default Spec:')
-    print('  Host: {} {}'.format(host, arch))
+    compiler, version = Toolchain.default_compiler(env, target, arch)
+    print('Using Spec:')
+    print('  Host: {} {}'.format(host, current_arch()))
     print('  Target: {} {}'.format(target, arch))
     print('  Compiler: {} {}'.format(compiler, version))
     return BuildSpec(host=host, compiler=compiler, compiler_version='{}'.format(version), target=target, arch=arch)
 
 
 def inspect_host(env):
-    spec = env.build_spec
+    spec = env.spec
     toolchain = Toolchain(env, spec=spec)
     print('Host Environment:')
     print('  Host: {} {}'.format(spec.host, spec.arch))
@@ -138,10 +138,10 @@ def parse_extra_args(env):
         compiler, version = (None, None)
         if args.compiler:
             compiler, version = args.compiler.split('-')
-        spec = str(env.build_spec) if hasattr(
-            env, 'build_spec') else getattr(env.args, 'spec', None)
-        env.build_spec = BuildSpec(compiler=compiler,
-                                   compiler_version=version, target=args.target, spec=spec)
+        spec = str(env.spec) if hasattr(
+            env, 'spec') else getattr(env.args, 'spec', None)
+        env.spec = BuildSpec(compiler=compiler,
+                             compiler_version=version, target=args.target, spec=spec)
 
 
 def parse_args():
@@ -158,6 +158,9 @@ def parse_args():
     parser.add_argument('-b', '--build-dir', type=str,
                         help='Directory to work in', default='.')
     parser.add_argument('--branch', help='Branch to build from')
+    parser.add_argument(
+        '--platform', help='Target platform to compile/cross-compile for', default='{}-{}'.format(current_os(), current_arch()),
+        choices=data.PLATFORMS)
     parser.add_argument('args', nargs=argparse.REMAINDER)
 
     # hand parse command and spec from within the args given
@@ -192,18 +195,20 @@ if __name__ == '__main__':
         'args': args,
         'project': args.project,
         'branch': args.branch,
+        'platform': args.platform,
     })
 
     parse_extra_args(env)
 
-    if not getattr(env, 'build_spec', None):
+    if not getattr(env, 'spec', None):
         build_name = getattr(args, 'spec', getattr(args, 'build', None))
         if build_name:
-            env.build_spec = BuildSpec(spec=build_name)
+            env.spec = BuildSpec(spec=build_name, platform=env.platform)
         else:
-            env.build_spec = default_spec(env)
+            env.spec = default_spec(env)
 
-    inspect_host(env)
+    if env.platform == current_platform():
+        inspect_host(env)
     if args.command == 'inspect':
         sys.exit(0)
 
@@ -213,7 +218,7 @@ if __name__ == '__main__':
 
     # Build the config object
     env.config = env.project.get_config(
-        env.build_spec,
+        env.spec,
         source_dir=env.source_dir,
         build_dir=env.build_dir,
         install_dir=env.install_dir,
@@ -222,10 +227,13 @@ if __name__ == '__main__':
     if not env.config.get('enabled', True):
         raise Exception("The project is disabled in this configuration")
 
+    if env.config.get('needs_compiler', True):
+        env.toolchain = Toolchain(env, spec=env.spec)
+
     if args.dump_config:
         from pprint import pprint
         print('Spec: ', end='')
-        pprint(env.build_spec)
+        pprint(env.spec)
         print('Config:')
         pprint(env.config)
 

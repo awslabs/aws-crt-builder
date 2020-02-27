@@ -66,7 +66,9 @@ ARCHS = {
     'x64': {},
     'armv6': {},
     'armv7': {},
-    'armv8': {}
+    'armv8': {},
+    'mips': {},
+    'mipsel': {},
 }
 
 HOSTS = {
@@ -374,6 +376,16 @@ COMPILERS = {
         }
     }
 }
+
+PLATFORMS = {
+    'windows-x86': {},
+    'windows-x64': {},
+    'macos-x64': {},
+}
+
+# Linux works on every arch we support
+for arch in ARCHS:
+    PLATFORMS['linux-{}'.format(arch)] = {}
 
 ###############################################################################
 # Aliases

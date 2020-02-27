@@ -33,7 +33,7 @@ class Builder(VirtualModule):
     Action = Action
 
     class Host(object):
-        current_platform = host.current_platform
+        current_os = host.current_os
         current_arch = host.current_arch
         current_host = host.current_host
 

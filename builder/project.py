@@ -17,7 +17,7 @@ import os
 import sys
 
 from data import *
-from host import current_platform, package_tool
+from host import current_os, package_tool
 from scripts import Scripts
 from util import replace_variables, merge_unique_attrs
 
@@ -70,7 +70,7 @@ def _coalesce_pkg_options(spec, config):
 
 def produce_config(build_spec, project, **additional_variables):
     """ Traverse the configurations to produce one for the given spec """
-    platform = current_platform()
+    platform = current_os()
 
     defaults = {
         'hosts': HOSTS,

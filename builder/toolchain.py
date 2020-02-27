@@ -14,13 +14,13 @@
 import os
 import re
 from data import COMPILERS
-from host import current_platform
+from host import current_os, current_arch
 
 # helpful list of XCode clang output: https://gist.github.com/yamaya/2924292
 
 
 def _compiler_version(env, cc):
-    if current_platform() in ('linux', 'macos'):
+    if current_os() in ('linux', 'macos'):
         result = env.shell.exec(cc, '--version', quiet=True, stderr=False)
         text = result.output
         # Apple clang
@@ -82,6 +82,10 @@ def _msvc_versions():
     return versions
 
 
+def _is_cross_compile(os, arch):
+    return os != current_os() or arch != current_arch()
+
+
 class Toolchain(object):
     """ Represents a compiler toolchain """
 
@@ -103,26 +107,38 @@ class Toolchain(object):
             if slot in kwargs:
                 setattr(self, slot, kwargs[slot])
 
-        # resolve default compiler and/or version
-        if self.compiler == 'default':
-            c, v = Toolchain.default_compiler(env)
-            if c and v:
-                self.compiler, self.compiler_version = c, v
-        elif self.compiler_version == 'default':
-            self.compiler_version = _compiler_version(
-                env, self.compiler_path(env))[1]
-            if not self.compiler_version:
-                self.compiler_version = 'default'
+        # detect cross-compile
+        self.cross_compile = _is_cross_compile(self.target, self.arch)
+        self.platform = '{}-{}'.format(self.target, self.arch)
+        self.shell_env = []
+
+        if self.cross_compile:
+            self.compiler = 'gcc'
+            # it's really 4.9, but don't need a separate entry for that
+            self.compiler_version = '4.8'
+        else:
+            # resolve default compiler and/or version
+            if self.compiler == 'default':
+                c, v = Toolchain.default_compiler(env)
+                if c and v:
+                    self.compiler, self.compiler_version = c, v
+            elif self.compiler_version == 'default':
+                self.compiler_version = _compiler_version(
+                    env, self.compiler_path(env))[1]
+                if not self.compiler_version:
+                    self.compiler_version = 'default'
 
         self.name = '-'.join([self.host, self.compiler,
                               self.compiler_version, self.target, self.arch])
 
     def compiler_path(self, env):
+        assert not self.cross_compile
         if self.compiler == 'default':
             return Toolchain.default_compiler(env)[0]
         return Toolchain.find_compiler(env, self.compiler, self.compiler_version if self.compiler_version != 'default' else None)[0]
 
     def cxx_compiler_path(self, env):
+        assert not self.cross_compile
         compiler = self.compiler
         if self.compiler == 'default':
             compiler = Toolchain.default_compiler(env)[0]
@@ -235,7 +251,7 @@ class Toolchain(object):
             path, _version = Toolchain.find_llvm_tool(env, 'clang', version)
             if path:
                 compilers.append(('clang', version))
-        if current_platform() == 'windows':
+        if current_os() == 'windows':
             for version in _msvc_versions():
                 path, _version = Toolchain.find_msvc(env, version)
                 if path:
@@ -246,15 +262,18 @@ class Toolchain(object):
     _default_version = None
 
     @staticmethod
-    def default_compiler(env):
+    def default_compiler(env, target=None, arch=None):
         """ Finds the system default compiler and returns (compiler, version) """
         if Toolchain._default_compiler and Toolchain._default_version:
             return Toolchain._default_compiler, Toolchain._default_version
 
+        if target and arch and _is_cross_compile(target, arch):
+            return 'gcc', '4.8'
+
         def _find_compiler():
             compiler = None
             version = None
-            platform = current_platform()
+            platform = current_os()
             if platform in ('linux', 'macos'):
                 # resolve CC and /usr/bin/cc
                 for env_cc in (env.shell.where(os.environ.get('CC', None)), env.shell.where('cc')):

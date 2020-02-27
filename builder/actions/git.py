@@ -56,7 +56,7 @@ class DownloadDependencies(Action):
         project = env.project
         sh = env.shell
         branch = env.branch
-        spec = env.build_spec
+        spec = env.spec
         deps = project.get_dependencies(spec)
 
         if spec.downstream:
