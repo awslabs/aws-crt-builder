@@ -151,13 +151,13 @@ jobs:
         aws s3 cp --no-progress /tmp/aws-crt-${{ matrix.variant }}-${{ env.IMAGE_TAG }}.tar.gz s3://${{env.AWS_S3_BUCKET}}/${{ env.IMAGE_TAG }}/aws-crt-${{ matrix.variant }}.tar.gz
 
   linux-arm64:
-    name: ${{ matrix.variant }}-arm${{ matrix.arch }}
+    name: ${{ matrix.variant }}-${{ matrix.arch }}
     runs-on: 'ubuntu-latest'
     needs: [tag, package]
     strategy:
       matrix:
         variant: [al2]
-        arch: [v8]
+        arch: [arm64]
     steps:
     - name: Checkout Sources
       uses: actions/checkout@v1
@@ -179,15 +179,15 @@ jobs:
         docker.pkg.github.com \
         awslabs \
         ${{ secrets.DOCKER_TOKEN }} \
-        awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}-arm${{ matrix.arch }} \
+        awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}-${{ matrix.arch }} \
         ${{ env.IMAGE_TAG }} \
-        .github/docker-images/${{ matrix.variant }}-arm${{ matrix.arch }} \
-        --compress=true --platform=linux/arm/${{ matrix.arch }}
+        .github/docker-images/${{ matrix.variant }}-${{ matrix.arch }} \
+        --compress=true --platform=linux/${{ matrix.arch }}
 
     - name: Export ${{ matrix.variant }} ${{ matrix.arch }} image
       run: |
-        docker save docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}-arm${{ matrix.arch }}:${{ env.IMAGE_TAG }} > /tmp/aws-crt-${{ matrix.variant }}-arm${{ matrix.arch }}-${{ env.IMAGE_TAG }}.tar.gz
-        aws s3 cp --no-progress /tmp/aws-crt-${{ matrix.variant }}-arm${{ matrix.arch }}-${{ env.IMAGE_TAG }}.tar.gz s3://${{env.AWS_S3_BUCKET}}/${{ env.IMAGE_TAG }}/aws-crt-${{ matrix.variant }}-arm${{ matrix.arch }}.tar.gz
+        docker save docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}-${{ matrix.arch }}:${{ env.IMAGE_TAG }} > /tmp/aws-crt-${{ matrix.variant }}-${{ matrix.arch }}-${{ env.IMAGE_TAG }}.tar.gz
+        aws s3 cp --no-progress /tmp/aws-crt-${{ matrix.variant }}-${{ matrix.arch }}-${{ env.IMAGE_TAG }}.tar.gz s3://${{env.AWS_S3_BUCKET}}/${{ env.IMAGE_TAG }}/aws-crt-${{ matrix.variant }}-${{ matrix.arch }}.tar.gz
 
   linux-arm32:
     name: ${{ matrix.variant }}-arm${{ matrix.arch }}
