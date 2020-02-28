@@ -73,11 +73,6 @@ jobs:
     - name: Checkout Source
       uses: actions/checkout@v1
 
-    - name: Install builder
-      uses: actions/download-artifact@v1
-      with:
-        name: builder
-
     - name: Build aws-c-common + consumers
       run: python -m builder build downstream aws-crt-cpp --branch=cross-compile --platform=${{matrix.arch}} --dump-config
 
