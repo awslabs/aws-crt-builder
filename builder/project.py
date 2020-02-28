@@ -12,6 +12,7 @@
 # permissions and limitations under the License.
 
 from collections import namedtuple, OrderedDict
+from functools import partial
 import glob
 import os
 import sys
@@ -19,7 +20,9 @@ import sys
 from data import *
 from host import current_os, package_tool
 from scripts import Scripts
-from util import replace_variables, merge_unique_attrs
+from util import replace_variables, merge_unique_attrs, to_list
+from actions.cmake import CMakeBuild, CTestRun
+from actions.script import Script
 
 
 def looks_like_code(path):
@@ -68,7 +71,7 @@ def _coalesce_pkg_options(spec, config):
     return config
 
 
-def produce_config(build_spec, project, **additional_variables):
+def produce_config(build_spec, project, overrides=None, **additional_variables):
     """ Traverse the configurations to produce one for the given spec """
     platform = current_os()
 
@@ -161,6 +164,10 @@ def produce_config(build_spec, project, **additional_variables):
 
     new_version = _coalesce_pkg_options(build_spec, new_version)
 
+    if overrides:
+        for key, val in overrides.items():
+            new_version[key] = val
+
     # Default variables
     replacements = {
         'host': build_spec.host,
@@ -189,6 +196,26 @@ def produce_config(build_spec, project, **additional_variables):
     return new_version
 
 
+def _build_project(project, env):
+    args = sys.argv[1:]
+    # strip -p project or --project=whatever
+    for idx in range(1, len(sys.argv)):
+        arg = sys.argv[idx]
+        proj_args = 0
+        if arg.startswith('--project='):
+            proj_args = 1
+        elif arg.startswith('--project') or arg == '-p':
+            proj_args = 2
+        if proj_args:
+            for i in range(proj_args):
+                del args[idx + i]
+            break
+
+    args += ['--project={}'.format(project.name),
+             'build_tests=0', 'run_tests=0']
+    env.shell.exec('python3', 'builder', *args)
+
+
 class Project(object):
     """ Describes a given library and its dependencies/consumers """
 
@@ -199,6 +226,8 @@ class Project(object):
             *u.values()) for u in kwargs.get('upstream', [])]
         self.downstream = self.consumers = [namedtuple('ProjectReference', d.keys())(
             *d.values()) for d in kwargs.get('downstream', [])]
+        self.imports = [namedtuple('ImportReference', ['name'])(i)
+                        for i in kwargs.get('imports', [])]
         self.account = kwargs.get('account', 'awslabs')
         self.name = kwargs['name']
         self.url = "https://github.com/{}/{}.git".format(
@@ -207,8 +236,65 @@ class Project(object):
         self.config = kwargs.get('config', dict(kwargs))
         self._resolved_refs = False
 
+        for search_dir in self.config.get('search_dirs', []):
+            Project.search_dirs.append(os.path.join(self.path, search_dir))
+
     def __repr__(self):
         return "{}: {}".format(self.name, self.url)
+
+    def pre_build(self, env):
+        return Script(env.config.get('pre_build_steps', []), name='pre_build {}'.format(self.name))
+
+    def build(self, env):
+        imports = self.get_imports(env.spec)
+        build_imports = []
+        for i in imports:
+            build_imports += to_list(i.pre_build(env))
+            build_imports += to_list(i.build(env))
+            build_imports += to_list(i.post_build(env))
+            build_imports += to_list(i.install(env))
+
+        deps = self.get_dependencies(env.spec)
+        build_deps = [partial(_build_project, d) for d in deps]
+
+        build_project = None
+        steps = env.config.get('build_steps', env.config.get('build', []))
+        if steps:
+            build_project = [Script(steps, name='build {}'.format(self.name))]
+        else:
+            build_project = [CMakeBuild(self)]
+
+        build_consumers = []
+        if env.spec.downstream:
+            consumers = self.get_consumers(env.spec)
+            build_consumers = [partial(_build_project, c) for c in consumers]
+
+        return Script(build_imports + build_deps + build_project + build_consumers, name='build project {}'.format(self.name))
+
+    def post_build(self, env):
+        return Script(env.config.get('post_build_steps', []), name='post_build {}'.format(self.name))
+
+    def test(self, env):
+        has_tests = getattr(env, 'build_tests', False)
+        run_tests = env.config.get('run_tests', True)
+        if not has_tests or not run_tests:
+            return
+
+        steps = env.config.get('build_steps', env.config.get('build', []))
+        if steps:
+            return Script(steps, name='test {}'.format(self.name))
+        return CTestRun(self)
+
+    def install(self, env):
+        """ Can be overridden to install a project from anywhere """
+        pass
+
+    def cmake_args(self, env):
+        """ Can be overridden to export CMake flags to consumers """
+        args = []
+        for dep in self.get_dependencies(env.spec):
+            args += dep.cmake_args(env)
+        return args
 
     # convert ProjectReference -> Project
     def _resolve_refs(self):
@@ -231,6 +317,17 @@ class Project(object):
         # data stored on the ref (targets, etc)
         self.upstream = self.dependencies = _resolve(self.upstream)
         self.downstream = self.consumers = _resolve(self.downstream)
+        self.imports = _resolve(self.imports)
+        self._resolved_refs = True
+
+    def get_imports(self, spec):
+        self._resolve_refs()
+        target = spec.target
+        imports = []
+        for i in self.imports:
+            if not hasattr(i, 'targets') or target in getattr(i, 'targets', []):
+                imports.append(i)
+        return imports
 
     def get_dependencies(self, spec):
         """ Gets dependencies for a given BuildSpec, filters by target """
@@ -252,16 +349,35 @@ class Project(object):
                 consumers.append(c)
         return consumers
 
-    def get_config(self, spec, **additional_vars):
-        return produce_config(spec, self, ** additional_vars)
+    def get_config(self, spec, overrides=None, **additional_vars):
+        return produce_config(spec, self, overrides, **additional_vars)
 
     # project cache
     _projects = {}
 
     @staticmethod
+    def _find_project_class(name):
+        projects = Project.__subclasses__()
+        project_cls = None
+        for p in projects:
+            if p.__name__.lower() == name.lower():
+                return p
+
+    @staticmethod
+    def _create_project(name, **kwargs):
+        if 'name' not in kwargs:
+            kwargs['name'] = name
+        project_cls = Project._find_project_class(name)
+        if project_cls:
+            return project_cls(**kwargs)
+        return Project(**kwargs)
+
+    @staticmethod
     def _cache_project(project):
         Project._projects[project.name] = project
-        Scripts.load(project.path)
+        if project.path:
+            Scripts.load(project.path)
+
         return project
 
     @staticmethod
@@ -291,23 +407,18 @@ class Project(object):
                         os.getcwd())
                 print('    Found project: {} at {}'.format(
                     project_config['name'], path))
-                return Project._cache_project(Project(**project_config, path=path, config=project_config))
+                project = Project._create_project(
+                    **project_config, path=path, config=project_config)
+                return Project._cache_project(project)
 
         # load any builder scripts and check them
         Scripts.load()
-        projects = Project.__subclasses__()
-        project_cls = None
-        if len(projects) == 1:
-            project_cls = projects[0]
-        elif name_hint:  # if there are multiple projects, try to use the hint if there is one
-            for p in projects:
-                if p.__name__ == name_hint:
-                    project_cls = p
-
-        if project_cls:
-            project = project_cls()
-            project.path = path
-            return Project._cache_project(project)
+        if name_hint:
+            project_cls = Project._find_project_class(name_hint)
+            if project_cls:
+                project = project_cls(name=name_hint)
+                project.path = path
+                return Project._cache_project(project)
 
         return None
 
@@ -346,6 +457,9 @@ class Project(object):
                     project = Project._cache_project(
                         Project(name=name, path=search_dir))
                     return project
+
+        if Project._find_project_class(name):
+            return Project._cache_project(Project._create_project(name))
 
         # Enough of a project to get started, note that this is not cached
         return Project(name=name)

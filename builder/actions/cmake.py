@@ -16,7 +16,6 @@ from pathlib import Path
 
 from action import Action
 from toolchain import Toolchain
-from project import Project
 
 
 # All dirs used should be relative to env.source_dir, as this is where the cross
@@ -85,7 +84,7 @@ def _build_project(env, project, build_tests=False, base_dir=None):
         "-DBUILD_TESTING=" + ("ON" if build_tests else "OFF"),
         *cmake_flags,
         *compiler_flags,
-    ] + getattr(project, 'cmake_args', []) + config.get('cmake_args', [])
+    ] + project.cmake_args(env) + config.get('cmake_args', [])
 
     # configure
     sh.exec(*toolchain.shell_env, "cmake", cmake_args, check=True)
@@ -99,14 +98,11 @@ def _build_project(env, project, build_tests=False, base_dir=None):
             build_config, "--target", "install", check=True)
 
 
-def _build_projects(env, projects):
-    for proj in projects:
-        project = Project.find_project(proj)
-        _build_project(project)
-
-
 class CMakeBuild(Action):
     """ Runs cmake configure, build """
+
+    def __init__(self, project):
+        self.project = project
 
     def run(self, env):
         toolchain = env.toolchain
@@ -120,16 +116,8 @@ class CMakeBuild(Action):
 
         sh.pushd(env.source_dir)
 
-        spec = env.spec
-        _build_projects(
-            env, [p.name for p in env.project.get_dependencies(spec)])
-
         # BUILD
-        _build_project(env, env.project, getattr(env, 'build_tests', False))
-
-        if spec and spec.downstream:
-            _build_projects(
-                env, [p.name for p in env.project.get_consumers(spec)])
+        _build_project(env, self.project, getattr(env, 'build_tests', False))
 
         sh.popd()
 
@@ -137,22 +125,15 @@ class CMakeBuild(Action):
 class CTestRun(Action):
     """ Uses ctest to run tests if tests are enabled/built via 'build_tests' """
 
+    def __init__(self, project):
+        self.project = project
+
     def run(self, env):
-        has_tests = getattr(env, 'build_tests', False)
-        if not has_tests:
-            print("No tests were built, skipping test run")
-            return
-
-        run_tests = env.config.get('run_tests', True)
-        if not run_tests:
-            print("Tests are disabled for this configuration")
-            return
-
         sh = env.shell
         toolchain = env.toolchain
 
         project_source_dir, project_build_dir, project_install_dir = _project_dirs(
-            env, env.project)
+            env, self.project)
 
         sh.pushd(env.source_dir)
         sh.exec(*toolchain.shell_env, "ctest", "--build-exe-dir", project_build_dir,

@@ -84,3 +84,12 @@ def merge_unique_attrs(src, target):
         if not hasattr(target, key):
             setattr(target, key, val)
     return target
+
+
+def to_list(val):
+    """ Do whatever it takes to coerce val into a list, usually for blind concatenation """
+    if isinstance(val, list):
+        return val
+    if not val:
+        return []
+    return [val]

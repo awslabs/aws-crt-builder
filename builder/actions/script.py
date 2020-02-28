@@ -14,7 +14,7 @@
 import sys
 from action import Action
 from scripts import Scripts
-from util import replace_variables
+from util import replace_variables, to_list
 
 
 class Script(Action):
@@ -40,6 +40,7 @@ class Script(Action):
         self.commands = [_expand_vars(cmd) for cmd in self.commands]
 
         # Run each of the commands
+        children = []
         for cmd in self.commands:
             cmd_type = type(cmd)
             if cmd_type == str:
@@ -55,10 +56,11 @@ class Script(Action):
             elif isinstance(cmd, Action):
                 Scripts.run_action(cmd, env)
             elif callable(cmd):
-                return cmd(env)
+                children += to_list(cmd(env))
             else:
                 print('Unknown script sub command: {}: {}', cmd_type, cmd)
                 sys.exit(4)
+        return children
 
     def __str__(self):
         if len(self.commands) == 0:

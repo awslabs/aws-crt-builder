@@ -32,15 +32,17 @@ KEYS = {
     'python': "",  # where to find python on the machine
     'c': None,  # c compiler
     'cxx': None,  # c++ compiler
+    'cmake_args': [],  # additional cmake arguments
+
+    'build_env': {},  # environment variables to set before starting build
     'pre_build_steps': [],  # steps to run before build
     'post_build_steps': [],  # steps to run after build
-    'build_env': {},  # environment variables to set before starting build
-    'cmake_args': [],  # additional cmake arguments
     'run_tests': True,  # whether or not to run tests
     'build': None,  # deprecated, use build_steps
     'build_steps': None,  # steps to run instead of the default cmake compile
     'test': None,  # deprecated, use test_steps
     'test_steps': None,  # steps to run instead of the default ctest
+
     'pkg_tool': None,  # apt, brew, yum, apk, etc
     'pkg_setup': [],  # commands required to configure the package system
     # command to install packages, should be of the form 'pkgmanager arg1 arg2 {packages will go here}'
@@ -49,6 +51,8 @@ KEYS = {
     'packages': [],  # packages to install
     'compiler_packages': [],  # packages to support compiler
     'needs_compiler': True,  # whether or not this build needs a compiler
+
+    'imports': [],  # Additional targets this project needs from builder or scripts
 
     # Linux
     'sudo': False  # whether or not sudo is necessary for installs
@@ -64,11 +68,18 @@ for suffix, default in [('setup', []), ('install', ''), ('update', ''), ('packag
 ARCHS = {
     'x86': {},
     'x64': {},
-    'armv6': {},
-    'armv7': {},
-    'armv8': {},
-    'mips': {},
-    'mipsel': {},
+    'armv6': {
+        'cross_compile_platform': 'linux-armv6'
+    },
+    'armv7': {
+        'cross_compile_platform': 'linux-armv7'
+    },
+    'armv8': {
+        'cross_compile_platform': 'linux-arm64'
+    },
+    'mips': {
+        'cross_compile_platform': 'linux-mips'
+    },
 }
 
 HOSTS = {
@@ -330,6 +341,7 @@ COMPILERS = {
         'architectures': {
             'x86': {
                 'apt_packages': ["gcc-{version}-multilib", "g++-{version}-multilib"],
+                'yum_packages': ["gcc-multilib", "g++-multilib"],
             },
         },
     },
