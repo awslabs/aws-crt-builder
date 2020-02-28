@@ -74,7 +74,7 @@ jobs:
       uses: actions/checkout@v1
 
     - name: Build aws-crt-cpp + consumers
-      run: python3 -m builder build downstream aws-crt-cpp --branch=cross-compile --platform=${{matrix.arch}} --dump-config
+      run: python3 -m builder build downstream -p aws-crt-cpp --branch=cross-compile --platform=${{matrix.arch}} --dump-config
 
   # downstream_test:
   #   strategy:
