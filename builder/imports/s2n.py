@@ -23,6 +23,9 @@ class S2N(Project):
                 'targets': ['linux'],
                 # S2N is consumed via submodules, so does not need to be built separately
                 'build_steps': None,
-                'test_steps': None
+                'test_steps': None,
+                'cmake_args': {
+                    '-DS2N_NO_PQ_ASM=ON'
+                },
             },
             **kwargs)

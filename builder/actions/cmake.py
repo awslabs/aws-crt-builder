@@ -73,15 +73,21 @@ def _build_project(env, project, build_tests=False, base_dir=None):
         *compiler_flags,
     ] + project.cmake_args(env) + config.get('cmake_args', [])
 
+    # When cross compiling, we must inject the build_env into the cross compile container
+    build_env = []
+    if toolchain.cross_compile:
+        build_env = ['{}={}'.format(key, val)
+                     for key, val in config.get('build_env', {})]
+
     # configure
-    sh.exec(*toolchain.shell_env, "cmake", cmake_args, check=True)
+    sh.exec(*toolchain.shell_env, *build_env, "cmake", cmake_args, check=True)
 
     # build
-    sh.exec(*toolchain.shell_env, "cmake", "--build", project_build_dir, "--config",
+    sh.exec(*toolchain.shell_env, *build_env, "cmake", "--build", project_build_dir, "--config",
             build_config, check=True)
 
     # install
-    sh.exec(*toolchain.shell_env, "cmake", "--build", project_build_dir, "--config",
+    sh.exec(*toolchain.shell_env, *build_env, "cmake", "--build", project_build_dir, "--config",
             build_config, "--target", "install", check=True)
 
 

@@ -213,28 +213,6 @@ jobs:
     - name: Build aws-c-common + consumers
       run: python builder\builder build default-downstream -p aws-c-common --dump-config
 
-  aws-c-common-cross:
-    name: Cross Compile ${{matrix.arch}}
-    runs-on: ubuntu-latest
-    if: github.event_name != 'release'
-    needs: package
-    strategy:
-      matrix:
-        arch: [linux-armv6, linux-armv7, linux-arm64]
-  
-    steps:
-    - name: Checkout Source
-      uses: actions/checkout@v1
-
-    - name: Install builder
-      uses: actions/download-artifact@v1
-      with:
-        name: builder
-
-    - name: Build aws-c-common + consumers
-      run: python builder\builder build downstream -p aws-c-common --platform=${{matrix.arch}} --dump-config
-
-
   ci-passed:
     name: Downstream Tests Passed
     runs-on: 'ubuntu-latest'
