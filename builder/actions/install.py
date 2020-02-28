@@ -104,6 +104,7 @@ class InstallCompiler(Action):
             Path(dockcross).touch(0o755)
             with open(dockcross, "w+t") as f:
                 f.write(result.output)
+            sh.exec('chmod', 'a+x', dockcross)
             toolchain.shell_env = [dockcross]
             return
 
