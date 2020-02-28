@@ -136,16 +136,17 @@ jobs:
       run: cat .github/docker-images/entrypoint.sh | sed s/version=LATEST/version=$IMAGE_TAG/ > .github/docker-images/${{ matrix.variant }}/entrypoint.sh
 
     - name: Build ${{ matrix.variant }} image
-      run: .github/workflows/docker_buildx.sh \
-        docker.pkg.github.com \
-        awslabs \
-        ${{ secrets.DOCKER_TOKEN }} \
-        awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }} \
-        ${{ env.IMAGE_TAG }} \
-        .github/docker-images/${{ matrix.variant }} \
-        --compress=true
+      uses: whoan/docker-build-with-cache-action@v4
+      with:
+        registry: docker.pkg.github.com
+        username: awslabs
+        password: ${{ secrets.DOCKER_TOKEN }}
+        image_name: awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}
+        image_tag: ${{ env.IMAGE_TAG }}
+        context: .github/docker-images/${{ matrix.variant }}
+        build_extra_args: --compress=true
 
-    - name: Export ${{ matrix.variant }} image
+    - name: Export ${{ matrix.variant }} image to S3
       run: |
         docker save docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:${{ env.IMAGE_TAG }} > /tmp/aws-crt-${{ matrix.variant }}-${{ env.IMAGE_TAG }}.tar.gz
         aws s3 cp --no-progress /tmp/aws-crt-${{ matrix.variant }}-${{ env.IMAGE_TAG }}.tar.gz s3://${{env.AWS_S3_BUCKET}}/${{ env.IMAGE_TAG }}/aws-crt-${{ matrix.variant }}.tar.gz
