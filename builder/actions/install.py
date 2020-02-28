@@ -99,11 +99,13 @@ class InstallCompiler(Action):
             result = sh.exec(
                 'docker', 'run', 'dockcross/{}'.format(toolchain.platform))
             assert result.returncode == 0
+            # Strip off any output from docker itself
+            script = '#!' + result.output.partition('#!')[2]
             dockcross = os.path.abspath(os.path.join(
                 env.build_dir, 'dockcross-{}'.format(toolchain.platform)))
             Path(dockcross).touch(0o755)
             with open(dockcross, "w+t") as f:
-                f.write(result.output)
+                f.write(script)
             sh.exec('chmod', 'a+x', dockcross)
             toolchain.shell_env = [dockcross]
             return
