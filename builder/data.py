@@ -393,11 +393,8 @@ PLATFORMS = {
     'windows-x86': {},
     'windows-x64': {},
     'macos-x64': {},
+    # Linux is done procedurally, below
 }
-
-# Linux works on every arch we support
-for arch in ARCHS:
-    PLATFORMS['linux-{}'.format(arch)] = {}
 
 ###############################################################################
 # Aliases
@@ -412,3 +409,7 @@ for v8 in ('aarch64', 'arm64'):
     dict_alias(HOSTS, 'armv8', v8)
     dict_alias(TARGETS, 'armv8', v8)
     dict_alias(COMPILERS, 'armv8', v8)
+
+# Linux works on every arch we support. Do this after the armv8 aliases so they get picked up
+for arch in ARCHS:
+    PLATFORMS['linux-{}'.format(arch)] = {}

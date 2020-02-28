@@ -182,6 +182,10 @@ def parse_args():
         if len(argv) >= 1 and not argv[0].startswith('-'):
             spec = argv.pop(0)
 
+    if not command:
+        print('No command provided, should be [build|inspect|<action-name>]')
+        sys.exit(1)
+
     # pull out any k=v pairs
     config_vars = []
     for arg in argv:
