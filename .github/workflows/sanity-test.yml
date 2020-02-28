@@ -61,7 +61,7 @@ jobs:
         run: |
           python -m builder build --project tests
 
-  cross-compile:
+  cross_compile:
     name: Cross Compile ${{matrix.arch}}
     runs-on: ubuntu-latest
     if: github.event_name != 'release'
@@ -76,21 +76,30 @@ jobs:
     - name: Build aws-crt-cpp + consumers
       run: python3 -m builder build downstream -p aws-crt-cpp --branch=cross-compile --platform=${{matrix.arch}} --dump-config
 
-  # downstream_test:
-  #   strategy:
-  #     matrix:
-  #       project:
-  #         - aws-c-io
-  #         - aws-c-mqtt
-  #         - aws-c-http
-  #         - aws-crt-python
-  #         - aws-crt-cpp
-  #         - aws-crt-java
+  downstream_test:
+    strategy:
+      matrix:
+        project:
+          - aws-c-io
+          - aws-c-mqtt
+          - aws-c-http
+          - aws-crt-python
+          - aws-crt-cpp
+          - aws-crt-java
 
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Checkout Source
-  #       uses: actions/checkout@v1
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@v1
 
-  #     - name: Build ${{ matrix.project }}
-  #       run: python3 -m builder build --project ${{ matrix.project }}
+      - name: Build ${{ matrix.project }}
+        run: python3 -m builder build --project ${{ matrix.project }}
+
+  sanity-tests-passed:
+    name: All Sanity Tests passed
+    runs-on: ubuntu-latest
+    needs:
+    - sanity_test
+    - cross_compile
+    steps:
+      - run: echo "All sanity tests passed"
