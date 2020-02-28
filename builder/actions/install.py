@@ -96,8 +96,10 @@ class InstallCompiler(Action):
 
         # Cross compile with dockcross
         if toolchain.cross_compile:
+            print(
+                'Installing cross-compile via dockcross for {}'.format(toolchain.platform))
             result = sh.exec(
-                'docker', 'run', 'dockcross/{}'.format(toolchain.platform))
+                'docker', 'run', 'dockcross/{}'.format(toolchain.platform), quiet=True)
             assert result.returncode == 0
             # Strip off any output from docker itself
             script = '#!' + result.output.partition('#!')[2]

@@ -38,22 +38,24 @@ This can be run with ```builder.pyz my-action``` or ```builder.pyz myaction``` o
 
 See api.py for the available API to actions.
 
-### Action chaining
+#### Action chaining
 The ```run(self, env)``` method of any action can return an Action or list of Actions to run before considering this action complete.
 The ```Builder.Script``` class can encapsulate a list of python functions, actions, or shell commands to run. Most compound actions
 return ```Builder.Script([additional, commands, to, run])```
 
-### The Virtual Shell
+#### The Virtual Shell
 There is a virtual shell available via ```env.shell```. It abstracts away dry run behavior, and allows for cross-platform implementations
 of common shell operations (cd, cwd, pushd, popd, setenv, getenv, pushenv, popenv, where) and the ```exec()``` function for running 
 arbitrary commands.
 
-### Projects
+## Projects
 Each project is represented at minimum by its name, path on disk, and github repo url. If there is no builder.json file in the project, nor
 any python scripts to describe it, then this is enough for the builder to at least build the project, assuming it will build with defaults
 for the current host/target. Projects which declare upstream (dependencies) and downstream (consumers) will get the added benefit of extra
 CI checks which will attempt to use a branch with the same name as the current PR, and build the downstream project to see if your changes
 work.
+
+### Configuration (builder.json)
 
 ## Docker Images
 Each docker image has a script which will fetch the builder app baked into it, and will then call the builder with the arguments provided.

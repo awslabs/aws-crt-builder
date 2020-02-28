@@ -51,6 +51,7 @@ KEYS = {
     'packages': [],  # packages to install
     'compiler_packages': [],  # packages to support compiler
     'needs_compiler': True,  # whether or not this build needs a compiler
+    'cross_compile_platform': None,
 
     'imports': [],  # Additional targets this project needs from builder or scripts
 
@@ -69,13 +70,16 @@ ARCHS = {
     'x86': {},
     'x64': {},
     'armv6': {
-        'cross_compile_platform': 'linux-armv6'
+        'cross_compile_platform': 'linux-armv6',
+        'pkg_setup': ['mkdir -p /usr/share/man/man1']
     },
     'armv7': {
-        'cross_compile_platform': 'linux-armv7'
+        'cross_compile_platform': 'linux-armv7',
+        'pkg_setup': ['mkdir -p /usr/share/man/man1']
     },
     'armv8': {
-        'cross_compile_platform': 'linux-arm64'
+        'cross_compile_platform': 'linux-arm64',
+        'pkg_setup': ['mkdir -p /usr/share/man/man1']
     },
     'mips': {
         'cross_compile_platform': 'linux-mips'
