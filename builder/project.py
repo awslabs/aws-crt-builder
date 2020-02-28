@@ -12,7 +12,6 @@
 # permissions and limitations under the License.
 
 from collections import namedtuple, OrderedDict
-from functools import partial
 import glob
 import os
 import sys
@@ -197,23 +196,12 @@ def produce_config(build_spec, project, overrides=None, **additional_variables):
 
 
 def _build_project(project, env):
-    args = sys.argv[1:]
-    # strip -p project or --project=whatever
-    for idx in range(1, len(sys.argv)):
-        arg = sys.argv[idx]
-        proj_args = 0
-        if arg.startswith('--project='):
-            proj_args = 1
-        elif arg.startswith('--project') or arg == '-p':
-            proj_args = 2
-        if proj_args:
-            for i in range(proj_args):
-                del args[idx + i]
-            break
-
-    args += ['--project={}'.format(project.name),
-             'build_tests=0', 'run_tests=0']
-    env.shell.exec('python3', 'builder', *args)
+    children = []
+    children += to_list(project.pre_build(env))
+    children += to_list(project.build(env))
+    children += to_list(project.post_build(env))
+    children += to_list(project.install(env))
+    return children
 
 
 class Project(object):
@@ -230,8 +218,8 @@ class Project(object):
                         for i in kwargs.get('imports', [])]
         self.account = kwargs.get('account', 'awslabs')
         self.name = kwargs['name']
-        self.url = "https://github.com/{}/{}.git".format(
-            self.account, self.name)
+        self.url = kwargs.get('url', "https://github.com/{}/{}.git".format(
+            self.account, self.name))
         self.path = kwargs.get('path', None)
         self.config = kwargs.get('config', dict(kwargs))
         self._resolved_refs = False
@@ -249,27 +237,35 @@ class Project(object):
         imports = self.get_imports(env.spec)
         build_imports = []
         for i in imports:
-            build_imports += to_list(i.pre_build(env))
-            build_imports += to_list(i.build(env))
-            build_imports += to_list(i.post_build(env))
-            build_imports += to_list(i.install(env))
+            build_imports += _build_project(i, env)
 
         deps = self.get_dependencies(env.spec)
-        build_deps = [partial(_build_project, d) for d in deps]
+        build_deps = []
+        for d in deps:
+            build_deps += _build_project(d, env)
 
-        build_project = None
-        steps = env.config.get('build_steps', env.config.get('build', []))
-        if steps:
-            build_project = [Script(steps, name='build {}'.format(self.name))]
-        else:
-            build_project = [CMakeBuild(self)]
+        build_project = []
+        steps = self.config.get('build_steps', self.config.get('build', []))
+        if isinstance(steps, list):
+            if len(steps) > 0:
+                build_project = [
+                    Script(steps, name='build {}'.format(self.name))]
+            else:  # default
+                build_project = [CMakeBuild(self)]
 
+        all_steps = build_imports + build_deps + build_project
+        if len(all_steps) == 0:
+            return None
+        return Script(all_steps, name='build project {}'.format(self.name))
+
+    def build_consumers(self, env):
         build_consumers = []
-        if env.spec.downstream:
-            consumers = self.get_consumers(env.spec)
-            build_consumers = [partial(_build_project, c) for c in consumers]
-
-        return Script(build_imports + build_deps + build_project + build_consumers, name='build project {}'.format(self.name))
+        consumers = self.get_consumers(env.spec)
+        for c in consumers:
+            build_consumers += _build_project(c, env)
+        if len(build_consumers) == 0:
+            return None
+        return Script(build_consumers, name='build consumers of {}'.format(self.name))
 
     def post_build(self, env):
         return Script(env.config.get('post_build_steps', []), name='post_build {}'.format(self.name))
@@ -292,8 +288,11 @@ class Project(object):
     def cmake_args(self, env):
         """ Can be overridden to export CMake flags to consumers """
         args = []
+        for imp in self.get_imports(env.spec):
+            args += imp.cmake_args(env)
         for dep in self.get_dependencies(env.spec):
             args += dep.cmake_args(env)
+        args += self.config.get('cmake_args', [])
         return args
 
     # convert ProjectReference -> Project

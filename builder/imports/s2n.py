@@ -20,6 +20,9 @@ class S2N(Project):
             account='awslabs',
             imports=['libcrypto'],
             config={
-                'targets': ['linux']
+                'targets': ['linux'],
+                # S2N is consumed via submodules, so does not need to be built separately
+                'build_steps': None,
+                'test_steps': None
             },
             **kwargs)

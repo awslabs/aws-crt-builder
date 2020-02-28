@@ -60,18 +60,6 @@ def _build_project(env, project, build_tests=False, base_dir=None):
                 compiler_flags.append(
                     '-DCMAKE_{}_COMPILER={}'.format(opt.upper(), value))
 
-    cmake_flags = []
-    if env.spec.target == 'linux':
-        openssl_dir = '/opt/openssl' if not toolchain.cross_compile else '/usr'
-        cmake_flags += [
-            # Each image has a custom installed openssl build, make sure CMake knows where to find it
-            "-DLibCrypto_INCLUDE_DIR={}/include".format(openssl_dir),
-            "-DLibCrypto_SHARED_LIBRARY={}/lib/libcrypto.so".format(
-                openssl_dir),
-            "-DLibCrypto_STATIC_LIBRARY={}/lib/libcrypto.a".format(
-                openssl_dir),
-        ]
-
     cmake_args = [
         "-B{}".format(project_build_dir),
         "-H{}".format(project_source_dir),
@@ -82,7 +70,6 @@ def _build_project(env, project, build_tests=False, base_dir=None):
         "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
         "-DCMAKE_BUILD_TYPE=" + build_config,
         "-DBUILD_TESTING=" + ("ON" if build_tests else "OFF"),
-        *cmake_flags,
         *compiler_flags,
     ] + project.cmake_args(env) + config.get('cmake_args', [])
 

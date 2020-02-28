@@ -88,12 +88,17 @@ def run_build(env):
     def install(env):
         return env.project.install(env)
 
+    def build_consumers(env):
+        if env.spec.downstream:
+            env.project.build_consumers(env)
+
     build = Script([
         pre_build,
         build,
         post_build,
         test,
         install,
+        build_consumers,
     ], name='run_build {}'.format(env.project.name))
     run_action(build, env)
 

@@ -12,10 +12,8 @@
 # permissions and limitations under the License.
 
 import os
+from pathlib import Path
 from project import Project
-
-
-OPENSSL_DIR = '/opt/openssl'
 
 
 class LibCrypto(Project):
@@ -24,44 +22,29 @@ class LibCrypto(Project):
         super().__init__(
             config={
                 'targets': ['linux'],
-                'build_steps': [],
-                'test_steps': [],
+                'build_steps': None,
+                'test_steps': None,
             },
+            url='https://d19elf31gohf1l.cloudfront.net/_binaries/libcrypto/libcrypto-1.1.1-{os}-{arch}.tar.gz',
             **kwargs)
 
     def install(self, env):
         sh = env.shell
 
-        required_files = [
-            os.path.join(OPENSSL_DIR, 'include', 'openssl', 'crypto.h'),
-            os.path.join(OPENSSL_DIR, 'lib', 'libcrypto.a'),
-            os.path.join(OPENSSL_DIR, 'lib64', 'libcrypto.a'),
-            os.path.join(OPENSSL_DIR, 'lib', 'libcrypto.so'),
-            os.path.join(OPENSSL_DIR, 'lib64', 'libcrypto.so'),
-        ]
-
-        found = 0
-        for f in required_files:
-            if os.path.isfile(f):
-                found += 1
-
-        # Must find crypto.h plus 1 of each of the libs
-        if found >= (len(required_files) / 2 + 1):
-            print('libcrypto is already installed, skipping download')
-            return
-
+        install_dir = os.path.join(env.deps_dir, self.name)
+        self.prefix = str(Path(install_dir).relative_to(env.source_dir))
         url = self.url.format(os=env.spec.target, arch=env.spec.arch)
         sh.exec('curl', '-sSL',
-                '--output={}/libcrypto.tar.gz'.format(env.build_dir), url)
-        sh.mkdir(OPENSSL_DIR)
+                '-o', '{}/libcrypto.tar.gz'.format(env.build_dir), url, check=True)
+        sh.mkdir(install_dir)
         sh.exec('tar', 'xzf', '{}/libcrypto.tar.gz'.format(env.build_dir),
-                '-C', '/opt/openssl')
+                '-C', install_dir, check=True)
 
     def cmake_args(self, env):
-        return super().cmake_args(self, env) + [
-            "-DLibCrypto_INCLUDE_DIR={}/include".format(OPENSSL_DIR),
+        return super().cmake_args(env) + [
+            "-DLibCrypto_INCLUDE_DIR={}/include".format(self.prefix),
             "-DLibCrypto_SHARED_LIBRARY={}/lib/libcrypto.so".format(
-                OPENSSL_DIR),
+                self.prefix),
             "-DLibCrypto_STATIC_LIBRARY={}/lib/libcrypto.a".format(
-                OPENSSL_DIR),
+                self.prefix),
         ]

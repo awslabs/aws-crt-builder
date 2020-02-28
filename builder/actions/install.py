@@ -17,7 +17,6 @@ import shutil
 import stat
 import sys
 from pathlib import Path
-import zipapp
 
 from action import Action
 from host import current_os, package_tool
@@ -106,17 +105,6 @@ class InstallCompiler(Action):
             with open(dockcross, "w+t") as f:
                 f.write(result.output)
             toolchain.shell_env = [dockcross]
-
-            # Install builder into the workspace for the cross compiler
-            installed_builder = os.path.join(env.build_dir, 'builder')
-            if not os.path.exists(installed_builder):
-                package = os.path.abspath(
-                    os.path.join(env.launch_dir, sys.argv[0]))
-                if package.endswith('__main__.py'):
-                    zipapp.create_archive(
-                        os.path.dirname(package), installed_builder)
-                else:
-                    shutil.copyfile(package, installed_builder)
             return
 
         # Compiler is local, or should be, so verify/install and export it
