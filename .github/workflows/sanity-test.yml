@@ -65,7 +65,6 @@ jobs:
     name: Cross Compile ${{matrix.arch}}
     runs-on: ubuntu-latest
     if: github.event_name != 'release'
-    needs: package
     strategy:
       matrix:
         arch: [linux-armv6, linux-armv7, linux-arm64]
@@ -80,7 +79,7 @@ jobs:
         name: builder
 
     - name: Build aws-c-common + consumers
-      run: python builder\builder build downstream aws-crt-cpp --branch=cross-compile --platform=${{matrix.arch}} --dump-config
+      run: python -m builder build downstream aws-crt-cpp --branch=cross-compile --platform=${{matrix.arch}} --dump-config
 
   # downstream_test:
   #   strategy:
