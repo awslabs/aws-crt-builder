@@ -229,7 +229,7 @@ class Project(object):
             i, _not_resolved) for i in kwargs.get('imports', [])]
 
         # Store args as the intial config, will be merged via get_config() later
-        self.config = kwargs.get('config', dict(kwargs))
+        self.config = {**kwargs.get('config', {}), **kwargs}
 
         # Allow projects to augment search dirs
         for search_dir in self.config.get('search_dirs', []):
@@ -242,9 +242,6 @@ class Project(object):
         return self.path is not None
 
     def pre_build(self, env):
-        return Script(env.config.get('pre_build_steps', []), name='pre_build {}'.format(self.name))
-
-    def build(self, env):
         imports = self.get_imports(env.spec)
         build_imports = []
         for i in imports:
@@ -254,17 +251,22 @@ class Project(object):
         build_deps = []
         for d in deps:
             build_deps += _build_project(d, env)
+        all_steps = build_imports + build_deps + \
+            env.config.get('pre_build_steps', [])
+        if len(all_steps) == 0:
+            return None
+        return Script(all_steps, name='pre_build {}'.format(self.name))
 
+    def build(self, env):
         build_project = []
         steps = self.config.get('build_steps', self.config.get('build', []))
         if isinstance(steps, list):
             steps = [s if s != 'build' else CMakeBuild(self) for s in steps]
             build_project = [Script(steps, name='build {}'.format(self.name))]
 
-        all_steps = build_imports + build_deps + build_project
-        if len(all_steps) == 0:
+        if len(build_project) == 0:
             return None
-        return Script(all_steps, name='build project {}'.format(self.name))
+        return Script(build_project, name='build project {}'.format(self.name))
 
     def build_consumers(self, env):
         build_consumers = []
@@ -276,7 +278,10 @@ class Project(object):
         return Script(build_consumers, name='build consumers of {}'.format(self.name))
 
     def post_build(self, env):
-        return Script(env.config.get('post_build_steps', []), name='post_build {}'.format(self.name))
+        steps = env.config.get('post_build_steps', [])
+        if len(steps) == 0:
+            return None
+        return Script(steps, name='post_build {}'.format(self.name))
 
     def test(self, env):
         has_tests = getattr(env, 'build_tests', False)
