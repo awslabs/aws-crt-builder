@@ -221,9 +221,9 @@ class Project(object):
         # Convert project json references to ProjectReferences
         def _not_resolved(s):
             return False
-        kwargs['upstream'] = [namedtuple('ProjectReference', u.keys()+['resolved'])(
+        kwargs['upstream'] = [namedtuple('ProjectReference', list(u.keys())+['resolved'])(
             *u.values(), _not_resolved) for u in kwargs.get('upstream', [])]
-        kwargs['downstream'] = [namedtuple('ProjectReference', d.keys()+['resolved'])(
+        kwargs['downstream'] = [namedtuple('ProjectReference', list(d.keys())+['resolved'])(
             *d.values(), _not_resolved) for d in kwargs.get('downstream', [])]
         kwargs['imports'] = [namedtuple('ImportReference', ['name', 'resolved'])(
             i, _not_resolved) for i in kwargs.get('imports', [])]
