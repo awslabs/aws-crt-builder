@@ -264,7 +264,7 @@ class Import(object):
             setattr(self, slot, val)
 
         # Allow imports to augment search dirs
-        for search_dir in self.config.get('search_dirs', []):
+        for search_dir in getattr(self, 'config', {}).get('search_dirs', []):
             Project.search_dirs.append(os.path.join(self.path, search_dir))
 
     def resolved(self):
