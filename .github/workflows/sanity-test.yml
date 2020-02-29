@@ -85,7 +85,7 @@ jobs:
           - aws-c-http
           #- aws-crt-python # until builder-updates branch is merged
           - aws-crt-cpp
-          - aws-crt-java
+          #- aws-crt-java # until arm branch is merged
 
     runs-on: ubuntu-latest
     steps:
