@@ -340,11 +340,16 @@ class Project(object):
         build_imports = []
         for i in imports:
             build_imports += _build_project(i, env)
+        if build_imports:
+            build_imports = [Script(build_imports, name='install imports')]
 
         deps = self.get_dependencies(env.spec)
         build_deps = []
         for d in deps:
             build_deps += _build_project(d, env)
+        if build_deps:
+            build_deps = [Script(build_deps, name='build dependencies')]
+
         all_steps = build_imports + build_deps + \
             env.config.get('pre_build_steps', [])
         if len(all_steps) == 0:
