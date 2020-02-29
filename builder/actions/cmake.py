@@ -21,6 +21,9 @@ from toolchain import Toolchain
 # All dirs used should be relative to env.source_dir, as this is where the cross
 # compilation will be mounting to do its work
 def _project_dirs(env, project):
+    if not project.resolved():
+        print('Project is not resolved: {}'.format(project.name))
+
     source_dir = str(Path(project.path).relative_to(env.source_dir))
     build_dir = os.path.join(source_dir, 'build')
     # cross compiles are effectively chrooted to the source_dir, normal builds need absolute paths
