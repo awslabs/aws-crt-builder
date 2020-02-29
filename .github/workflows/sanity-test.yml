@@ -19,6 +19,26 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       
+  tag:
+    name: Artifact release tag
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Sources
+      uses: actions/checkout@v1
+    - name: Get release tag
+      uses: ./.github/actions/release-tag
+      id: release
+      with:
+        output: tag
+
+    - run: echo TAG ${{ steps.release.outputs.release_tag }}
+
+    - name: Store release_tag
+      uses: actions/upload-artifact@v1
+      with:
+        name: release_tag
+        path: tag
+
   package:
     name: Package builder app
     runs-on: ubuntu-latest
