@@ -23,7 +23,13 @@ from toolchain import Toolchain
 def _project_dirs(env, project):
     source_dir = str(Path(project.path).relative_to(env.source_dir))
     build_dir = os.path.join(source_dir, 'build')
-    install_dir = str(Path(env.install_dir).relative_to(env.source_dir))
+    # cross compiles are effectively chrooted to the source_dir, normal builds need absolute paths
+    # or cmake gets lost because we specify binary/source directories explicitly while working
+    # from the source_dir, but it wants directories relative to source
+    if env.toolchain.cross_compile:
+        install_dir = str(Path(env.install_dir).relative_to(env.source_dir))
+    else:
+        install_dir = env.install_dir
     return source_dir, build_dir, install_dir
 
 
