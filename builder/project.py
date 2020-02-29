@@ -130,12 +130,15 @@ def produce_config(build_spec, project, overrides=None, **additional_variables):
 
         # pull out default target, then spec target to override
         process_element(config, 'targets', 'default')
-        process_element(config, 'targets', build_spec.target)
+        target = process_element(config, 'targets', build_spec.target)
 
         # pull out spec compiler and version info
         compiler = process_element(config, 'compilers', build_spec.compiler)
+
+        # Allow most specific resolves to come last
         process_element(compiler, 'versions', build_spec.compiler_version)
         process_element(compiler, 'architectures', build_spec.arch)
+        process_element(target, 'architectures', build_spec.arch)
 
     # Process defaults first
     process_config(defaults)
