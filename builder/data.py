@@ -56,6 +56,8 @@ KEYS = {
     'cross_compile_platform': None,
 
     'imports': [],  # Additional targets this project needs from builder or scripts
+    'upstream': [],
+    'downstream': [],
 
     # Linux
     'sudo': False  # whether or not sudo is necessary for installs

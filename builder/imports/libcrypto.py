@@ -22,17 +22,21 @@ class LibCrypto(Project):
         super().__init__(
             config={
                 'targets': ['linux'],
-                'build_steps': None,
-                'test_steps': None,
+                'build_steps': [],
+                'test_steps': [],
             },
             url='https://d19elf31gohf1l.cloudfront.net/_binaries/libcrypto/libcrypto-1.1.1-{os}-{arch}.tar.gz',
             **kwargs)
         self.prefix = '/opt/openssl'
+        self.installed = False
 
     def resolved(self):
         return True
 
     def install(self, env):
+        if self.installed:
+            return
+
         sh = env.shell
 
         # If this is a local build, check the local machine
@@ -58,10 +62,7 @@ class LibCrypto(Project):
         install_dir = os.path.join(env.deps_dir, self.name)
         # If path to libcrypto is going to be relative, it has to be relative to the
         # cmake launch directory
-        if env.toolchain.cross_compile:
-            self.prefix = str(Path(install_dir).relative_to(env.source_dir))
-        else:
-            self.prefix = str(Path(install_dir).relative_to(env.build_dir))
+        self.prefix = str(Path(install_dir).relative_to(env.source_dir))
         env.variables['libcrypto_path'] = self.prefix
         print('Installing pre-built libcrypto binaries for {}-{} to {}'.format(
             env.spec.target, env.spec.arch, install_dir))
@@ -73,6 +74,7 @@ class LibCrypto(Project):
         sh.mkdir(install_dir)
         sh.exec('tar', 'xzf', '{}/libcrypto.tar.gz'.format(install_dir),
                 '-C', install_dir, check=True)
+        self.installed = True
 
     def cmake_args(self, env):
         return super().cmake_args(env) + [

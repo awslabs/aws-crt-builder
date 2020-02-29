@@ -90,7 +90,7 @@ def run_build(env):
 
     def build_consumers(env):
         if env.spec.downstream:
-            env.project.build_consumers(env)
+            return env.project.build_consumers(env)
 
     build = Script([
         pre_build,

@@ -25,7 +25,7 @@ class S2N(Project):
                 'build_steps': None,
                 'test_steps': None,
                 'cmake_args': {
-                    '-DS2N_NO_PQ_ASM=ON'
+                    '-DS2N_NO_PQ_ASM=ON',
                 },
             },
             **kwargs)
