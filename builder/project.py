@@ -137,8 +137,6 @@ def produce_config(build_spec, project, overrides=None, **additional_variables):
 
         # Allow most specific resolves to come last
         process_element(compiler, 'versions', build_spec.compiler_version)
-        process_element(compiler, 'architectures', build_spec.arch)
-        process_element(target, 'architectures', build_spec.arch)
 
     # Process defaults first
     process_config(defaults)
