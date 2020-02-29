@@ -219,10 +219,14 @@ class Project(object):
         self.path = kwargs.get('path', None)
 
         # Convert project json references to ProjectReferences
-        kwargs['upstream'] = [namedtuple('ProjectReference', u.keys())(
-            *u.values()) for u in kwargs.get('upstream', [])]
-        kwargs['downstream'] = [namedtuple('ProjectReference', d.keys())(
-            *d.values()) for d in kwargs.get('downstream', [])]
+        def _not_resolved(s):
+            return False
+        kwargs['upstream'] = [namedtuple('ProjectReference', u.keys()+['resolved'])(
+            *u.values(), _not_resolved) for u in kwargs.get('upstream', [])]
+        kwargs['downstream'] = [namedtuple('ProjectReference', d.keys()+['resolved'])(
+            *d.values(), _not_resolved) for d in kwargs.get('downstream', [])]
+        kwargs['imports'] = [namedtuple('ImportReference', ['name', 'resolved'])(
+            i, _not_resolved) for i in kwargs.get('imports', [])]
 
         # Store args as the intial config, will be merged via get_config() later
         self.config = kwargs.get('config', dict(kwargs))
@@ -307,7 +311,7 @@ class Project(object):
         def _resolve(refs):
             projects = []
             for r in refs:
-                if not isinstance(r, Project) or not r.path:
+                if not isinstance(r, Project) or not r.resolved():
                     if isinstance(r, str):
                         project = Project.find_project(r)
                     else:
