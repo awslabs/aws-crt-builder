@@ -61,7 +61,7 @@ class DownloadDependencies(Action):
         deps = project.get_dependencies(spec)
 
         if spec.downstream:
-            deps += project.downstream
+            deps += project.get_consumers(spec)
 
         if deps:
             sh.rm(env.deps_dir)
