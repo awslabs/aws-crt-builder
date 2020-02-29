@@ -20,7 +20,7 @@ class VariableFormatter(Formatter):
 
     def get_value(self, key, args, kwds):
         if isinstance(key, str):
-            return kwds.get(key, '')
+            return kwds.get(key, '{}'.format('{' + key + '}'))
         else:
             return super().get_value(key, args, kwds)
 
@@ -35,7 +35,7 @@ def replace_variables(value, variables):
 
         # If the whole string is a variable, just replace it
         if value and value.rfind('{') == 0 and value.find('}') == len(value) - 1:
-            return variables.get(value[1:-1], '')
+            return variables.get(value[1:-1], value)
 
         # Strings just do a format
         return _formatter.format(value, **variables)

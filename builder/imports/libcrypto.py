@@ -35,6 +35,7 @@ class LibCrypto(Project):
     def install(self, env):
         sh = env.shell
 
+        # If this is a local build, check the local machine
         if not env.toolchain.cross_compile:
             required_files = [
                 ['include/openssl/crypto.h'],
@@ -51,11 +52,13 @@ class LibCrypto(Project):
 
             if found >= len(required_files):
                 print('Found existing libcrypto at {}'.format(self.prefix))
+                env.variables['libcrypto_path'] = self.prefix
                 return
 
         print('Installing pre-built libcrypto binaries for {}-{}'.format(env.spec.target, env.spec.arch))
         install_dir = os.path.join(env.deps_dir, self.name)
         self.prefix = str(Path(install_dir).relative_to(env.source_dir))
+        env.variables['libcrypto_path'] = self.prefix
         url = self.url.format(os=env.spec.target, arch=env.spec.arch)
         sh.exec('curl', '-sSL',
                 '-o', '{}/libcrypto.tar.gz'.format(env.build_dir), url, check=True)

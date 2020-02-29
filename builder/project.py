@@ -191,6 +191,7 @@ def produce_config(build_spec, project, overrides=None, **additional_variables):
     # Post process
     new_version = replace_variables(new_version, replacements)
     new_version['variables'] = replacements
+    new_version['__processed'] = True
 
     return new_version
 
@@ -214,8 +215,6 @@ class Project(object):
             *u.values()) for u in kwargs.get('upstream', [])]
         self.downstream = self.consumers = [namedtuple('ProjectReference', d.keys())(
             *d.values()) for d in kwargs.get('downstream', [])]
-        self.imports = [namedtuple('ImportReference', ['name'])(i)
-                        for i in kwargs.get('imports', [])]
         self.account = kwargs.get('account', 'awslabs')
         self.name = kwargs['name']
         self.url = kwargs.get('url', "https://github.com/{}/{}.git".format(
@@ -302,12 +301,14 @@ class Project(object):
         def _resolve(refs):
             projects = []
             for r in refs:
-                if isinstance(r, Project) and r.path:
-                    projects.append(r)
-                else:
-                    project = Project.find_project(r.name)
-                    project = merge_unique_attrs(r, project)
-                    projects.append(project)
+                if not isinstance(r, Project) or not r.path:
+                    if isinstance(r, str):
+                        project = Project.find_project(r)
+                    else:
+                        project = Project.find_project(r.name)
+                        project = merge_unique_attrs(r, project)
+
+                projects.append(project)
             return projects
 
         # Resolve upstream and downstream references into their
@@ -315,7 +316,7 @@ class Project(object):
         # data stored on the ref (targets, etc)
         self.upstream = self.dependencies = _resolve(self.upstream)
         self.downstream = self.consumers = _resolve(self.downstream)
-        self.imports = _resolve(self.imports)
+        self.imports = _resolve(self.config.get('imports', []))
 
     def get_imports(self, spec):
         self._resolve_refs()
@@ -347,10 +348,18 @@ class Project(object):
         return consumers
 
     def get_config(self, spec, overrides=None, **additional_vars):
-        return produce_config(spec, self, overrides, **additional_vars)
+        if not self.config or not self.config.get('__processed', False):
+            self.config = produce_config(
+                spec, self, overrides, **additional_vars)
+        return self.config
 
     # project cache
     _projects = {}
+
+    @staticmethod
+    def _publish_variable(var, value):
+        for project in Project._projects.values():
+            project.config = replace_variables(project.config, {var: value})
 
     @staticmethod
     def _find_project_class(name):

@@ -27,6 +27,14 @@ class Env(object):
         # DEFAULTS
         self.dryrun = False  # overwritten by config
 
+        env = self
+
+        class Variables(dict):
+            def __setitem__(self, item, value):
+                super().__setitem__(item, value)
+                env._publish_variable(item, value)
+        self.variables = Variables()
+
         # OVERRIDES: copy incoming config, overwriting defaults
         for key, val in config.items():
             setattr(self, key, val)
@@ -92,6 +100,9 @@ class Env(object):
         # Once initialized, switch to the source dir before running actions
         if self.project:
             self.shell.cd(self.project.path)
+
+    def _publish_variable(self, var, value):
+        Project._publish_variable(var, value)
 
     @staticmethod
     def _get_git_branch():
