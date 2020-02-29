@@ -83,7 +83,7 @@ jobs:
           - aws-c-io
           - aws-c-mqtt
           - aws-c-http
-          - aws-crt-python
+          #- aws-crt-python # until builder-updates branch is merged
           - aws-crt-cpp
           - aws-crt-java
 

@@ -43,6 +43,13 @@ class Script(Action):
         children = []
         for cmd in self.commands:
             cmd_type = type(cmd)
+            # See if the string is actually an action
+            if cmd_type == str:
+                action_cls = Scripts.find_action(cmd)
+                if action_cls:
+                    cmd = action_cls()
+                    cmd_type = type(cmd)
+
             if cmd_type == str:
                 result = sh.exec(*cmd.split(' '))
                 if result.returncode != 0:
