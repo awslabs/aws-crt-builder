@@ -162,9 +162,9 @@ def parse_args():
     parser.add_argument('--dump-config', action='store_true',
                         help="Print the config in use before running a build")
     parser.add_argument('--spec', type=str)
-    parser.add_argument('-b', '--build-dir', type=str,
+    parser.add_argument('--build-dir', type=str,
                         help='Directory to work in', default='.')
-    parser.add_argument('--branch', help='Branch to build from')
+    parser.add_argument('-b', '--branch', help='Branch to build from')
     parser.add_argument(
         '--platform', help='Target platform to compile/cross-compile for', default='{}-{}'.format(current_os(), current_arch()),
         choices=data.PLATFORMS)
@@ -214,6 +214,11 @@ def parse_args():
 
 if __name__ == '__main__':
     args = parse_args()
+
+    if args.build_dir != '.':
+        if not os.path.isdir(args.build_dir):
+            os.makedirs(args.build_dir)
+        os.chdir(args.build_dir)
 
     # set up environment
     env = Env({

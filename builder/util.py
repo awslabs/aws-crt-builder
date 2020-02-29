@@ -59,13 +59,21 @@ def dict_alias(tree, key, alias):
     for val in tree.values():
         if isinstance(val, dict):
             dict_alias(val, key, alias)
-    original_keys = list(tree.keys())
-    for tkey in original_keys:
-        if tkey == key:
-            tree[alias] = tree[tkey]
+    if key in tree:
+        tree[alias] = tree[key]
 
 
-def _isnamedtuple(x):
+def tree_transform(tree, key, fn):
+    """ At any level in the tree, if key is found, it will be transformed via fn """
+    # depth first, should result in the least tree traversal
+    for val in tree.values():
+        if isinstance(val, dict):
+            tree_transform(val, key, fn)
+    if key in tree:
+        tree[key] = fn(tree[key])
+
+
+def isnamedtuple(x):
     """ namedtuples are subclasses of tuple with a list of _fields """
     t = type(x)
     b = t.__bases__
@@ -79,7 +87,7 @@ def _isnamedtuple(x):
 
 def merge_unique_attrs(src, target):
     """ Returns target with any fields unique to src added to it """
-    src_dict = src._asdict() if _isnamedtuple(src) else src.__dict__
+    src_dict = src._asdict() if isnamedtuple(src) else src.__dict__
     for key, val in src_dict.items():
         if not hasattr(target, key):
             setattr(target, key, val)

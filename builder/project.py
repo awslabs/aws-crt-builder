@@ -19,7 +19,7 @@ import sys
 from data import *
 from host import current_os, package_tool
 from scripts import Scripts
-from util import replace_variables, merge_unique_attrs, to_list
+from util import replace_variables, merge_unique_attrs, to_list, tree_transform, isnamedtuple
 from actions.cmake import CMakeBuild, CTestRun
 from actions.script import Script
 
@@ -206,6 +206,104 @@ def _build_project(project, env):
     return children
 
 
+# convert ProjectReference -> Project
+def _resolve_projects(refs):
+    projects = []
+    for r in refs:
+        if not isinstance(r, Project) or not r.resolved():
+            if isinstance(r, str):
+                project = Project.find_project(r)
+            else:
+                project = Project.find_project(r.name)
+                project = merge_unique_attrs(r, project)
+
+        projects.append(project)
+    return projects
+
+
+def _resolve_imports(imps):
+    imports = []
+    for i in imps:
+        if not isinstance(i, Import) or not i.resolved():
+            if isinstance(i, str):
+                imp = Project.find_import(i)
+            else:
+                imp = Project.find_import(i.name)
+                imp = merge_unique_attrs(i, imp)
+        else:
+            imp = i
+        imports.append(imp)
+    return imports
+
+
+def _not_resolved(s):
+    return False
+
+
+def _make_project_refs(refs):
+    return [r if isnamedtuple(r) else namedtuple('ProjectReference', list(r.keys())+['resolved'])(
+        *r.values(), _not_resolved) for r in refs]
+
+
+def _make_import_refs(refs):
+    return [i if isnamedtuple(i) else namedtuple('ImportReference', ['name', 'resolved'])(
+        i, _not_resolved) for i in refs]
+
+
+class Import(object):
+    def __init__(self, **kwargs):
+        self.name = kwargs.get('name', self.__class__.__name__.lower())
+        self._resolved = True
+        if 'resolved' in kwargs:
+            self._resolved = kwargs['resolved']
+            del kwargs['resolved']
+
+        tree_transform(kwargs, 'imports', _make_import_refs)
+
+        for slot, val in kwargs.items():
+            setattr(self, slot, val)
+
+        # Allow imports to augment search dirs
+        for search_dir in self.config.get('search_dirs', []):
+            Project.search_dirs.append(os.path.join(self.path, search_dir))
+
+    def resolved(self):
+        return self._resolved
+
+    def pre_build(self, env):
+        pass
+
+    def build(self, env):
+        pass
+
+    def post_build(self, env):
+        pass
+
+    def test(self, env):
+        pass
+
+    def install(self, env):
+        imports = self.get_imports(env.spec)
+        for imp in imports:
+            imp.install(env)
+
+    def cmake_args(self, env):
+        imports = self.get_imports(env.spec)
+        args = []
+        for imp in imports:
+            args += imp.cmake_args(env)
+        return args
+
+    def get_imports(self, spec):
+        self.imports = _resolve_imports(getattr(self, 'imports', []))
+        target = spec.target
+        imports = []
+        for i in self.imports:
+            if not hasattr(i, 'targets') or target in getattr(i, 'targets', []):
+                imports.append(i)
+        return imports
+
+
 class Project(object):
     """ Describes a given library and its dependencies/consumers """
 
@@ -219,14 +317,10 @@ class Project(object):
         self.path = kwargs.get('path', None)
 
         # Convert project json references to ProjectReferences
-        def _not_resolved(s):
-            return False
-        kwargs['upstream'] = [namedtuple('ProjectReference', list(u.keys())+['resolved'])(
-            *u.values(), _not_resolved) for u in kwargs.get('upstream', [])]
-        kwargs['downstream'] = [namedtuple('ProjectReference', list(d.keys())+['resolved'])(
-            *d.values(), _not_resolved) for d in kwargs.get('downstream', [])]
-        kwargs['imports'] = [namedtuple('ImportReference', ['name', 'resolved'])(
-            i, _not_resolved) for i in kwargs.get('imports', [])]
+
+        tree_transform(kwargs, 'upstream', _make_project_refs)
+        tree_transform(kwargs, 'downstream', _make_project_refs)
+        tree_transform(kwargs, 'imports', _make_import_refs)
 
         # Store args as the intial config, will be merged via get_config() later
         self.config = {**kwargs.get('config', {}), **kwargs}
@@ -264,7 +358,7 @@ class Project(object):
             steps = ['build']
         if isinstance(steps, list):
             steps = [s if s != 'build' else CMakeBuild(self) for s in steps]
-            build_project = [Script(steps, name='build {}'.format(self.name))]
+            build_project = steps
 
         if len(build_project) == 0:
             return None
@@ -291,12 +385,14 @@ class Project(object):
         if not has_tests or not run_tests:
             return
 
-        steps = env.config.get('build_steps', env.config.get('build', []))
+        steps = env.config.get('test_steps', env.config.get('test', []))
         if steps is None:
             steps = ['test']
         if isinstance(steps, list):
             steps = [s if s != 'test' else CTestRun(self) for s in steps]
-            test_project = [Script(steps, name='test {}'.format(self.name))]
+            test_project = steps
+        if len(steps) == 0:
+            return None
         return Script(steps, name='test {}'.format(self.name))
 
     def install(self, env):
@@ -313,32 +409,9 @@ class Project(object):
         args += self.config.get('cmake_args', [])
         return args
 
-    # convert ProjectReference -> Project
-    def _resolve_refs(self):
-        def _resolve(refs):
-            projects = []
-            for r in refs:
-                if not isinstance(r, Project) or not r.resolved():
-                    if isinstance(r, str):
-                        project = Project.find_project(r)
-                    else:
-                        project = Project.find_project(r.name)
-                        project = merge_unique_attrs(r, project)
-
-                projects.append(project)
-            return projects
-
-        # Resolve upstream and downstream references into their
-        # real projects, making sure to retain any reference-specific
-        # data stored on the ref (targets, etc)
-        self.dependencies = _resolve(
-            self.config.get('upstream', []))
-        self.consumers = _resolve(
-            self.config.get('downstream', []))
-        self.imports = _resolve(self.config.get('imports', []))
-
     def get_imports(self, spec):
-        self._resolve_refs()
+        self.imports = _resolve_imports(
+            self.config.get('imports', []))
         target = spec.target
         imports = []
         for i in self.imports:
@@ -348,7 +421,8 @@ class Project(object):
 
     def get_dependencies(self, spec):
         """ Gets dependencies for a given BuildSpec, filters by target """
-        self._resolve_refs()
+        self.dependencies = _resolve_projects(
+            self.config.get('upstream', []))
         target = spec.target
         deps = []
         for p in self.dependencies:
@@ -358,7 +432,8 @@ class Project(object):
 
     def get_consumers(self, spec):
         """ Gets consumers for a given BuildSpec, filters by target """
-        self._resolve_refs()
+        self.consumers = _resolve_projects(
+            self.config.get('downstream', []))
         target = spec.target
         consumers = []
         for c in self.consumers:
@@ -383,10 +458,16 @@ class Project(object):
     @staticmethod
     def _find_project_class(name):
         projects = Project.__subclasses__()
-        project_cls = None
         for p in projects:
             if p.__name__.lower() == name.lower():
                 return p
+
+    @staticmethod
+    def _find_import_class(name):
+        imports = Import.__subclasses__()
+        for i in imports:
+            if i.__name__.lower() == name.lower():
+                return i
 
     @staticmethod
     def _create_project(name, **kwargs):
@@ -400,7 +481,7 @@ class Project(object):
     @staticmethod
     def _cache_project(project):
         Project._projects[project.name] = project
-        if project.path:
+        if getattr(project, 'path', None):
             Scripts.load(project.path)
 
         return project
@@ -487,3 +568,16 @@ class Project(object):
 
         # Enough of a project to get started, note that this is not cached
         return Project(name=name)
+
+    @staticmethod
+    def find_import(name, hints=[]):
+        imp = Project._projects.get(name, None)
+        if imp and imp.resolved():
+            return imp
+
+        for h in hints:
+            Scripts.load(h)
+        imp_cls = Project._find_import_class(name)
+        if imp_cls:
+            return Project._cache_project(imp_cls())
+        return Import(name=name, resolved=False)

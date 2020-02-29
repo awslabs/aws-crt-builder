@@ -227,6 +227,7 @@ class Shell(object):
             retries: (default 1) How many times to try the command, useful for network commands
             quiet: Do not produce any output
         """
+        print('IN {}'.format(os.getcwd()))
         result = None
         if kwargs.get('always', False):
             prev_dryrun = self.dryrun

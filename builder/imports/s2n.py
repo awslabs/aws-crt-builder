@@ -11,7 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from project import Project
+from project import Project, Import
 
 
 class S2N(Project):
@@ -21,9 +21,20 @@ class S2N(Project):
             imports=['libcrypto'],
             config={
                 'targets': ['linux'],
-                # S2N is consumed via submodules, so does not need to be built separately
-                'build_steps': None,
-                'test_steps': None,
+                'test_steps': [],
+                'cmake_args': {
+                    '-DS2N_NO_PQ_ASM=ON',
+                },
+            },
+            **kwargs)
+
+
+class S2N(Import):
+    def __init__(self, **kwargs):
+        super().__init__(
+            imports=['libcrypto'],
+            config={
+                'targets': ['linux'],
                 'cmake_args': {
                     '-DS2N_NO_PQ_ASM=ON',
                 },

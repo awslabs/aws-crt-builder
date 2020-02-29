@@ -13,10 +13,10 @@
 
 import os
 from pathlib import Path
-from project import Project
+from project import Import
 
 
-class LibCrypto(Project):
+class LibCrypto(Import):
 
     def __init__(self, **kwargs):
         super().__init__(
@@ -39,6 +39,7 @@ class LibCrypto(Project):
 
         sh = env.shell
 
+        self.installed = True
         # If this is a local build, check the local machine
         if not env.toolchain.cross_compile:
             required_files = [
@@ -61,8 +62,8 @@ class LibCrypto(Project):
 
         install_dir = os.path.join(env.deps_dir, self.name)
         # If path to libcrypto is going to be relative, it has to be relative to the
-        # cmake launch directory
-        self.prefix = str(Path(install_dir).relative_to(env.source_dir))
+        # launch directory
+        self.prefix = str(Path(install_dir).relative_to(env.launch_dir))
         env.variables['libcrypto_path'] = self.prefix
         print('Installing pre-built libcrypto binaries for {}-{} to {}'.format(
             env.spec.target, env.spec.arch, install_dir))
@@ -74,9 +75,9 @@ class LibCrypto(Project):
         sh.mkdir(install_dir)
         sh.exec('tar', 'xzf', '{}/libcrypto.tar.gz'.format(install_dir),
                 '-C', install_dir, check=True)
-        self.installed = True
 
     def cmake_args(self, env):
+        assert self.installed
         return super().cmake_args(env) + [
             "-DLibCrypto_INCLUDE_DIR={}/include".format(self.prefix),
             "-DLibCrypto_SHARED_LIBRARY={}/lib/libcrypto.so".format(

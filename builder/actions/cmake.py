@@ -18,19 +18,20 @@ from action import Action
 from toolchain import Toolchain
 
 
-# All dirs used should be relative to env.source_dir, as this is where the cross
+# All dirs used should be relative to env.launch_dir, as this is where the cross
 # compilation will be mounting to do its work
 def _project_dirs(env, project):
     if not project.resolved():
         print('Project is not resolved: {}'.format(project.name))
 
-    source_dir = str(Path(project.path).relative_to(env.source_dir))
-    build_dir = os.path.join(source_dir, 'build')
-    # cross compiles are effectively chrooted to the source_dir, normal builds need absolute paths
+    source_dir = str(Path(project.path).relative_to(env.launch_dir))
+    build_dir = str(
+        Path(os.path.join(env.build_dir, project.name)).relative_to(env.launch_dir))
+    # cross compiles are effectively chrooted to the launch_dir, normal builds need absolute paths
     # or cmake gets lost because we specify binary/source directories explicitly while working
-    # from the source_dir, but it wants directories relative to source
+    # from the launch_dir, but it wants directories relative to source
     if env.toolchain.cross_compile:
-        install_dir = str(Path(env.install_dir).relative_to(env.source_dir))
+        install_dir = str(Path(env.install_dir).relative_to(env.launch_dir))
     else:
         install_dir = env.install_dir
     return source_dir, build_dir, install_dir
@@ -114,12 +115,8 @@ class CMakeBuild(Action):
         config = getattr(env, 'config', {})
         env.build_tests = config.get('build_tests', True)
 
-        sh.pushd(env.source_dir)
-
         # BUILD
         _build_project(env, self.project)
-
-        sh.popd()
 
 
 class CTestRun(Action):
@@ -135,7 +132,5 @@ class CTestRun(Action):
         project_source_dir, project_build_dir, project_install_dir = _project_dirs(
             env, self.project)
 
-        sh.pushd(env.source_dir)
         sh.exec(*toolchain.shell_env, "ctest", "--build-exe-dir", project_build_dir,
                 "--output-on-failure", check=True)
-        sh.popd()

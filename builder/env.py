@@ -81,10 +81,10 @@ class Env(object):
             print('Project {} could not be found locally, downloading'.format(
                 project.name))
             DownloadSource(
-                project=project, branch=self.branch, path=self.args.build_dir).run(self)
+                project=project, branch=self.branch, path='.').run(self)
             # Now that the project is downloaded, look it up again
             project = Project.find_project(
-                project.name, hints=[os.path.abspath(self.args.build_dir)])
+                project.name, hints=[os.path.abspath('.')])
             assert project.resolved()
         self.project = project
 
@@ -98,7 +98,7 @@ class Env(object):
 
         # Allow these to be overridden by the project, and relative to source_dir if not absolute paths
         build_dir = config.get(
-            'build_dir', os.path.join(self.source_dir, 'build'))
+            'build_dir', os.path.join(self.launch_dir, 'build'))
         if not os.path.isabs(build_dir):
             build_dir = os.path.join(self.source_dir, build_dir)
         self.build_dir = build_dir
@@ -114,7 +114,8 @@ class Env(object):
         self.install_dir = os.path.join(self.build_dir, 'install')
 
         print('Source directory: {}'.format(self.source_dir))
-        env.shell.cd(self.source_dir)
+        print('Working directory: {}'.format(self.shell.cwd()))
+        print('Build directory: {}'.format(self.build_dir))
 
         Project.search_dirs += [
             self.build_dir,
