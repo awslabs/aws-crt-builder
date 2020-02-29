@@ -211,17 +211,22 @@ class Project(object):
     search_dirs = []
 
     def __init__(self, **kwargs):
-        self.upstream = self.dependencies = [namedtuple('ProjectReference', u.keys())(
-            *u.values()) for u in kwargs.get('upstream', [])]
-        self.downstream = self.consumers = [namedtuple('ProjectReference', d.keys())(
-            *d.values()) for d in kwargs.get('downstream', [])]
         self.account = kwargs.get('account', 'awslabs')
         self.name = kwargs['name']
         self.url = kwargs.get('url', "https://github.com/{}/{}.git".format(
             self.account, self.name))
         self.path = kwargs.get('path', None)
+
+        # Convert project json references to ProjectReferences
+        kwargs['upstream'] = [namedtuple('ProjectReference', u.keys())(
+            *u.values()) for u in kwargs.get('upstream', [])]
+        kwargs['downstream'] = [namedtuple('ProjectReference', d.keys())(
+            *d.values()) for d in kwargs.get('downstream', [])]
+
+        # Store args as the intial config, will be merged via get_config() later
         self.config = kwargs.get('config', dict(kwargs))
 
+        # Allow projects to augment search dirs
         for search_dir in self.config.get('search_dirs', []):
             Project.search_dirs.append(os.path.join(self.path, search_dir))
 
@@ -314,8 +319,10 @@ class Project(object):
         # Resolve upstream and downstream references into their
         # real projects, making sure to retain any reference-specific
         # data stored on the ref (targets, etc)
-        self.upstream = self.dependencies = _resolve(self.upstream)
-        self.downstream = self.consumers = _resolve(self.downstream)
+        self.dependencies = _resolve(
+            self.config.get('upstream', []))
+        self.consumers = _resolve(
+            self.config.get('downstream', []))
         self.imports = _resolve(self.config.get('imports', []))
 
     def get_imports(self, spec):
