@@ -41,7 +41,7 @@ KEYS = {
     'run_tests': True,  # whether or not to run tests
     'build': None,  # deprecated, use build_steps
     # steps to run instead of the default cmake compile
-    'build_steps': ['build'],
+    'build_steps': None,
     'test': None,  # deprecated, use test_steps
     'test_steps': None,  # steps to run instead of the default ctest
 

@@ -260,6 +260,8 @@ class Project(object):
     def build(self, env):
         build_project = []
         steps = self.config.get('build_steps', self.config.get('build', []))
+        if steps is None:
+            steps = ['build']
         if isinstance(steps, list):
             steps = [s if s != 'build' else CMakeBuild(self) for s in steps]
             build_project = [Script(steps, name='build {}'.format(self.name))]
@@ -290,6 +292,8 @@ class Project(object):
             return
 
         steps = env.config.get('build_steps', env.config.get('build', []))
+        if steps is None:
+            steps = ['test']
         if isinstance(steps, list):
             steps = [s if s != 'test' else CTestRun(self) for s in steps]
             test_project = [Script(steps, name='test {}'.format(self.name))]
