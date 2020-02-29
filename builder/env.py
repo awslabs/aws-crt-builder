@@ -48,24 +48,11 @@ class Env(object):
             self.shell = Shell(self.dryrun)
 
         # build environment set up
-        self.source_dir = os.path.abspath(self.args.build_dir)
-        self.build_dir = os.path.join(self.source_dir, 'build')
-        self.deps_dir = os.path.join(self.build_dir, 'deps')
-        self.install_dir = os.path.join(self.build_dir, 'install')
         self.launch_dir = os.path.abspath(self.shell.cwd())
 
         Project.search_dirs = [
             self.launch_dir,
-            self.build_dir,
-            self.source_dir,
-            self.deps_dir,
         ]
-
-        print('Source directory: {}'.format(self.source_dir))
-
-        if os.path.exists(self.build_dir):
-            self.shell.rm(self.build_dir)
-        self.shell.mkdir(self.build_dir)
 
         # default the project to whatever can be found, or convert
         # project from a name to a Project
@@ -78,12 +65,15 @@ class Env(object):
         project_name = self.args.project
 
         # see if the project is a path, if so, split it and give the path as a hint
-        parts = project_name.split(os.path.sep)
         hints = []
-        if len(parts) > 1:
+        parts = project_name.split(os.path.sep)
+        if os.path.isabs(project_name):
+            hints += [project_name]
+        elif len(parts) > 1:
             project_path = os.path.abspath(os.path.join(*parts))
-            hints = [project_path]
-            project_name = parts[-1]
+            hints += [project_path]
+        project_name = parts[-1]
+
         # Ensure that the specified project exists, this may return a ref or the project if
         # it is present on disk
         project = Project.find_project(project_name, hints=hints)
@@ -91,15 +81,51 @@ class Env(object):
             print('Project {} could not be found locally, downloading'.format(
                 project.name))
             DownloadSource(
-                project=project, branch=self.branch, path=self.build_dir).run(self)
+                project=project, branch=self.branch, path=self.args.build_dir).run(self)
             # Now that the project is downloaded, look it up again
-            project = Project.find_project(project.name)
-            assert project.path
+            project = Project.find_project(
+                project.name, hints=[os.path.abspath(self.args.build_dir)])
+            assert project.resolved()
         self.project = project
 
         # Once initialized, switch to the source dir before running actions
-        if self.project:
-            self.shell.cd(self.project.path)
+        config = {}
+        if self.project and self.project.resolved():
+            self.args.build_dir = self.project.path
+            config = self.project.config
+
+        self.source_dir = os.path.abspath(self.args.build_dir)
+
+        # Allow these to be overridden by the project, and relative to source_dir if not absolute paths
+        build_dir = config.get(
+            'build_dir', os.path.join(self.source_dir, 'build'))
+        if not os.path.isabs(build_dir):
+            build_dir = os.path.join(self.source_dir, build_dir)
+        self.build_dir = build_dir
+        deps_dir = config.get(
+            'deps_dir', os.path.join(self.build_dir, 'deps'))
+        if not os.path.isabs(deps_dir):
+            deps_dir = os.path.join(self.source_dir, deps_dir)
+        self.deps_dir = deps_dir
+        install_dir = config.get(
+            'install_dir', os.path.join(self.source_dir, 'install'))
+        if not os.path.isabs(install_dir):
+            install_dir = os.path.join(self.source_dir, install_dir)
+        self.install_dir = os.path.join(self.build_dir, 'install')
+
+        print('Source directory: {}'.format(self.source_dir))
+        env.shell.cd(self.source_dir)
+
+        Project.search_dirs += [
+            self.build_dir,
+            self.source_dir,
+            self.deps_dir,
+        ]
+
+        # set up build environment
+        if os.path.exists(self.build_dir):
+            self.shell.rm(self.build_dir)
+        self.shell.mkdir(self.build_dir)
 
     def _publish_variable(self, var, value):
         Project._publish_variable(var, value)

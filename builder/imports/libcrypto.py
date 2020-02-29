@@ -55,15 +55,20 @@ class LibCrypto(Project):
                 env.variables['libcrypto_path'] = self.prefix
                 return
 
-        print('Installing pre-built libcrypto binaries for {}-{}'.format(env.spec.target, env.spec.arch))
         install_dir = os.path.join(env.deps_dir, self.name)
-        self.prefix = str(Path(install_dir).relative_to(env.source_dir))
+        # If path to libcrypto is going to be relative, it has to be relative to the
+        # cmake binaries directory
+        self.prefix = str(Path(install_dir).relative_to(env.build_dir))
         env.variables['libcrypto_path'] = self.prefix
+        print('Installing pre-built libcrypto binaries for {}-{} to {}'.format(
+            env.spec.target, env.spec.arch, install_dir))
+
+        sh.mkdir(install_dir)
         url = self.url.format(os=env.spec.target, arch=env.spec.arch)
         sh.exec('curl', '-sSL',
-                '-o', '{}/libcrypto.tar.gz'.format(env.build_dir), url, check=True)
+                '-o', '{}/libcrypto.tar.gz'.format(install_dir), url, check=True)
         sh.mkdir(install_dir)
-        sh.exec('tar', 'xzf', '{}/libcrypto.tar.gz'.format(env.build_dir),
+        sh.exec('tar', 'xzf', '{}/libcrypto.tar.gz'.format(install_dir),
                 '-C', install_dir, check=True)
 
     def cmake_args(self, env):

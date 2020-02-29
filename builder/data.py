@@ -33,13 +33,15 @@ KEYS = {
     'c': None,  # c compiler
     'cxx': None,  # c++ compiler
     'cmake_args': [],  # additional cmake arguments
+    'cmake_binaries': '{build_dir}',  # where to put the cmake binaries
 
     'build_env': {},  # environment variables to set before starting build
     'pre_build_steps': [],  # steps to run before build
     'post_build_steps': [],  # steps to run after build
     'run_tests': True,  # whether or not to run tests
     'build': None,  # deprecated, use build_steps
-    'build_steps': None,  # steps to run instead of the default cmake compile
+    # steps to run instead of the default cmake compile
+    'build_steps': ['build'],
     'test': None,  # deprecated, use test_steps
     'test_steps': None,  # steps to run instead of the default ctest
 

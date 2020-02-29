@@ -163,7 +163,7 @@ def parse_args():
                         help="Print the config in use before running a build")
     parser.add_argument('--spec', type=str)
     parser.add_argument('-b', '--build-dir', type=str,
-                        help='Directory to work in', default='.')
+                        help='Directory to work in', default=None)
     parser.add_argument('--branch', help='Branch to build from')
     parser.add_argument(
         '--platform', help='Target platform to compile/cross-compile for', default='{}-{}'.format(current_os(), current_arch()),

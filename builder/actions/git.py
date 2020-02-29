@@ -33,6 +33,8 @@ class DownloadSource(Action):
         sh = env.shell
 
         print('Cloning {} from git'.format(self.project))
+        if os.path.exists(self.path):
+            sh.rm(self.path)
         sh.exec("git", "clone", self.project.url,
                 self.path, always=True, retries=3)
         sh.pushd(self.path)

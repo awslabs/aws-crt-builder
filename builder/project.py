@@ -258,11 +258,8 @@ class Project(object):
         build_project = []
         steps = self.config.get('build_steps', self.config.get('build', []))
         if isinstance(steps, list):
-            if len(steps) > 0:
-                build_project = [
-                    Script(steps, name='build {}'.format(self.name))]
-            else:  # default
-                build_project = [CMakeBuild(self)]
+            steps = [s if s != 'build' else CMakeBuild(self) for s in steps]
+            build_project = [Script(steps, name='build {}'.format(self.name))]
 
         all_steps = build_imports + build_deps + build_project
         if len(all_steps) == 0:
@@ -288,9 +285,10 @@ class Project(object):
             return
 
         steps = env.config.get('build_steps', env.config.get('build', []))
-        if steps:
-            return Script(steps, name='test {}'.format(self.name))
-        return CTestRun(self)
+        if isinstance(steps, list):
+            steps = [s if s != 'test' else CTestRun(self) for s in steps]
+            test_project = [Script(steps, name='test {}'.format(self.name))]
+        return Script(steps, name='test {}'.format(self.name))
 
     def install(self, env):
         """ Can be overridden to install a project from anywhere """
@@ -451,8 +449,8 @@ class Project(object):
         if project and project.resolved():
             return project
 
-        dirs = list(hints)
-        for d in Project.search_dirs:
+        dirs = []
+        for d in hints + Project.search_dirs:
             dirs.append(d)
             dirs.append(os.path.join(d, name))
 
