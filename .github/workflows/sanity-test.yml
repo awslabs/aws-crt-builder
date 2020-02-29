@@ -9,6 +9,9 @@ on:
       - '.github/workflows/sanity-test.yml'
       - 'builder/**'
 
+env:
+  AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
+
 jobs:
   cleanup:
     name: Clean up previous branch jobs
