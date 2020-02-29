@@ -20,25 +20,23 @@ from toolchain import Toolchain
 
 # All dirs used should be relative to env.source_dir, as this is where the cross
 # compilation will be mounting to do its work
-def _project_dirs(env, project, base_dir=None):
+def _project_dirs(env, project):
     source_dir = str(Path(project.path).relative_to(env.source_dir))
-    build_dir = os.path.join(base_dir if base_dir else source_dir, 'build')
+    build_dir = os.path.join(source_dir, 'build')
     install_dir = str(Path(env.install_dir).relative_to(env.source_dir))
     return source_dir, build_dir, install_dir
 
 
-def _build_project(env, project, build_tests=False, base_dir=None):
+def _build_project(env, project, build_tests=False):
     sh = env.shell
     config = env.config
     toolchain = env.toolchain
     # build dependencies first, let cmake decide what needs doing
     for dep in project.get_dependencies(env.spec):
-        sh.pushd(dep.path)
         _build_project(env, dep)
-        sh.popd()
 
     project_source_dir, project_build_dir, project_install_dir = _project_dirs(
-        env, project, base_dir)
+        env, project)
     sh.mkdir(os.path.abspath(project_build_dir))
 
     # If cmake has already run, assume we're good
@@ -110,7 +108,7 @@ class CMakeBuild(Action):
         sh.pushd(env.source_dir)
 
         # BUILD
-        _build_project(env, self.project, getattr(env, 'build_tests', False))
+        _build_project(env, self.project)
 
         sh.popd()
 

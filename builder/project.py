@@ -222,13 +222,15 @@ class Project(object):
             self.account, self.name))
         self.path = kwargs.get('path', None)
         self.config = kwargs.get('config', dict(kwargs))
-        self._resolved_refs = False
 
         for search_dir in self.config.get('search_dirs', []):
             Project.search_dirs.append(os.path.join(self.path, search_dir))
 
     def __repr__(self):
         return "{}: {}".format(self.name, self.url)
+
+    def resolved(self):
+        return self.path is not None
 
     def pre_build(self, env):
         return Script(env.config.get('pre_build_steps', []), name='pre_build {}'.format(self.name))
@@ -297,9 +299,6 @@ class Project(object):
 
     # convert ProjectReference -> Project
     def _resolve_refs(self):
-        if self._resolved_refs:
-            return
-
         def _resolve(refs):
             projects = []
             for r in refs:
@@ -317,7 +316,6 @@ class Project(object):
         self.upstream = self.dependencies = _resolve(self.upstream)
         self.downstream = self.consumers = _resolve(self.downstream)
         self.imports = _resolve(self.imports)
-        self._resolved_refs = True
 
     def get_imports(self, spec):
         self._resolve_refs()
@@ -429,10 +427,9 @@ class Project(object):
     def find_project(name, hints=[]):
         """ Finds a project, either on disk, or makes a virtual one to allow for acquisition """
         project = Project._projects.get(name, None)
-        if project:
+        if project and project.resolved():
             return project
 
-        print('Looking for project {}'.format(name))
         dirs = list(hints)
         for d in Project.search_dirs:
             dirs.append(d)

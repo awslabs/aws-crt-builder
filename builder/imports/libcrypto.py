@@ -27,10 +27,32 @@ class LibCrypto(Project):
             },
             url='https://d19elf31gohf1l.cloudfront.net/_binaries/libcrypto/libcrypto-1.1.1-{os}-{arch}.tar.gz',
             **kwargs)
+        self.prefix = '/opt/openssl'
+
+    def resolved(self):
+        return True
 
     def install(self, env):
         sh = env.shell
 
+        required_files = [
+            ['include/openssl/crypto.h'],
+            ['lib/libcrypto.a', 'lib64/libcrypto.a'],
+            ['lib/libcrypto.so', 'lib64/libcrypto.so'],
+        ]
+        found = 0
+        for paths in required_files:
+            for path in paths:
+                full_path = os.path.join(self.prefix, path)
+                if os.path.isfile(full_path):
+                    found += 1
+                    break
+
+        if found >= len(required_files):
+            print('Found existing libcrypto at {}'.format(self.prefix))
+            return
+
+        print('Installing pre-built libcrypto binaries')
         install_dir = os.path.join(env.deps_dir, self.name)
         self.prefix = str(Path(install_dir).relative_to(env.source_dir))
         url = self.url.format(os=env.spec.target, arch=env.spec.arch)
