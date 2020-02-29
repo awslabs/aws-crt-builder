@@ -32,11 +32,10 @@ class Scripts(object):
         import importlib.util
 
         path = os.path.abspath(os.path.join(path, '.builder'))
-
-        print('Loading scripts from {}'.format(path))
         if not os.path.isdir(path):
             return
 
+        print('Loading scripts from {}'.format(path))
         scripts = glob.glob(os.path.join(path, '*.py'))
         scripts += glob.glob(os.path.join(path, '**', '*.py'))
         # Update to get the latest action set right before we load

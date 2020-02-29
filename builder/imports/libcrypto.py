@@ -35,24 +35,25 @@ class LibCrypto(Project):
     def install(self, env):
         sh = env.shell
 
-        required_files = [
-            ['include/openssl/crypto.h'],
-            ['lib/libcrypto.a', 'lib64/libcrypto.a'],
-            ['lib/libcrypto.so', 'lib64/libcrypto.so'],
-        ]
-        found = 0
-        for paths in required_files:
-            for path in paths:
-                full_path = os.path.join(self.prefix, path)
-                if os.path.isfile(full_path):
-                    found += 1
-                    break
+        if not env.toolchain.cross_compile:
+            required_files = [
+                ['include/openssl/crypto.h'],
+                ['lib/libcrypto.a', 'lib64/libcrypto.a'],
+                ['lib/libcrypto.so', 'lib64/libcrypto.so'],
+            ]
+            found = 0
+            for paths in required_files:
+                for path in paths:
+                    full_path = os.path.join(self.prefix, path)
+                    if os.path.isfile(full_path):
+                        found += 1
+                        break
 
-        if found >= len(required_files):
-            print('Found existing libcrypto at {}'.format(self.prefix))
-            return
+            if found >= len(required_files):
+                print('Found existing libcrypto at {}'.format(self.prefix))
+                return
 
-        print('Installing pre-built libcrypto binaries')
+        print('Installing pre-built libcrypto binaries for {}-{}'.format(env.spec.target, env.spec.arch))
         install_dir = os.path.join(env.deps_dir, self.name)
         self.prefix = str(Path(install_dir).relative_to(env.source_dir))
         url = self.url.format(os=env.spec.target, arch=env.spec.arch)

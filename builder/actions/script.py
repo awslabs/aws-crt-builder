@@ -64,9 +64,9 @@ class Script(Action):
 
     def __str__(self):
         if len(self.commands) == 0:
-            return 'Script({}): Empty'.format(self.name)
+            return '{}'.format(self.name)
         if self.name != self.__class__.__name__:
-            return 'Script({})'.format(self.name)
+            return '{}'.format(self.name)
 
         cmds = []
         for cmd in self.commands:
@@ -81,4 +81,4 @@ class Script(Action):
                 cmds.append(cmd.__name__)
             else:
                 cmds.append("UNKNOWN: {}".format(cmd))
-        return 'Script({}): (\n\t{}\n)'.format(self.name, '\n\t'.join(cmds))
+        return '{}: (\n{}\n)'.format(self.name, '\n\t'.join(cmds))
