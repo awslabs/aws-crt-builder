@@ -84,7 +84,7 @@ jobs:
       - name: Artifact builder
         uses: actions/upload-artifact@v1
         with:
-          name: builder
+          name: builder.pyz
           path: build/builder.pyz
 
   sanity_test:
