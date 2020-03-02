@@ -91,42 +91,48 @@ jobs:
     strategy:
       matrix:
         host: [ubuntu-latest, macos-latest, windows-latest]
+    needs: package
     runs-on: ${{ matrix.host }}
     steps:
       - name: Checkout Source
         uses: actions/checkout@v1
 
+      - name: Install builder
+        uses: actions/download-artifact@v1
+        with:
+          name: builder
+
       - name: Sanity Test Run Compat (Unix)
         if:  matrix.host != 'windows-latest'
         run: |
-          python3 -m builder run test --project tests
+          python3 builder run test --project tests
 
       - name: Sanity Test Action (Unix)
         if:  matrix.host != 'windows-latest'
         run: |
-          python3 -m builder test --project tests
+          python3 builder test --project tests
 
       - name: Sanity Test Build (Unix)
         if:  matrix.host != 'windows-latest'
         run: |
-          python3 -m builder build --project tests
+          python3 builder build --project tests
 
       - name: Sanity Test Run Compat (Windows)
         if: matrix.host == 'windows-latest'
         run: |
           choco install --no-progress vswhere
-          python -m builder run test --project tests
+          python builder run test --project tests
 
       - name: Sanity Test Action (Windows)
         if: matrix.host == 'windows-latest'
         run: |
           choco install --no-progress vswhere
-          python -m builder test --project tests
+          python builder test --project tests
 
       - name: Sanity Test Build (Windows)
         if: matrix.host == 'windows-latest'
         run: |
-          python -m builder build --project tests
+          python builder build --project tests
 
   cross_compile:
     name: Cross Compile ${{matrix.arch}}
@@ -140,8 +146,13 @@ jobs:
     - name: Checkout Source
       uses: actions/checkout@v1
 
+    - name: Install builder
+      uses: actions/download-artifact@v1
+      with:
+        name: builder
+
     - name: Build aws-crt-cpp + consumers
-      run: python3 -m builder build downstream -p aws-crt-cpp --branch=cross-compile --platform=${{matrix.arch}} --dump-config
+      run: python3 builder build downstream -p aws-crt-cpp --branch=cross-compile --platform=${{matrix.arch}} --dump-config
 
   downstream_test:
     strategy:
@@ -160,7 +171,7 @@ jobs:
         uses: actions/checkout@v1
 
       - name: Build ${{ matrix.project }}
-        run: python3 -m builder build --project ${{ matrix.project }}
+        run: python3 builder build --project ${{ matrix.project }}
 
   sanity-tests-passed:
     name: All Sanity Tests passed
