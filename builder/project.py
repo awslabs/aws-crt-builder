@@ -339,14 +339,20 @@ class Project(object):
         imports = self.get_imports(env.spec)
         build_imports = []
         for i in imports:
-            build_imports += _build_project(i, env)
+            import_steps = _build_project(i, env)
+            if import_steps:
+                build_imports += [Script(import_steps,
+                                         name='resolve {}'.format(i.name))]
         if build_imports:
-            build_imports = [Script(build_imports, name='install imports')]
+            build_imports = [Script(build_imports, name='resolve imports')]
 
         deps = self.get_dependencies(env.spec)
         build_deps = []
         for d in deps:
-            build_deps += _build_project(d, env)
+            dep_steps = _build_project(d, env)
+            if dep_steps:
+                build_deps += [Script(dep_steps,
+                                      name='build {}'.format(d.name))]
         if build_deps:
             build_deps = [Script(build_deps, name='build dependencies')]
 
