@@ -79,6 +79,7 @@ jobs:
           mkdir -p build
           python3 -m zipapp --python="/usr/bin/env python3" --output=build/builder builder
           aws s3 cp build/builder s3://$AWS_S3_BUCKET/${{ steps.release.outputs.release_tag }}/builder
+          zipinfo -1 build/builder
 
       - name: Artifact builder
         uses: actions/upload-artifact@v1
