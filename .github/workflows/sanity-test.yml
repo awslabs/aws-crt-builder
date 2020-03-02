@@ -138,6 +138,7 @@ jobs:
     name: Cross Compile ${{matrix.arch}}
     runs-on: ubuntu-latest
     if: github.event_name != 'release'
+    needs: package
     strategy:
       matrix:
         arch: [linux-armv6, linux-armv7, linux-arm64]
@@ -164,7 +165,7 @@ jobs:
           #- aws-crt-python # until builder-updates branch is merged
           - aws-crt-cpp
           #- aws-crt-java # until arm branch is merged
-
+    needs: package
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Source
