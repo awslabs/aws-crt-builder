@@ -100,7 +100,8 @@ jobs:
       - name: Install builder
         uses: actions/download-artifact@v1
         with:
-          name: builder.pyz
+          name: builder
+          path: builder.pyz
 
       - name: Sanity Test Run Compat (Unix)
         if:  matrix.host != 'windows-latest'
@@ -151,6 +152,7 @@ jobs:
       uses: actions/download-artifact@v1
       with:
         name: builder
+        path: builder.pyz
 
     - name: Build aws-crt-cpp + consumers
       run: python3 builder.pyz build downstream -p aws-crt-cpp --branch=cross-compile --platform=${{matrix.arch}} --dump-config
@@ -170,6 +172,12 @@ jobs:
     steps:
       - name: Checkout Source
         uses: actions/checkout@v1
+
+      - name: Install builder
+        uses: actions/download-artifact@v1
+        with:
+          name: builder
+          path: builder.pyz
 
       - name: Build ${{ matrix.project }}
         run: python3 builder.pyz build --project ${{ matrix.project }}
