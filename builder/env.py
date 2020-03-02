@@ -162,6 +162,7 @@ class Env(object):
                 if branch.startswith(origin_str):
                     branch = branch[len(origin_str):]
 
+                print('Working in branch: {}'.format(branch))
                 return branch
         except:
             print("Current directory () is not a git repository".format(os.getcwd()))
