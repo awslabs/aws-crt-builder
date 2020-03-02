@@ -77,9 +77,9 @@ jobs:
       - name: Package builder to S3
         run: |
           mkdir -p build
-          python3 -m zipapp --python="/usr/bin/env python3" --output=build/builder builder
-          aws s3 cp build/builder s3://$AWS_S3_BUCKET/${{ steps.release.outputs.release_tag }}/builder
-          zipinfo -1 build/builder
+          python3 -m zipapp --python="/usr/bin/env python3" --output=build/builder builder.pyz
+          aws s3 cp build/builder.pyz s3://$AWS_S3_BUCKET/${{ steps.release.outputs.release_tag }}/builder.pyz
+          zipinfo -1 build/builder.pyz
 
       - name: Artifact builder
         uses: actions/upload-artifact@v1
@@ -101,12 +101,12 @@ jobs:
       - name: Install builder
         uses: actions/download-artifact@v1
         with:
-          name: builder
-          path: builder.pyz
+          name: builder.pyz
 
       - name: Sanity Test Run Compat (Unix)
         if:  matrix.host != 'windows-latest'
         run: |
+          zipinfo -1 builder.pyz
           python3 builder.pyz run test --project tests
 
       - name: Sanity Test Action (Unix)
@@ -152,8 +152,7 @@ jobs:
     - name: Install builder
       uses: actions/download-artifact@v1
       with:
-        name: builder
-        path: builder.pyz
+        name: builder.pyz
 
     - name: Build aws-crt-cpp + consumers
       run: python3 builder.pyz build downstream -p aws-crt-cpp --branch=cross-compile --platform=${{matrix.arch}} --dump-config
@@ -177,8 +176,7 @@ jobs:
       - name: Install builder
         uses: actions/download-artifact@v1
         with:
-          name: builder
-          path: builder.pyz
+          name: builder.pyz
 
       - name: Build ${{ matrix.project }}
         run: python3 builder.pyz build --project ${{ matrix.project }}
