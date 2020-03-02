@@ -7,6 +7,13 @@ Builder is bundled into a zipapp. Within a given project using builder, builder.
 If you wish to add custom actions or programmatically generate data you can add python scripts in the <root>/.builder/actions directory. All 
 scripts in this directory will be loaded and scanned for classes.
 
+### Requirements
+* Python 3.4+
+* docker (if cross compiling with dockcross)
+* CMake 3.1+ (if compiling native code)
+* curl (linux only)
+* tar (linux only)
+
 ### CLI Arguments
 Usage: ```builder.pyz [build|inspect|<action-name>] [spec] [OPTIONS]```
 * ```build``` - Build the project using either the steps in the builder.json project, or via the default CMake build/test actions
@@ -19,6 +26,7 @@ Usage: ```builder.pyz [build|inspect|<action-name>] [spec] [OPTIONS]```
 * ```--branch BRANCH``` - Branch to use for the target project
 * ```--config CONFIG``` - CMake config to use (Debug, Release, RelWithDebInfo, DebugOpt) Default is RelWithDebInfo
 * ```--compiler COMPILER[-VERSION]``` - Use the specified compiler, installing it if necessary
+* ```--platform PLATFORM``` - Platform to cross-compile for (via dockcross, requires docker to be installed)
 * ```--build-dir DIR``` - Make a new directory to do all the build work in, instead of using the current directory
 * ```--dump-config``` - Dumps the resultant config after merging all available options. Useful for debugging your project configuration.
 
@@ -56,6 +64,107 @@ CI checks which will attempt to use a branch with the same name as the current P
 work.
 
 ### Configuration (builder.json)
+Each project has a configuration file: builder.json in the root of the project. It may also have a .builder folder which contains python
+scripts that will be automatically loaded when the project is found by the builder. Both of these are techncially optional, if the builder
+finds something that looks like a git repo full of code in a directory with the same name as the project it is searching for, it will use
+that instead. There are a few external dependencies (s2n and libcrypto, for instance) which are configured by scripts embedded in builder
+(see imports/). 
+
+#### Minimal config:
+```json
+{
+    "name": "my-project"
+}
+```
+
+#### Detailed config:
+```json
+{
+    "name": "my-project",
+    // Whether or not this project should be built
+    "enabled": true,
+    // Steps to run before building. default: []
+    "pre_build_steps": [
+        "some command or action to run"
+    ],
+    // Steps to build the project. If not specified, CMake will be run on the project's root directory
+    "build_steps": [
+        "some command or action to run",
+        "some other command to run"
+    ],
+    // Steps to run after building. default: []
+    "post_build_steps": [
+        "some command or action to run"
+    ],
+    // Steps to run when testing is requested. If not specified, CTest will be run on the project's binaries directory
+    "test_steps": [
+        "some command or action to run"
+    ],
+    // These will be built before my-project, and transitive dependencies will be followed.
+    "dependencies": [
+        {
+            "name": "my-lib",
+            "revision": "branch-or-commit-sha"
+        }
+    ],
+    // These will be built when a downstream build is requested
+    "consumers": [
+        {
+            "name": "my-downstream-project"
+        }
+    ],
+    // These are special, much like CMake's IMPORTED targets, the builder must know about them or they must be
+    // defined by a script. For examples, look in builder/imports. Just like dependencies, transitive imports
+    // will be resolved.
+    "imports": [
+        "s2n"
+    ],
+    // Configuration differences per host
+    "hosts": {
+        "ubuntu": {},
+        "debian": {},
+        "al2": {},
+        "al2012": {},
+        "alpine": {},
+        "macos": {},
+        "windows": {}
+    },
+    // Configuration differences per target platform
+    "targets" : {
+        "linux": {
+            "architectures": {
+            "x86": {},
+            "x64": {},
+            "armv6": {},
+            "armv7": {},
+            "armv8|aarch64|arm64": {},
+            "mips": {}
+        },
+        "macos": {
+            "architectures": {
+                "x64": {}
+            }
+        }, 
+        "windows" : {
+            "architectures": {
+                "x86": {},
+                "x64": {}
+            }
+        }
+    },
+    // Configuration differences per compiler
+    "compilers": {
+        "clang": {
+            "versions": {
+                // example, disable on clang 3
+                "3": {
+                    "enabled": false
+                }
+            }
+        }
+    }
+}
+```
 
 ## Docker Images
 Each docker image has a script which will fetch the builder app baked into it, and will then call the builder with the arguments provided.
@@ -78,9 +187,6 @@ libcrypto, cmake (manylinux1, manylinux2014-x86), and maven (ARM) are built in t
 build_libcrypto*.sh and cache_maven.sh scripts. These can be run in GitHub, or on a local machine. They upload the build results
 of each of those packages to S3, for distribution via CloudFront to images as they are being built. Since these don't change much,
 this shouldn't be a common operation, but it is automated.
-
-### Non-intel Images
-ARM images are built via ```docker buildx``` and are running using ARM binaries.
 
 ## License
 
