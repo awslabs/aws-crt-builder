@@ -84,7 +84,7 @@ def _build_project(env, project, build_tests=False):
     build_env = []
     if toolchain.cross_compile:
         build_env = ['{}={}'.format(key, val)
-                     for key, val in config.get('build_env', {})]
+                     for key, val in config.get('build_env', {}).items()]
 
     # configure
     sh.exec(*toolchain.shell_env, *build_env, "cmake", cmake_args, check=True)
