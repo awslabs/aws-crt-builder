@@ -20,7 +20,7 @@ class VariableFormatter(Formatter):
 
     def get_value(self, key, args, kwds):
         if isinstance(key, str):
-            return kwds.get(key, '')
+            return kwds.get(key, '{}'.format('{' + key + '}'))
         else:
             return super().get_value(key, args, kwds)
 
@@ -35,7 +35,7 @@ def replace_variables(value, variables):
 
         # If the whole string is a variable, just replace it
         if value and value.rfind('{') == 0 and value.find('}') == len(value) - 1:
-            return variables.get(value[1:-1], '')
+            return variables.get(value[1:-1], value)
 
         # Strings just do a format
         return _formatter.format(value, **variables)
@@ -59,13 +59,21 @@ def dict_alias(tree, key, alias):
     for val in tree.values():
         if isinstance(val, dict):
             dict_alias(val, key, alias)
-    original_keys = list(tree.keys())
-    for tkey in original_keys:
-        if tkey == key:
-            tree[alias] = tree[tkey]
+    if key in tree:
+        tree[alias] = tree[key]
 
 
-def _isnamedtuple(x):
+def tree_transform(tree, key, fn):
+    """ At any level in the tree, if key is found, it will be transformed via fn """
+    # depth first, should result in the least tree traversal
+    for val in tree.values():
+        if isinstance(val, dict):
+            tree_transform(val, key, fn)
+    if key in tree:
+        tree[key] = fn(tree[key])
+
+
+def isnamedtuple(x):
     """ namedtuples are subclasses of tuple with a list of _fields """
     t = type(x)
     b = t.__bases__
@@ -79,8 +87,17 @@ def _isnamedtuple(x):
 
 def merge_unique_attrs(src, target):
     """ Returns target with any fields unique to src added to it """
-    src_dict = src._asdict() if _isnamedtuple(src) else src.__dict__
+    src_dict = src._asdict() if isnamedtuple(src) else src.__dict__
     for key, val in src_dict.items():
         if not hasattr(target, key):
             setattr(target, key, val)
     return target
+
+
+def to_list(val):
+    """ Do whatever it takes to coerce val into a list, usually for blind concatenation """
+    if isinstance(val, list):
+        return val
+    if not val:
+        return []
+    return [val]

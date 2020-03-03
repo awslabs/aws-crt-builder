@@ -32,11 +32,14 @@ class DownloadSource(Action):
 
         sh = env.shell
 
+        print('Cloning {} from git'.format(self.project))
+        if os.path.exists(self.path):
+            sh.rm(self.path)
         sh.exec("git", "clone", self.project.url,
                 self.path, always=True, retries=3)
         sh.pushd(self.path)
         try:
-            sh.exec("git", "checkout", self.branch, always=True)
+            sh.exec("git", "checkout", self.branch, always=True, quiet=True)
         except:
             print("Project {} does not have a branch named {}, using master".format(
                 self.project.name, self.branch))
@@ -56,11 +59,11 @@ class DownloadDependencies(Action):
         project = env.project
         sh = env.shell
         branch = env.branch
-        spec = env.build_spec
+        spec = env.spec
         deps = project.get_dependencies(spec)
 
         if spec.downstream:
-            deps += project.downstream
+            deps += project.get_consumers(spec)
 
         if deps:
             sh.rm(env.deps_dir)
@@ -82,6 +85,5 @@ class DownloadDependencies(Action):
                 deps += dep_proj.get_dependencies(spec)
                 if spec and spec.downstream:
                     deps += dep_proj.get_consumers(spec)
-                sh.popd()
 
             sh.popd()

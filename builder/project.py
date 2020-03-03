@@ -17,9 +17,11 @@ import os
 import sys
 
 from data import *
-from host import current_platform, package_tool
+from host import current_os, package_tool
 from scripts import Scripts
-from util import replace_variables, merge_unique_attrs
+from util import replace_variables, merge_unique_attrs, to_list, tree_transform, isnamedtuple
+from actions.cmake import CMakeBuild, CTestRun
+from actions.script import Script
 
 
 def looks_like_code(path):
@@ -68,9 +70,9 @@ def _coalesce_pkg_options(spec, config):
     return config
 
 
-def produce_config(build_spec, project, **additional_variables):
+def produce_config(build_spec, project, overrides=None, **additional_variables):
     """ Traverse the configurations to produce one for the given spec """
-    platform = current_platform()
+    platform = current_os()
 
     defaults = {
         'hosts': HOSTS,
@@ -128,12 +130,13 @@ def produce_config(build_spec, project, **additional_variables):
 
         # pull out default target, then spec target to override
         process_element(config, 'targets', 'default')
-        process_element(config, 'targets', build_spec.target)
+        target = process_element(config, 'targets', build_spec.target)
 
         # pull out spec compiler and version info
         compiler = process_element(config, 'compilers', build_spec.compiler)
+
+        # Allow most specific resolves to come last
         process_element(compiler, 'versions', build_spec.compiler_version)
-        process_element(compiler, 'architectures', build_spec.arch)
 
     # Process defaults first
     process_config(defaults)
@@ -161,6 +164,10 @@ def produce_config(build_spec, project, **additional_variables):
 
     new_version = _coalesce_pkg_options(build_spec, new_version)
 
+    if overrides:
+        for key, val in overrides.items():
+            new_version[key] = val
+
     # Default variables
     replacements = {
         'host': build_spec.host,
@@ -185,8 +192,116 @@ def produce_config(build_spec, project, **additional_variables):
     # Post process
     new_version = replace_variables(new_version, replacements)
     new_version['variables'] = replacements
+    new_version['__processed'] = True
 
     return new_version
+
+
+def _build_project(project, env):
+    children = []
+    children += to_list(project.pre_build(env))
+    children += to_list(project.build(env))
+    children += to_list(project.post_build(env))
+    children += to_list(project.install(env))
+    return children
+
+
+# convert ProjectReference -> Project
+def _resolve_projects(refs):
+    projects = []
+    for r in refs:
+        if not isinstance(r, Project) or not r.resolved():
+            if isinstance(r, str):
+                project = Project.find_project(r)
+            else:
+                project = Project.find_project(r.name)
+                project = merge_unique_attrs(r, project)
+
+        projects.append(project)
+    return projects
+
+
+def _resolve_imports(imps):
+    imports = []
+    for i in imps:
+        if not isinstance(i, Import) or not i.resolved():
+            if isinstance(i, str):
+                imp = Project.find_import(i)
+            else:
+                imp = Project.find_import(i.name)
+                imp = merge_unique_attrs(i, imp)
+        else:
+            imp = i
+        imports.append(imp)
+    return imports
+
+
+def _not_resolved(s):
+    return False
+
+
+def _make_project_refs(refs):
+    return [r if isnamedtuple(r) else namedtuple('ProjectReference', list(r.keys())+['resolved'])(
+        *r.values(), _not_resolved) for r in refs]
+
+
+def _make_import_refs(refs):
+    return [i if isnamedtuple(i) else namedtuple('ImportReference', ['name', 'resolved'])(
+        i, _not_resolved) for i in refs]
+
+
+class Import(object):
+    def __init__(self, **kwargs):
+        self.name = kwargs.get('name', self.__class__.__name__.lower())
+        self._resolved = True
+        if 'resolved' in kwargs:
+            self._resolved = kwargs['resolved']
+            del kwargs['resolved']
+
+        tree_transform(kwargs, 'imports', _make_import_refs)
+
+        for slot, val in kwargs.items():
+            setattr(self, slot, val)
+
+        # Allow imports to augment search dirs
+        for search_dir in getattr(self, 'config', {}).get('search_dirs', []):
+            Project.search_dirs.append(os.path.join(self.path, search_dir))
+
+    def resolved(self):
+        return self._resolved
+
+    def pre_build(self, env):
+        pass
+
+    def build(self, env):
+        pass
+
+    def post_build(self, env):
+        pass
+
+    def test(self, env):
+        pass
+
+    def install(self, env):
+        imports = self.get_imports(env.spec)
+        for imp in imports:
+            imp.install(env)
+
+    def cmake_args(self, env):
+        imports = self.get_imports(env.spec)
+        args = []
+        for imp in imports:
+            args += imp.cmake_args(env)
+        return args
+
+    def get_imports(self, spec):
+        self.imports = _resolve_imports(getattr(self, 'imports', []))
+        target = spec.target
+        imports = []
+        for i in self.imports:
+            if not hasattr(i, 'targets') or target in getattr(i, 'targets', []):
+                imports.append(i)
+        return imports
 
 
 class Project(object):
@@ -195,46 +310,130 @@ class Project(object):
     search_dirs = []
 
     def __init__(self, **kwargs):
-        self.upstream = self.dependencies = [namedtuple('ProjectReference', u.keys())(
-            *u.values()) for u in kwargs.get('upstream', [])]
-        self.downstream = self.consumers = [namedtuple('ProjectReference', d.keys())(
-            *d.values()) for d in kwargs.get('downstream', [])]
         self.account = kwargs.get('account', 'awslabs')
         self.name = kwargs['name']
-        self.url = "https://github.com/{}/{}.git".format(
-            self.account, self.name)
+        self.url = kwargs.get('url', "https://github.com/{}/{}.git".format(
+            self.account, self.name))
         self.path = kwargs.get('path', None)
-        self.config = kwargs.get('config', dict(kwargs))
-        self._resolved_refs = False
+
+        # Convert project json references to ProjectReferences
+
+        tree_transform(kwargs, 'upstream', _make_project_refs)
+        tree_transform(kwargs, 'downstream', _make_project_refs)
+        tree_transform(kwargs, 'imports', _make_import_refs)
+
+        # Store args as the intial config, will be merged via get_config() later
+        self.config = {**kwargs.get('config', {}), **kwargs}
+
+        # Allow projects to augment search dirs
+        for search_dir in self.config.get('search_dirs', []):
+            Project.search_dirs.append(os.path.join(self.path, search_dir))
 
     def __repr__(self):
         return "{}: {}".format(self.name, self.url)
 
-    # convert ProjectReference -> Project
-    def _resolve_refs(self):
-        if self._resolved_refs:
+    def resolved(self):
+        return self.path is not None
+
+    def pre_build(self, env):
+        imports = self.get_imports(env.spec)
+        build_imports = []
+        for i in imports:
+            import_steps = _build_project(i, env)
+            if import_steps:
+                build_imports += [Script(import_steps,
+                                         name='resolve {}'.format(i.name))]
+        if build_imports:
+            build_imports = [Script(build_imports, name='resolve imports')]
+
+        deps = self.get_dependencies(env.spec)
+        build_deps = []
+        for d in deps:
+            dep_steps = _build_project(d, env)
+            if dep_steps:
+                build_deps += [Script(dep_steps,
+                                      name='build {}'.format(d.name))]
+        if build_deps:
+            build_deps = [Script(build_deps, name='build dependencies')]
+
+        all_steps = build_imports + build_deps + \
+            env.config.get('pre_build_steps', [])
+        if len(all_steps) == 0:
+            return None
+        return Script(all_steps, name='pre_build {}'.format(self.name))
+
+    def build(self, env):
+        build_project = []
+        steps = self.config.get('build_steps', self.config.get('build', []))
+        if steps is None:
+            steps = ['build']
+        if isinstance(steps, list):
+            steps = [s if s != 'build' else CMakeBuild(self) for s in steps]
+            build_project = steps
+
+        if len(build_project) == 0:
+            return None
+        return Script(build_project, name='build project {}'.format(self.name))
+
+    def build_consumers(self, env):
+        build_consumers = []
+        consumers = self.get_consumers(env.spec)
+        for c in consumers:
+            build_consumers += _build_project(c, env)
+        if len(build_consumers) == 0:
+            return None
+        return Script(build_consumers, name='build consumers of {}'.format(self.name))
+
+    def post_build(self, env):
+        steps = env.config.get('post_build_steps', [])
+        if len(steps) == 0:
+            return None
+        return Script(steps, name='post_build {}'.format(self.name))
+
+    def test(self, env):
+        has_tests = getattr(env, 'build_tests', False)
+        run_tests = env.config.get('run_tests', True)
+        if not has_tests or not run_tests:
             return
 
-        def _resolve(refs):
-            projects = []
-            for r in refs:
-                if isinstance(r, Project) and r.path:
-                    projects.append(r)
-                else:
-                    project = Project.find_project(r.name)
-                    project = merge_unique_attrs(r, project)
-                    projects.append(project)
-            return projects
+        steps = env.config.get('test_steps', env.config.get('test', []))
+        if steps is None:
+            steps = ['test']
+        if isinstance(steps, list):
+            steps = [s if s != 'test' else CTestRun(self) for s in steps]
+            test_project = steps
+        if len(steps) == 0:
+            return None
+        return Script(steps, name='test {}'.format(self.name))
 
-        # Resolve upstream and downstream references into their
-        # real projects, making sure to retain any reference-specific
-        # data stored on the ref (targets, etc)
-        self.upstream = self.dependencies = _resolve(self.upstream)
-        self.downstream = self.consumers = _resolve(self.downstream)
+    def install(self, env):
+        """ Can be overridden to install a project from anywhere """
+        pass
+
+    def cmake_args(self, env):
+        """ Can be overridden to export CMake flags to consumers """
+        args = []
+        for imp in self.get_imports(env.spec):
+            args += imp.cmake_args(env)
+        for dep in self.get_dependencies(env.spec):
+            args += dep.cmake_args(env)
+        args += self.config.get('cmake_args', [])
+        return args
+
+    def get_imports(self, spec):
+        self.imports = _resolve_imports(
+            self.config.get('imports', []))
+        target = spec.target
+        imports = []
+        for i in self.imports:
+            if not hasattr(i, 'targets') or target in getattr(i, 'targets', []):
+                imports.append(i)
+        return imports
 
     def get_dependencies(self, spec):
         """ Gets dependencies for a given BuildSpec, filters by target """
-        self._resolve_refs()
+        self.dependencies = _resolve_projects(
+            self.config.get('upstream', []))
         target = spec.target
         deps = []
         for p in self.dependencies:
@@ -244,7 +443,8 @@ class Project(object):
 
     def get_consumers(self, spec):
         """ Gets consumers for a given BuildSpec, filters by target """
-        self._resolve_refs()
+        self.consumers = _resolve_projects(
+            self.config.get('downstream', []))
         target = spec.target
         consumers = []
         for c in self.consumers:
@@ -252,16 +452,49 @@ class Project(object):
                 consumers.append(c)
         return consumers
 
-    def get_config(self, spec, **additional_vars):
-        return produce_config(spec, self, ** additional_vars)
+    def get_config(self, spec, overrides=None, **additional_vars):
+        if not self.config or not self.config.get('__processed', False):
+            self.config = produce_config(
+                spec, self, overrides, **additional_vars)
+        return self.config
 
     # project cache
     _projects = {}
 
     @staticmethod
+    def _publish_variable(var, value):
+        for project in Project._projects.values():
+            project.config = replace_variables(project.config, {var: value})
+
+    @staticmethod
+    def _find_project_class(name):
+        projects = Project.__subclasses__()
+        for p in projects:
+            if p.__name__.lower() == name.lower():
+                return p
+
+    @staticmethod
+    def _find_import_class(name):
+        imports = Import.__subclasses__()
+        for i in imports:
+            if i.__name__.lower() == name.lower():
+                return i
+
+    @staticmethod
+    def _create_project(name, **kwargs):
+        if 'name' not in kwargs:
+            kwargs['name'] = name
+        project_cls = Project._find_project_class(name)
+        if project_cls:
+            return project_cls(**kwargs)
+        return Project(**kwargs)
+
+    @staticmethod
     def _cache_project(project):
         Project._projects[project.name] = project
-        Scripts.load(project.path)
+        if getattr(project, 'path', None):
+            Scripts.load(project.path)
+
         return project
 
     @staticmethod
@@ -291,23 +524,18 @@ class Project(object):
                         os.getcwd())
                 print('    Found project: {} at {}'.format(
                     project_config['name'], path))
-                return Project._cache_project(Project(**project_config, path=path, config=project_config))
+                project = Project._create_project(
+                    **project_config, path=path, config=project_config)
+                return Project._cache_project(project)
 
         # load any builder scripts and check them
         Scripts.load()
-        projects = Project.__subclasses__()
-        project_cls = None
-        if len(projects) == 1:
-            project_cls = projects[0]
-        elif name_hint:  # if there are multiple projects, try to use the hint if there is one
-            for p in projects:
-                if p.__name__ == name_hint:
-                    project_cls = p
-
-        if project_cls:
-            project = project_cls()
-            project.path = path
-            return Project._cache_project(project)
+        if name_hint:
+            project_cls = Project._find_project_class(name_hint)
+            if project_cls:
+                project = project_cls(name=name_hint)
+                project.path = path
+                return Project._cache_project(project)
 
         return None
 
@@ -319,12 +547,11 @@ class Project(object):
     def find_project(name, hints=[]):
         """ Finds a project, either on disk, or makes a virtual one to allow for acquisition """
         project = Project._projects.get(name, None)
-        if project:
+        if project and project.resolved():
             return project
 
-        print('Looking for project {}'.format(name))
-        dirs = list(hints)
-        for d in Project.search_dirs:
+        dirs = []
+        for d in hints + Project.search_dirs:
             dirs.append(d)
             dirs.append(os.path.join(d, name))
 
@@ -347,5 +574,21 @@ class Project(object):
                         Project(name=name, path=search_dir))
                     return project
 
+        if Project._find_project_class(name):
+            return Project._cache_project(Project._create_project(name))
+
         # Enough of a project to get started, note that this is not cached
         return Project(name=name)
+
+    @staticmethod
+    def find_import(name, hints=[]):
+        imp = Project._projects.get(name, None)
+        if imp and imp.resolved():
+            return imp
+
+        for h in hints:
+            Scripts.load(h)
+        imp_cls = Project._find_import_class(name)
+        if imp_cls:
+            return Project._cache_project(imp_cls())
+        return Import(name=name, resolved=False)

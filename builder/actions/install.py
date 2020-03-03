@@ -12,9 +12,14 @@
 # permissions and limitations under the License.
 
 import argparse
+import os
+import shutil
+import stat
+import sys
+from pathlib import Path
 
 from action import Action
-from host import current_platform, package_tool
+from host import current_os, package_tool
 from actions.script import Script
 from toolchain import Toolchain
 
@@ -39,7 +44,7 @@ class InstallPackages(Action):
             pkg_tool.value, ', '.join(packages)))
 
         sh = env.shell
-        sudo = config.get('sudo', current_platform() == 'linux')
+        sudo = config.get('sudo', current_os() == 'linux')
         sudo = ['sudo'] if sudo else []
 
         parser = argparse.ArgumentParser()
@@ -81,13 +86,35 @@ class InstallPackages(Action):
 class InstallCompiler(Action):
     def run(self, env):
         config = env.config
+        sh = env.shell
         if not config.get('needs_compiler'):
             print('Compiler is not required for current configuration, skipping.')
             return
 
-        # verify compiler
-        compiler = env.build_spec.compiler
-        version = env.build_spec.compiler_version
+        toolchain = env.toolchain
+        assert toolchain
+
+        # Cross compile with dockcross
+        if toolchain.cross_compile:
+            print(
+                'Installing cross-compile via dockcross for {}'.format(toolchain.platform))
+            result = sh.exec(
+                'docker', 'run', 'dockcross/{}'.format(toolchain.platform), quiet=True)
+            assert result.returncode == 0
+            # Strip off any output from docker itself
+            script = '#!' + result.output.partition('#!')[2]
+            dockcross = os.path.abspath(os.path.join(
+                env.build_dir, 'dockcross-{}'.format(toolchain.platform)))
+            Path(dockcross).touch(0o755)
+            with open(dockcross, "w+t") as f:
+                f.write(script)
+            sh.exec('chmod', 'a+x', dockcross)
+            toolchain.shell_env = [dockcross]
+            return
+
+        # Compiler is local, or should be, so verify/install and export it
+        compiler = env.spec.compiler
+        version = env.spec.compiler_version
         if version == 'default':
             version = None
 
@@ -100,7 +127,7 @@ class InstallCompiler(Action):
             return
 
         def _export_compiler(_env):
-            if current_platform() == 'windows':
+            if current_os() == 'windows':
                 return
 
             if compiler != 'default':

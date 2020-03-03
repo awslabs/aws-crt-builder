@@ -19,7 +19,7 @@ import sys
 import tempfile
 from time import sleep
 
-from host import current_platform
+from host import current_os
 
 _retry_wait_secs = 3  # wait 3 seconds between retries of commands
 
@@ -34,7 +34,7 @@ class Shell(object):
         self.dir_stack = []
         self.env_stack = []
         self.dryrun = dryrun
-        self.platform = current_platform()
+        self.platform = current_os()
 
     def _flatten_command(self, *command):
         # Process out lists

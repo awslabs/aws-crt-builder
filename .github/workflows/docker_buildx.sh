@@ -50,12 +50,10 @@ build_image() {
   # build builder target image
   docker build \
     --build-arg BUILDKIT_INLINE_CACHE=1 \
-    --load \
+    --output=type=docker,push=true \
     --tag="$(_get_full_image_name)":${INPUT_IMAGE_TAG} \
     ${INPUT_BUILD_EXTRA_ARGS} \
     ${INPUT_CONTEXT}
-
-  docker push "$(_get_full_image_name)":${INPUT_IMAGE_TAG}
 }
 
 logout_from_registry() {

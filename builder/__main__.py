@@ -14,6 +14,7 @@
 from __future__ import print_function
 import argparse
 import os
+import re
 import sys
 
 # If this is running locally for debugging, we need to add the current directory, when packaged this is a non-issue
@@ -23,14 +24,15 @@ from spec import BuildSpec
 from actions.script import Script
 from actions.install import InstallPackages, InstallCompiler
 from actions.git import DownloadDependencies
-from actions.cmake import CMakeBuild, CTestRun
 from env import Env
 from project import Project
 from scripts import Scripts
 from toolchain import Toolchain
-from host import current_platform, current_host, current_arch
+from host import current_os, current_host, current_arch, current_platform
+import data
 
 import api  # force API to load and expose the virtual module
+import imports  # load up all known import classes
 
 
 ########################################################################################################################
@@ -59,7 +61,7 @@ def run_action(action, env):
             InstallPackages(),
             DownloadDependencies(),
             action,
-        ], name='run_build'),
+        ], name='main'),
         env
     )
 
@@ -69,46 +71,51 @@ def run_action(action, env):
 def run_build(env):
     config = env.config
 
-    print("Running build", env.build_spec.name, flush=True)
-    build_action = CMakeBuild()
-    test_action = CTestRun()
+    print("Running build", env.spec.name, flush=True)
 
-    prebuild_action = Script(config.get(
-        'pre_build_steps', []), name='pre_build_steps')
-    postbuild_action = Script(config.get(
-        'post_build_steps', []), name='post_build_steps')
+    def pre_build(env):
+        return env.project.pre_build(env)
 
-    build_steps = config.get('build_steps', config.get('build', None))
-    if build_steps is not None:
-        build_action = Script(build_steps, name='build_steps')
+    def build(env):
+        return env.project.build(env)
 
-    test_steps = config.get('test_steps', config.get('test', None))
-    if test_steps is not None:
-        test_action = Script(test_steps, name='test_steps')
+    def post_build(env):
+        return env.project.post_build(env)
+
+    def test(env):
+        return env.project.test(env)
+
+    def install(env):
+        return env.project.install(env)
+
+    def build_consumers(env):
+        if env.spec.downstream:
+            return env.project.build_consumers(env)
 
     build = Script([
-        prebuild_action,
-        build_action,
-        postbuild_action,
-        test_action,
-    ], name='run_build')
+        pre_build,
+        build,
+        post_build,
+        test,
+        install,
+        build_consumers,
+    ], name='run_build {}'.format(env.project.name))
     run_action(build, env)
 
 
 def default_spec(env):
-    target = current_platform()
+    target, arch = env.platform.split('-')
     host = current_host()
-    arch = current_arch()
-    compiler, version = Toolchain.default_compiler(env)
-    print('Using Default Spec:')
-    print('  Host: {} {}'.format(host, arch))
+    compiler, version = Toolchain.default_compiler(env, target, arch)
+    print('Using Spec:')
+    print('  Host: {} {}'.format(host, current_arch()))
     print('  Target: {} {}'.format(target, arch))
     print('  Compiler: {} {}'.format(compiler, version))
     return BuildSpec(host=host, compiler=compiler, compiler_version='{}'.format(version), target=target, arch=arch)
 
 
 def inspect_host(env):
-    spec = env.build_spec
+    spec = env.spec
     toolchain = Toolchain(env, spec=spec)
     print('Host Environment:')
     print('  Host: {} {}'.format(spec.host, spec.arch))
@@ -138,10 +145,10 @@ def parse_extra_args(env):
         compiler, version = (None, None)
         if args.compiler:
             compiler, version = args.compiler.split('-')
-        spec = str(env.build_spec) if hasattr(
-            env, 'build_spec') else getattr(env.args, 'spec', None)
-        env.build_spec = BuildSpec(compiler=compiler,
-                                   compiler_version=version, target=args.target, spec=spec)
+        spec = str(env.spec) if hasattr(
+            env, 'spec') else getattr(env.args, 'spec', None)
+        env.spec = BuildSpec(compiler=compiler,
+                             compiler_version=version, target=args.target, spec=spec)
 
 
 def parse_args():
@@ -155,23 +162,45 @@ def parse_args():
     parser.add_argument('--dump-config', action='store_true',
                         help="Print the config in use before running a build")
     parser.add_argument('--spec', type=str)
-    parser.add_argument('-b', '--build-dir', type=str,
+    parser.add_argument('--build-dir', type=str,
                         help='Directory to work in', default='.')
-    parser.add_argument('--branch', help='Branch to build from')
+    parser.add_argument('-b', '--branch', help='Branch to build from')
+    parser.add_argument(
+        '--platform', help='Target platform to compile/cross-compile for', default='{}-{}'.format(current_os(), current_arch()),
+        choices=data.PLATFORMS)
+    parser.add_argument('--cli_config', action='append', type=list)
     parser.add_argument('args', nargs=argparse.REMAINDER)
 
     # hand parse command and spec from within the args given
     command = None
     spec = None
     argv = sys.argv[1:]
+
+    # eat command and optionally spec
     if argv and not argv[0].startswith('-'):
         command = argv.pop(0)
         if len(argv) >= 1 and not argv[0].startswith('-'):
             spec = argv.pop(0)
 
+    if not command:
+        print('No command provided, should be [build|inspect|<action-name>]')
+        sys.exit(1)
+
+    # pull out any k=v pairs
+    config_vars = []
+    for arg in argv:
+        m = re.match(r'^([A-Za-z_0-9]+)=(.+)', arg)
+        if m:
+            config_vars.append((m.group(1), m.group(2)))
+    cli_config = {}
+    for var in config_vars:
+        cli_config[var[0]] = var[1]
+        argv.remove('{}={}'.format(var[0], var[1]))
+
     # parse the args we know, put the rest in args.args for others to parse
     args, extras = parser.parse_known_args(argv)
     args.command = command
+    args.cli_config = cli_config
     if not args.spec:
         args.spec = spec
     args.args += extras
@@ -186,24 +215,31 @@ def parse_args():
 if __name__ == '__main__':
     args = parse_args()
 
+    if args.build_dir != '.':
+        if not os.path.isdir(args.build_dir):
+            os.makedirs(args.build_dir)
+        os.chdir(args.build_dir)
+
     # set up environment
     env = Env({
         'dryrun': args.dry_run,
         'args': args,
         'project': args.project,
         'branch': args.branch,
+        'platform': args.platform,
     })
 
     parse_extra_args(env)
 
-    if not getattr(env, 'build_spec', None):
+    if not getattr(env, 'spec', None):
         build_name = getattr(args, 'spec', getattr(args, 'build', None))
         if build_name:
-            env.build_spec = BuildSpec(spec=build_name)
+            env.spec = BuildSpec(spec=build_name, platform=env.platform)
         else:
-            env.build_spec = default_spec(env)
+            env.spec = default_spec(env)
 
-    inspect_host(env)
+    if env.platform == current_platform():
+        inspect_host(env)
     if args.command == 'inspect':
         sys.exit(0)
 
@@ -213,7 +249,8 @@ if __name__ == '__main__':
 
     # Build the config object
     env.config = env.project.get_config(
-        env.build_spec,
+        env.spec,
+        env.args.cli_config,
         source_dir=env.source_dir,
         build_dir=env.build_dir,
         install_dir=env.install_dir,
@@ -222,10 +259,13 @@ if __name__ == '__main__':
     if not env.config.get('enabled', True):
         raise Exception("The project is disabled in this configuration")
 
+    if env.config.get('needs_compiler', True):
+        env.toolchain = Toolchain(env, spec=env.spec)
+
     if args.dump_config:
         from pprint import pprint
         print('Spec: ', end='')
-        pprint(env.build_spec)
+        pprint(env.spec)
         print('Config:')
         pprint(env.config)
 

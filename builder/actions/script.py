@@ -14,7 +14,7 @@
 import sys
 from action import Action
 from scripts import Scripts
-from util import replace_variables
+from util import replace_variables, to_list
 
 
 class Script(Action):
@@ -40,8 +40,16 @@ class Script(Action):
         self.commands = [_expand_vars(cmd) for cmd in self.commands]
 
         # Run each of the commands
+        children = []
         for cmd in self.commands:
             cmd_type = type(cmd)
+            # See if the string is actually an action
+            if cmd_type == str:
+                action_cls = Scripts.find_action(cmd)
+                if action_cls:
+                    cmd = action_cls()
+                    cmd_type = type(cmd)
+
             if cmd_type == str:
                 result = sh.exec(*cmd.split(' '))
                 if result.returncode != 0:
@@ -55,16 +63,17 @@ class Script(Action):
             elif isinstance(cmd, Action):
                 Scripts.run_action(cmd, env)
             elif callable(cmd):
-                return cmd(env)
+                children += to_list(cmd(env))
             else:
                 print('Unknown script sub command: {}: {}', cmd_type, cmd)
                 sys.exit(4)
+        return children
 
     def __str__(self):
         if len(self.commands) == 0:
-            return 'Script({}): Empty'.format(self.name)
+            return '{}'.format(self.name)
         if self.name != self.__class__.__name__:
-            return 'Script({})'.format(self.name)
+            return '{}'.format(self.name)
 
         cmds = []
         for cmd in self.commands:
@@ -79,4 +88,4 @@ class Script(Action):
                 cmds.append(cmd.__name__)
             else:
                 cmds.append("UNKNOWN: {}".format(cmd))
-        return 'Script({}): (\n\t{}\n)'.format(self.name, '\n\t'.join(cmds))
+        return '{}: (\n{}\n)'.format(self.name, '\n\t'.join(cmds))

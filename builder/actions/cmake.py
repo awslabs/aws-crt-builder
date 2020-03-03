@@ -12,148 +12,125 @@
 # permissions and limitations under the License.
 
 import os
+from pathlib import Path
 
 from action import Action
 from toolchain import Toolchain
-from project import Project
+
+
+# All dirs used should be relative to env.launch_dir, as this is where the cross
+# compilation will be mounting to do its work
+def _project_dirs(env, project):
+    if not project.resolved():
+        print('Project is not resolved: {}'.format(project.name))
+
+    source_dir = str(Path(project.path).relative_to(env.launch_dir))
+    build_dir = str(
+        Path(os.path.join(env.build_dir, project.name)).relative_to(env.launch_dir))
+    # cross compiles are effectively chrooted to the launch_dir, normal builds need absolute paths
+    # or cmake gets lost because we specify binary/source directories explicitly while working
+    # from the launch_dir, but it wants directories relative to source
+    if env.toolchain.cross_compile:
+        install_dir = str(Path(env.install_dir).relative_to(env.launch_dir))
+    else:
+        install_dir = env.install_dir
+    return source_dir, build_dir, install_dir
+
+
+def _build_project(env, project, build_tests=False):
+    sh = env.shell
+    config = env.config
+    toolchain = env.toolchain
+    # build dependencies first, let cmake decide what needs doing
+    for dep in project.get_dependencies(env.spec):
+        _build_project(env, dep)
+
+    project_source_dir, project_build_dir, project_install_dir = _project_dirs(
+        env, project)
+    sh.mkdir(os.path.abspath(project_build_dir))
+
+    # If cmake has already run, assume we're good
+    if os.path.isfile(os.path.join(project_build_dir, 'CMakeCache.txt')):
+        return
+
+    # TODO These platforms don't succeed when doing a RelWithDebInfo build
+    build_config = env.args.config
+    if toolchain.host in ("al2012", "manylinux"):
+        build_config = "Debug"
+
+    # Set compiler flags
+    compiler_flags = []
+    if toolchain.compiler != 'default' and not toolchain.cross_compile:
+        c_path = toolchain.compiler_path(env)
+        cxx_path = toolchain.cxx_compiler_path(env)
+        for opt, value in [('c', c_path), ('cxx', cxx_path)]:
+            if value:
+                compiler_flags.append(
+                    '-DCMAKE_{}_COMPILER={}'.format(opt.upper(), value))
+
+    cmake_args = [
+        "-B{}".format(project_build_dir),
+        "-H{}".format(project_source_dir),
+        "-Werror=dev",
+        "-Werror=deprecated",
+        "-DCMAKE_INSTALL_PREFIX=" + project_install_dir,
+        "-DCMAKE_PREFIX_PATH=" + project_install_dir,
+        "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
+        "-DCMAKE_BUILD_TYPE=" + build_config,
+        "-DBUILD_TESTING=" + ("ON" if build_tests else "OFF"),
+        *compiler_flags,
+    ] + project.cmake_args(env) + config.get('cmake_args', [])
+
+    # When cross compiling, we must inject the build_env into the cross compile container
+    build_env = []
+    if toolchain.cross_compile:
+        build_env = ['{}={}'.format(key, val)
+                     for key, val in config.get('build_env', {})]
+
+    # configure
+    sh.exec(*toolchain.shell_env, *build_env, "cmake", cmake_args, check=True)
+
+    # build
+    sh.exec(*toolchain.shell_env, *build_env, "cmake", "--build", project_build_dir, "--config",
+            build_config, check=True)
+
+    # install
+    sh.exec(*toolchain.shell_env, *build_env, "cmake", "--build", project_build_dir, "--config",
+            build_config, "--target", "install", check=True)
 
 
 class CMakeBuild(Action):
     """ Runs cmake configure, build """
 
-    def run(self, env):
-        try:
-            toolchain = env.toolchain
-        except:
-            try:
-                toolchain = env.toolchain = Toolchain(env,
-                                                      spec=env.build_spec)
-            except:
-                toolchain = env.toolchain = Toolchain(env, default=True)
+    def __init__(self, project):
+        self.project = project
 
+    def run(self, env):
+        toolchain = env.toolchain
         sh = env.shell
 
-        # TODO These platforms don't succeed when doing a RelWithDebInfo build
-        build_config = env.args.config
-        if toolchain.host in ("al2012", "manylinux"):
-            build_config = "Debug"
-
-        source_dir = env.source_dir
-        build_dir = env.build_dir
-        deps_dir = env.deps_dir
-        install_dir = env.install_dir
-
-        for d in (build_dir, deps_dir, install_dir):
+        for d in (env.build_dir, env.deps_dir, env.install_dir):
             sh.mkdir(d)
 
         config = getattr(env, 'config', {})
         env.build_tests = config.get('build_tests', True)
 
-        def build_project(project, build_tests=False):
-            # build dependencies first, let cmake decide what needs doing
-            for dep in project.get_dependencies(env.build_spec):
-                sh.pushd(dep.path)
-                build_project(dep)
-                sh.popd()
-
-            project_source_dir = project.path
-            project_build_dir = os.path.join(project_source_dir, 'build')
-            sh.mkdir(project_build_dir)
-            sh.pushd(project_build_dir)
-
-            # If cmake has already run, assume we're good
-            if os.path.isfile(os.path.join(project_build_dir, 'CMakeCache.txt')):
-                return
-
-            # Set compiler flags
-            compiler_flags = []
-            if toolchain.compiler != 'default':
-                c_path = toolchain.compiler_path(env)
-                cxx_path = toolchain.cxx_compiler_path(env)
-                for opt, value in [('c', c_path), ('cxx', cxx_path)]:
-                    if value:
-                        compiler_flags.append(
-                            '-DCMAKE_{}_COMPILER={}'.format(opt.upper(), value))
-
-            cmake_flags = []
-            if env.build_spec.target == 'linux':
-                cmake_flags += [
-                    # Each image has a custom installed openssl build, make sure CMake knows where to find it
-                    "-DLibCrypto_INCLUDE_DIR=/opt/openssl/include",
-                    "-DLibCrypto_SHARED_LIBRARY=/opt/openssl/lib/libcrypto.so",
-                    "-DLibCrypto_STATIC_LIBRARY=/opt/openssl/lib/libcrypto.a",
-                ]
-
-            cmake_args = [
-                "-Werror=dev",
-                "-Werror=deprecated",
-                "-DCMAKE_INSTALL_PREFIX=" + install_dir,
-                "-DCMAKE_PREFIX_PATH=" + install_dir,
-                "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
-                "-DCMAKE_BUILD_TYPE=" + build_config,
-                "-DBUILD_TESTING=" + ("ON" if build_tests else "OFF"),
-                *cmake_flags,
-                *compiler_flags,
-            ] + getattr(project, 'cmake_args', []) + config.get('cmake_args', [])
-
-            # configure
-            sh.exec("cmake", cmake_args, project_source_dir, check=True)
-
-            # build
-            sh.exec("cmake", "--build", ".", "--config",
-                    build_config, check=True)
-
-            # install
-            sh.exec("cmake", "--build", ".", "--config",
-                    build_config, "--target", "install", check=True)
-
-            sh.popd()
-
-        def build_projects(projects):
-            sh.pushd(deps_dir)
-
-            for proj in projects:
-                project = Project.find_project(proj)
-                sh.pushd(project.path)
-                build_project(project)
-                sh.popd()
-
-            sh.popd()
-
-        sh.pushd(source_dir)
-
-        spec = env.build_spec
-        build_projects([p.name for p in env.project.get_dependencies(spec)])
-
         # BUILD
-        build_project(env.project, getattr(env, 'build_tests', False))
-
-        if spec and spec.downstream:
-            build_projects([p.name for p in env.project.get_consumers(spec)])
-
-        sh.popd()
+        _build_project(env, self.project)
 
 
 class CTestRun(Action):
     """ Uses ctest to run tests if tests are enabled/built via 'build_tests' """
 
+    def __init__(self, project):
+        self.project = project
+
     def run(self, env):
-        has_tests = getattr(env, 'build_tests', False)
-        if not has_tests:
-            print("No tests were built, skipping test run")
-            return
-
-        run_tests = env.config.get('run_tests', True)
-        if not run_tests:
-            print("Tests are disabled for this configuration")
-            return
-
         sh = env.shell
+        toolchain = env.toolchain
 
-        project_source_dir = env.project.path
-        project_build_dir = os.path.join(project_source_dir, 'build')
-        sh.pushd(project_build_dir)
+        project_source_dir, project_build_dir, project_install_dir = _project_dirs(
+            env, self.project)
 
-        sh.exec("ctest", "--output-on-failure", check=True)
-
-        sh.popd()
+        sh.exec(*toolchain.shell_env, "ctest", "--build-exe-dir", project_build_dir,
+                "--output-on-failure", check=True)

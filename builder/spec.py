@@ -15,7 +15,7 @@ import os
 import sys
 
 from data import *
-from host import current_host, current_platform, current_arch
+from host import current_host, current_os, current_arch
 
 
 def validate_spec(build_spec):
@@ -36,7 +36,7 @@ def validate_spec(build_spec):
         build_spec.compiler_version, build_spec.compiler)
 
     supported_hosts = compiler['hosts']
-    assert build_spec.host in supported_hosts or current_platform() in supported_hosts, "Compiler {} does not support host {}".format(
+    assert build_spec.host in supported_hosts or current_os() in supported_hosts, "Compiler {} does not support host {}".format(
         build_spec.compiler, build_spec.host)
 
     supported_targets = compiler['targets']
@@ -68,6 +68,10 @@ class BuildSpec(object):
                 else:
                     setattr(self, variant, False)
 
+        platform = kwargs.get('platform', None)
+        if platform:
+            self.target, self.arch = platform.split('-')
+
         # Pull out individual fields. Note this is not in an else to support overriding at construction time
         for slot in ('host', 'target', 'arch', 'compiler', 'compiler_version', 'downstream'):
             if slot in kwargs and kwargs[slot]:
@@ -77,7 +81,7 @@ class BuildSpec(object):
         if self.host == 'default':
             self.host = current_host()
         if self.target == 'default':
-            self.target = current_platform()
+            self.target = current_os()
         if self.arch == 'default':
             self.arch = current_arch()
 
