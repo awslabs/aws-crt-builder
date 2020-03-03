@@ -88,6 +88,7 @@ that instead. There are a few external dependencies (s2n and libcrypto, for inst
         "some command or action to run"
     ],
     // Steps to build the project. If not specified, CMake will be run on the project's root directory
+    // If you want to invoke the default build as one of your steps, simply use "build" as that step
     "build_steps": [
         "some command or action to run",
         "some other command to run"
@@ -97,6 +98,7 @@ that instead. There are a few external dependencies (s2n and libcrypto, for inst
         "some command or action to run"
     ],
     // Steps to run when testing is requested. If not specified, CTest will be run on the project's binaries directory
+    // If you want to invoke the default test path as one of your steps, use "test" as that step's command
     "test_steps": [
         "some command or action to run"
     ],
