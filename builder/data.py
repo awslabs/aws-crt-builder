@@ -33,7 +33,6 @@ KEYS = {
     'c': None,  # c compiler
     'cxx': None,  # c++ compiler
     'cmake_args': [],  # additional cmake arguments
-    'cmake_binaries': '{build_dir}',  # where to put the cmake binaries
 
     # where the cmake binaries should be stored, and dependencies installed
     'build_dir': 'build',
