@@ -323,7 +323,7 @@ class Project(object):
         tree_transform(kwargs, 'imports', _make_import_refs)
 
         # Store args as the intial config, will be merged via get_config() later
-        self.config = {**kwargs.get('config', {}), **kwargs}
+        self.config = kwargs
 
         # Allow projects to augment search dirs
         for search_dir in self.config.get('search_dirs', []):
@@ -525,7 +525,7 @@ class Project(object):
                 print('    Found project: {} at {}'.format(
                     project_config['name'], path))
                 project = Project._create_project(
-                    **project_config, path=path, config=project_config)
+                    **project_config, path=path)
                 return Project._cache_project(project)
 
         # load any builder scripts and check them
