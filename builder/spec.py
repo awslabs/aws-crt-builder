@@ -77,6 +77,10 @@ class BuildSpec(object):
             if slot in kwargs and kwargs[slot]:
                 setattr(self, slot, kwargs[slot])
 
+        # Convert a target tuple into its component parts
+        if '-' in self.target:
+            self.target, self.arch = self.target.split('-')
+
         # Convert defaults to be based on running environment
         if self.host == 'default':
             self.host = current_host()

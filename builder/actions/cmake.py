@@ -61,8 +61,8 @@ def _build_project(env, project, build_tests=False):
     # Set compiler flags
     compiler_flags = []
     if toolchain.compiler != 'default' and not toolchain.cross_compile:
-        c_path = toolchain.compiler_path(env)
-        cxx_path = toolchain.cxx_compiler_path(env)
+        c_path = toolchain.compiler_path()
+        cxx_path = toolchain.cxx_compiler_path()
         for opt, value in [('c', c_path), ('cxx', cxx_path)]:
             if value:
                 compiler_flags.append(
@@ -128,6 +128,10 @@ class CTestRun(Action):
     def run(self, env):
         sh = env.shell
         toolchain = env.toolchain
+
+        if toolchain.cross_compile:
+            print('WARNING: Running tests for cross compile is not yet supported')
+            return
 
         project_source_dir, project_build_dir, project_install_dir = _project_dirs(
             env, self.project)

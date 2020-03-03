@@ -12,7 +12,12 @@
 # permissions and limitations under the License.
 
 
+from collections import namedtuple
+import os
 from string import Formatter
+import subprocess
+import sys
+from time import sleep
 
 
 class VariableFormatter(Formatter):
@@ -101,3 +106,114 @@ def to_list(val):
     if not val:
         return []
     return [val]
+
+
+def where(exe, path=None):
+    """ Platform agnostic `where executable` command """
+
+    if exe is None:
+        return None
+    if path is None:
+        path = os.environ['PATH']
+    paths = os.path.split(os.pathsep)
+    extlist = ['']
+
+    def is_executable(path):
+        return os.path.isfile(path) and os.access(path, os.X_OK)
+
+    if sys.platform == 'win32':
+        pathext = os.environ['PATHEXT'].lower().split(os.pathsep)
+        (base, ext) = os.path.splitext(exe)
+        if ext.lower() not in pathext:
+            extlist = pathext
+    for ext in extlist:
+        exe_name = exe + ext
+        for p in paths:
+            exe_path = os.path.join(p, exe_name)
+            if is_executable(exe_path):
+                return exe_path
+
+    return None
+
+
+ExecResult = namedtuple('ExecResult', ['returncode', 'pid', 'output'])
+_retry_wait_secs = 3  # wait 3 seconds between retries of commands
+
+
+def _flatten_command(*command):
+    # Process out lists
+    new_command = []
+
+    def _proc_segment(command_segment):
+        e_type = type(command_segment)
+        if e_type == str:
+            new_command.append(command_segment)
+        elif e_type == list or e_type == tuple:
+            for segment in command_segment:
+                _proc_segment(segment)
+    _proc_segment(command)
+    return new_command
+
+
+def log_command(*command):
+    print('>', subprocess.list2cmdline(
+        _flatten_command(*command)), flush=True)
+
+
+def run_command(*command, **kwargs):
+    if not kwargs.get('quiet', False):
+        log_command(*command)
+    dryrun = kwargs.get('dryrun', False)
+    if dryrun:
+        return None
+    tries = kwargs.get('retries', 1)
+
+    output = None
+    while tries > 0:
+        tries -= 1
+        try:
+            cmds = _flatten_command(*command)
+            if sys.platform == 'win32':
+                cmds = [cmd.encode('ascii', 'ignore').decode()
+                        for cmd in cmds]
+            proc = subprocess.Popen(
+                cmds,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                shell=(sys.platform == 'win32'),
+                bufsize=0)  # do not buffer output
+
+            # Convert all output to strings, which makes it much easier to both print
+            # and process, since all known uses of parsing output want strings anyway
+            output = ""
+            line = proc.stdout.readline()
+            while (line):
+                # ignore weird characters coming back from the shell (colors, etc)
+                if not isinstance(line, str):
+                    line = line.decode('ascii', 'ignore')
+                # We're reading in binary mode, so no automatic newline translation
+                if sys.platform == 'win32':
+                    line = line.replace('\r\n', '\n')
+                output += line
+                if not kwargs.get('quiet', False):
+                    print(line, end='', flush=True)
+                line = proc.stdout.readline()
+            proc.wait()
+
+            if proc.returncode != 0:
+                raise Exception(
+                    'Command exited with code {}'.format(proc.returncode))
+
+            return ExecResult(proc.returncode, proc.pid, output)
+
+        except Exception as ex:
+            print('Failed to run {}: {}'.format(
+                ' '.join(_flatten_command(*command)), ex))
+            if kwargs.get('check', False) and tries == 0:
+                raise
+            output = ex
+            if tries > 0:
+                print('Waiting {} seconds to try again'.format(
+                    _retry_wait_secs))
+                sleep(_retry_wait_secs)
+    return ExecResult(-1, -1, output)

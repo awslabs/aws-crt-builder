@@ -120,7 +120,7 @@ class InstallCompiler(Action):
 
         # See if the compiler is already installed
         compiler_path, found_version = Toolchain.find_compiler(
-            env, compiler, version)
+            compiler, version)
         if compiler_path:
             print('Compiler {} {} is already installed ({})'.format(
                 compiler, version, compiler_path))

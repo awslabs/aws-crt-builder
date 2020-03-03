@@ -35,6 +35,7 @@ KEYS = {
     'cmake_args': [],  # additional cmake arguments
     'cmake_binaries': '{build_dir}',  # where to put the cmake binaries
 
+    'build_dir': {},  # where the cmake binaries should be stored, and dependencies installed
     'build_env': {},  # environment variables to set before starting build
     'pre_build_steps': [],  # steps to run before build
     'post_build_steps': [],  # steps to run after build

@@ -62,8 +62,8 @@ class LibCrypto(Import):
 
         install_dir = os.path.join(env.deps_dir, self.name)
         # If path to libcrypto is going to be relative, it has to be relative to the
-        # launch directory
-        self.prefix = str(Path(install_dir).relative_to(env.launch_dir))
+        # source directory
+        self.prefix = str(Path(install_dir).relative_to(env.source_dir))
         env.variables['libcrypto_path'] = self.prefix
         print('Installing pre-built libcrypto binaries for {}-{} to {}'.format(
             env.spec.target, env.spec.arch, install_dir))

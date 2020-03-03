@@ -104,51 +104,27 @@ def run_build(env):
 
 
 def default_spec(env):
-    target, arch = env.platform.split('-')
+    target, arch = current_platform().split('-')
     host = current_host()
-    compiler, version = Toolchain.default_compiler(env, target, arch)
-    print('Using Spec:')
-    print('  Host: {} {}'.format(host, current_arch()))
-    print('  Target: {} {}'.format(target, arch))
-    print('  Compiler: {} {}'.format(compiler, version))
+    compiler, version = Toolchain.default_compiler(target, arch)
     return BuildSpec(host=host, compiler=compiler, compiler_version='{}'.format(version), target=target, arch=arch)
 
 
 def inspect_host(env):
     spec = env.spec
-    toolchain = Toolchain(env, spec=spec)
+    toolchain = Toolchain(spec=spec)
     print('Host Environment:')
     print('  Host: {} {}'.format(spec.host, spec.arch))
     print('  Default Target: {} {}'.format(spec.target, spec.arch))
-    compiler_path = toolchain.compiler_path(env)
+    compiler_path = toolchain.compiler_path()
     if not compiler_path:
         compiler_path = '(Will Install)'
     print('  Compiler: {} (version: {}) {}'.format(
         spec.compiler, toolchain.compiler_version, compiler_path))
     compilers = ['{} {}'.format(c[0], c[1])
-                 for c in Toolchain.all_compilers(env)]
+                 for c in Toolchain.all_compilers()]
     print('  Available Compilers: {}'.format(', '.join(compilers)))
     print('  Available Projects: {}'.format(', '.join(Project.projects())))
-
-
-def parse_extra_args(env):
-    args = getattr(env.args, 'args', [])
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--compiler', type=str,
-                        help="The compiler to use for this build")
-    parser.add_argument(
-        '--target', type=str, help="The target to cross-compile for (e.g. android, linux-x86, aarch64)")
-    # parse the args we know, pass the rest on to actions to figure out
-    args, env.args.args = parser.parse_known_args(args)
-
-    if args.compiler or args.target:
-        compiler, version = (None, None)
-        if args.compiler:
-            compiler, version = args.compiler.split('-')
-        spec = str(env.spec) if hasattr(
-            env, 'spec') else getattr(env.args, 'spec', None)
-        env.spec = BuildSpec(compiler=compiler,
-                             compiler_version=version, target=args.target, spec=spec)
 
 
 def parse_args():
@@ -165,10 +141,12 @@ def parse_args():
     parser.add_argument('--build-dir', type=str,
                         help='Directory to work in', default='.')
     parser.add_argument('-b', '--branch', help='Branch to build from')
-    parser.add_argument(
-        '--platform', help='Target platform to compile/cross-compile for', default='{}-{}'.format(current_os(), current_arch()),
-        choices=data.PLATFORMS)
     parser.add_argument('--cli_config', action='append', type=list)
+    parser.add_argument('--compiler', type=str,
+                        help="The compiler to use for this build")
+    parser.add_argument('--target', type=str, help="The target to cross-compile for (e.g. android-armv7, linux-x86, linux-aarch64)",
+                        default='{}-{}'.format(current_os(), current_arch()),
+                        choices=data.PLATFORMS)
     parser.add_argument('args', nargs=argparse.REMAINDER)
 
     # hand parse command and spec from within the args given
@@ -201,19 +179,33 @@ def parse_args():
     args, extras = parser.parse_known_args(argv)
     args.command = command
     args.cli_config = cli_config
-    if not args.spec:
-        args.spec = spec
-    args.args += extras
+    args.spec = args.spec if args.spec else spec
     # Backwards compat for `builder run $action`
     if args.command == 'run':
         args.command = args.spec
         args.spec = None
 
-    return args
+    if args.spec:
+        spec = BuildSpec(spec=args.spec, target=args.target)
+
+    if args.compiler or args.target:
+        compiler, version = (None, None)
+        if args.compiler:
+            compiler, version = args.compiler.split('-')
+        spec = str(spec) if spec else None
+        spec = BuildSpec(compiler=compiler,
+                         compiler_version=version, target=args.target, spec=spec)
+
+    if not spec:
+        spec = default_spec()
+    # Save unknown args for actions to parse later
+    args.args += extras
+
+    return args, spec
 
 
 if __name__ == '__main__':
-    args = parse_args()
+    args, spec = parse_args()
 
     if args.build_dir != '.':
         if not os.path.isdir(args.build_dir):
@@ -226,19 +218,10 @@ if __name__ == '__main__':
         'args': args,
         'project': args.project,
         'branch': args.branch,
-        'platform': args.platform,
+        'spec': spec,
     })
 
-    parse_extra_args(env)
-
-    if not getattr(env, 'spec', None):
-        build_name = getattr(args, 'spec', getattr(args, 'build', None))
-        if build_name:
-            env.spec = BuildSpec(spec=build_name, platform=env.platform)
-        else:
-            env.spec = default_spec(env)
-
-    if env.platform == current_platform():
+    if env.spec.target == current_os() and env.spec.arch == current_arch():
         inspect_host(env)
     if args.command == 'inspect':
         sys.exit(0)
@@ -247,20 +230,16 @@ if __name__ == '__main__':
         print('No project specified and no project found in current directory')
         sys.exit(1)
 
-    # Build the config object
-    env.config = env.project.get_config(
-        env.spec,
-        env.args.cli_config,
-        source_dir=env.source_dir,
-        build_dir=env.build_dir,
-        install_dir=env.install_dir,
-        project_dir=env.project.path)
+    print('Using Spec:')
+    print('  Host: {} {}'.format(spec.host, current_arch()))
+    print('  Target: {} {}'.format(spec.target, spec.arch))
+    print('  Compiler: {} {}'.format(spec.compiler, spec.compiler_version))
 
     if not env.config.get('enabled', True):
         raise Exception("The project is disabled in this configuration")
 
     if env.config.get('needs_compiler', True):
-        env.toolchain = Toolchain(env, spec=env.spec)
+        env.toolchain = Toolchain(spec=env.spec)
 
     if args.dump_config:
         from pprint import pprint
