@@ -38,7 +38,7 @@ def _project_dirs(env, project):
 
 def _build_project(env, project, build_tests=False):
     sh = env.shell
-    config = env.config
+    config = project.get_config(env.spec)
     toolchain = env.toolchain
     # build dependencies first, let cmake decide what needs doing
     for dep in project.get_dependencies(env.spec):
@@ -78,7 +78,7 @@ def _build_project(env, project, build_tests=False):
         "-DCMAKE_BUILD_TYPE=" + build_config,
         "-DBUILD_TESTING=" + ("ON" if build_tests else "OFF"),
         *compiler_flags,
-    ] + project.cmake_args(env) + config.get('cmake_args', [])
+    ] + project.cmake_args(env)
 
     # When cross compiling, we must inject the build_env into the cross compile container
     build_env = []
