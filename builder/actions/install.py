@@ -110,6 +110,7 @@ class InstallCompiler(Action):
                 f.write(script)
             sh.exec('chmod', 'a+x', dockcross)
             toolchain.shell_env = [dockcross]
+            env.variables['shell_env'] = dockcross
             return
 
         # Compiler is local, or should be, so verify/install and export it
