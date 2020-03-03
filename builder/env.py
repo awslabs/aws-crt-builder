@@ -100,17 +100,17 @@ class Env(object):
         self.shell.cd(self.source_dir)
 
         # Allow these to be overridden by the project, and relative to source_dir if not absolute paths
-        build_dir = os.path.abspath(self.config.get(
-            'build_dir', os.path.join(self.source_dir, 'build')))
-        self.build_dir = build_dir
+        build_dir = self.config.get(
+            'build_dir', os.path.join(self.source_dir, 'build'))
+        self.build_dir = os.path.abspath(build_dir)
 
-        deps_dir = os.path.abspath(self.config.get(
-            'deps_dir', os.path.join(self.build_dir, 'deps')))
-        self.deps_dir = deps_dir
+        self.config.get(
+            'deps_dir', os.path.join(self.build_dir, 'deps'))
+        self.deps_dir = os.path.abspath(deps_dir)
 
-        install_dir = os.path.abspath(self.config.get(
-            'install_dir', os.path.join(self.source_dir, 'install')))
-        self.install_dir = os.path.join(self.build_dir, 'install')
+        install_dir = self.config.get(
+            'install_dir', os.path.join(self.build_dir, 'install'))
+        self.install_dir = os.path.abspath(install_dir)
 
         print('Source directory: {}'.format(self.source_dir))
         print('Build directory: {}'.format(self.build_dir))
