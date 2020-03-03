@@ -18,20 +18,19 @@ from action import Action
 from toolchain import Toolchain
 
 
-# All dirs used should be relative to env.launch_dir, as this is where the cross
+# All dirs used should be relative to env.source_dir, as this is where the cross
 # compilation will be mounting to do its work
 def _project_dirs(env, project):
     if not project.resolved():
         print('Project is not resolved: {}'.format(project.name))
 
-    source_dir = str(Path(project.path).relative_to(env.launch_dir))
+    source_dir = str(Path(project.path).relative_to(env.source_dir))
     build_dir = str(
-        Path(os.path.join(env.build_dir, project.name)).relative_to(env.launch_dir))
-    # cross compiles are effectively chrooted to the launch_dir, normal builds need absolute paths
-    # or cmake gets lost because we specify binary/source directories explicitly while working
-    # from the launch_dir, but it wants directories relative to source
+        Path(os.path.join(env.build_dir, project.name)).relative_to(env.source_dir))
+    # cross compiles are effectively chrooted to the source_dir, normal builds need absolute paths
+    # or cmake gets lost because it wants directories relative to source
     if env.toolchain.cross_compile:
-        install_dir = str(Path(env.install_dir).relative_to(env.launch_dir))
+        install_dir = str(Path(env.install_dir).relative_to(env.source_dir))
     else:
         install_dir = env.install_dir
     return source_dir, build_dir, install_dir
