@@ -8,11 +8,9 @@ If you wish to add custom actions or programmatically generate data you can add 
 scripts in this directory will be loaded and scanned for subclasses of Project, Import, and Action.
 
 ### Requirements
-* Python 3.4+
+* Python 3.5+
 * docker (if cross compiling with dockcross)
 * CMake 3.1+ (if compiling native code)
-* curl (linux only)
-* tar (linux only)
 
 ### CLI Arguments
 Usage: ```builder.pyz [build|inspect|<action-name>] [spec] [OPTIONS]```
