@@ -10,7 +10,7 @@ RUN apt-get update -qq \
     curl \
     sudo \
     # Python
-    python3 \
+    python3.6 \
     python3-dev \
     python3-pip \
     build-essential \
