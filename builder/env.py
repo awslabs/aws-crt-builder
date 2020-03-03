@@ -104,7 +104,7 @@ class Env(object):
             'build_dir', os.path.join(self.source_dir, 'build'))
         self.build_dir = os.path.abspath(build_dir)
 
-        self.config.get(
+        deps_dir = self.config.get(
             'deps_dir', os.path.join(self.build_dir, 'deps'))
         self.deps_dir = os.path.abspath(deps_dir)
 
