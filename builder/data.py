@@ -348,8 +348,8 @@ COMPILERS = {
 
         'architectures': {
             'x86': {
-                'apt_packages': ["gcc-{version}-multilib", "g++-{version}-multilib"],
-                'yum_packages': ["gcc-multilib", "g++-multilib"],
+                'apt_compiler_packages': ["gcc-{version}-multilib", "g++-{version}-multilib"],
+                'yum_compiler_packages': ["gcc-multilib", "g++-multilib"],
             },
         },
     },

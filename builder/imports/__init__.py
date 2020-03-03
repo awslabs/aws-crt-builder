@@ -27,7 +27,6 @@ try:
         parent_package = 'imports'
         files = app.namelist()
         for f in files:
-            print(f)
             if re.match(r'imports/[a-zA-Z0-9].+.py', f):
                 modules += ['.' + basename(f)[:-3]]
 except:
@@ -38,5 +37,4 @@ except:
                and not f.endswith('__init__.py')]
 
 for module in modules:
-    print('Importing {}'.format(module[1:]))
     importlib.import_module(module, parent_package)
