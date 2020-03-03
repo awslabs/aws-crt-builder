@@ -55,6 +55,8 @@ that instead. There are a few external dependencies (s2n and libcrypto, for inst
 ```
 
 #### Detailed config:
+NOTE: Any key can be prefixed with a ```!``` to overwrite the config value, rather than to add to it.
+
 ```json
 {
     "name": "my-project",
@@ -140,12 +142,17 @@ that instead. There are a few external dependencies (s2n and libcrypto, for inst
                 // example, disable on clang 3
                 "3": {
                     "enabled": false
-                }
+                },
             }
         }
     }
 }
 ```
+
+### Cross-compiling
+On linux and macos, builder supports cross compiling via [dockcross](https://github.com/dockcross/dockcross). It installs a small docker
+container locally that contains the toolchain and creates a shell to run commands in this environment. Builder then wraps build commands
+with that shell.
 
 ## Actions
 Actions are just arbitrary python code that can be run in place of shell commands. Minimally, Actions derive from ```Builder.Action```
