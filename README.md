@@ -1,11 +1,11 @@
 # AWS CRT Builder
 
-This is a central repository for build scripts and docker images for the [AWS Common Runtime Team](https://github.com/orgs/awslabs/teams/aws-sdk-common-runtime-team)
+This is a central repository for the build tool and docker images for the [AWS Common Runtime Team](https://github.com/orgs/awslabs/teams/aws-sdk-common-runtime-team)
 
-## Builder
+## Using Builder
 Builder is bundled into a zipapp. Within a given project using builder, builder.json in the root of the project will provide configuration data. 
-If you wish to add custom actions or programmatically generate data you can add python scripts in the <root>/.builder/actions directory. All 
-scripts in this directory will be loaded and scanned for classes.
+If you wish to add custom actions or programmatically generate data you can add python scripts in the <root>/.builder/ directory. All 
+scripts in this directory will be loaded and scanned for subclasses of Project, Import, and Action.
 
 ### Requirements
 * Python 3.4+
@@ -32,29 +32,6 @@ Usage: ```builder.pyz [build|inspect|<action-name>] [spec] [OPTIONS]```
 
 ### Example build
 ```builder.pyz build --project=aws-c-common downstream```
-
-### Example action
-```python
-import Builder
-
-class MyAction(Builder.Action):
-    def run(self, env):
-        print('My Action did the thing')
-```
-
-This can be run with ```builder.pyz my-action``` or ```builder.pyz myaction``` or ```builder.pyz MyAction```
-
-See api.py for the available API to actions.
-
-#### Action chaining
-The ```run(self, env)``` method of any action can return an Action or list of Actions to run before considering this action complete.
-The ```Builder.Script``` class can encapsulate a list of python functions, actions, or shell commands to run. Most compound actions
-return ```Builder.Script([additional, commands, to, run])```
-
-#### The Virtual Shell
-There is a virtual shell available via ```env.shell```. It abstracts away dry run behavior, and allows for cross-platform implementations
-of common shell operations (cd, cwd, pushd, popd, setenv, getenv, pushenv, popenv, where) and the ```exec()``` function for running 
-arbitrary commands.
 
 ## Projects
 Each project is represented at minimum by its name, path on disk, and github repo url. If there is no builder.json file in the project, nor
@@ -128,6 +105,8 @@ that instead. There are a few external dependencies (s2n and libcrypto, for inst
         "al2": {},
         "al2012": {},
         "alpine": {},
+        "raspbian": {},
+        "manylinux": {},
         "macos": {},
         "windows": {}
     },
@@ -168,7 +147,35 @@ that instead. There are a few external dependencies (s2n and libcrypto, for inst
 }
 ```
 
-## Docker Images
+## Actions
+Actions are just arbitrary python code that can be run in place of shell commands. Minimally, Actions derive from ```Builder.Action```
+and provide a ```run(self, env)``` method.
+
+### Example action
+```python
+import Builder
+
+class MyAction(Builder.Action):
+    def run(self, env):
+        print('My Action did the thing')
+```
+
+This can be run with ```builder.pyz my-action``` or ```builder.pyz myaction``` or ```builder.pyz MyAction```
+
+See api.py for the available API to actions.
+
+#### Action chaining
+The ```run(self, env)``` method of any action can return an Action or list of Actions to run before considering this action complete.
+The ```Builder.Script``` class can encapsulate a list of python functions, actions, or shell commands to run. Most compound actions
+return ```Builder.Script([additional, commands, to, run])```
+
+#### The Virtual Shell
+There is a virtual shell available via ```env.shell```. It abstracts away dry run behavior, and allows for cross-platform implementations
+of common shell operations (cd, cwd, pushd, popd, setenv, getenv, pushenv, popenv, where) and the ```exec()``` function for running 
+arbitrary commands.
+
+## Developing on builder
+### Docker Images
 Each docker image has a script which will fetch the builder app baked into it, and will then call the builder with the arguments provided.
 Any push to the .github/docker-images directory will cause a rebuild of all of the docker images (see docker-images.yml). The 
 image layers are cached, so this should be quick unless you made a fundamental modification. Any push to the builder source, or any 
