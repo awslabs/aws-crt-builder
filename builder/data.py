@@ -37,7 +37,9 @@ KEYS = {
     # where the cmake binaries should be stored, and dependencies installed
     'build_dir': 'build',
     'build_env': {},  # environment variables to set before starting build
+    'pre_build_env': [],
     'pre_build_steps': [],  # steps to run before build
+    'post_build_env': [],
     'post_build_steps': [],  # steps to run after build
     'run_tests': True,  # whether or not to run tests
     'build': None,  # deprecated, use build_steps
