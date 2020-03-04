@@ -198,6 +198,8 @@ HOSTS = {
     }
 }
 
+HOSTS['darwin'] = HOSTS['macos']
+
 TARGETS = {
     'linux': {
         'architectures': {
@@ -251,6 +253,8 @@ TARGETS = {
         ]
     }
 }
+
+TARGETS['darwin'] = TARGETS['macos']
 
 COMPILERS = {
     'default': {
@@ -422,6 +426,8 @@ PLATFORMS = {
     'freebsd-x64': {},
     # Linux is done procedurally, below
 }
+
+PLATFORMS['darwin-x64'] = PLATFORMS['macos-x64']
 
 ###############################################################################
 # Aliases
