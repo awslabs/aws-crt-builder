@@ -25,6 +25,7 @@ class PKG_TOOLS(Enum):
     YUM = 'yum'
     APK = 'apk'
     CHOCO = 'choco'
+    PKG = 'freebsd_pkg'
 
 
 KEYS = {
@@ -185,6 +186,15 @@ HOSTS = {
 
         'pkg_tool': PKG_TOOLS.BREW,
         'pkg_install': 'brew install',
+    },
+    'freebsd': {
+        'variables': {
+            'python': "python3",
+        },
+
+        'pkg_tool': PKG_TOOLS.PKG,
+        'pkg_update': 'pkg update',
+        'pkg_install': 'pkg install'
     }
 }
 
@@ -235,12 +245,17 @@ TARGETS = {
             "exe": ".exe"
         }
     },
+    'freebsd': {
+        'cmake_args': [
+            "-DENABLE_SANITIZERS=OFF",
+        ]
+    }
 }
 
 COMPILERS = {
     'default': {
-        'hosts': ['macos', 'linux', 'windows'],
-        'targets': ['macos', 'linux', 'windows'],
+        'hosts': ['macos', 'linux', 'windows', 'freebsd'],
+        'targets': ['macos', 'linux', 'windows', 'freebsd'],
 
         'versions': {
             'default': {}
@@ -330,8 +345,8 @@ COMPILERS = {
         }
     },
     'gcc': {
-        'hosts': ['linux', 'manylinux', 'al2012', 'al2'],
-        'targets': ['linux'],
+        'hosts': ['linux', 'manylinux', 'al2012', 'al2', 'freebsd'],
+        'targets': ['linux', 'freebsd'],
 
         'c': "gcc-{version}",
         'cxx': "g++-{version}",
@@ -404,6 +419,7 @@ PLATFORMS = {
     'windows-x86': {},
     'windows-x64': {},
     'macos-x64': {},
+    'freebsd-x64': {},
     # Linux is done procedurally, below
 }
 

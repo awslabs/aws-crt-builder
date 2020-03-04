@@ -25,6 +25,8 @@ def current_os():
         return 'macos'
     elif 'linux' in sys.platform or sys.platform in ('cygwin', 'msys'):
         return 'linux'
+    elif sys.platform == 'freebsd':
+        return 'freebsd'
 
 
 def current_arch():
