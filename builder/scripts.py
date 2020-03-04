@@ -16,15 +16,41 @@ import glob
 import os
 import sys
 
-from action import Action
+
+Action = None
+Project = None
+Import = None
+
+
+def _import_dynamic_classes():
+    # Must late import project to avoid cyclic dependency
+    global Action
+    global Project
+    global Import
+    project = __import__('project')
+    Project = getattr(project, 'Project')
+    Import = getattr(project, 'Import')
+
+    action = __import__('action')
+    Action = getattr(action, 'Action')
+
+
+def _get_all_dynamic_classes():
+    _import_dynamic_classes()
+    return set(
+        Action.__subclasses__() +
+        Project.__subclasses__() +
+        Import.__subclasses__())
 
 
 class Scripts(object):
     """ Manages loading, context, and running of per-project scripts """
-    all_actions = set()
+
+    # Must cache all classes with a reference here, or the GC will murder them
+    all_classes = set()
 
     def __init__(self):
-        Scripts.all_actions = set(Action.__subclasses__())
+        Scripts.all_classes = _get_all_dynamic_classes()
 
     @staticmethod
     def load(path='.'):
@@ -39,14 +65,8 @@ class Scripts(object):
         scripts = glob.glob(os.path.join(path, '*.py'))
         scripts += glob.glob(os.path.join(path, '**', '*.py'))
 
-        # Must late import project to avoid cyclic dependency
-        project = __import__('project')
-        Project = getattr(project, 'Project')
-        Import = getattr(project, 'Import')
-
         # Update to get the latest action set right before we load
-        existing_classes = set(Action.__subclasses__(
-        ) + Project.__subclasses__() + Import.__subclasses__())
+        existing_classes = _get_all_dynamic_classes()
         for script in scripts:
             if not script.endswith('.py'):
                 continue
@@ -67,12 +87,12 @@ class Scripts(object):
             importlib.invalidate_caches()
 
             # Report newly loaded actions
-            classes = frozenset(Action.__subclasses__(
-            ) + Project.__subclasses__() + Import.__subclasses__())
+            classes = frozenset(_get_all_dynamic_classes())
             new_classes = classes.difference(existing_classes)
             if new_classes:
                 print("Imported {}".format(
                     ', '.join([c.__name__ for c in new_classes])))
+                Scripts.all_classes.update(new_classes)
 
     @staticmethod
     def _find_actions():
