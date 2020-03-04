@@ -25,8 +25,16 @@ Usage: ```builder.pyz [build|inspect|<action-name>] [spec] [OPTIONS]```
 * ```--config CONFIG``` - CMake config to use (Debug, Release, RelWithDebInfo, DebugOpt) Default is RelWithDebInfo
 * ```--compiler COMPILER[-VERSION]``` - Use the specified compiler, installing it if necessary
 * ```--platform PLATFORM``` - Platform to cross-compile for (via dockcross, requires docker to be installed)
+  * Valid values are anything that you could get from `uname`.lower() - `uname -m`, e.g. linux-x86_64, linux-x64. See targets below.
 * ```--build-dir DIR``` - Make a new directory to do all the build work in, instead of using the current directory
 * ```--dump-config``` - Dumps the resultant config after merging all available options. Useful for debugging your project configuration.
+
+
+### Supported Targets:
+* linux: x86, x64|x86_64, armv6, armv7, arm64|armv8|aarch64
+* macos|darwin: x64|x86_64
+* windows: x86, x64
+* freebsd: x64
 
 ### Example build
 ```builder.pyz build --project=aws-c-common downstream```
