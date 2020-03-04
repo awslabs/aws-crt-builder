@@ -463,7 +463,7 @@ COMPILERS['msvc']['versions']['15'] = COMPILERS['msvc']['versions']['2017']
 COMPILERS['msvc']['versions']['16'] = COMPILERS['msvc']['versions']['2019']
 
 # armv8 == aarch64, arm64
-for v8 in ('aarch64', 'arm64'):
+for v8 in ('aarch64', 'arm64', 'arm64v8'):
     dict_alias(ARCHS, 'armv8', v8)
     dict_alias(HOSTS, 'armv8', v8)
     dict_alias(TARGETS, 'armv8', v8)
