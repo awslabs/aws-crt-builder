@@ -26,6 +26,17 @@ import host
 import util
 
 
+class Host(object):
+    current_os = host.current_os
+    current_arch = host.current_arch
+    current_host = host.current_host
+
+
+class Util(object):
+    where = util.where
+    run_command = util.run_command
+
+
 class Builder(VirtualModule):
     """ The interface available to scripts that define projects, builds, actions, or configuration """
 
@@ -33,14 +44,11 @@ class Builder(VirtualModule):
     Env = Env
     Action = Action
 
-    class Host(object):
-        current_os = host.current_os
-        current_arch = host.current_arch
-        current_host = host.current_host
-
     Project = Project
     Import = Import
     Toolchain = Toolchain
+
+    Host = Host
 
     # Actions
     CMakeBuild = CMakeBuild
@@ -52,6 +60,4 @@ class Builder(VirtualModule):
     InstallCompiler = InstallCompiler
     Script = Script
 
-    class Util(object):
-        where = util.where
-        run_command = util.run_command
+    Util = Util
