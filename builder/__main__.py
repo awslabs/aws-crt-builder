@@ -113,7 +113,7 @@ def inspect_host(env):
     toolchain = Toolchain(spec=spec)
     print('Host Environment:')
     print('  Host: {} {}'.format(spec.host, spec.arch))
-    print('  Default Target: {} {}'.format(spec.target, spec.arch))
+    print('  Target: {} {}'.format(spec.target, spec.arch))
     compiler_path = toolchain.compiler_path()
     if not compiler_path:
         compiler_path = '(Will Install)'
