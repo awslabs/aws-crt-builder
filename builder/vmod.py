@@ -44,18 +44,25 @@ class VirtualModuleMetaclass(type):
 
 class VirtualModule(metaclass=VirtualModuleMetaclass):
     class Finder(MetaPathFinder):
+        @staticmethod
         def find_spec(fullname, path, target=None):
             if fullname in _virtual_modules:
                 return _virtual_modules[fullname].__spec__
             return None
 
+        @staticmethod
+        def invalidate_caches():
+            pass
+
     class VirtualLoader(Loader):
+        @staticmethod
         def create_module(spec):
             if spec.name not in _virtual_modules:
                 return None
 
             return _virtual_modules[spec.name]
 
+        @staticmethod
         def exec_module(module):
             module_name = module.__name__
             if hasattr(module, '__spec__'):
