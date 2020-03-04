@@ -450,6 +450,9 @@ PLATFORMS = {
 }
 
 PLATFORMS['darwin-x64'] = PLATFORMS['macos-x64']
+PLATFORMS['darwin_x86_64'] = PLATFORMS['macos-x64']
+PLATFORMS['macos_x86_64'] = PLATFORMS['macos-x64']
+PLATFORMS['freebsd-x86_64'] = PLATFORMS['freebsd-x64']
 
 ###############################################################################
 # Aliases
