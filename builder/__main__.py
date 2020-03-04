@@ -191,7 +191,7 @@ def parse_args():
         spec = BuildSpec(spec=args.spec, target=args.target)
 
     if args.compiler or args.target:
-        compiler, version = (None, None)
+        compiler, version = ('default', 'default')
         if args.compiler:
             compiler, version = args.compiler.split('-')
         spec = str(spec) if spec else None
