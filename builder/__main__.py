@@ -28,7 +28,7 @@ from env import Env
 from project import Project
 from scripts import Scripts
 from toolchain import Toolchain
-from host import current_os, current_host, current_arch, current_platform
+from host import current_os, current_host, current_arch, current_platform, normalize_target
 import data
 
 import api  # force API to load and expose the virtual module
@@ -182,6 +182,10 @@ def parse_args():
     if args.command == 'run':
         args.command = args.spec
         args.spec = None
+
+    # normalize target
+    if args.target:
+        args.target = normalize_target(args.target)
 
     if args.spec:
         spec = BuildSpec(spec=args.spec, target=args.target)

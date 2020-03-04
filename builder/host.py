@@ -11,7 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from data import HOSTS, PKG_TOOLS
+from data import ARCHS, HOSTS, PKG_TOOLS
 
 import os
 import re
@@ -43,6 +43,13 @@ def current_arch():
 
 def current_platform():
     return '{}-{}'.format(current_os(), current_arch())
+
+
+def normalize_target(target):
+    assert '-' in target
+    os, arch = target.split('-')
+    arch = ARCHS[arch]['arch']
+    return '{}-{}'.format(os, arch)
 
 
 def _file_contains(path, search):

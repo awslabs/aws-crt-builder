@@ -75,27 +75,39 @@ for suffix, default in [('setup', []), ('install', ''), ('update', ''), ('packag
 
 # Be sure to use these monikers in this file, aliases are applied after all tables are built
 ARCHS = {
-    'x86': {},
-    'x64': {},
+    'x86': {
+        'arch': 'x86'
+    },
+    'x64': {
+        'arch': 'x64'
+    },
     'armv6': {
+        'arch': 'armv6',
         'cross_compile_platform': 'linux-armv6',
         'pkg_setup': ['mkdir -p /usr/share/man/man1']
     },
     'armv7': {
+        'arch': 'armv7',
         'cross_compile_platform': 'linux-armv7',
         'pkg_setup': ['mkdir -p /usr/share/man/man1']
     },
     'armv8': {
+        'arch': 'armv8',
         'cross_compile_platform': 'linux-arm64',
         'pkg_setup': ['mkdir -p /usr/share/man/man1']
     },
     'mips': {
+        'arch': 'mips',
         'cross_compile_platform': 'linux-mips'
     },
 }
 
+ARCHS['x86_64'] = ARCHS['x64']
+ARCHS['amd64'] = ARCHS['x64']
+
 HOSTS = {
     'linux': {
+        'os': 'linux',
         'variables': {
             'python': "python3",
         },
@@ -106,6 +118,7 @@ HOSTS = {
         'sudo': True
     },
     'ubuntu': {
+        'os': 'linux',
         'pkg_tool': PKG_TOOLS.APT,
         # need ld and make and such
         'compiler_packages': ['build-essential'],
@@ -116,6 +129,7 @@ HOSTS = {
         'pkg_install': 'apt-get -qq install -y',
     },
     'alpine': {
+        'os': 'linux',
         'pkg_tool': PKG_TOOLS.APK,
         'compiler_packages': ['build-base'],
         'pkg_setup': [],
@@ -123,6 +137,7 @@ HOSTS = {
         'pkg_install': 'apk add --no-cache',
     },
     'raspbian': {
+        'os': 'linux',
         'pkg_tool': PKG_TOOLS.APT,
         # need ld and make and such
         'compiler_packages': ['build-essential'],
@@ -130,6 +145,7 @@ HOSTS = {
         'pkg_install': 'apt-get -qq install -y',
     },
     'al2012': {
+        'os': 'linux',
         'cmake_args': [
             "-DENABLE_SANITIZERS=OFF",
             "-DPERFORM_HEADER_CHECK=OFF",
@@ -144,6 +160,7 @@ HOSTS = {
         },
     },
     'al2': {
+        'os': 'linux',
         'cmake_args': [
             "-DENABLE_SANITIZERS=OFF",
             "-DPERFORM_HEADER_CHECK=OFF",
@@ -158,6 +175,7 @@ HOSTS = {
         },
     },
     'manylinux': {
+        'os': 'linux',
         'pkg_tool': PKG_TOOLS.YUM,
         'pkg_update': 'yum update -y',
         'pkg_install': 'yum install -y',
@@ -168,6 +186,7 @@ HOSTS = {
         },
     },
     'windows': {
+        'os': 'windows',
         'variables': {
             'python': "python.exe",
         },
@@ -180,6 +199,7 @@ HOSTS = {
         ],
     },
     'macos': {
+        'os': 'macos',
         'variables': {
             'python': "python3",
         },
@@ -188,6 +208,7 @@ HOSTS = {
         'pkg_install': 'brew install',
     },
     'freebsd': {
+        'os': 'freebsd',
         'variables': {
             'python': "python3",
         },
@@ -199,6 +220,7 @@ HOSTS = {
 }
 
 HOSTS['darwin'] = HOSTS['macos']
+HOSTS['debian'] = HOSTS['ubuntu']
 
 TARGETS = {
     'linux': {
