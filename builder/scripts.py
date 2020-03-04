@@ -49,9 +49,6 @@ class Scripts(object):
     # Must cache all classes with a reference here, or the GC will murder them
     all_classes = set()
 
-    def __init__(self):
-        Scripts.all_classes = _get_all_dynamic_classes()
-
     @staticmethod
     def load(path='.'):
         """ Loads all scripts from ${path}/.builder/**/*.py to make their classes available """
