@@ -112,7 +112,7 @@ class InstallCompiler(Action):
 
             # Write out build_dir/dockcross.env file to init the dockcross env with
             # other code can add to this
-            dockcross_env = os.path.join(env.source_dir, 'dockcross.env')
+            dockcross_env = os.path.join(env.build_dir, 'dockcross.env')
             with open(dockcross_env, "w+") as f:
                 f.write('#env for dockcross\n')
             toolchain.env_file = dockcross_env
