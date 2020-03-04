@@ -70,8 +70,8 @@ def _build_project(env, project, build_tests=False):
     cmake_args = [
         "-B{}".format(project_build_dir),
         "-H{}".format(project_source_dir),
-        "-Werror=dev",
-        "-Werror=deprecated",
+        # "-Werror=dev",
+        # "-Werror=deprecated",
         "-DCMAKE_INSTALL_PREFIX=" + project_install_dir,
         "-DCMAKE_PREFIX_PATH=" + project_install_dir,
         "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
@@ -83,18 +83,20 @@ def _build_project(env, project, build_tests=False):
     # When cross compiling, we must inject the build_env into the cross compile container
     build_env = []
     if toolchain.cross_compile:
-        build_env = ['{}={}'.format(key, val)
+        build_env = ['{}={}\n'.format(key, val)
                      for key, val in config.get('build_env', {}).items()]
+        with open(toolchain.env_file, 'a') as f:
+            f.writelines(build_env)
 
     # configure
-    sh.exec(*toolchain.shell_env, *build_env, "cmake", cmake_args, check=True)
+    sh.exec(*toolchain.shell_env, "cmake", cmake_args, check=True)
 
     # build
-    sh.exec(*toolchain.shell_env, *build_env, "cmake", "--build", project_build_dir, "--config",
+    sh.exec(*toolchain.shell_env, "cmake", "--build", project_build_dir, "--config",
             build_config, check=True)
 
     # install
-    sh.exec(*toolchain.shell_env, *build_env, "cmake", "--build", project_build_dir, "--config",
+    sh.exec(*toolchain.shell_env, "cmake", "--build", project_build_dir, "--config",
             build_config, "--target", "install", check=True)
 
 

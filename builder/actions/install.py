@@ -109,7 +109,15 @@ class InstallCompiler(Action):
             with open(dockcross, "w+t") as f:
                 f.write(script)
             sh.exec('chmod', 'a+x', dockcross)
-            toolchain.shell_env = [dockcross]
+
+            # Write out build_dir/dockcross.env file to init the dockcross env with
+            # other code can add to this
+            dockcross_env = os.path.join(env.source_dir, 'dockcross.env')
+            with open(dockcross_env, "w+") as f:
+                f.write('#env for dockcross\n')
+            toolchain.env_file = dockcross_env
+            toolchain.shell_env = [
+                dockcross, '-a', '--env-file={}'.format(dockcross_env)]
             return
 
         # Compiler is local, or should be, so verify/install and export it
