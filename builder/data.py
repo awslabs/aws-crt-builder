@@ -453,6 +453,7 @@ PLATFORMS['darwin-x64'] = PLATFORMS['macos-x64']
 PLATFORMS['darwin_x86_64'] = PLATFORMS['macos-x64']
 PLATFORMS['macos_x86_64'] = PLATFORMS['macos-x64']
 PLATFORMS['freebsd-x86_64'] = PLATFORMS['freebsd-x64']
+PLATFORMS['freebsd-amd64'] = PLATFORMS['freebsd-x64']
 
 ###############################################################################
 # Aliases
@@ -469,5 +470,5 @@ for v8 in ('aarch64', 'arm64'):
     dict_alias(COMPILERS, 'armv8', v8)
 
 # Linux works on every arch we support. Do this after the armv8 aliases so they get picked up
-for arch in ARCHS:
+for arch in ARCHS.keys():
     PLATFORMS['linux-{}'.format(arch)] = {}
