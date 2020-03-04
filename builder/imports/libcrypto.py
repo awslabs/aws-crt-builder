@@ -14,6 +14,8 @@
 import os
 from pathlib import Path
 from project import Import
+from urllib.request import urlretrieve
+import tarfile
 
 
 class LibCrypto(Import):
@@ -39,7 +41,6 @@ class LibCrypto(Import):
 
         sh = env.shell
 
-        self.installed = True
         # If this is a local build, check the local machine
         if not env.toolchain.cross_compile:
             required_files = [
@@ -58,23 +59,26 @@ class LibCrypto(Import):
             if found >= len(required_files):
                 print('Found existing libcrypto at {}'.format(self.prefix))
                 env.variables['libcrypto_path'] = self.prefix
+                self.installed = True
                 return
 
         install_dir = os.path.join(env.deps_dir, self.name)
         # If path to libcrypto is going to be relative, it has to be relative to the
-        # launch directory
-        self.prefix = str(Path(install_dir).relative_to(env.launch_dir))
+        # source directory
+        self.prefix = str(Path(install_dir).relative_to(env.source_dir))
         env.variables['libcrypto_path'] = self.prefix
         print('Installing pre-built libcrypto binaries for {}-{} to {}'.format(
             env.spec.target, env.spec.arch, install_dir))
 
         sh.mkdir(install_dir)
         url = self.url.format(os=env.spec.target, arch=env.spec.arch)
-        sh.exec('curl', '-sSL',
-                '-o', '{}/libcrypto.tar.gz'.format(install_dir), url, check=True)
-        sh.mkdir(install_dir)
-        sh.exec('tar', 'xzf', '{}/libcrypto.tar.gz'.format(install_dir),
-                '-C', install_dir, check=True)
+        filename = '{}/libcrypto.tar.gz'.format(install_dir)
+        print('Downloading {}'.format(url))
+        urlretrieve(url, filename)
+        print('Extracting {} to {}'.format(filename, install_dir))
+        with tarfile.open(filename) as tar:
+            tar.extractall(install_dir)
+        self.installed = True
 
     def cmake_args(self, env):
         assert self.installed

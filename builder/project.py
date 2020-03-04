@@ -12,6 +12,7 @@
 # permissions and limitations under the License.
 
 from collections import namedtuple, OrderedDict
+from functools import partial
 import glob
 import os
 import sys
@@ -206,6 +207,16 @@ def _build_project(project, env):
     return children
 
 
+def _pushenv(project, key, env):
+    env.shell.pushenv()
+    for var, value in project.config.get(key, {}).items():
+        env.shell.setenv(var, value)
+
+
+def _popenv(env):
+    env.shell.popenv()
+
+
 # convert ProjectReference -> Project
 def _resolve_projects(refs):
     projects = []
@@ -323,7 +334,7 @@ class Project(object):
         tree_transform(kwargs, 'imports', _make_import_refs)
 
         # Store args as the intial config, will be merged via get_config() later
-        self.config = {**kwargs.get('config', {}), **kwargs}
+        self.config = kwargs
 
         # Allow projects to augment search dirs
         for search_dir in self.config.get('search_dirs', []):
@@ -360,6 +371,8 @@ class Project(object):
             env.config.get('pre_build_steps', [])
         if len(all_steps) == 0:
             return None
+        all_steps = [
+            partial(_pushenv, self, 'pre_build_env'), *all_steps, _popenv]
         return Script(all_steps, name='pre_build {}'.format(self.name))
 
     def build(self, env):
@@ -373,6 +386,8 @@ class Project(object):
 
         if len(build_project) == 0:
             return None
+        build_project = [
+            partial(_pushenv, self, 'build_env'), *build_project, _popenv]
         return Script(build_project, name='build project {}'.format(self.name))
 
     def build_consumers(self, env):
@@ -388,6 +403,8 @@ class Project(object):
         steps = env.config.get('post_build_steps', [])
         if len(steps) == 0:
             return None
+        steps = [
+            partial(_pushenv, self, 'post_build_env'), *steps, _popenv]
         return Script(steps, name='post_build {}'.format(self.name))
 
     def test(self, env):
@@ -525,7 +542,7 @@ class Project(object):
                 print('    Found project: {} at {}'.format(
                     project_config['name'], path))
                 project = Project._create_project(
-                    **project_config, path=path, config=project_config)
+                    **project_config, path=path)
                 return Project._cache_project(project)
 
         # load any builder scripts and check them

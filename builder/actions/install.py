@@ -109,7 +109,15 @@ class InstallCompiler(Action):
             with open(dockcross, "w+t") as f:
                 f.write(script)
             sh.exec('chmod', 'a+x', dockcross)
-            toolchain.shell_env = [dockcross]
+
+            # Write out build_dir/dockcross.env file to init the dockcross env with
+            # other code can add to this
+            dockcross_env = os.path.join(env.build_dir, 'dockcross.env')
+            with open(dockcross_env, "w+") as f:
+                f.write('#env for dockcross\n')
+            toolchain.env_file = dockcross_env
+            toolchain.shell_env = [
+                dockcross, '-a', '--env-file={}'.format(dockcross_env)]
             return
 
         # Compiler is local, or should be, so verify/install and export it
@@ -120,7 +128,7 @@ class InstallCompiler(Action):
 
         # See if the compiler is already installed
         compiler_path, found_version = Toolchain.find_compiler(
-            env, compiler, version)
+            compiler, version)
         if compiler_path:
             print('Compiler {} {} is already installed ({})'.format(
                 compiler, version, compiler_path))

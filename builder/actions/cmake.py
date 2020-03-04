@@ -18,20 +18,19 @@ from action import Action
 from toolchain import Toolchain
 
 
-# All dirs used should be relative to env.launch_dir, as this is where the cross
+# All dirs used should be relative to env.source_dir, as this is where the cross
 # compilation will be mounting to do its work
 def _project_dirs(env, project):
     if not project.resolved():
         print('Project is not resolved: {}'.format(project.name))
 
-    source_dir = str(Path(project.path).relative_to(env.launch_dir))
+    source_dir = str(Path(project.path).relative_to(env.source_dir))
     build_dir = str(
-        Path(os.path.join(env.build_dir, project.name)).relative_to(env.launch_dir))
-    # cross compiles are effectively chrooted to the launch_dir, normal builds need absolute paths
-    # or cmake gets lost because we specify binary/source directories explicitly while working
-    # from the launch_dir, but it wants directories relative to source
+        Path(os.path.join(env.build_dir, project.name)).relative_to(env.source_dir))
+    # cross compiles are effectively chrooted to the source_dir, normal builds need absolute paths
+    # or cmake gets lost because it wants directories relative to source
     if env.toolchain.cross_compile:
-        install_dir = str(Path(env.install_dir).relative_to(env.launch_dir))
+        install_dir = str(Path(env.install_dir).relative_to(env.source_dir))
     else:
         install_dir = env.install_dir
     return source_dir, build_dir, install_dir
@@ -39,7 +38,7 @@ def _project_dirs(env, project):
 
 def _build_project(env, project, build_tests=False):
     sh = env.shell
-    config = env.config
+    config = project.get_config(env.spec)
     toolchain = env.toolchain
     # build dependencies first, let cmake decide what needs doing
     for dep in project.get_dependencies(env.spec):
@@ -61,8 +60,8 @@ def _build_project(env, project, build_tests=False):
     # Set compiler flags
     compiler_flags = []
     if toolchain.compiler != 'default' and not toolchain.cross_compile:
-        c_path = toolchain.compiler_path(env)
-        cxx_path = toolchain.cxx_compiler_path(env)
+        c_path = toolchain.compiler_path()
+        cxx_path = toolchain.cxx_compiler_path()
         for opt, value in [('c', c_path), ('cxx', cxx_path)]:
             if value:
                 compiler_flags.append(
@@ -71,31 +70,33 @@ def _build_project(env, project, build_tests=False):
     cmake_args = [
         "-B{}".format(project_build_dir),
         "-H{}".format(project_source_dir),
-        "-Werror=dev",
-        "-Werror=deprecated",
+        # "-Werror=dev",
+        # "-Werror=deprecated",
         "-DCMAKE_INSTALL_PREFIX=" + project_install_dir,
         "-DCMAKE_PREFIX_PATH=" + project_install_dir,
         "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
         "-DCMAKE_BUILD_TYPE=" + build_config,
         "-DBUILD_TESTING=" + ("ON" if build_tests else "OFF"),
         *compiler_flags,
-    ] + project.cmake_args(env) + config.get('cmake_args', [])
+    ] + project.cmake_args(env)
 
     # When cross compiling, we must inject the build_env into the cross compile container
     build_env = []
     if toolchain.cross_compile:
-        build_env = ['{}={}'.format(key, val)
-                     for key, val in config.get('build_env', {})]
+        build_env = ['{}={}\n'.format(key, val)
+                     for key, val in config.get('build_env', {}).items()]
+        with open(toolchain.env_file, 'a') as f:
+            f.writelines(build_env)
 
     # configure
-    sh.exec(*toolchain.shell_env, *build_env, "cmake", cmake_args, check=True)
+    sh.exec(*toolchain.shell_env, "cmake", cmake_args, check=True)
 
     # build
-    sh.exec(*toolchain.shell_env, *build_env, "cmake", "--build", project_build_dir, "--config",
+    sh.exec(*toolchain.shell_env, "cmake", "--build", project_build_dir, "--config",
             build_config, check=True)
 
     # install
-    sh.exec(*toolchain.shell_env, *build_env, "cmake", "--build", project_build_dir, "--config",
+    sh.exec(*toolchain.shell_env, "cmake", "--build", project_build_dir, "--config",
             build_config, "--target", "install", check=True)
 
 
@@ -128,6 +129,10 @@ class CTestRun(Action):
     def run(self, env):
         sh = env.shell
         toolchain = env.toolchain
+
+        if toolchain.cross_compile:
+            print('WARNING: Running tests for cross compile is not yet supported')
+            return
 
         project_source_dir, project_build_dir, project_install_dir = _project_dirs(
             env, self.project)

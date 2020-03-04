@@ -88,34 +88,37 @@ class Env(object):
             assert project.resolved()
         self.project = project
 
-        # Once initialized, switch to the source dir before running actions
-        config = {}
-        if self.project and self.project.resolved():
-            self.args.build_dir = self.project.path
-            config = self.project.config
+        if not self.project or not self.project.resolved():
+            return
 
-        self.source_dir = os.path.abspath(self.args.build_dir)
+        # Build the config object
+        self.config = self.project.get_config(self.spec, self.args.cli_config)
+
+        # Once initialized, switch to the source dir before running actions
+        config = self.project.config
+        self.source_dir = os.path.abspath(self.project.path)
+        self.shell.cd(self.source_dir)
 
         # Allow these to be overridden by the project, and relative to source_dir if not absolute paths
-        build_dir = config.get(
-            'build_dir', os.path.join(self.launch_dir, 'build'))
-        if not os.path.isabs(build_dir):
-            build_dir = os.path.join(self.source_dir, build_dir)
-        self.build_dir = build_dir
-        deps_dir = config.get(
+        build_dir = self.config.get(
+            'build_dir', os.path.join(self.source_dir, 'build'))
+        self.build_dir = os.path.abspath(build_dir)
+
+        deps_dir = self.config.get(
             'deps_dir', os.path.join(self.build_dir, 'deps'))
-        if not os.path.isabs(deps_dir):
-            deps_dir = os.path.join(self.source_dir, deps_dir)
-        self.deps_dir = deps_dir
-        install_dir = config.get(
-            'install_dir', os.path.join(self.source_dir, 'install'))
-        if not os.path.isabs(install_dir):
-            install_dir = os.path.join(self.source_dir, install_dir)
-        self.install_dir = os.path.join(self.build_dir, 'install')
+        self.deps_dir = os.path.abspath(deps_dir)
+
+        install_dir = self.config.get(
+            'install_dir', os.path.join(self.build_dir, 'install'))
+        self.install_dir = os.path.abspath(install_dir)
 
         print('Source directory: {}'.format(self.source_dir))
-        print('Working directory: {}'.format(self.shell.cwd()))
         print('Build directory: {}'.format(self.build_dir))
+
+        self.variables['source_dir'] = self.source_dir
+        self.variables['build_dir'] = self.build_dir
+        self.variables['deps_dir'] = self.deps_dir
+        self.variables['install_dir'] = self.install_dir
 
         Project.search_dirs += [
             self.build_dir,

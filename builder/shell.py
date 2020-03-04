@@ -17,11 +17,9 @@ import shutil
 import subprocess
 import sys
 import tempfile
-from time import sleep
 
 from host import current_os
-
-_retry_wait_secs = 3  # wait 3 seconds between retries of commands
+import util
 
 
 class Shell(object):
@@ -36,80 +34,6 @@ class Shell(object):
         self.dryrun = dryrun
         self.platform = current_os()
 
-    def _flatten_command(self, *command):
-        # Process out lists
-        new_command = []
-
-        def _proc_segment(command_segment):
-            e_type = type(command_segment)
-            if e_type == str:
-                new_command.append(command_segment)
-            elif e_type == list or e_type == tuple:
-                for segment in command_segment:
-                    _proc_segment(segment)
-        _proc_segment(command)
-        return new_command
-
-    def _log_command(self, *command):
-        print('>', subprocess.list2cmdline(
-            self._flatten_command(*command)), flush=True)
-
-    def _run_command(self, *command, **kwargs):
-        ExecResult = namedtuple('ExecResult', ['returncode', 'pid', 'output'])
-        if not kwargs.get('quiet', False):
-            self._log_command(*command)
-        tries = kwargs.get('retries', 1)
-        if not self.dryrun:
-            output = None
-            while tries > 0:
-                tries -= 1
-                try:
-                    cmds = self._flatten_command(*command)
-                    if self.platform == 'windows':
-                        cmds = [cmd.encode('ascii', 'ignore').decode()
-                                for cmd in cmds]
-                    proc = subprocess.Popen(
-                        cmds,
-                        stdout=subprocess.PIPE,
-                        stderr=subprocess.STDOUT,
-                        shell=(self.platform == 'windows'),
-                        bufsize=0)  # do not buffer output
-
-                    # Convert all output to strings, which makes it much easier to both print
-                    # and process, since all known uses of parsing output want strings anyway
-                    output = ""
-                    line = proc.stdout.readline()
-                    while (line):
-                        # ignore weird characters coming back from the shell (colors, etc)
-                        if not isinstance(line, str):
-                            line = line.decode('ascii', 'ignore')
-                        # We're reading in binary mode, so no automatic newline translation
-                        if self.platform == 'windows':
-                            line = line.replace('\r\n', '\n')
-                        output += line
-                        if not kwargs.get('quiet', False):
-                            print(line, end='', flush=True)
-                        line = proc.stdout.readline()
-                    proc.wait()
-
-                    if proc.returncode != 0:
-                        raise Exception(
-                            'Command exited with code {}'.format(proc.returncode))
-
-                    return ExecResult(proc.returncode, proc.pid, output)
-
-                except Exception as ex:
-                    print('Failed to run {}: {}'.format(
-                        ' '.join(self._flatten_command(*command)), ex))
-                    if kwargs.get('check', False) and tries == 0:
-                        raise
-                    output = ex
-                    if tries > 0:
-                        print('Waiting {} seconds to try again'.format(
-                            _retry_wait_secs))
-                        sleep(_retry_wait_secs)
-            return ExecResult(-1, -1, output)
-
     def _cd(self, directory):
         if self.dryrun:
             if os.path.isabs(directory) or directory.startswith('$'):
@@ -121,25 +45,25 @@ class Shell(object):
 
     def cd(self, directory):
         """ # Helper to run chdir regardless of dry run status """
-        self._log_command("cd", directory)
+        util.log_command("cd", directory)
         self._cd(directory)
 
     def pushd(self, directory):
         """ Equivalent to bash/zsh pushd """
-        self._log_command("pushd", directory)
+        util.log_command("pushd", directory)
         self.dir_stack.append(self.cwd())
         self._cd(directory)
 
     def popd(self):
         """ Equivalent to bash/zsh popd """
         if len(self.dir_stack) > 0:
-            self._log_command("popd", self.dir_stack[-1])
+            util.log_command("popd", self.dir_stack[-1])
             self._cd(self.dir_stack[-1])
             self.dir_stack.pop()
 
     def mkdir(self, directory):
         """ Equivalent to mkdir -p $dir """
-        self._log_command("mkdir", "-p", directory)
+        util.log_command("mkdir", "-p", directory)
         if not self.dryrun:
             os.makedirs(directory, exist_ok=True)
 
@@ -159,7 +83,7 @@ class Shell(object):
 
     def setenv(self, var, value):
         """ Set an environment variable """
-        self._log_command(["export", "{}={}".format(var, value)])
+        util.log_command(["export", "{}={}".format(var, value)])
         if not self.dryrun:
             os.environ[var] = value
 
@@ -169,12 +93,12 @@ class Shell(object):
 
     def pushenv(self):
         """ Store the current environment on a stack, for restoration later """
-        self._log_command(['pushenv'])
+        util.log_command(['pushenv'])
         self.env_stack.append(dict(os.environ))
 
     def popenv(self):
         """ Restore the environment to the state on the top of the stack """
-        self._log_command(['popenv'])
+        util.log_command(['popenv'])
         env = self.env_stack.pop()
         # clear out values that won't be overwritten
         for name, value in dict(os.environ).items():
@@ -186,7 +110,7 @@ class Shell(object):
 
     def rm(self, path):
         """ Remove a file or directory """
-        self._log_command(['rm', '-rf', path])
+        util.log_command(['rm', '-rf', path])
         if not self.dryrun:
             try:
                 shutil.rmtree(path)
@@ -195,29 +119,7 @@ class Shell(object):
 
     def where(self, exe, path=None):
         """ Platform agnostic `where executable` command """
-        if exe is None:
-            return None
-        if path is None:
-            path = os.environ['PATH']
-        paths = path.split(os.pathsep)
-        extlist = ['']
-
-        def is_executable(path):
-            return os.path.isfile(path) and os.access(path, os.X_OK)
-
-        if sys.platform == 'win32':
-            pathext = os.environ['PATHEXT'].lower().split(os.pathsep)
-            (base, ext) = os.path.splitext(exe)
-            if ext.lower() not in pathext:
-                extlist = pathext
-        for ext in extlist:
-            exe_name = exe + ext
-            for p in paths:
-                exe_path = os.path.join(p, exe_name)
-                if is_executable(exe_path):
-                    return exe_path
-
-        return None
+        return util.where(exe, path)
 
     def exec(self, *command, **kwargs):
         """ 
@@ -231,8 +133,8 @@ class Shell(object):
         if kwargs.get('always', False):
             prev_dryrun = self.dryrun
             self.dryrun = False
-            result = self._run_command(*command, **kwargs)
+            result = util.run_command(*command, **kwargs, dryrun=self.dryrun)
             self.dryrun = prev_dryrun
         else:
-            result = self._run_command(*command, **kwargs)
+            result = util.run_command(*command, **kwargs, dryrun=self.dryrun)
         return result
