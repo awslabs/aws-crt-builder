@@ -27,6 +27,7 @@ def current_os():
         return 'linux'
     elif sys.platform.startswith('freebsd'):
         return 'freebsd'
+    return 'UNKNOWN'
 
 
 def current_arch():
