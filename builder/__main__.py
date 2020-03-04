@@ -43,8 +43,6 @@ def run_action(action, env):
     config = env.config
     # Set build environment from config
     env.shell.pushenv()
-    for var, value in config.get('build_env', {}).items():
-        env.shell.setenv(var, value)
     for var, value in getattr(env, 'env', {}).items():
         env.shell.setenv(var, value)
 
