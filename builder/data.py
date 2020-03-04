@@ -84,17 +84,17 @@ ARCHS = {
     'armv6': {
         'arch': 'armv6',
         'cross_compile_platform': 'linux-armv6',
-        'pkg_setup': ['mkdir -p /usr/share/man/man1']
+        'apt_setup': ['mkdir -p /usr/share/man/man1']
     },
     'armv7': {
         'arch': 'armv7',
         'cross_compile_platform': 'linux-armv7',
-        'pkg_setup': ['mkdir -p /usr/share/man/man1']
+        'apt_setup': ['mkdir -p /usr/share/man/man1']
     },
     'armv8': {
         'arch': 'armv8',
         'cross_compile_platform': 'linux-arm64',
-        'pkg_setup': ['mkdir -p /usr/share/man/man1']
+        'apt_setup': ['mkdir -p /usr/share/man/man1']
     },
     'mips': {
         'arch': 'mips',
