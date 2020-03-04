@@ -102,17 +102,14 @@ class Env(object):
         # Allow these to be overridden by the project, and relative to source_dir if not absolute paths
         build_dir = self.config.get(
             'build_dir', os.path.join(self.source_dir, 'build'))
-        print('build_dir={}'.format(build_dir))
         self.build_dir = os.path.abspath(build_dir)
 
         deps_dir = self.config.get(
             'deps_dir', os.path.join(self.build_dir, 'deps'))
-        print('deps_dir={}'.format(build_dir))
         self.deps_dir = os.path.abspath(deps_dir)
 
         install_dir = self.config.get(
             'install_dir', os.path.join(self.build_dir, 'install'))
-        print('install_dir={}'.format(build_dir))
         self.install_dir = os.path.abspath(install_dir)
 
         print('Source directory: {}'.format(self.source_dir))
