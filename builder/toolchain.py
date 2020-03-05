@@ -22,14 +22,14 @@ import util
 
 def _compiler_version(cc):
     if current_os() != 'windows':
-        result = util.run_command(cc, '--version', stderr=False)
+        result = util.run_command(cc, '--version', quiet=True, stderr=False)
         text = result.output
         # Apple clang
         m = re.match('Apple (LLVM|clang) version (\d+)', text)
         if m:
             return 'clang', m.group(2)
         # LLVM clang
-        m = re.match('clang version (\d+)', text)
+        m = re.match('.*clang version (\d+)', text)
         if m:
             return 'clang', m.group(1)
         # GCC 4.x
