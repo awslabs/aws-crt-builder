@@ -61,7 +61,7 @@ def replace_variables(value, variables):
 def list_unique(items):
     """ Given a list, return a new list with the unique items in order from the original list """
     uniq = set()
-    return [i for i in items if i not in uniq and (uniq.add(i) or True)]
+    return [i for i in items if str(i) not in uniq and (uniq.add(str(i)) or True)]
 
 
 def dict_alias(tree, key, alias):
@@ -138,7 +138,8 @@ def where(exe, path=None):
         for p in paths:
             exe_path = os.path.join(p, exe_name)
             if is_executable(exe_path):
-                return exe_path
+                # Remove any symlinks
+                return os.path.realpath(exe_path)
 
     return None
 
