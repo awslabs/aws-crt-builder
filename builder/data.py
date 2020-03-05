@@ -215,7 +215,7 @@ HOSTS = {
 
         'pkg_tool': PKG_TOOLS.PKG,
         'pkg_update': 'pkg update',
-        'pkg_install': 'pkg install'
+        'pkg_install': 'pkg install -y'
     }
 }
 
