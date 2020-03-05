@@ -103,8 +103,8 @@ class InstallCompiler(Action):
             result = sh.exec(
                 'docker', 'run', 'dockcross/{}'.format(cross_compile_platform), quiet=True)
             # Strip off any output from docker itself
-            output, script = result.output.partition('#!')
-            script = '#!' + script
+            output, shebang, script = result.output.partition('#!')
+            script = shebang + script
             print(output)
             assert result.returncode == 0
 
