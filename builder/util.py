@@ -58,6 +58,12 @@ def replace_variables(value, variables):
         return value
 
 
+def list_unique(items):
+    """ Given a list, return a new list with the unique items in order from the original list """
+    uniq = set()
+    return [i for i in items if i not in uniq and (uniq.add(i) or True)]
+
+
 def dict_alias(tree, key, alias):
     """ At any level in the tree, if key is found, a new entry with name alias will reference it """
     # depth first, should result in the least tree traversal

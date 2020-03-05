@@ -22,6 +22,7 @@ from action import Action
 from host import current_os, package_tool
 from actions.script import Script
 from toolchain import Toolchain
+from util import list_unique
 
 
 class InstallPackages(Action):
@@ -39,6 +40,7 @@ class InstallPackages(Action):
         if not packages:
             return
 
+        packages = list_unique(packages)
         pkg_tool = package_tool()
         print('Installing packages via {}: {}'.format(
             pkg_tool.value, ', '.join(packages)))
@@ -58,7 +60,7 @@ class InstallPackages(Action):
         if not InstallPackages.pkg_init_done:
             pkg_setup = config.get('pkg_setup', [])
             if pkg_setup:
-                for cmd in pkg_setup:
+                for cmd in list_unique(pkg_setup):
                     if isinstance(cmd, str):
                         cmd = cmd.split(' ')
                     assert isinstance(cmd, list)
@@ -155,7 +157,7 @@ class InstallCompiler(Action):
                     compiler, version, compiler_path))
                 return
 
-        packages = config['compiler_packages']
+        packages = list_unique(config.get('compiler_packages', []))
         after_packages = [_export_compiler]
         if toolchain.cross_compile:
             after_packages = [_install_cross_compile_toolchain]
