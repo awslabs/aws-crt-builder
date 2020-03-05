@@ -144,7 +144,7 @@ jobs:
     needs: package
     strategy:
       matrix:
-        arch: [linux-armv6, linux-armv7, linux-arm64]
+        arch: [linux-armv6, linux-armv7, linux-armv8]
   
     steps:
     - name: Checkout Source
