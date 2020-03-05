@@ -115,7 +115,8 @@ def where(exe, path=None):
         return None
     if path is None:
         path = os.environ['PATH']
-    paths = os.path.split(os.pathsep)
+    path_split = ':' if sys.platform != 'win32' else ';'
+    paths = path.split(path_split)
     extlist = ['']
 
     def is_executable(path):
