@@ -15,6 +15,7 @@ RUN apt-get update -qq \
     python3-pip \
     build-essential \
     cmake \
+    docker \
     # For PPAs
     software-properties-common \
     apt-transport-https \
