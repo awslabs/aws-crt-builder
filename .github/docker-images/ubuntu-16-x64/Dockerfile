@@ -49,6 +49,6 @@ RUN curl -sSL https://d19elf31gohf1l.cloudfront.net/_binaries/libcrypto/libcrypt
 ###############################################################################
 # Install entrypoint
 ###############################################################################
-# ADD entrypoint.sh /usr/local/bin/builder
-# RUN chmod a+x /usr/local/bin/builder
-# ENTRYPOINT ["/usr/local/bin/builder"]
+ADD entrypoint.sh /usr/local/bin/builder
+RUN chmod a+x /usr/local/bin/builder
+ENTRYPOINT ["/usr/local/bin/builder"]
