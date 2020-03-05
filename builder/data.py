@@ -104,6 +104,7 @@ ARCHS = {
 
 ARCHS['x86_64'] = ARCHS['x64']
 ARCHS['amd64'] = ARCHS['x64']
+ARCHS['i686'] = ARCHS['x86']
 
 HOSTS = {
     'linux': {

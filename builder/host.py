@@ -47,6 +47,7 @@ def current_platform():
 
 
 def normalize_target(target):
+    """ convert target into canonical os and arch """
     assert '-' in target
     os, arch = target.split('-')
     arch = ARCHS[arch]['arch']
@@ -71,33 +72,35 @@ _current_host = None
 
 
 def current_host():
-    try:
+    """ Between sys.platform or linux distro identifiers, determine the specific os """
+    global _current_host
+    if _current_host:
         return _current_host
-    except:
-        def _discover_host():
-            platform = current_os()
-            if platform == 'linux':
-                if _file_contains('/etc/system-release', 'Amazon Linux release 2'):
-                    return 'al2'
-                if _file_contains('/etc/system-release', 'Bare Metal'):
-                    return 'al2012'
-                if _file_contains('/etc/redhat-release', 'CentOS release 5.11 (Final)'):
-                    return 'manylinux'
-                if _file_contains('/etc/redhat-release', 'CentOS Linux release 7.7.1908'):
-                    return 'manylinux'
-                if _file_contains('/etc/lsb-release', 'Ubuntu'):
-                    return 'ubuntu'
-                if _file_contains('/etc/os-release', 'Debian'):
-                    return 'debian'
-                if _file_contains('/etc/os-release', 'Alpine Linux'):
-                    return 'alpine'
-                if _file_contains('/etc/os-release', 'Raspbian'):
-                    return 'raspbian'
-                return 'linux'
-            else:
-                return platform
-        _current_host = _discover_host()
-        return _current_host
+
+    def _discover_host():
+        platform = current_os()
+        if platform == 'linux':
+            if _file_contains('/etc/system-release', 'Amazon Linux release 2'):
+                return 'al2'
+            if _file_contains('/etc/system-release', 'Bare Metal'):
+                return 'al2012'
+            if _file_contains('/etc/redhat-release', 'CentOS release 5.11 (Final)'):
+                return 'manylinux'
+            if _file_contains('/etc/redhat-release', 'CentOS Linux release 7.7.1908'):
+                return 'manylinux'
+            if _file_contains('/etc/lsb-release', 'Ubuntu'):
+                return 'ubuntu'
+            if _file_contains('/etc/os-release', 'Debian'):
+                return 'debian'
+            if _file_contains('/etc/os-release', 'Alpine Linux'):
+                return 'alpine'
+            if _file_contains('/etc/os-release', 'Raspbian'):
+                return 'raspbian'
+            return 'linux'
+        else:
+            return platform
+    _current_host = _discover_host()
+    return _current_host
 
 
 def package_tool(host=current_host()):

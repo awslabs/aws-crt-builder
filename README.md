@@ -31,7 +31,7 @@ Usage: ```builder.pyz [build|inspect|<action-name>] [spec] [OPTIONS]```
 
 
 ### Supported Targets:
-* linux: x86, x64|x86_64, armv6, armv7, arm64|armv8|aarch64
+* linux: x86|i686, x64|x86_64, armv6, armv7, arm64|armv8|aarch64|arm64v8
 * macos|darwin: x64|x86_64
 * windows: x86, x64
 * freebsd: x64
