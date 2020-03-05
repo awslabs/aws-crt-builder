@@ -14,14 +14,14 @@
 import os
 import re
 from data import COMPILERS
-from host import current_os, current_arch
+from host import current_os, current_arch, normalize_target
 import util
 
 # helpful list of XCode clang output: https://gist.github.com/yamaya/2924292
 
 
 def _compiler_version(cc):
-    if current_os() in ('linux', 'macos'):
+    if current_os() != 'windows':
         result = util.run_command(cc, '--version', quiet=True, stderr=False)
         text = result.output
         # Apple clang
@@ -29,7 +29,7 @@ def _compiler_version(cc):
         if m:
             return 'clang', m.group(2)
         # LLVM clang
-        m = re.match('clang version (\d+)', text)
+        m = re.match('.*clang version (\d+)', text)
         if m:
             return 'clang', m.group(1)
         # GCC 4.x
@@ -110,7 +110,8 @@ class Toolchain(object):
 
         # detect cross-compile
         self.cross_compile = _is_cross_compile(self.target, self.arch)
-        self.platform = '{}-{}'.format(self.target, self.arch)
+        self.platform = normalize_target(
+            '{}-{}'.format(self.target, self.arch))
         self.shell_env = []
 
         if self.cross_compile:
@@ -275,7 +276,7 @@ class Toolchain(object):
             compiler = None
             version = None
             platform = current_os()
-            if platform in ('linux', 'macos'):
+            if platform != 'windows':
                 # resolve CC and /usr/bin/cc
                 for env_cc in (util.where(os.environ.get('CC', None)), util.where('cc')):
                     if env_cc:

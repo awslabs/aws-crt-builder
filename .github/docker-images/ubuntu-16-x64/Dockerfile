@@ -20,6 +20,15 @@ RUN apt-get update -qq \
     apt-transport-https \
     && apt-get clean
 
+##############################################################################
+# Docker (for cross compiling via dockcross)
+###############################################################################
+WORKDIR /tmp
+RUN set -ex && curl -fsSL https://get.docker.com -o /tmp/get-docker.sh \
+    && sh /tmp/get-docker.sh \
+    && systemctl enable docker \
+    && echo "service docker start" >> ~/.bashrc
+
 ###############################################################################
 # Python/AWS CLI
 ###############################################################################

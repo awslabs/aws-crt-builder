@@ -71,9 +71,19 @@ def _coalesce_pkg_options(spec, config):
     return config
 
 
+def _arch_aliases(spec):
+    canonical_arch = ARCHS.get(spec.arch, {}).get('arch', None)
+    assert canonical_arch
+    aliases = []
+    for name, arch in ARCHS.items():
+        if arch.get('arch') == canonical_arch:
+            aliases += [name]
+    return aliases
+
+
 def produce_config(build_spec, project, overrides=None, **additional_variables):
     """ Traverse the configurations to produce one for the given spec """
-    platform = current_os()
+    host_os = current_os()
 
     defaults = {
         'hosts': HOSTS,
@@ -83,31 +93,28 @@ def produce_config(build_spec, project, overrides=None, **additional_variables):
     }
 
     # Build the list of config options to poll
-    configs = []
+    configs = OrderedDict()
 
     # Processes a config object (could come from a file), searching for keys hosts, targets, and compilers
     def process_config(config):
 
         def process_element(map, element_name, instance):
-            if not map:
+            if not map or not isinstance(map, dict):
                 return
 
             element = map.get(element_name)
-            if not element:
+            # Some keys will just contain lists or scalars (e.g. hosts)
+            if not element or not isinstance(element, dict):
                 return
 
             new_config = element.get(instance)
             if not new_config:
                 return
 
-            configs.append(new_config)
+            configs[id(new_config)] = new_config
 
-            # target, host, and compiler can contain architectures
-            config_archs = new_config.get('architectures')
-            if config_archs:
-                config_arch = config_archs.get(build_spec.arch)
-                if config_arch:
-                    configs.append(config_arch)
+            # recursively process config as long as sub-sections are found
+            process_config(new_config)
 
             return new_config
 
@@ -117,16 +124,18 @@ def produce_config(build_spec, project, overrides=None, **additional_variables):
             if key not in ('hosts', 'targets', 'compilers', 'architectures'):
                 defaults[key] = value
         if len(defaults) > 0:
-            configs.append(defaults)
+            configs[id(defaults)] = defaults
 
-        # pull out arch
-        process_element(config, 'architectures', build_spec.arch)
+        # pull out arch + any aliases
+        archs = _arch_aliases(build_spec)
+        for arch in archs:
+            process_element(config, 'architectures', arch)
 
-        # pull out any host named default, then spec platform and host to override
+        # pull out any host named default, then spec host os and host to override
         process_element(config, 'hosts', 'default')
-        # Get defaults from platform (linux) then override with host (al2, manylinux, etc)
-        if platform != build_spec.host:
-            process_element(config, 'hosts', platform)
+        # Get defaults from os (linux) then override with host (al2, manylinux, etc)
+        if host_os != build_spec.host:
+            process_element(config, 'hosts', host_os)
         process_element(config, 'hosts', build_spec.host)
 
         # pull out default target, then spec target to override
@@ -153,7 +162,7 @@ def produce_config(build_spec, project, overrides=None, **additional_variables):
     for key, default in KEYS.items():
         new_version[key] = default
 
-        for config in configs:
+        for config in configs.values():
             override_key = '!' + key
             if override_key in config:
                 # Handle overrides
@@ -181,7 +190,7 @@ def produce_config(build_spec, project, overrides=None, **additional_variables):
     }
 
     # Pull variables from the configs
-    for config in configs:
+    for config in configs.values():
         if 'variables' in config:
             variables = config['variables']
             assert type(variables) == dict
@@ -350,6 +359,7 @@ class Project(object):
         imports = self.get_imports(env.spec)
         build_imports = []
         for i in imports:
+            print('Resolving {}'.format(i.name))
             import_steps = _build_project(i, env)
             if import_steps:
                 build_imports += [Script(import_steps,

@@ -68,10 +68,6 @@ class BuildSpec(object):
                 else:
                     setattr(self, variant, False)
 
-        platform = kwargs.get('platform', None)
-        if platform:
-            self.target, self.arch = platform.split('-')
-
         # Pull out individual fields. Note this is not in an else to support overriding at construction time
         for slot in ('host', 'target', 'arch', 'compiler', 'compiler_version', 'downstream'):
             if slot in kwargs and kwargs[slot]:

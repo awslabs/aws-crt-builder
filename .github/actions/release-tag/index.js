@@ -6,7 +6,8 @@ try {
     const parts = github_ref.split('/');
     const branch = parts[parts.length - 1];
     var release_tag = branch;
-    if (branch == 'master') {
+    // GITHUB_REF can be refs/pull/<pr#>/merge for PR openings
+    if (branch == 'master' || branch == 'merge') {
         const spawnSync = require('child_process').spawnSync;
         const result = spawnSync('git', ['describe', '--abbrev=0'], {
             timeout: 2000

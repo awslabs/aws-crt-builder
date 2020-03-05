@@ -58,6 +58,12 @@ def replace_variables(value, variables):
         return value
 
 
+def list_unique(items):
+    """ Given a list, return a new list with the unique items in order from the original list """
+    uniq = set()
+    return [i for i in items if str(i) not in uniq and (uniq.add(str(i)) or True)]
+
+
 def dict_alias(tree, key, alias):
     """ At any level in the tree, if key is found, a new entry with name alias will reference it """
     # depth first, should result in the least tree traversal
@@ -115,7 +121,8 @@ def where(exe, path=None):
         return None
     if path is None:
         path = os.environ['PATH']
-    paths = os.path.split(os.pathsep)
+    path_split = ':' if sys.platform != 'win32' else ';'
+    paths = path.split(path_split)
     extlist = ['']
 
     def is_executable(path):
@@ -131,7 +138,8 @@ def where(exe, path=None):
         for p in paths:
             exe_path = os.path.join(p, exe_name)
             if is_executable(exe_path):
-                return exe_path
+                # Remove any symlinks
+                return os.path.realpath(exe_path)
 
     return None
 

@@ -28,7 +28,7 @@ from env import Env
 from project import Project
 from scripts import Scripts
 from toolchain import Toolchain
-from host import current_os, current_host, current_arch, current_platform
+from host import current_os, current_host, current_arch, current_platform, normalize_target
 import data
 
 import api  # force API to load and expose the virtual module
@@ -113,7 +113,7 @@ def inspect_host(env):
     toolchain = Toolchain(spec=spec)
     print('Host Environment:')
     print('  Host: {} {}'.format(spec.host, spec.arch))
-    print('  Default Target: {} {}'.format(spec.target, spec.arch))
+    print('  Target: {} {}'.format(spec.target, spec.arch))
     compiler_path = toolchain.compiler_path()
     if not compiler_path:
         compiler_path = '(Will Install)'
@@ -183,11 +183,15 @@ def parse_args():
         args.command = args.spec
         args.spec = None
 
+    # normalize target
+    if args.target:
+        args.target = normalize_target(args.target)
+
     if args.spec:
         spec = BuildSpec(spec=args.spec, target=args.target)
 
     if args.compiler or args.target:
-        compiler, version = (None, None)
+        compiler, version = ('default', 'default')
         if args.compiler:
             compiler, version = args.compiler.split('-')
         spec = str(spec) if spec else None

@@ -25,6 +25,7 @@ class PKG_TOOLS(Enum):
     YUM = 'yum'
     APK = 'apk'
     CHOCO = 'choco'
+    PKG = 'freebsd_pkg'
 
 
 KEYS = {
@@ -74,27 +75,40 @@ for suffix, default in [('setup', []), ('install', ''), ('update', ''), ('packag
 
 # Be sure to use these monikers in this file, aliases are applied after all tables are built
 ARCHS = {
-    'x86': {},
-    'x64': {},
+    'x86': {
+        'arch': 'x86'
+    },
+    'x64': {
+        'arch': 'x64'
+    },
     'armv6': {
+        'arch': 'armv6',
         'cross_compile_platform': 'linux-armv6',
-        'pkg_setup': ['mkdir -p /usr/share/man/man1']
+        'apt_setup': ['mkdir -p /usr/share/man/man1']
     },
     'armv7': {
+        'arch': 'armv7',
         'cross_compile_platform': 'linux-armv7',
-        'pkg_setup': ['mkdir -p /usr/share/man/man1']
+        'apt_setup': ['mkdir -p /usr/share/man/man1']
     },
     'armv8': {
+        'arch': 'armv8',
         'cross_compile_platform': 'linux-arm64',
-        'pkg_setup': ['mkdir -p /usr/share/man/man1']
+        'apt_setup': ['mkdir -p /usr/share/man/man1']
     },
     'mips': {
+        'arch': 'mips',
         'cross_compile_platform': 'linux-mips'
     },
 }
 
+ARCHS['x86_64'] = ARCHS['x64']
+ARCHS['amd64'] = ARCHS['x64']
+ARCHS['i686'] = ARCHS['x86']
+
 HOSTS = {
     'linux': {
+        'os': 'linux',
         'variables': {
             'python': "python3",
         },
@@ -105,6 +119,7 @@ HOSTS = {
         'sudo': True
     },
     'ubuntu': {
+        'os': 'linux',
         'pkg_tool': PKG_TOOLS.APT,
         # need ld and make and such
         'compiler_packages': ['build-essential'],
@@ -115,6 +130,7 @@ HOSTS = {
         'pkg_install': 'apt-get -qq install -y',
     },
     'alpine': {
+        'os': 'linux',
         'pkg_tool': PKG_TOOLS.APK,
         'compiler_packages': ['build-base'],
         'pkg_setup': [],
@@ -122,6 +138,7 @@ HOSTS = {
         'pkg_install': 'apk add --no-cache',
     },
     'raspbian': {
+        'os': 'linux',
         'pkg_tool': PKG_TOOLS.APT,
         # need ld and make and such
         'compiler_packages': ['build-essential'],
@@ -129,6 +146,7 @@ HOSTS = {
         'pkg_install': 'apt-get -qq install -y',
     },
     'al2012': {
+        'os': 'linux',
         'cmake_args': [
             "-DENABLE_SANITIZERS=OFF",
             "-DPERFORM_HEADER_CHECK=OFF",
@@ -143,6 +161,7 @@ HOSTS = {
         },
     },
     'al2': {
+        'os': 'linux',
         'cmake_args': [
             "-DENABLE_SANITIZERS=OFF",
             "-DPERFORM_HEADER_CHECK=OFF",
@@ -157,6 +176,7 @@ HOSTS = {
         },
     },
     'manylinux': {
+        'os': 'linux',
         'pkg_tool': PKG_TOOLS.YUM,
         'pkg_update': 'yum update -y',
         'pkg_install': 'yum install -y',
@@ -167,6 +187,7 @@ HOSTS = {
         },
     },
     'windows': {
+        'os': 'windows',
         'variables': {
             'python': "python.exe",
         },
@@ -179,14 +200,29 @@ HOSTS = {
         ],
     },
     'macos': {
+        'os': 'macos',
         'variables': {
             'python': "python3",
         },
 
         'pkg_tool': PKG_TOOLS.BREW,
         'pkg_install': 'brew install',
+    },
+    'freebsd': {
+        'os': 'freebsd',
+        'variables': {
+            'python': "python3",
+        },
+        'sudo': True,
+
+        'pkg_tool': PKG_TOOLS.PKG,
+        'pkg_update': 'pkg update',
+        'pkg_install': 'pkg install -y'
     }
 }
+
+HOSTS['darwin'] = HOSTS['macos']
+HOSTS['debian'] = HOSTS['ubuntu']
 
 TARGETS = {
     'linux': {
@@ -235,12 +271,19 @@ TARGETS = {
             "exe": ".exe"
         }
     },
+    'freebsd': {
+        'cmake_args': [
+            "-DENABLE_SANITIZERS=OFF",
+        ]
+    }
 }
+
+TARGETS['darwin'] = TARGETS['macos']
 
 COMPILERS = {
     'default': {
-        'hosts': ['macos', 'linux', 'windows'],
-        'targets': ['macos', 'linux', 'windows'],
+        'hosts': ['macos', 'linux', 'windows', 'freebsd'],
+        'targets': ['macos', 'linux', 'windows', 'freebsd'],
 
         'versions': {
             'default': {}
@@ -330,8 +373,8 @@ COMPILERS = {
         }
     },
     'gcc': {
-        'hosts': ['linux', 'manylinux', 'al2012', 'al2'],
-        'targets': ['linux'],
+        'hosts': ['linux', 'manylinux', 'al2012', 'al2', 'freebsd'],
+        'targets': ['linux', 'freebsd'],
 
         'c': "gcc-{version}",
         'cxx': "g++-{version}",
@@ -404,8 +447,15 @@ PLATFORMS = {
     'windows-x86': {},
     'windows-x64': {},
     'macos-x64': {},
+    'freebsd-x64': {},
     # Linux is done procedurally, below
 }
+
+PLATFORMS['darwin-x64'] = PLATFORMS['macos-x64']
+PLATFORMS['darwin_x86_64'] = PLATFORMS['macos-x64']
+PLATFORMS['macos_x86_64'] = PLATFORMS['macos-x64']
+PLATFORMS['freebsd-x86_64'] = PLATFORMS['freebsd-x64']
+PLATFORMS['freebsd-amd64'] = PLATFORMS['freebsd-x64']
 
 ###############################################################################
 # Aliases
@@ -415,12 +465,12 @@ COMPILERS['msvc']['versions']['15'] = COMPILERS['msvc']['versions']['2017']
 COMPILERS['msvc']['versions']['16'] = COMPILERS['msvc']['versions']['2019']
 
 # armv8 == aarch64, arm64
-for v8 in ('aarch64', 'arm64'):
+for v8 in ('aarch64', 'arm64', 'arm64v8'):
     dict_alias(ARCHS, 'armv8', v8)
     dict_alias(HOSTS, 'armv8', v8)
     dict_alias(TARGETS, 'armv8', v8)
     dict_alias(COMPILERS, 'armv8', v8)
 
 # Linux works on every arch we support. Do this after the armv8 aliases so they get picked up
-for arch in ARCHS:
+for arch in ARCHS.keys():
     PLATFORMS['linux-{}'.format(arch)] = {}
