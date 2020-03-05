@@ -21,7 +21,7 @@ import util
 
 
 def _compiler_version(cc):
-    if current_os() in ('linux', 'macos'):
+    if current_os() != 'windows':
         result = util.run_command(cc, '--version', quiet=True, stderr=False)
         text = result.output
         # Apple clang
