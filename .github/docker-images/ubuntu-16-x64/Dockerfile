@@ -15,11 +15,19 @@ RUN apt-get update -qq \
     python3-pip \
     build-essential \
     cmake \
-    docker \
     # For PPAs
     software-properties-common \
     apt-transport-https \
     && apt-get clean
+
+##############################################################################
+# Docker (for cross compiling via dockcross)
+###############################################################################
+WORKDIR /tmp
+RUN set -ex && curl -fsSL https://get.docker.com -o /tmp/get-docker.sh \
+    && sh /tmp/get-docker.sh \
+    && systemctl enable docker \
+    && echo "service docker start" >> ~/.bashrc
 
 ###############################################################################
 # Python/AWS CLI
@@ -41,6 +49,6 @@ RUN curl -sSL https://d19elf31gohf1l.cloudfront.net/_binaries/libcrypto/libcrypt
 ###############################################################################
 # Install entrypoint
 ###############################################################################
-ADD entrypoint.sh /usr/local/bin/builder
-RUN chmod a+x /usr/local/bin/builder
-ENTRYPOINT ["/usr/local/bin/builder"]
+# ADD entrypoint.sh /usr/local/bin/builder
+# RUN chmod a+x /usr/local/bin/builder
+# ENTRYPOINT ["/usr/local/bin/builder"]
