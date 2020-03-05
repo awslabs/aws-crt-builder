@@ -95,7 +95,7 @@ class InstallCompiler(Action):
         assert toolchain
 
         # Cross compile with dockcross
-        if toolchain.cross_compile:
+        def _install_cross_compile_toolchain(env):
             print(
                 'Installing cross-compile via dockcross for {}'.format(toolchain.platform))
             cross_compile_platform = env.config.get(
@@ -123,22 +123,8 @@ class InstallCompiler(Action):
             toolchain.env_file = dockcross_env
             toolchain.shell_env = [
                 dockcross, '-a', '--env-file={}'.format(dockcross_env)]
-            return
 
-        # Compiler is local, or should be, so verify/install and export it
-        compiler = env.spec.compiler
-        version = env.spec.compiler_version
-        if version == 'default':
-            version = None
-
-        # See if the compiler is already installed
-        compiler_path, found_version = Toolchain.find_compiler(
-            compiler, version)
-        if compiler_path:
-            print('Compiler {} {} is already installed ({})'.format(
-                compiler, version, compiler_path))
-            return
-
+        # Expose compiler via environment
         def _export_compiler(_env):
             if current_os() == 'windows':
                 return
@@ -154,5 +140,23 @@ class InstallCompiler(Action):
                             print(
                                 'WARNING: Compiler {} could not be found'.format(exe))
 
+        if not toolchain.cross_compile:
+            # Compiler is local, or should be, so verify/install and export it
+            compiler = env.spec.compiler
+            version = env.spec.compiler_version
+            if version == 'default':
+                version = None
+
+            # See if the compiler is already installed
+            compiler_path, found_version = Toolchain.find_compiler(
+                compiler, version)
+            if compiler_path:
+                print('Compiler {} {} is already installed ({})'.format(
+                    compiler, version, compiler_path))
+                return
+
         packages = config['compiler_packages']
-        return Script([InstallPackages(packages), _export_compiler])
+        after_packages = [_export_compiler]
+        if toolchain.cross_compile:
+            after_packages = [_install_cross_compile_toolchain]
+        return Script([InstallPackages(packages), *after_packages])
