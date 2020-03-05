@@ -93,6 +93,7 @@ class Scripts(object):
 
     @staticmethod
     def _find_actions():
+        _import_dynamic_classes()
         _all_actions = set(Action.__subclasses__())
         return _all_actions
 
