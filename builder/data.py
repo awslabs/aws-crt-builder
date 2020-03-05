@@ -212,6 +212,7 @@ HOSTS = {
         'variables': {
             'python': "python3",
         },
+        'sudo': True,
 
         'pkg_tool': PKG_TOOLS.PKG,
         'pkg_update': 'pkg update',
