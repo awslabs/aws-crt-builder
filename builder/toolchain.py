@@ -276,7 +276,7 @@ class Toolchain(object):
             compiler = None
             version = None
             platform = current_os()
-            if platform in ('linux', 'macos'):
+            if platform != 'windows':
                 # resolve CC and /usr/bin/cc
                 for env_cc in (util.where(os.environ.get('CC', None)), util.where('cc')):
                     if env_cc:
