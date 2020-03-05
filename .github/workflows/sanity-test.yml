@@ -166,9 +166,9 @@ jobs:
           - aws-c-io
           - aws-c-mqtt
           - aws-c-http
-          #- aws-crt-python # until builder-updates branch is merged
+          - aws-crt-python
           - aws-crt-cpp
-          #- aws-crt-java # until arm branch is merged
+          - aws-crt-java
     needs: package
     runs-on: ubuntu-latest
     steps:
