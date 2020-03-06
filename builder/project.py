@@ -149,6 +149,11 @@ def produce_config(build_spec, project, overrides=None, **additional_variables):
     # Process defaults first
     process_config(defaults)
 
+    # process platform
+    # target, arch -> platform
+    target_platform = '{}-{}'.format(build_spec.target, build_spec.arch)
+    configs[id(PLATFORMS[target_platform])] = PLATFORMS[target_platform]
+
     # then override with config file
     project_config = project.config
     process_config(project_config)
