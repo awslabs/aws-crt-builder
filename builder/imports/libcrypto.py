@@ -46,7 +46,7 @@ class LibCrypto(Import):
             required_files = [
                 ['include/openssl/crypto.h'],
                 ['lib/libcrypto.a', 'lib64/libcrypto.a'],
-                ['lib/libcrypto.so', 'lib64/libcrypto.so'],
+                #['lib/libcrypto.so', 'lib64/libcrypto.so'],
             ]
             found = 0
             for paths in required_files:
