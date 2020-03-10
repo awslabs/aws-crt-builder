@@ -46,13 +46,14 @@ class LibCrypto(Import):
             required_files = [
                 ['include/openssl/crypto.h'],
                 ['lib/libcrypto.a', 'lib64/libcrypto.a'],
-                ['lib/libcrypto.so', 'lib64/libcrypto.so'],
+                #['lib/libcrypto.so', 'lib64/libcrypto.so'],
             ]
             found = 0
             for paths in required_files:
                 for path in paths:
                     full_path = os.path.join(self.prefix, path)
                     if os.path.isfile(full_path):
+                        print('Found {}'.format(full_path))
                         found += 1
                         break
 

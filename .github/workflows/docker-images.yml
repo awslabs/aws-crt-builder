@@ -13,8 +13,7 @@ on:
       - '.github/workflows/*.sh'
   # need images created at least once per branch, even if there are no docker changes
   # so that downstream projects can use the branch channel
-  pull_request:
-    types: [opened]
+  create:
   # Make new images for every published release
   release:
     types: [published]

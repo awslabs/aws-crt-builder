@@ -14,7 +14,7 @@
 from project import Project, Import
 
 
-class S2N(Project):
+class S2N(Project, Import):
     def __init__(self, **kwargs):
         super().__init__(
             account='awslabs',
@@ -22,19 +22,6 @@ class S2N(Project):
             config={
                 'targets': ['linux'],
                 'test_steps': [],
-                'cmake_args': {
-                    '-DS2N_NO_PQ_ASM=ON',
-                },
-            },
-            **kwargs)
-
-
-class S2N(Import):
-    def __init__(self, **kwargs):
-        super().__init__(
-            imports=['libcrypto'],
-            config={
-                'targets': ['linux'],
                 'cmake_args': {
                     '-DS2N_NO_PQ_ASM=ON',
                 },

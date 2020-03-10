@@ -223,6 +223,8 @@ if __name__ == '__main__':
         'spec': spec,
     })
 
+    Scripts.load()
+
     if env.spec.target == current_os() and env.spec.arch == current_arch():
         inspect_host(env)
     if args.command == 'inspect':

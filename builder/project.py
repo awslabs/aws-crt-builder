@@ -331,7 +331,8 @@ class Project(object):
 
     def __init__(self, **kwargs):
         self.account = kwargs.get('account', 'awslabs')
-        self.name = kwargs['name']
+        self.name = kwargs.get('name', self.__class__.__name__.lower())
+        assert self.name != 'project'
         self.url = kwargs.get('url', "https://github.com/{}/{}.git".format(
             self.account, self.name))
         self.path = kwargs.get('path', None)
@@ -596,10 +597,10 @@ class Project(object):
                 # might be a project without a config
                 if looks_like_code(search_dir):
                     print(
-                        ('    Found source code that looks like a project at {}'.format(search_dir)))
-                    project = Project._cache_project(
-                        Project(name=name, path=search_dir))
-                    return project
+                        ('    Found source code only project at {}'.format(search_dir)))
+                    project = Project._create_project(
+                        name=name, path=search_dir)
+                    return Project._cache_project(project)
 
         if Project._find_project_class(name):
             return Project._cache_project(Project._create_project(name))

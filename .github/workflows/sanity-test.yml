@@ -107,6 +107,7 @@ jobs:
       - name: Sanity Test Run Compat (Unix)
         if:  matrix.host != 'windows-latest'
         run: |
+          ls -al
           zipinfo -1 builder.pyz
           python3 builder.pyz run test --project tests
 
