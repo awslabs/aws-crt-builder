@@ -331,7 +331,8 @@ class Project(object):
 
     def __init__(self, **kwargs):
         self.account = kwargs.get('account', 'awslabs')
-        self.name = kwargs['name']
+        self.name = kwargs.get('name', self.__class__.__name__.lower())
+        assert self.name != 'project'
         self.url = kwargs.get('url', "https://github.com/{}/{}.git".format(
             self.account, self.name))
         self.path = kwargs.get('path', None)
