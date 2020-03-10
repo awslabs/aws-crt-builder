@@ -53,6 +53,7 @@ class LibCrypto(Import):
                 for path in paths:
                     full_path = os.path.join(self.prefix, path)
                     if os.path.isfile(full_path):
+                        print('Found {}'.format(full_path))
                         found += 1
                         break
 
