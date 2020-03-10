@@ -32,6 +32,7 @@ from host import current_os, current_host, current_arch, current_platform, norma
 import data
 
 import api  # force API to load and expose the virtual module
+import imports  # load up all known import classes
 
 
 ########################################################################################################################
@@ -222,7 +223,6 @@ if __name__ == '__main__':
         'spec': spec,
     })
 
-    import imports  # load up all known import classes
     Scripts.load()
 
     if env.spec.target == current_os() and env.spec.arch == current_arch():
