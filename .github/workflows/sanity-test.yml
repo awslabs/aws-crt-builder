@@ -160,6 +160,36 @@ jobs:
     - name: Build aws-crt-cpp + consumers
       run: python3 builder.pyz build downstream -p aws-crt-cpp --target=${{matrix.arch}} --dump-config
 
+  compilers:
+    strategy:
+      fail-fast: false
+      matrix:
+        compilers:
+          - clang-3
+          - clang-6
+          - clang-7
+          - clang-8
+          - clang-9
+          - gcc-4.8
+          - gcc-5
+          - gcc-6
+          - gcc-7
+          - gcc-8
+    needs: package
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@v1
+
+      - name: Install builder
+        uses: actions/download-artifact@v1
+        with:
+          name: builder
+          path: .
+
+      - name: Build aws-c-common
+        run: python3 builder.pyz build --project aws-c-common --compiler=${{ matrix.compiler }}
+
   downstream_test:
     strategy:
       fail-fast: false
