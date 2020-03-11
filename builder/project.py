@@ -419,9 +419,8 @@ class Project(object):
         return Script(steps, name='post_build {}'.format(self.name))
 
     def test(self, env):
-        has_tests = getattr(env, 'build_tests', True)
         run_tests = env.config.get('run_tests', True)
-        if not has_tests or not run_tests:
+        if not run_tests:
             return
 
         steps = env.config.get('test_steps', env.config.get('test', []))
