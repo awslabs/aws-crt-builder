@@ -158,7 +158,7 @@ jobs:
         path: .
 
     - name: Build aws-crt-cpp + consumers
-      run: python3 builder.pyz build downstream -p aws-crt-cpp --branch=cross-compile --platform=${{matrix.arch}} --dump-config
+      run: python3 builder.pyz build downstream -p aws-crt-cpp --platform=${{matrix.arch}} --dump-config
 
   downstream_test:
     strategy:
