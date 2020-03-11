@@ -45,7 +45,7 @@ def _compiler_version(cc):
 
 def _find_compiler_tool(name, versions):
     # look for the default tool, and see if the version is in the search set
-    path = util.where(name)
+    path = util.where(name, resolve_symlinks=False)
     if path:
         version = _compiler_version(path)[1]
         if version in versions:
