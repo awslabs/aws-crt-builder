@@ -25,6 +25,14 @@ from toolchain import Toolchain
 from util import UniqueList
 
 
+class SetDryRun(Action):
+    def __init__(self, dryrun):
+        self.dryrun = dryrun
+
+    def run(self, env):
+        env.shell.dryrun = self.dryrun
+
+
 class InstallPackages(Action):
     """ Installs prerequisites to building. If packages are specified, only those packages will be installed. Otherwise, config packages will be installed. """
 
@@ -83,16 +91,18 @@ class InstallPackages(Action):
             if args.skip_install:
                 sh.dryrun = was_dryrun
 
-        if args.skip_install:
-            return
-
         setup_steps = env.config.get('setup_steps', [])
         if setup_steps:
             steps = []
             for step in setup_steps:
                 if not isinstance(step, list):
                     step = step.split(' ')
-                steps.append([*sudo, *step])
+                if step:
+                    steps.append([*sudo, *step])
+            if args.skip_install:
+                return Script([SetDryRun(True), *steps,
+                               SetDryRun(sh.dryrun)], name='setup')
+
             return Script(steps, name='setup')
 
 
@@ -108,7 +118,7 @@ class InstallCompiler(Action):
         assert toolchain
 
         # Cross compile with dockcross
-        def _install_cross_compile_toolchain(env):
+        def install_cross_compile_toolchain(env):
             print(
                 'Installing cross-compile via dockcross for {}'.format(toolchain.platform))
             cross_compile_platform = env.config.get(
@@ -154,6 +164,7 @@ class InstallCompiler(Action):
                             print(
                                 'WARNING: Compiler {} could not be found'.format(exe))
 
+        packages = UniqueList(config.get('compiler_packages', []))
         if not toolchain.cross_compile:
             # Compiler is local, or should be, so verify/install and export it
             compiler = env.spec.compiler
@@ -167,10 +178,10 @@ class InstallCompiler(Action):
             if compiler_path:
                 print('Compiler {} {} is already installed ({})'.format(
                     compiler, version, compiler_path))
-                return Script([export_compiler])
+                packages = [
+                    'build-essential'] if 'build-essential' in packages else []
 
-        packages = UniqueList(config.get('compiler_packages', []))
         after_packages = [export_compiler]
         if toolchain.cross_compile:
-            after_packages = [_install_cross_compile_toolchain]
+            after_packages = [install_cross_compile_toolchain]
         return Script([InstallPackages(packages), *after_packages])
