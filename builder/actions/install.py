@@ -93,7 +93,7 @@ class InstallPackages(Action):
                 if not isinstance(step, list):
                     step = step.split(' ')
                 steps.append([*sudo, *step])
-            return Script(setup_steps, name='setup')
+            return Script(steps, name='setup')
 
 
 class InstallCompiler(Action):
