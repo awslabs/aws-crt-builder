@@ -49,6 +49,7 @@ KEYS = {
     'test': None,  # deprecated, use test_steps
     'test_steps': None,  # steps to run instead of the default ctest
 
+    'setup_steps': [],  # Commands to run at env setup time
     'pkg_tool': None,  # apt, brew, yum, apk, etc
     'pkg_setup': [],  # commands required to configure the package system
     # command to install packages, should be of the form 'pkgmanager arg1 arg2 {packages will go here}'
@@ -306,59 +307,55 @@ COMPILERS = {
         'hosts': ['linux', 'macos'],
         'targets': ['linux', 'macos'],
 
+        'setup_steps': [
+            'curl -sSL -o /tmp/llvm.sh https://apt.llvm.org/llvm.sh',
+            'chmod a+x /tmp/llvm.sh',
+            '/tmp/llvm.sh {llvm_version}'
+        ],
+
         'versions': {
             'default': {
                 '!cmake_args': [],
             },
             '3': {
-                'compiler_packages': ["clang-3.9", "clang++-3.9"],
+                'variables': {
+                    'llvm_version': '3.9'
+                },
+
                 'c': "clang-3.9",
                 'cxx': "clang++-3.9",
                 'cmake_args': ['-DCMAKE_EXPORT_COMPILE_COMMANDS=ON', '-DENABLE_FUZZ_TESTS=ON'],
             },
             '6': {
-                'apt_setup': [
-                    'apt-key adv --fetch-keys http://apt.llvm.org/llvm-snapshot.gpg.key',
-                    ['apt-add-repository',
-                     'deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-6.0 main']
-                ],
-                'compiler_packages': ["clang-6.0", "clang++-6.0", "clang-tidy-6.0"],
+                'variables': {
+                    'llvm_version': '6.0'
+                },
 
                 'c': "clang-6.0",
                 'cxx': "clang++-6.0",
                 'cmake_args': ['-DCMAKE_EXPORT_COMPILE_COMMANDS=ON', '-DENABLE_FUZZ_TESTS=ON'],
             },
             '7': {
-                'apt_setup': [
-                    'apt-key adv --fetch-keys http://apt.llvm.org/llvm-snapshot.gpg.key',
-                    ['apt-add-repository',
-                     'deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-7 main']
-                ],
-                'compiler_packages': ["clang-7", "clang++-7", "clang-tidy-7"],
-                'cmake_args': ['-DCMAKE_EXPORT_COMPILE_COMMANDS=ON', '-DENABLE_FUZZ_TESTS=ON'],
+                'variables': {
+                    'llvm_version': '7'
+                },
 
                 'c': "clang-7",
                 'cxx': "clang++-7",
             },
             '8': {
-                'apt_setup': [
-                    'apt-key adv --fetch-keys http://apt.llvm.org/llvm-snapshot.gpg.key',
-                    ['apt-add-repository',
-                     'deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-8 main']
-                ],
-                'compiler_packages': ["clang-8", "clang++-8", "clang-tidy-8"],
+                'variables': {
+                    'llvm_version': '8'
+                },
 
                 'c': "clang-8",
                 'cxx': "clang++-8",
                 'cmake_args': ['-DCMAKE_EXPORT_COMPILE_COMMANDS=ON', '-DENABLE_FUZZ_TESTS=ON'],
             },
             '9': {
-                'apt_setup': [
-                    'apt-key adv --fetch-keys http://apt.llvm.org/llvm-snapshot.gpg.key',
-                    ['apt-add-repository',
-                     'deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-9 main']
-                ],
-                'compiler_packages': ["clang-9", "clang++-9", "clang-tidy-9"],
+                'variables': {
+                    'llvm_version': '9'
+                },
 
                 'c': "clang-9",
                 'cxx': "clang++-9",
