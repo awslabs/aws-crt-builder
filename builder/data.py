@@ -238,6 +238,10 @@ TARGETS = {
         'cmake_args': [
             "-DENABLE_SANITIZERS=ON",
         ],
+
+        'variables': {
+            'exe': ''
+        },
     },
     'macos': {
         'architectures': {
@@ -249,6 +253,9 @@ TARGETS = {
             },
         },
         '!cmake_args': [],
+        'variables': {
+            'exe': ''
+        },
     },
     'android': {
         'cmake_args': [
@@ -265,6 +272,9 @@ TARGETS = {
                 ],
             },
         },
+        'variables': {
+            'exe': ''
+        },
     },
     'windows': {
         "variables": {
@@ -274,7 +284,10 @@ TARGETS = {
     'freebsd': {
         'cmake_args': [
             "-DENABLE_SANITIZERS=OFF",
-        ]
+        ],
+        'variables': {
+            'exe': ''
+        },
     }
 }
 

@@ -95,7 +95,6 @@ class Env(object):
         self.config = self.project.get_config(self.spec, self.args.cli_config)
 
         # Once initialized, switch to the source dir before running actions
-        config = self.project.config
         self.source_dir = os.path.abspath(self.project.path)
         self.shell.cd(self.source_dir)
 

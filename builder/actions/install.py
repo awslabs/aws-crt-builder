@@ -127,7 +127,7 @@ class InstallCompiler(Action):
                 dockcross, '-a', '--env-file={}'.format(dockcross_env)]
 
         # Expose compiler via environment
-        def _export_compiler(_env):
+        def export_compiler(_env):
             if current_os() == 'windows':
                 return
 
@@ -135,7 +135,8 @@ class InstallCompiler(Action):
                 for cvar, evar in {'c': 'CC', 'cxx': 'CXX'}.items():
                     exe = config.get(cvar)
                     if exe:
-                        compiler_path = env.shell.where(exe)
+                        compiler_path = env.shell.where(
+                            exe, resolve_symlinks=False)
                         if compiler_path:
                             env.shell.setenv(evar, compiler_path)
                         else:
@@ -155,10 +156,10 @@ class InstallCompiler(Action):
             if compiler_path:
                 print('Compiler {} {} is already installed ({})'.format(
                     compiler, version, compiler_path))
-                return
+                return Script([export_compiler])
 
         packages = list_unique(config.get('compiler_packages', []))
-        after_packages = [_export_compiler]
+        after_packages = [export_compiler]
         if toolchain.cross_compile:
             after_packages = [_install_cross_compile_toolchain]
         return Script([InstallPackages(packages), *after_packages])

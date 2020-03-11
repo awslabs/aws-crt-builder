@@ -50,8 +50,10 @@ def replace_variables(value, variables):
         return [replace_variables(e, variables) for e in value]
 
     elif key_type == dict:
-        # Iterate each element and recursively apply the variables
-        return dict([(key, replace_variables(value, variables)) for (key, value) in value.items()])
+        # Iterate each element and recursively apply the variables in place
+        for key, val in value.items():
+            value[key] = replace_variables(val, variables)
+        return value
 
     else:
         # Unsupported, just return it
@@ -114,7 +116,7 @@ def to_list(val):
     return [val]
 
 
-def where(exe, path=None):
+def where(exe, path=None, resolve_symlinks=True):
     """ Platform agnostic `where executable` command """
 
     if exe is None:
@@ -139,7 +141,7 @@ def where(exe, path=None):
             exe_path = os.path.join(p, exe_name)
             if is_executable(exe_path):
                 # Remove any symlinks
-                return os.path.realpath(exe_path)
+                return os.path.realpath(exe_path) if resolve_symlinks else os.path.abspath(exe_path)
 
     return None
 

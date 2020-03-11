@@ -113,11 +113,9 @@ class CMakeBuild(Action):
         for d in (env.build_dir, env.deps_dir, env.install_dir):
             sh.mkdir(d)
 
-        config = getattr(env, 'config', {})
-        env.build_tests = config.get('build_tests', True)
-
         # BUILD
-        _build_project(env, self.project)
+        _build_project(env, self.project, env.config.get(
+            'build_tests', self.project == env.project))
 
 
 class CTestRun(Action):
@@ -137,5 +135,11 @@ class CTestRun(Action):
         project_source_dir, project_build_dir, project_install_dir = _project_dirs(
             env, self.project)
 
-        sh.exec(*toolchain.shell_env, "ctest", "--build-exe-dir", project_build_dir,
+        if not os.path.isdir(project_build_dir):
+            print("No build dir found, skipping CTest")
+            return
+
+        sh.pushd(project_build_dir)
+        sh.exec(*toolchain.shell_env, "ctest",
                 "--output-on-failure", check=True)
+        sh.popd()

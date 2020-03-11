@@ -117,9 +117,9 @@ class Shell(object):
             except Exception as e:
                 print("Failed to delete dir {}: {}".format(path, e))
 
-    def where(self, exe, path=None):
+    def where(self, exe, path=None, resolve_symlinks=True):
         """ Platform agnostic `where executable` command """
-        return util.where(exe, path)
+        return util.where(exe, path, resolve_symlinks)
 
     def exec(self, *command, **kwargs):
         """ 
