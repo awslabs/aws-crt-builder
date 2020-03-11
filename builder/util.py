@@ -14,6 +14,7 @@
 
 import copy
 from collections import namedtuple, UserList
+from collections.abc import Iterable
 import os
 from string import Formatter
 import subprocess
@@ -159,7 +160,7 @@ def _flatten_command(*command):
         e_type = type(command_segment)
         if e_type == str:
             new_command.append(command_segment)
-        elif e_type == list or e_type == tuple:
+        elif e_type == list or e_type == tuple or isinstance(command_segment, Iterable):
             for segment in command_segment:
                 _proc_segment(segment)
     _proc_segment(command)
