@@ -135,6 +135,10 @@ class CTestRun(Action):
         project_source_dir, project_build_dir, project_install_dir = _project_dirs(
             env, self.project)
 
+        if not os.path.isdir(project_build_dir):
+            print("No build dir found, skipping CTest")
+            return
+
         sh.pushd(project_build_dir)
         sh.exec(*toolchain.shell_env, "ctest",
                 "--output-on-failure", check=True)
