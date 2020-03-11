@@ -116,7 +116,7 @@ def to_list(val):
     return [val]
 
 
-def where(exe, path=None):
+def where(exe, path=None, resolve_symlinks=True):
     """ Platform agnostic `where executable` command """
 
     if exe is None:
@@ -141,7 +141,7 @@ def where(exe, path=None):
             exe_path = os.path.join(p, exe_name)
             if is_executable(exe_path):
                 # Remove any symlinks
-                return os.path.realpath(exe_path)
+                return os.path.realpath(exe_path) if resolve_symlinks else os.path.abspath(exe_path)
 
     return None
 

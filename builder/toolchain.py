@@ -53,7 +53,7 @@ def _find_compiler_tool(name, versions):
     for version in versions:
         for pattern in ('{name}-{version}', '{name}-{version}.0'):
             exe = pattern.format(name=name, version=version)
-            path = util.where(exe)
+            path = util.where(exe, resolve_symlinks=False)
             if path:
                 return path, version
     return None, None
@@ -145,9 +145,9 @@ class Toolchain(object):
         if self.compiler == 'default':
             compiler = Toolchain.default_compiler()[0]
         if compiler == 'clang':
-            return Toolchain.find_compiler_tool(compiler, 'clang++')[0]
+            return Toolchain.find_compiler_tool(compiler, 'clang++', self.compiler_version)[0]
         elif compiler == 'gcc':
-            return Toolchain.find_compiler_tool(compiler, 'g++')[0]
+            return Toolchain.find_compiler_tool(compiler, 'g++', self.compiler_version)[0]
         # msvc can compile with cl.exe regardless of language
         return self.compiler_path()
 
