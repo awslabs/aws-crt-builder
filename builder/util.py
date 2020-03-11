@@ -261,9 +261,6 @@ class UniqueList(UserList):
         for item in items:
             self.append(item)
 
-    def __len__(self):
-        return len(self._list)
-
     def __delitem__(self, idx):
         hash = content_hash(self.data[idx])
         self._hashes.remove(hash)
