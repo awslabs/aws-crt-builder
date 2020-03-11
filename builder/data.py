@@ -516,7 +516,7 @@ for arch in ARCHS.keys():
 # Cross compile platforms
 PLATFORMS['linux-armv6']['cross_compile_platform'] = 'linux-armv6'
 PLATFORMS['linux-armv7']['cross_compile_platform'] = 'linux-armv7'
-PLATFORMS['linux-armv8']['cross_compile_platform'] = 'linux-armv64'
+PLATFORMS['linux-armv8']['cross_compile_platform'] = 'linux-arm64'
 PLATFORMS['android-armv6']['cross_compile_platform'] = 'android-arm'
 PLATFORMS['android-armv7']['cross_compile_platform'] = 'android-arm'
 PLATFORMS['android-armv8']['cross_compile_platform'] = 'android-arm64'
