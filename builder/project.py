@@ -419,7 +419,7 @@ class Project(object):
         return Script(steps, name='post_build {}'.format(self.name))
 
     def test(self, env):
-        has_tests = getattr(env, 'build_tests', False)
+        has_tests = getattr(env, 'build_tests', True)
         run_tests = env.config.get('run_tests', True)
         if not has_tests or not run_tests:
             return
@@ -483,7 +483,7 @@ class Project(object):
     def get_config(self, spec, overrides=None, **additional_vars):
         if not self.config or not self.config.get('__processed', False):
             self.config = produce_config(
-                spec, self, overrides, **additional_vars)
+                spec, self, overrides, **additional_vars, project_dir=self.path)
         return self.config
 
     # project cache
