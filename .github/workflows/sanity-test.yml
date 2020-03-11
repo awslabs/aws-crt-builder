@@ -162,6 +162,7 @@ jobs:
 
   downstream_test:
     strategy:
+      fail-fast: false
       matrix:
         project:
           - aws-c-io
