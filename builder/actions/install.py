@@ -169,7 +169,7 @@ class InstallCompiler(Action):
                     compiler, version, compiler_path))
                 return Script([export_compiler])
 
-        packages = list_unique(config.get('compiler_packages', []))
+        packages = UniqueList(config.get('compiler_packages', []))
         after_packages = [export_compiler]
         if toolchain.cross_compile:
             after_packages = [_install_cross_compile_toolchain]
