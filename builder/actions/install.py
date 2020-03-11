@@ -22,7 +22,7 @@ from action import Action
 from host import current_os, package_tool
 from actions.script import Script
 from toolchain import Toolchain
-from util import list_unique
+from util import UniqueList
 
 
 class InstallPackages(Action):
@@ -35,32 +35,31 @@ class InstallPackages(Action):
 
     def run(self, env):
         config = env.config
+        sh = env.shell
 
         parser = argparse.ArgumentParser()
         parser.add_argument('--skip-install', action='store_true')
         args = parser.parse_known_args(env.args.args)[0]
 
+        sudo = config.get('sudo', current_os() == 'linux')
+        sudo = ['sudo'] if sudo else []
+
         packages = self.packages if self.packages else config.get(
             'packages', [])
         if packages:
-
-            packages = list_unique(packages)
+            packages = UniqueList(packages)
             pkg_tool = package_tool()
             print('Installing packages via {}: {}'.format(
                 pkg_tool.value, ', '.join(packages)))
-
-            sh = env.shell
-            sudo = config.get('sudo', current_os() == 'linux')
-            sudo = ['sudo'] if sudo else []
 
             was_dryrun = sh.dryrun
             if args.skip_install:
                 sh.dryrun = True
 
             if not InstallPackages.pkg_init_done:
-                pkg_setup = config.get('pkg_setup', [])
+                pkg_setup = UniqueList(config.get('pkg_setup', []))
                 if pkg_setup:
-                    for cmd in list_unique(pkg_setup):
+                    for cmd in pkg_setup:
                         if isinstance(cmd, str):
                             cmd = cmd.split(' ')
                         assert isinstance(cmd, list)
@@ -89,6 +88,11 @@ class InstallPackages(Action):
 
         setup_steps = env.config.get('setup_steps', [])
         if setup_steps:
+            steps = []
+            for step in setup_steps:
+                if not isinstance(step, list):
+                    step = step.split(' ')
+                steps.append([*sudo, *step])
             return Script(setup_steps, name='setup')
 
 
