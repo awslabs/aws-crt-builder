@@ -121,7 +121,7 @@ class LLVM(Import):
         sudo = env.config.get('sudo', current_os() == 'linux')
         sudo = ['sudo'] if sudo else []
 
-        version = env.toolchain.version.replace('\..+', '')
+        version = env.toolchain.compiler_version.replace('\..+', '')
 
         with tempfile.NamedTemporaryFile(delete=True) as script:
             script.write(LLVM_SH)
