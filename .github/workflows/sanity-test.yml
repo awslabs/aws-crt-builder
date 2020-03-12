@@ -166,6 +166,7 @@ jobs:
       matrix:
         compiler:
           - clang-6
+          - clang-7 # this one actually has to be installed by the script
           - clang-8
           - clang-9
           - gcc-4.8
