@@ -15,7 +15,7 @@ libcrypto_version=1.1.1
 
 if [ ! -e /tmp/aws-crt-${variant}-${arch}-${version}.tar.gz ]; then
     aws s3 cp s3://aws-crt-builder/${version}/aws-crt-${variant}-${arch}.tar.gz /tmp
-    docker load < /tmp/aws-crt-${variant}-${arch}-${version}.tar.gz
+    docker load < /tmp/aws-crt-${variant}-${arch}.tar.gz
 fi
 
 container=$(docker run -dit --env AWS_ACCESS_KEY_ID --env AWS_SECRET_ACCESS_KEY --entrypoint /bin/sh docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${variant}-${arch}:${version})
