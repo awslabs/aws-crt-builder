@@ -47,9 +47,6 @@ class GCC(Import):
             self.installed = True
             return
 
-        sudo = env.config.get('sudo', current_os() == 'linux')
-        sudo = ['sudo'] if sudo else []
-
         packages = UniqueList(config.get('compiler_packages', []))
         compiler = env.spec.compiler
         version = env.spec.compiler_version
