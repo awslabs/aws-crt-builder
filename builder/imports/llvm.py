@@ -124,7 +124,7 @@ class LLVM(Import):
         version = env.toolchain.compiler_version.replace('\..+', '')
 
         with tempfile.NamedTemporaryFile(delete=True) as script:
-            script.write(LLVM_SH)
+            script.write(LLVM_SH.encode())
             script_path = script.name
             # Make script executable
             os.chmod(script_path, stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
