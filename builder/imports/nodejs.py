@@ -15,6 +15,7 @@
 from host import current_os
 from project import Import
 
+import stat
 import os
 from urllib.request import urlretrieve
 
@@ -39,12 +40,14 @@ class NodeJS(Import):
         toolchain = env.toolchain
 
         install_dir = os.path.join(env.deps_dir, self.name)
-        print('Installing nvm and node {} via nvm to {}'.format(
-            self.version, install_dir))
+        print('Installing nvm and node {} via nvm'.format(self.version))
 
         filename = '{}/install-nvm.sh'.format(install_dir)
+        print('Downloading {} to {}'.format(self.url, filename))
+        sh.mkdir(install_dir)
         urlretrieve(self.url, filename)
-        os.chmod(filename, stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+        os.chmod(filename, stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH |
+                 stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
         sh.exec(filename, 'install', self.version, check=True)
         sh.exec('node', '--version', check=True)
         self.installed = True
