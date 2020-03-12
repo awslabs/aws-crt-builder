@@ -13,7 +13,7 @@ libcrypto_version=1.0.2
 # AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY must be in env vars to pass to container
 [ ! -z "$AWS_ACCESS_KEY_ID" ] && [ ! -z "$AWS_SECRET_ACCESS_KEY" ]
 
-if [ ! -e /tmp/aws-crt-${variant}-${arch}-${version}.tar.gz ]; then
+if [ ! -e /tmp/aws-crt-${variant}-${arch}.tar.gz ]; then
     aws s3 cp s3://aws-crt-builder/${version}/aws-crt-${variant}-${arch}.tar.gz /tmp
     docker load < /tmp/aws-crt-${variant}-${arch}.tar.gz
 fi
