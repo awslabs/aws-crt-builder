@@ -70,6 +70,6 @@ class NodeJS(Import):
         # Fetch path to installed node, add to PATH
         result = sh.exec(run_nvm, 'which', self.version, check=True)
         node_path = os.path.dirname(result.output)
-        sh.setenv('PATH', '{}:{}'.format(sh.getenv('PATH'), node_path))
+        sh.setenv('PATH', '{}:{}'.format(node_path, sh.getenv('PATH')))
         sh.exec('node', '--version', check=True)
         self.installed = True
