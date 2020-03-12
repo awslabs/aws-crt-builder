@@ -192,7 +192,7 @@ def run_command(*command, **kwargs):
                 cmds,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
-                shell=(sys.platform == 'win32'),
+                shell=True,
                 bufsize=0)  # do not buffer output
 
             # Convert all output to strings, which makes it much easier to both print
