@@ -43,6 +43,19 @@ RUN curl -sSL https://d19elf31gohf1l.cloudfront.net/_binaries/libcrypto/libcrypt
     && rm -f /tmp/libcrypto.tar.gz
 
 ###############################################################################
+# Install node binaries
+###############################################################################
+RUN curl -sSL https://nodejs.org/download/release/latest-v10.x/node-v10.19.0-linux-x64.tar.gz -o node.tar.gz \
+    && tar xzf node.tar.gz \
+    && cd node-v* \
+    && cp -r share/* /usr/local/share \
+    && cp -r lib/* /usr/local/lib \
+    && cp -r bin/* /usr/local/bin \
+    && cp -r include/* /usr/local/include \
+    && node --version \
+    && rm -rf /tmp/node*
+
+###############################################################################
 # Install entrypoint
 ###############################################################################
 ADD entrypoint.sh /usr/local/bin/builder
