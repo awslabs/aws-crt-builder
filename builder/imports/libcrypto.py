@@ -42,28 +42,6 @@ class LibCrypto(Import):
 
         sh = env.shell
 
-        # If this is a local build, check the local machine
-        if not env.toolchain.cross_compile:
-            required_files = [
-                ['include/openssl/crypto.h'],
-                ['lib/libcrypto.a', 'lib64/libcrypto.a'],
-                #['lib/libcrypto.so', 'lib64/libcrypto.so'],
-            ]
-            found = 0
-            for paths in required_files:
-                for path in paths:
-                    full_path = os.path.join(self.prefix, path)
-                    if os.path.isfile(full_path):
-                        print('Found {}'.format(full_path))
-                        found += 1
-                        break
-
-            if found >= len(required_files):
-                print('Found existing libcrypto at {}'.format(self.prefix))
-                env.variables['libcrypto_path'] = self.prefix
-                self.installed = True
-                return
-
         install_dir = os.path.join(env.deps_dir, self.name)
         # If path to libcrypto is going to be relative, it has to be relative to the
         # source directory
