@@ -123,11 +123,13 @@ class LLVM(Import):
 
         version = env.toolchain.compiler_version.replace('\..+', '')
 
-        with tempfile.NamedTemporaryFile(delete=True) as script:
-            script.write(LLVM_SH.encode())
-            script_path = script.name
-            # Make script executable
-            os.chmod(script_path, stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
-            sh.exec(*sudo, [script_path, version])
+        script = tempfile.NamedTemporaryFile(delete=False)
+        script_path = script.name
+        script.write(LLVM_SH.encode())
+        script.close()
+
+        # Make script executable
+        os.chmod(script_path, stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+        sh.exec(*sudo, [script_path, version], check=True)
 
         self.installed = True
