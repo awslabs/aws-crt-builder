@@ -50,10 +50,10 @@ RUN curl -sSL https://nodejs.org/download/release/latest-v10.x/node-v10.19.0-lin
     && cd node-v* \
     && cp -rv share/* /usr/local/share \
     && cp -rv lib/* /usr/local/lib \
-    && cp -rv bin/* /usr/local \
+    && cp -rv bin/* /usr/local/bin \
     && cp -rv include/* /usr/local/include \
     && node --version \
-    && rm -f /tmp/node.tar.gz
+    && rm -f /tmp/node*
 
 ###############################################################################
 # Install entrypoint
