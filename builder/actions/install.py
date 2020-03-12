@@ -26,12 +26,8 @@ from toolchain import Toolchain
 from util import UniqueList
 
 
-class SetDryRun(Action):
-    def __init__(self, dryrun):
-        self.dryrun = dryrun
-
-    def run(self, env):
-        env.shell.dryrun = self.dryrun
+def set_dryrun(dryrun, env):
+    env.shell.dryrun = dryrun
 
 
 class InstallPackages(Action):
@@ -101,8 +97,8 @@ class InstallPackages(Action):
                 if step:
                     steps.append([*sudo, *step])
             if args.skip_install:
-                return Script([SetDryRun(True), *steps,
-                               SetDryRun(sh.dryrun)], name='setup')
+                return Script([partial(set_dryrun, True), *steps,
+                               partial(set_dryrun, sh.dryrun)], name='setup')
 
             return Script(steps, name='setup')
 

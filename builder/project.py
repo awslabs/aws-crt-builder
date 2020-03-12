@@ -254,6 +254,15 @@ def _resolve_imports(imps):
     return imports
 
 
+def _resolve_imports_for_spec(imps, spec):
+    imps = _resolve_imports(imps)
+    imports = []
+    for imp in imps:
+        if not hasattr(imp, 'targets') or spec.target in getattr(imp, 'targets', []):
+            imports += [imp] + imp.get_imports(spec)
+    return imports
+
+
 def _not_resolved(s):
     return False
 
@@ -315,13 +324,9 @@ class Import(object):
         return args
 
     def get_imports(self, spec):
-        self.imports = _resolve_imports(getattr(self, 'imports', []))
-        target = spec.target
-        imports = []
-        for i in self.imports:
-            if not hasattr(i, 'targets') or target in getattr(i, 'targets', []):
-                imports.append(i)
-        return imports
+        self.imports = _resolve_imports_for_spec(
+            getattr(self, 'imports', []) + getattr(self, 'imports', []), spec)
+        return self.imports
 
 
 class Project(object):
@@ -448,14 +453,9 @@ class Project(object):
         return args
 
     def get_imports(self, spec):
-        self.imports = _resolve_imports(
-            self.config.get('imports', []))
-        target = spec.target
-        imports = []
-        for i in self.imports:
-            if not hasattr(i, 'targets') or target in getattr(i, 'targets', []):
-                imports.append(i)
-        return imports
+        self.imports = _resolve_imports_for_spec(
+            getattr(self, 'imports', []) + self.config.get('imports', []), spec)
+        return self.imports
 
     def get_dependencies(self, spec):
         """ Gets dependencies for a given BuildSpec, filters by target """
