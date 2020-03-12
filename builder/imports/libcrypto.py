@@ -22,6 +22,7 @@ class LibCrypto(Import):
 
     def __init__(self, **kwargs):
         super().__init__(
+            library=True,
             config={
                 'targets': ['linux'],
                 'build_steps': [],

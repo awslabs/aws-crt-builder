@@ -16,7 +16,10 @@ from project import Project, Import
 
 class S2N(Project, Import):
     def __init__(self, **kwargs):
-        super().__init__(
+        super().__init__(**kwargs)
+        Import.__init__(
+            self,
+            library=True,
             account='awslabs',
             imports=['libcrypto'],
             config={

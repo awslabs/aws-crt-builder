@@ -85,21 +85,22 @@ ARCHS = {
     'armv6': {
         'arch': 'armv6',
         'cross_compile_platform': 'linux-armv6',
-        'apt_setup': ['mkdir -p /usr/share/man/man1']
+        'imports': ['dockcross'],
     },
     'armv7': {
         'arch': 'armv7',
         'cross_compile_platform': 'linux-armv7',
-        'apt_setup': ['mkdir -p /usr/share/man/man1']
+        'imports': ['dockcross'],
     },
     'armv8': {
         'arch': 'armv8',
         'cross_compile_platform': 'linux-arm64',
-        'apt_setup': ['mkdir -p /usr/share/man/man1']
+        'imports': ['dockcross'],
     },
     'mips': {
         'arch': 'mips',
-        'cross_compile_platform': 'linux-mips'
+        'cross_compile_platform': 'linux-mips',
+        'imports': ['dockcross'],
     },
 }
 
@@ -123,7 +124,7 @@ HOSTS = {
         'os': 'linux',
         'pkg_tool': PKG_TOOLS.APT,
         # need ld and make and such
-        'compiler_packages': ['build-essential'],
+        'packages': ['build-essential'],
         'pkg_setup': [
             'apt-add-repository ppa:ubuntu-toolchain-r/test',
         ],
@@ -133,7 +134,7 @@ HOSTS = {
     'alpine': {
         'os': 'linux',
         'pkg_tool': PKG_TOOLS.APK,
-        'compiler_packages': ['build-base'],
+        'packages': ['build-base'],
         'pkg_setup': [],
         'pkg_update': '',
         'pkg_install': 'apk add --no-cache',
@@ -142,7 +143,7 @@ HOSTS = {
         'os': 'linux',
         'pkg_tool': PKG_TOOLS.APT,
         # need ld and make and such
-        'compiler_packages': ['build-essential'],
+        'packages': ['build-essential'],
         'pkg_update': 'apt-get -qq update -y',
         'pkg_install': 'apt-get -qq install -y',
     },
@@ -307,56 +308,32 @@ COMPILERS = {
         'hosts': ['linux', 'macos'],
         'targets': ['linux', 'macos'],
 
-        'setup_steps': [
-            'curl -sSL -o /tmp/llvm.sh https://apt.llvm.org/llvm.sh',
-            'chmod a+x /tmp/llvm.sh',
-            '/tmp/llvm.sh {llvm_version}'
-        ],
+        'imports': ['llvm'],
 
         'versions': {
             'default': {
                 '!cmake_args': [],
             },
             '3': {
-                'variables': {
-                    'llvm_version': '3.9'
-                },
-
                 'c': "clang-3.9",
                 'cxx': "clang++-3.9",
                 'cmake_args': ['-DCMAKE_EXPORT_COMPILE_COMMANDS=ON', '-DENABLE_FUZZ_TESTS=ON'],
             },
             '6': {
-                'variables': {
-                    'llvm_version': '6.0'
-                },
-
                 'c': "clang-6.0",
                 'cxx': "clang++-6.0",
                 'cmake_args': ['-DCMAKE_EXPORT_COMPILE_COMMANDS=ON', '-DENABLE_FUZZ_TESTS=ON'],
             },
             '7': {
-                'variables': {
-                    'llvm_version': '7'
-                },
-
                 'c': "clang-7",
                 'cxx': "clang++-7",
             },
             '8': {
-                'variables': {
-                    'llvm_version': '8'
-                },
-
                 'c': "clang-8",
                 'cxx': "clang++-8",
                 'cmake_args': ['-DCMAKE_EXPORT_COMPILE_COMMANDS=ON', '-DENABLE_FUZZ_TESTS=ON'],
             },
             '9': {
-                'variables': {
-                    'llvm_version': '9'
-                },
-
                 'c': "clang-9",
                 'cxx': "clang++-9",
                 'cmake_args': ['-DCMAKE_EXPORT_COMPILE_COMMANDS=ON', '-DENABLE_FUZZ_TESTS=ON'],
@@ -386,6 +363,8 @@ COMPILERS = {
         'hosts': ['linux', 'manylinux', 'al2012', 'al2', 'freebsd'],
         'targets': ['linux', 'freebsd'],
 
+        'imports': ['gcc'],
+
         'c': "gcc-{version}",
         'cxx': "g++-{version}",
         'compiler_packages': ['gcc', 'g++'],
@@ -412,6 +391,8 @@ COMPILERS = {
     'msvc': {
         'hosts': ['windows'],
         'targets': ['windows'],
+
+        'imports': ['msvc'],
 
         'cmake_args': ["-G", "Visual Studio {generator_version}{generator_postfix}"],
 

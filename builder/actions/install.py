@@ -17,6 +17,7 @@ import shutil
 import stat
 import sys
 from pathlib import Path
+from functools import partial
 
 from action import Action
 from host import current_os, package_tool
@@ -106,6 +107,23 @@ class InstallPackages(Action):
             return Script(steps, name='setup')
 
 
+# Expose compiler via environment
+def export_compiler(compiler, env):
+    if current_os() == 'windows':
+        return
+
+    if compiler != 'default':
+        for cvar, evar in {'c': 'CC', 'cxx': 'CXX'}.items():
+            exe = env.config.get(cvar)
+            if exe:
+                compiler_path = env.shell.where(exe, resolve_symlinks=False)
+                if compiler_path:
+                    env.shell.setenv(evar, compiler_path)
+                else:
+                    print(
+                        'WARNING: Compiler {} could not be found'.format(exe))
+
+
 class InstallCompiler(Action):
     def run(self, env):
         config = env.config
@@ -114,74 +132,12 @@ class InstallCompiler(Action):
             print('Compiler is not required for current configuration, skipping.')
             return
 
+        assert env.toolchain
         toolchain = env.toolchain
-        assert toolchain
 
-        # Cross compile with dockcross
-        def install_cross_compile_toolchain(env):
-            print(
-                'Installing cross-compile via dockcross for {}'.format(toolchain.platform))
-            cross_compile_platform = env.config.get(
-                'cross_compile_platform', toolchain.platform)
-            result = sh.exec(
-                'docker', 'run', 'dockcross/{}'.format(cross_compile_platform), quiet=True)
-            # Strip off any output from docker itself
-            output, shebang, script = result.output.partition('#!')
-            script = shebang + script
-            print(output)
-            assert result.returncode == 0
+        imports = env.project.get_imports(env.spec)
+        for imp in imports:
+            if imp.compiler:
+                imp.install(env)
 
-            dockcross = os.path.abspath(os.path.join(
-                env.build_dir, 'dockcross-{}'.format(cross_compile_platform)))
-            Path(dockcross).touch(0o755)
-            with open(dockcross, "w+t") as f:
-                f.write(script)
-            sh.exec('chmod', 'a+x', dockcross)
-
-            # Write out build_dir/dockcross.env file to init the dockcross env with
-            # other code can add to this
-            dockcross_env = os.path.join(env.build_dir, 'dockcross.env')
-            with open(dockcross_env, "w+") as f:
-                f.write('#env for dockcross\n')
-            toolchain.env_file = dockcross_env
-            toolchain.shell_env = [
-                dockcross, '-a', '--env-file={}'.format(dockcross_env)]
-
-        # Expose compiler via environment
-        def export_compiler(_env):
-            if current_os() == 'windows':
-                return
-
-            if compiler != 'default':
-                for cvar, evar in {'c': 'CC', 'cxx': 'CXX'}.items():
-                    exe = config.get(cvar)
-                    if exe:
-                        compiler_path = env.shell.where(
-                            exe, resolve_symlinks=False)
-                        if compiler_path:
-                            env.shell.setenv(evar, compiler_path)
-                        else:
-                            print(
-                                'WARNING: Compiler {} could not be found'.format(exe))
-
-        packages = UniqueList(config.get('compiler_packages', []))
-        if not toolchain.cross_compile:
-            # Compiler is local, or should be, so verify/install and export it
-            compiler = env.spec.compiler
-            version = env.spec.compiler_version
-            if version == 'default':
-                version = None
-
-            # See if the compiler is already installed
-            compiler_path, found_version = Toolchain.find_compiler(
-                compiler, version)
-            if compiler_path:
-                print('Compiler {} {} is already installed ({})'.format(
-                    compiler, version, compiler_path))
-                packages = [
-                    'build-essential'] if 'build-essential' in packages else []
-
-        after_packages = [export_compiler]
-        if toolchain.cross_compile:
-            after_packages = [install_cross_compile_toolchain]
-        return Script([InstallPackages(packages), *after_packages])
+        export_compiler(env.spec.compiler, env)

@@ -309,3 +309,10 @@ class Toolchain(object):
 
         Toolchain._default_compiler, Toolchain._default_version = _find_compiler()
         return Toolchain._default_compiler, Toolchain._default_version
+
+    @staticmethod
+    def is_compiler_installed(compiler, version):
+        """ Returns True if the specified compiler is already installed, False otherwise """
+        compiler_path, found_version = Toolchain.find_compiler(
+            compiler, version)
+        return compiler_path != None

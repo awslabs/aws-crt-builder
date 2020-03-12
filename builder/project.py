@@ -278,6 +278,8 @@ class Import(object):
 
         tree_transform(kwargs, 'imports', _make_import_refs)
 
+        self.compiler = self.library = False
+
         for slot, val in kwargs.items():
             setattr(self, slot, val)
 
