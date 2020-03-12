@@ -187,7 +187,7 @@ jobs:
           path: .
 
       - name: Build aws-c-common
-        run: python3 builder.pyz build --project aws-c-common --compiler=${{ matrix.compiler }} run_tests=0
+        run: python3 builder.pyz build --project aws-c-common --compiler=${{ matrix.compiler }} run_tests=false
 
   downstream_test:
     strategy:
