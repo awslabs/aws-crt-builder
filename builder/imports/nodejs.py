@@ -50,17 +50,24 @@ class NodeJS(Import):
         install_dir = os.path.join(env.deps_dir, self.name)
         print('Installing nvm and node {} via nvm'.format(self.version))
 
+        # Download nvm
         filename = '{}/install-nvm.sh'.format(install_dir)
         print('Downloading {} to {}'.format(self.url, filename))
         sh.mkdir(install_dir)
         urlretrieve(self.url, filename)
         os.chmod(filename, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
-        sh.exec(filename, 'install', self.version, check=True)
+        sh.exec(filename, check=True)
 
+        # Install wrapper to run NVM
         run_nvm = '{}/run-nvm.sh'.format(install_dir)
         with open(run_nvm, 'w+') as nvm_sh:
             nvm_sh.write(NVM)
         os.chmod(run_nvm, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
+
+        # Install node
+        sh.exec(run_nvm, 'install', self.version, check=True)
+
+        # Fetch path to installed node, add to PATH
         result = sh.exec(run_nvm, 'which', self.version, check=True)
         node_path = os.path.dirname(result.output)
         sh.setenv('PATH', '{}:{}'.format(sh.getenv('PATH'), node_path))
