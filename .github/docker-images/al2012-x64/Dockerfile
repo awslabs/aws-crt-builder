@@ -48,12 +48,12 @@ RUN curl -sSL https://d19elf31gohf1l.cloudfront.net/_binaries/libcrypto/libcrypt
 RUN curl -sSL https://nodejs.org/download/release/latest-v10.x/node-v10.19.0-linux-x64.tar.gz -o node.tar.gz \
     && tar xzf node.tar.gz \
     && cd node-v* \
-    && cp -rv share/* /usr/local/share \
-    && cp -rv lib/* /usr/local/lib \
-    && cp -rv bin/* /usr/local/bin \
-    && cp -rv include/* /usr/local/include \
+    && cp -r share/* /usr/local/share \
+    && cp -r lib/* /usr/local/lib \
+    && cp -r bin/* /usr/local/bin \
+    && cp -r include/* /usr/local/include \
     && node --version \
-    && rm -f /tmp/node*
+    && rm -rf /tmp/node*
 
 ###############################################################################
 # Install entrypoint
