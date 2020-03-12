@@ -268,6 +268,15 @@ def _resolve_imports_for_spec(imps, spec):
     return list(imports)
 
 
+def _resolve_imports_for_spec(imps, spec):
+    imps = _resolve_imports(imps)
+    imports = []
+    for imp in imps:
+        if not hasattr(imp, 'targets') or spec.target in getattr(imp, 'targets', []):
+            imports += [imp] + imp.get_imports(spec)
+    return imports
+
+
 def _not_resolved(s):
     return False
 
