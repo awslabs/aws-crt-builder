@@ -46,7 +46,7 @@ RUN curl -sSL https://d19elf31gohf1l.cloudfront.net/_binaries/libcrypto/libcrypt
 # Install node binaries
 ###############################################################################
 RUN curl -sSL https://nodejs.org/download/release/latest-v10.x/node-v10.19.0-linux-x64.tar.gz -o node.tar.gz \
-    && tar xzf node.tar.gz -C /usr \
+    && tar xvzf node.tar.gz -C /usr/local \
     && node --version \
     && rm -f /tmp/node.tar.gz
 
