@@ -12,7 +12,9 @@
 # permissions and limitations under the License.
 
 
-from collections import namedtuple
+import copy
+from collections import namedtuple, UserList
+from collections.abc import Iterable
 import os
 from string import Formatter
 import subprocess
@@ -158,7 +160,7 @@ def _flatten_command(*command):
         e_type = type(command_segment)
         if e_type == str:
             new_command.append(command_segment)
-        elif e_type == list or e_type == tuple:
+        elif e_type == list or e_type == tuple or isinstance(command_segment, Iterable):
             for segment in command_segment:
                 _proc_segment(segment)
     _proc_segment(command)
@@ -227,3 +229,54 @@ def run_command(*command, **kwargs):
                     _retry_wait_secs))
                 sleep(_retry_wait_secs)
     return ExecResult(-1, -1, output)
+
+
+def content_hash(o):
+    """
+    Makes a hash from a dictionary, list, tuple or set to any level, that contains
+    only other hashable types (including any lists, tuples, sets, and
+    dictionaries).
+    """
+
+    if isinstance(o, (set, tuple, list)):
+        return tuple([content_hash(item) for item in o])
+    elif not isinstance(o, dict):
+        if isinstance(o, object) and hasattr(o, '__dict__'):
+            return content_hash(o.__dict__)
+        try:
+            return hash(o)
+        except:
+            return hash(str(o))
+
+    hashes = copy.deepcopy(o)
+    for k, v in hashes.items():
+        hashes[k] = content_hash(v)
+
+    return hash(tuple(frozenset(sorted(hashes.items()))))
+
+
+class UniqueList(UserList):
+    """ A list that only allows unique items to be appended. Items are id'ed by hash via content_hash """
+
+    def __init__(self, items=[]):
+        super().__init__()
+        self._hashes = set()
+        for item in items:
+            self.append(item)
+
+    def __delitem__(self, idx):
+        hash = content_hash(self.data[idx])
+        self._hashes.remove(hash)
+        self.data.__delitem__(idx)
+
+    def __setitem__(self, idx, value):
+        hash = content_hash(value)
+        if not hash in self._hashes:
+            self._hashes.add(hash)
+            self.data.__setitem__(idx, value)
+
+    def append(self, value):
+        hash = content_hash(value)
+        if not hash in self._hashes:
+            self._hashes.add(hash)
+            self.data.append(value)

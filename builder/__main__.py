@@ -125,6 +125,14 @@ def inspect_host(env):
     print('  Available Projects: {}'.format(', '.join(Project.projects())))
 
 
+def coerce_arg(arg):
+    if arg.lower() in ['on', 'true', 'yes']:
+        return True
+    if arg.lower() in ['off', 'false', 'no']:
+        return False
+    return arg
+
+
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('-d', '--dry-run', action='store_true',
@@ -170,7 +178,7 @@ def parse_args():
             config_vars.append((m.group(1), m.group(2)))
     cli_config = {}
     for var in config_vars:
-        cli_config[var[0]] = var[1]
+        cli_config[var[0]] = coerce_arg(var[1])
         argv.remove('{}={}'.format(var[0], var[1]))
 
     # parse the args we know, put the rest in args.args for others to parse

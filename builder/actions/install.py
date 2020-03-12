@@ -17,12 +17,17 @@ import shutil
 import stat
 import sys
 from pathlib import Path
+from functools import partial
 
 from action import Action
 from host import current_os, package_tool
 from actions.script import Script
 from toolchain import Toolchain
-from util import list_unique
+from util import UniqueList
+
+
+def set_dryrun(dryrun, env):
+    env.shell.dryrun = dryrun
 
 
 class InstallPackages(Action):
@@ -35,54 +40,84 @@ class InstallPackages(Action):
 
     def run(self, env):
         config = env.config
-        packages = self.packages if self.packages else config.get(
-            'packages', [])
-        if not packages:
-            return
-
-        packages = list_unique(packages)
-        pkg_tool = package_tool()
-        print('Installing packages via {}: {}'.format(
-            pkg_tool.value, ', '.join(packages)))
-
         sh = env.shell
-        sudo = config.get('sudo', current_os() == 'linux')
-        sudo = ['sudo'] if sudo else []
 
         parser = argparse.ArgumentParser()
         parser.add_argument('--skip-install', action='store_true')
         args = parser.parse_known_args(env.args.args)[0]
 
-        was_dryrun = sh.dryrun
-        if args.skip_install:
-            sh.dryrun = True
+        sudo = config.get('sudo', current_os() == 'linux')
+        sudo = ['sudo'] if sudo else []
 
-        if not InstallPackages.pkg_init_done:
-            pkg_setup = config.get('pkg_setup', [])
-            if pkg_setup:
-                for cmd in list_unique(pkg_setup):
-                    if isinstance(cmd, str):
-                        cmd = cmd.split(' ')
-                    assert isinstance(cmd, list)
-                    sh.exec(*sudo, cmd, check=True, retries=3)
+        packages = self.packages if self.packages else config.get(
+            'packages', [])
+        if packages:
+            packages = UniqueList(packages)
+            pkg_tool = package_tool()
+            print('Installing packages via {}: {}'.format(
+                pkg_tool.value, ', '.join(packages)))
 
-            pkg_update = config.get('pkg_update', None)
-            if pkg_update:
-                if not isinstance(pkg_update, list):
-                    pkg_update = pkg_update.split(' ')
-                sh.exec(*sudo, pkg_update, check=True, retries=3)
+            was_dryrun = sh.dryrun
+            if args.skip_install:
+                sh.dryrun = True
 
-            InstallPackages.pkg_init_done = True
+            if not InstallPackages.pkg_init_done:
+                pkg_setup = UniqueList(config.get('pkg_setup', []))
+                if pkg_setup:
+                    for cmd in pkg_setup:
+                        if isinstance(cmd, str):
+                            cmd = cmd.split(' ')
+                        assert isinstance(cmd, list)
+                        sh.exec(*sudo, cmd, check=True, retries=3)
 
-        pkg_install = config['pkg_install']
-        if not isinstance(pkg_install, list):
-            pkg_install = pkg_install.split(' ')
-        pkg_install += packages
+                pkg_update = config.get('pkg_update', None)
+                if pkg_update:
+                    if not isinstance(pkg_update, list):
+                        pkg_update = pkg_update.split(' ')
+                    sh.exec(*sudo, pkg_update, check=True, retries=3)
 
-        sh.exec(*sudo, pkg_install, check=True, retries=3)
+                InstallPackages.pkg_init_done = True
 
-        if args.skip_install:
-            sh.dryrun = was_dryrun
+            pkg_install = config['pkg_install']
+            if not isinstance(pkg_install, list):
+                pkg_install = pkg_install.split(' ')
+            pkg_install += packages
+
+            sh.exec(*sudo, pkg_install, check=True, retries=3)
+
+            if args.skip_install:
+                sh.dryrun = was_dryrun
+
+        setup_steps = env.config.get('setup_steps', [])
+        if setup_steps:
+            steps = []
+            for step in setup_steps:
+                if not isinstance(step, list):
+                    step = step.split(' ')
+                if step:
+                    steps.append([*sudo, *step])
+            if args.skip_install:
+                return Script([partial(set_dryrun, True), *steps,
+                               partial(set_dryrun, sh.dryrun)], name='setup')
+
+            return Script(steps, name='setup')
+
+
+# Expose compiler via environment
+def export_compiler(compiler, env):
+    if current_os() == 'windows':
+        return
+
+    if compiler != 'default':
+        for cvar, evar in {'c': 'CC', 'cxx': 'CXX'}.items():
+            exe = env.config.get(cvar)
+            if exe:
+                compiler_path = env.shell.where(exe, resolve_symlinks=False)
+                if compiler_path:
+                    env.shell.setenv(evar, compiler_path)
+                else:
+                    print(
+                        'WARNING: Compiler {} could not be found'.format(exe))
 
 
 class InstallCompiler(Action):
@@ -93,73 +128,12 @@ class InstallCompiler(Action):
             print('Compiler is not required for current configuration, skipping.')
             return
 
+        assert env.toolchain
         toolchain = env.toolchain
-        assert toolchain
 
-        # Cross compile with dockcross
-        def _install_cross_compile_toolchain(env):
-            print(
-                'Installing cross-compile via dockcross for {}'.format(toolchain.platform))
-            cross_compile_platform = env.config.get(
-                'cross_compile_platform', toolchain.platform)
-            result = sh.exec(
-                'docker', 'run', 'dockcross/{}'.format(cross_compile_platform), quiet=True)
-            # Strip off any output from docker itself
-            output, shebang, script = result.output.partition('#!')
-            script = shebang + script
-            print(output)
-            assert result.returncode == 0
+        imports = env.project.get_imports(env.spec)
+        for imp in imports:
+            if imp.compiler:
+                imp.install(env)
 
-            dockcross = os.path.abspath(os.path.join(
-                env.build_dir, 'dockcross-{}'.format(cross_compile_platform)))
-            Path(dockcross).touch(0o755)
-            with open(dockcross, "w+t") as f:
-                f.write(script)
-            sh.exec('chmod', 'a+x', dockcross)
-
-            # Write out build_dir/dockcross.env file to init the dockcross env with
-            # other code can add to this
-            dockcross_env = os.path.join(env.build_dir, 'dockcross.env')
-            with open(dockcross_env, "w+") as f:
-                f.write('#env for dockcross\n')
-            toolchain.env_file = dockcross_env
-            toolchain.shell_env = [
-                dockcross, '-a', '--env-file={}'.format(dockcross_env)]
-
-        # Expose compiler via environment
-        def export_compiler(_env):
-            if current_os() == 'windows':
-                return
-
-            if compiler != 'default':
-                for cvar, evar in {'c': 'CC', 'cxx': 'CXX'}.items():
-                    exe = config.get(cvar)
-                    if exe:
-                        compiler_path = env.shell.where(
-                            exe, resolve_symlinks=False)
-                        if compiler_path:
-                            env.shell.setenv(evar, compiler_path)
-                        else:
-                            print(
-                                'WARNING: Compiler {} could not be found'.format(exe))
-
-        if not toolchain.cross_compile:
-            # Compiler is local, or should be, so verify/install and export it
-            compiler = env.spec.compiler
-            version = env.spec.compiler_version
-            if version == 'default':
-                version = None
-
-            # See if the compiler is already installed
-            compiler_path, found_version = Toolchain.find_compiler(
-                compiler, version)
-            if compiler_path:
-                print('Compiler {} {} is already installed ({})'.format(
-                    compiler, version, compiler_path))
-                return Script([export_compiler])
-
-        packages = list_unique(config.get('compiler_packages', []))
-        after_packages = [export_compiler]
-        if toolchain.cross_compile:
-            after_packages = [_install_cross_compile_toolchain]
-        return Script([InstallPackages(packages), *after_packages])
+        export_compiler(env.spec.compiler, env)

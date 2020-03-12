@@ -11,7 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from collections import namedtuple, OrderedDict
+from collections import namedtuple
 from functools import partial
 import glob
 import os
@@ -20,7 +20,7 @@ import sys
 from data import *
 from host import current_os, package_tool
 from scripts import Scripts
-from util import replace_variables, merge_unique_attrs, to_list, tree_transform, isnamedtuple
+from util import replace_variables, merge_unique_attrs, to_list, tree_transform, isnamedtuple, UniqueList
 from actions.cmake import CMakeBuild, CTestRun
 from actions.script import Script
 
@@ -93,10 +93,10 @@ def produce_config(build_spec, project, overrides=None, **additional_variables):
     }
 
     # Build the list of config options to poll
-    configs = OrderedDict()
+    configs = UniqueList()
 
     # Processes a config object (could come from a file), searching for keys hosts, targets, and compilers
-    def process_config(config):
+    def process_config(config, depth=0):
 
         def process_element(map, element_name, instance):
             if not map or not isinstance(map, dict):
@@ -111,36 +111,34 @@ def produce_config(build_spec, project, overrides=None, **additional_variables):
             if not new_config:
                 return
 
-            configs[id(new_config)] = new_config
+            configs.append(new_config)
 
             # recursively process config as long as sub-sections are found
-            process_config(new_config)
+            process_config(new_config, depth+1)
 
             return new_config
 
         # Pull out any top level defaults
-        defaults = {}
-        for key, value in config.items():
-            if key not in ('hosts', 'targets', 'compilers', 'architectures'):
-                defaults[key] = value
-        if len(defaults) > 0:
-            configs[id(defaults)] = defaults
+        if depth == 0:
+            defaults = {}
+            for key, value in config.items():
+                if key not in ('hosts', 'targets', 'compilers', 'architectures'):
+                    defaults[key] = value
+            if len(defaults) > 0:
+                configs.append(defaults)
 
         # pull out arch + any aliases
         archs = _arch_aliases(build_spec)
         for arch in archs:
             process_element(config, 'architectures', arch)
 
-        # pull out any host named default, then spec host os and host to override
-        process_element(config, 'hosts', 'default')
         # Get defaults from os (linux) then override with host (al2, manylinux, etc)
         if host_os != build_spec.host:
             process_element(config, 'hosts', host_os)
         process_element(config, 'hosts', build_spec.host)
 
-        # pull out default target, then spec target to override
-        process_element(config, 'targets', 'default')
-        target = process_element(config, 'targets', build_spec.target)
+        # pull out spec target to override
+        process_element(config, 'targets', build_spec.target)
 
         # pull out spec compiler and version info
         compiler = process_element(config, 'compilers', build_spec.compiler)
@@ -162,7 +160,7 @@ def produce_config(build_spec, project, overrides=None, **additional_variables):
     for key, default in KEYS.items():
         new_version[key] = default
 
-        for config in configs.values():
+        for config in configs:
             override_key = '!' + key
             if override_key in config:
                 # Handle overrides
@@ -190,7 +188,7 @@ def produce_config(build_spec, project, overrides=None, **additional_variables):
     }
 
     # Pull variables from the configs
-    for config in configs.values():
+    for config in configs:
         if 'variables' in config:
             variables = config['variables']
             assert type(variables) == dict
@@ -256,6 +254,15 @@ def _resolve_imports(imps):
     return imports
 
 
+def _resolve_imports_for_spec(imps, spec):
+    imps = _resolve_imports(imps)
+    imports = []
+    for imp in imps:
+        if not hasattr(imp, 'targets') or spec.target in getattr(imp, 'targets', []):
+            imports += [imp] + imp.get_imports(spec)
+    return imports
+
+
 def _not_resolved(s):
     return False
 
@@ -279,6 +286,8 @@ class Import(object):
             del kwargs['resolved']
 
         tree_transform(kwargs, 'imports', _make_import_refs)
+
+        self.compiler = self.library = False
 
         for slot, val in kwargs.items():
             setattr(self, slot, val)
@@ -315,13 +324,9 @@ class Import(object):
         return args
 
     def get_imports(self, spec):
-        self.imports = _resolve_imports(getattr(self, 'imports', []))
-        target = spec.target
-        imports = []
-        for i in self.imports:
-            if not hasattr(i, 'targets') or target in getattr(i, 'targets', []):
-                imports.append(i)
-        return imports
+        self.imports = _resolve_imports_for_spec(
+            getattr(self, 'imports', []) + getattr(self, 'imports', []), spec)
+        return self.imports
 
 
 class Project(object):
@@ -448,14 +453,9 @@ class Project(object):
         return args
 
     def get_imports(self, spec):
-        self.imports = _resolve_imports(
-            self.config.get('imports', []))
-        target = spec.target
-        imports = []
-        for i in self.imports:
-            if not hasattr(i, 'targets') or target in getattr(i, 'targets', []):
-                imports.append(i)
-        return imports
+        self.imports = _resolve_imports_for_spec(
+            getattr(self, 'imports', []) + self.config.get('imports', []), spec)
+        return self.imports
 
     def get_dependencies(self, spec):
         """ Gets dependencies for a given BuildSpec, filters by target """
@@ -583,7 +583,7 @@ class Project(object):
             dirs.append(os.path.join(d, name))
 
         # remove duplicates when these overlap
-        dirs = list(OrderedDict.fromkeys(dirs))
+        dirs = UniqueList(dirs)
 
         for search_dir in dirs:
             #print('  Looking in {}'.format(search_dir))
