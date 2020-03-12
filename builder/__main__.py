@@ -222,6 +222,11 @@ if __name__ == '__main__':
             os.makedirs(args.build_dir)
         os.chdir(args.build_dir)
 
+    if env.spec.target == current_os() and spec.arch == current_arch():
+        inspect_host(spec)
+    if args.command == 'inspect':
+        sys.exit(0)
+
     # set up environment
     env = Env({
         'dryrun': args.dry_run,
@@ -232,11 +237,6 @@ if __name__ == '__main__':
     })
 
     Scripts.load()
-
-    if env.spec.target == current_os() and env.spec.arch == current_arch():
-        inspect_host(env)
-    if args.command == 'inspect':
-        sys.exit(0)
 
     if not env.project:
         print('No project specified and no project found in current directory')
