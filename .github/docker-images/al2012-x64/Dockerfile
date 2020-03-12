@@ -11,9 +11,9 @@ RUN yum -y update \
     curl \
     sudo \
     # Python
-    python3 \
-    python3-devel \
-    python3-pip \
+    python36 \
+    python36-devel \
+    python36-pip \
     make \
     cmake3 \
     gcc \
