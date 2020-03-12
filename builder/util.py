@@ -256,6 +256,8 @@ def content_hash(o):
 
 
 class UniqueList(UserList):
+    """ A list that only allows unique items to be appended. Items are id'ed by hash via content_hash """
+
     def __init__(self, items=[]):
         super().__init__()
         self._hashes = set()

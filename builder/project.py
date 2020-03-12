@@ -138,7 +138,7 @@ def produce_config(build_spec, project, overrides=None, **additional_variables):
         process_element(config, 'hosts', build_spec.host)
 
         # pull out spec target to override
-        target = process_element(config, 'targets', build_spec.target)
+        process_element(config, 'targets', build_spec.target)
 
         # pull out spec compiler and version info
         compiler = process_element(config, 'compilers', build_spec.compiler)
