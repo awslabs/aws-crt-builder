@@ -20,6 +20,14 @@ import os
 from urllib.request import urlretrieve
 
 
+NVM = """\
+#!/usr/bin/env bash
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+nvm $*
+"""
+
+
 class NodeJS(Import):
     def __init__(self, **kwargs):
         super().__init__(
@@ -46,8 +54,15 @@ class NodeJS(Import):
         print('Downloading {} to {}'.format(self.url, filename))
         sh.mkdir(install_dir)
         urlretrieve(self.url, filename)
-        os.chmod(filename, stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH |
-                 stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+        os.chmod(filename, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
         sh.exec(filename, 'install', self.version, check=True)
+
+        run_nvm = '{}/run-nvm.sh'.format(install_dir)
+        with open(run_nvm, 'w+') as nvm_sh:
+            nvm_sh.write(NVM)
+        os.chmod(run_nvm, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
+        result = sh.exec(run_nvm, 'which', self.version, check=True)
+        node_path = os.path.dirname(result.output)
+        sh.setenv('PATH', '{}:{}'.format(sh.getenv('PATH'), node_path))
         sh.exec('node', '--version', check=True)
         self.installed = True
