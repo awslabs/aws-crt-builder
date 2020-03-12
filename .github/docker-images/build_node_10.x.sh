@@ -21,9 +21,9 @@ fi
 container=$(docker run -dit --env AWS_ACCESS_KEY_ID --env AWS_SECRET_ACCESS_KEY --entrypoint /bin/sh docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${variant}-${arch}:${version})
 docker exec ${container} sh -c "cd /tmp && curl -sSLO https://nodejs.org/download/release/latest-v10.x/node-v${nodejs_version}-linux-x64.tar.gz"
 docker exec ${container} sh -c "cd /tmp && tar xvzf node-v${nodejs_version}-linux-x64.tar.gz"
-docker exec ${container} sh -c "cd /tmp/node* && ./configure"
-docker exec ${container} sh -c "cd /tmp/node* && make -j"
-docker exec ${container} sh -c "cd /tmp/node* && make install PREFIX=/opt/nodejs"
+docker exec ${container} sh -c "cd /tmp/node-v${nodejs_version}-linux-x64 && ./configure"
+docker exec ${container} sh -c "cd /tmp/node-v${nodejs_version}-linux-x64 && make -j"
+docker exec ${container} sh -c "cd /tmp/node-v${nodejs_version}-linux-x64 && make install PREFIX=/opt/nodejs"
 docker exec ${container} sh -c "tar czf /tmp/nodejs-${nodejs_version}-${variant}-${arch}.tar.gz -C /opt/nodejs ."
 docker exec ${container} sh -c "aws s3 cp /tmp/nodejs-${nodejs_version}-${variant}-${arch}.tar.gz s3://aws-crt-builder/_binaries/nodejs/nodejs-${nodejs_version}-${variant}-${arch}.tar.gz"
 docker stop ${container}
