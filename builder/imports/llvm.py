@@ -21,7 +21,7 @@ import stat
 import tempfile
 
 # this is a copy of https://apt.llvm.org/llvm.sh modified to add support back in
-# for older versions of clang < 8
+# for older versions of clang < 8, and removed the need for clangd, lldb
 
 LLVM_SH = """\
 #!/bin/bash
@@ -87,7 +87,7 @@ esac
 wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -
 add-apt-repository "${REPO_NAME}"
 apt-get update 
-apt-get install -y clang-$LLVM_VERSION lldb-$LLVM_VERSION lld-$LLVM_VERSION clangd-$LLVM_VERSION
+apt-get install -y clang-$LLVM_VERSION lld-$LLVM_VERSION
 """
 
 
