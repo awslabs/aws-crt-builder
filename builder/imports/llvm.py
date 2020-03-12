@@ -87,7 +87,7 @@ esac
 curl -sSL https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -
 add-apt-repository "${REPO_NAME}"
 apt-get update 
-apt-get install -y clang$LLVM_VERSION_STRING lld$LLVM_VERSION_STRING
+apt-get install -y clang$LLVM_VERSION_STRING
 """
 
 
