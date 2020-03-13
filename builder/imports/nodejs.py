@@ -71,8 +71,7 @@ class NodeJS(Import):
     def install_nvm_choco(self, env):
         sh = env.shell
         Script([InstallPackages(['nvm'],)]).run(env)
-        result = sh.exec('refreshenv', '&& where nvm', check=True)
-        nvm_path = os.path.dirname(result.output)
+        nvm_path = r'C:\ProgramData\nvm'
         sh.setenv('PATH', '{}{}{}'.format(
             nvm_path, os.pathsep, sh.getenv('PATH')))
 
