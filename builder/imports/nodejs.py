@@ -14,7 +14,7 @@
 
 from host import current_os
 from project import Import
-from install import InstallPackages
+from actions.install import InstallPackages
 from actions.script import Script
 
 import stat
