@@ -48,6 +48,7 @@ class NodeJS(Import):
             return
 
         self.install_dir = os.path.join(env.deps_dir, self.name)
+        sh.mkdir(self.install_dir)
 
         if current_os() == 'windows':
             self.install_nvm_choco(env)
