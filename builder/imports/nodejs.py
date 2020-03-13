@@ -85,8 +85,7 @@ class NodeJS(Import):
                 ]
             )
             script.flush()
-        sh.exec('type', env_script, check=True)
-        result = sh.exec(env_script, check=True)
+        result = sh.exec(env_script, check=True, quiet=True)
         lines = result.output.split(os.linesep)
         vars = {}
         for line in lines:
