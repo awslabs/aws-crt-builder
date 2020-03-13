@@ -69,7 +69,7 @@ class NodeJS(Import):
         sh.exec('node', '--version', check=True)
 
     def install_nvm_choco(self, env):
-        sh = env.sh
+        sh = env.shell
         Script([InstallPackages(['nvm'],)]).run(env)
         result = sh.exec('where', 'nvm', check=True)
         nvm_path = os.path.dirname(result.output)
