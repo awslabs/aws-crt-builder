@@ -11,9 +11,11 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+import argparse
 import os
 from pathlib import Path
 from project import Import
+import time
 from urllib.request import urlretrieve
 import tarfile
 
@@ -42,27 +44,15 @@ class LibCrypto(Import):
 
         sh = env.shell
 
-        # If this is a local build, check the local machine
-        if not env.toolchain.cross_compile:
-            required_files = [
-                ['include/openssl/crypto.h'],
-                ['lib/libcrypto.a', 'lib64/libcrypto.a'],
-                #['lib/libcrypto.so', 'lib64/libcrypto.so'],
-            ]
-            found = 0
-            for paths in required_files:
-                for path in paths:
-                    full_path = os.path.join(self.prefix, path)
-                    if os.path.isfile(full_path):
-                        print('Found {}'.format(full_path))
-                        found += 1
-                        break
+        parser = argparse.ArgumentParser()
+        parser.add_argument('--libcrypto', default=None)
+        args = parser.parse_known_args(env.args.args)[0]
 
-            if found >= len(required_files):
-                print('Found existing libcrypto at {}'.format(self.prefix))
-                env.variables['libcrypto_path'] = self.prefix
-                self.installed = True
-                return
+        if args.libcrypto:
+            print('Using custom libcrypto: {}'.format(args.libcrypto))
+            self.prefix = args.libcrypto
+            self.installed = True
+            return
 
         install_dir = os.path.join(env.deps_dir, self.name)
         # If path to libcrypto is going to be relative, it has to be relative to the
@@ -73,7 +63,8 @@ class LibCrypto(Import):
             env.spec.target, env.spec.arch, install_dir))
 
         sh.mkdir(install_dir)
-        url = self.url.format(os=env.spec.target, arch=env.spec.arch)
+        url = self.url.format(
+            os=env.spec.target, arch=env.spec.arch) + '?time={}'.format(time.time())
         filename = '{}/libcrypto.tar.gz'.format(install_dir)
         print('Downloading {}'.format(url))
         urlretrieve(url, filename)

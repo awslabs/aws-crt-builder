@@ -129,7 +129,8 @@ class LLVM(Import):
         script.close()
 
         # Make script executable
-        os.chmod(script_path, stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+        os.chmod(script_path, stat.S_IRUSR | stat.S_IRGRP |
+                 stat.S_IROTH | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
         sh.exec(*sudo, [script_path, version], check=True)
 
         self.installed = True

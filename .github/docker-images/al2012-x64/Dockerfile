@@ -16,8 +16,8 @@ RUN yum -y update \
     python36-pip \
     make \
     cmake3 \
-    gcc \
-    gcc-c++ \
+    gcc72 \
+    gcc72-c++ \
     && yum clean all \
     && rm -rf /var/cache/yum \
     && ln -s /usr/bin/cmake3 /usr/bin/cmake \
@@ -41,19 +41,6 @@ RUN curl -sSL https://d19elf31gohf1l.cloudfront.net/_binaries/libcrypto/libcrypt
     && tar xzf libcrypto.tar.gz -C /opt/openssl \
     && LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/openssl/lib /opt/openssl/bin/openssl version \
     && rm -f /tmp/libcrypto.tar.gz
-
-###############################################################################
-# Install node binaries
-###############################################################################
-RUN curl -sSL https://nodejs.org/download/release/latest-v10.x/node-v10.19.0-linux-x64.tar.gz -o node.tar.gz \
-    && tar xzf node.tar.gz \
-    && cd node-v* \
-    && cp -r share/* /usr/local/share \
-    && cp -r lib/* /usr/local/lib \
-    && cp -r bin/* /usr/local/bin \
-    && cp -r include/* /usr/local/include \
-    && node --version \
-    && rm -rf /tmp/node*
 
 ###############################################################################
 # Install entrypoint

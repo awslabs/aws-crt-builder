@@ -188,11 +188,12 @@ def run_command(*command, **kwargs):
             if sys.platform == 'win32':
                 cmds = [cmd.encode('ascii', 'ignore').decode()
                         for cmd in cmds]
+            cmd = subprocess.list2cmdline(cmds)
             proc = subprocess.Popen(
-                cmds,
+                cmd,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
-                shell=(sys.platform == 'win32'),
+                shell=True,
                 bufsize=0)  # do not buffer output
 
             # Convert all output to strings, which makes it much easier to both print

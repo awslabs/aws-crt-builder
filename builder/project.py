@@ -436,6 +436,7 @@ class Project(object):
             test_project = steps
         if len(steps) == 0:
             return None
+        steps = [partial(_pushenv, self, 'test_env'), *steps, _popenv]
         return Script(steps, name='test {}'.format(self.name))
 
     def install(self, env):

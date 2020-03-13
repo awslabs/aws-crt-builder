@@ -82,7 +82,7 @@ def current_host():
         if platform == 'linux':
             if _file_contains('/etc/system-release', 'Amazon Linux release 2'):
                 return 'al2'
-            if _file_contains('/etc/system-release', 'Bare Metal'):
+            if _file_contains('/etc/system-release', 'Bare Metal') or _file_contains('/etc/system-release', 'Amazon Linux AMI'):
                 return 'al2012'
             if _file_contains('/etc/redhat-release', 'CentOS release 5.11 (Final)'):
                 return 'manylinux'
