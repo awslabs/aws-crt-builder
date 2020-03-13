@@ -14,6 +14,7 @@
 import os
 from pathlib import Path
 from project import Import
+import time
 from urllib.request import urlretrieve
 import tarfile
 
@@ -51,7 +52,8 @@ class LibCrypto(Import):
             env.spec.target, env.spec.arch, install_dir))
 
         sh.mkdir(install_dir)
-        url = self.url.format(os=env.spec.target, arch=env.spec.arch)
+        url = self.url.format(
+            os=env.spec.target, arch=env.spec.arch) + '?time={}'.format(time.time())
         filename = '{}/libcrypto.tar.gz'.format(install_dir)
         print('Downloading {}'.format(url))
         urlretrieve(url, filename)
