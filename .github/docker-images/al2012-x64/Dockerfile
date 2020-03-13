@@ -16,8 +16,8 @@ RUN yum -y update \
     python36-pip \
     make \
     cmake3 \
-    gcc \
-    gcc-c++ \
+    gcc72 \
+    gcc72-c++ \
     && yum clean all \
     && rm -rf /var/cache/yum \
     && ln -s /usr/bin/cmake3 /usr/bin/cmake \
