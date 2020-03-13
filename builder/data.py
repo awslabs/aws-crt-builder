@@ -317,12 +317,11 @@ COMPILERS = {
             '3': {
                 'c': "clang-3.9",
                 'cxx': "clang++-3.9",
-                'cmake_args': ['-DCMAKE_EXPORT_COMPILE_COMMANDS=ON', '-DENABLE_FUZZ_TESTS=ON'],
             },
             '6': {
                 'c': "clang-6.0",
                 'cxx': "clang++-6.0",
-                'cmake_args': ['-DCMAKE_EXPORT_COMPILE_COMMANDS=ON', '-DENABLE_FUZZ_TESTS=ON'],
+                'cmake_args': ['-DENABLE_FUZZ_TESTS=ON'],
             },
             '7': {
                 'c': "clang-7",
@@ -331,12 +330,12 @@ COMPILERS = {
             '8': {
                 'c': "clang-8",
                 'cxx': "clang++-8",
-                'cmake_args': ['-DCMAKE_EXPORT_COMPILE_COMMANDS=ON', '-DENABLE_FUZZ_TESTS=ON'],
+                'cmake_args': ['-DENABLE_FUZZ_TESTS=ON'],
             },
             '9': {
                 'c': "clang-9",
                 'cxx': "clang++-9",
-                'cmake_args': ['-DCMAKE_EXPORT_COMPILE_COMMANDS=ON', '-DENABLE_FUZZ_TESTS=ON'],
+                'cmake_args': ['-DENABLE_FUZZ_TESTS=ON'],
             },
             # 10 and 11 are XCode Apple clang/LLVM
             '10': {
