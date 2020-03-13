@@ -47,6 +47,8 @@ class NodeJS(Import):
         if self.installed:
             return
 
+        sh = env.shell
+
         self.install_dir = os.path.join(env.deps_dir, self.name)
         sh.mkdir(self.install_dir)
 
