@@ -11,6 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+import argparse
 import os
 from pathlib import Path
 from project import Import
@@ -42,6 +43,16 @@ class LibCrypto(Import):
             return
 
         sh = env.shell
+
+        parser = argparse.ArgumentParser()
+        parser.add_argument('--libcrypto', default=None)
+        args = parser.parse_known_args(env.args.args)[0]
+
+        if args.libcrypto:
+            print('Using custom libcrypto: {}'.format(args.libcrypto))
+            self.prefix = args.libcrypto
+            self.installed = True
+            return
 
         install_dir = os.path.join(env.deps_dir, self.name)
         # If path to libcrypto is going to be relative, it has to be relative to the
