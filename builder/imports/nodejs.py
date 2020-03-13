@@ -90,12 +90,9 @@ class NodeJS(Import):
         lines = result.output.split('\n')
         vars = {}
         for line in lines:
-            print(line)
             if '=' in line:
                 key, value = line.split('=', 1)
                 vars[key.upper()] = value
-        from pprint import pprint
-        pprint(vars)
         # Update path and NVM_* env vars
         sh.setenv('PATH', vars['PATH'])
         for key, value in vars.items():

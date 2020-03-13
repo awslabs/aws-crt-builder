@@ -40,15 +40,16 @@ KEYS = {
     'deps_dir': 'build/deps',
     'install_dir': 'build/install',
     'build_env': {},  # environment variables to set before starting build
-    'pre_build_env': [],
+    'pre_build_env': {},
     'pre_build_steps': [],  # steps to run before build
-    'post_build_env': [],
+    'post_build_env': {},
     'post_build_steps': [],  # steps to run after build
     'run_tests': True,  # whether or not to run tests
     'build': None,  # deprecated, use build_steps
     # steps to run instead of the default cmake compile
     'build_steps': None,
     'test': None,  # deprecated, use test_steps
+    'test_env': {},
     'test_steps': None,  # steps to run instead of the default ctest
 
     'setup_steps': [],  # Commands to run at env setup time
