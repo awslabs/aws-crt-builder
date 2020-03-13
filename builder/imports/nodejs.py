@@ -93,6 +93,8 @@ class NodeJS(Import):
             if '=' in line:
                 key, value = line.split('=', 1)
                 vars[key.upper()] = value
+        from pprint import pprint
+        pprint(vars)
         # Update path and NVM_* env vars
         sh.setenv('PATH', vars['PATH'])
         for key, value in vars:
