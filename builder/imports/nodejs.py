@@ -67,10 +67,11 @@ class NodeJS(Import):
         sh.exec(self.nvm, 'install', self.version, check=True)
 
         # Fetch path to installed node, add to PATH
-        result = sh.exec(self.nvm, 'which', self.version, check=True)
-        node_path = os.path.dirname(result.output)
-        sh.setenv('PATH', '{}{}{}'.format(
-            node_path, os.pathsep, sh.getenv('PATH')))
+        if current_os() != 'windows':
+            result = sh.exec(self.nvm, 'which', self.version, check=True)
+            node_path = os.path.dirname(result.output)
+            sh.setenv('PATH', '{}{}{}'.format(
+                node_path, os.pathsep, sh.getenv('PATH')))
         sh.exec('node', '--version', check=True)
 
     def install_nvm_choco(self, env):
