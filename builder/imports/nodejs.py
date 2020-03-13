@@ -14,6 +14,8 @@
 
 from host import current_os
 from project import Import
+from install import InstallPackages
+from actions.script import Script
 
 import stat
 import os
@@ -38,15 +40,39 @@ class NodeJS(Import):
             **kwargs)
         self.url = 'https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.3/install.sh'
         self.version = '10'
+        self.nvm = 'nvm'
         self.installed = False
 
     def install(self, env):
         if self.installed:
             return
 
-        sh = env.shell
-        toolchain = env.toolchain
+        if current_os() == 'windows':
+            self.install_nvm_choco(env)
+        else:
+            self.install_nvm_sh(env)
 
+        self.install_node_via_nvm(env)
+
+        self.installed = True
+
+    def install_node_via_nvm(self, env):
+        sh = env.shell
+        # Install node
+        sh.exec(self.nvm, 'install', self.version, check=True)
+
+        # Fetch path to installed node, add to PATH
+        result = sh.exec(self.nvm, 'which', self.version, check=True)
+        node_path = os.path.dirname(result.output)
+        sh.setenv('PATH', '{}{}{}'.format(
+            node_path, os.pathsep, sh.getenv('PATH')))
+        sh.exec('node', '--version', check=True)
+
+    def install_nvm_choco(self, env):
+        Script([InstallPackages(['nvm'], )]).run(env)
+
+    def install_nvm_sh(self, env):
+        sh = env.shell
         install_dir = os.path.join(env.deps_dir, self.name)
         print('Installing nvm and node {} via nvm'.format(self.version))
 
@@ -63,13 +89,4 @@ class NodeJS(Import):
         with open(run_nvm, 'w+') as nvm_sh:
             nvm_sh.write(NVM)
         os.chmod(run_nvm, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
-
-        # Install node
-        sh.exec(run_nvm, 'install', self.version, check=True)
-
-        # Fetch path to installed node, add to PATH
-        result = sh.exec(run_nvm, 'which', self.version, check=True)
-        node_path = os.path.dirname(result.output)
-        sh.setenv('PATH', '{}:{}'.format(node_path, sh.getenv('PATH')))
-        sh.exec('node', '--version', check=True)
-        self.installed = True
+        self.nvm = run_nvm
