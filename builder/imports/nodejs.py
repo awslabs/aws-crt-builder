@@ -73,7 +73,7 @@ class NodeJS(Import):
     def install_nvm_choco(self, env):
         sh = env.shell
         Script([InstallPackages(['nvm'],)]).run(env)
-        env_script = r'{}\dump_env.cmd'.format(self.install_dir)
+        env_script = r'{}\dump_env.bat'.format(self.install_dir)
         with open(env_script, 'w+') as script:
             script.writelines(
                 [
