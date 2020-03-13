@@ -71,7 +71,7 @@ class NodeJS(Import):
     def install_nvm_choco(self, env):
         sh = env.shell
         Script([InstallPackages(['nvm'],)]).run(env)
-        result = sh.exec('refreshenv & set', check=True)
+        result = sh.exec('"refreshenv" & "set"', check=True)
         lines = result.output.split(os.linesep)
         vars = {}
         for line in lines:
