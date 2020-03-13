@@ -100,6 +100,7 @@ class NodeJS(Import):
         for key, value in vars.items():
             if key.startswith('NVM_'):
                 sh.setenv(key, value)
+        sh.exec('nvm', 'version', check=True)
 
     def install_nvm_sh(self, env):
         sh = env.shell
