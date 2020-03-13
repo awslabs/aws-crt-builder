@@ -97,7 +97,7 @@ class NodeJS(Import):
         pprint(vars)
         # Update path and NVM_* env vars
         sh.setenv('PATH', vars['PATH'])
-        for key, value in vars:
+        for key, value in vars.items():
             if key.startswith('NVM_'):
                 sh.setenv(key, value)
 
