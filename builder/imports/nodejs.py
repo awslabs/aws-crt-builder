@@ -47,6 +47,8 @@ class NodeJS(Import):
         if self.installed:
             return
 
+        self.install_dir = os.path.join(env.deps_dir, self.name)
+
         if current_os() == 'windows':
             self.install_nvm_choco(env)
         else:
@@ -71,7 +73,15 @@ class NodeJS(Import):
     def install_nvm_choco(self, env):
         sh = env.shell
         Script([InstallPackages(['nvm'],)]).run(env)
-        result = sh.exec('"refreshenv" & "set"', check=True)
+        env_script = r'{}\dump_env.cmd'.format(self.install_dir)
+        with open(env_script, 'w+') as script:
+            script.writelines(
+                [
+                    'call refreshenv.cmd',
+                    'set'
+                ]
+            )
+        result = sh.exec(env_script, check=True)
         lines = result.output.split(os.linesep)
         vars = {}
         for line in lines:
@@ -87,19 +97,18 @@ class NodeJS(Import):
 
     def install_nvm_sh(self, env):
         sh = env.shell
-        install_dir = os.path.join(env.deps_dir, self.name)
         print('Installing nvm and node {} via nvm'.format(self.version))
 
         # Download nvm
-        filename = '{}/install-nvm.sh'.format(install_dir)
+        filename = '{}/install-nvm.sh'.format(self.install_dir)
         print('Downloading {} to {}'.format(self.url, filename))
-        sh.mkdir(install_dir)
+        sh.mkdir(self.install_dir)
         urlretrieve(self.url, filename)
         os.chmod(filename, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
         sh.exec(filename, check=True)
 
         # Install wrapper to run NVM
-        run_nvm = '{}/run-nvm.sh'.format(install_dir)
+        run_nvm = '{}/run-nvm.sh'.format(self.install_dir)
         with open(run_nvm, 'w+') as nvm_sh:
             nvm_sh.write(NVM)
         os.chmod(run_nvm, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
