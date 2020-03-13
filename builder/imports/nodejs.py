@@ -80,8 +80,8 @@ class NodeJS(Import):
         with open(env_script, 'w+') as script:
             script.writelines(
                 [
-                    'call refreshenv.cmd',
-                    'set'
+                    'call refreshenv.cmd\n',
+                    'set\n'
                 ]
             )
             script.flush()
