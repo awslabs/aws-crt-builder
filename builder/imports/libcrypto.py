@@ -11,15 +11,14 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+from fetch import fetch_and_extract
+from host import current_host
+from project import Import
+
 import argparse
 import os
 from pathlib import Path
-import tarfile
 import time
-from urllib.request import urlretrieve
-
-from host import current_host
-from project import Import
 
 
 class LibCrypto(Import):
@@ -75,10 +74,9 @@ class LibCrypto(Import):
             version=lib_version, os=lib_os, arch=env.spec.arch) + '?time={}'.format(time.time())
         filename = '{}/libcrypto.tar.gz'.format(install_dir)
         print('Downloading {}'.format(url))
-        urlretrieve(url, filename)
-        print('Extracting {} to {}'.format(filename, install_dir))
-        with tarfile.open(filename) as tar:
-            tar.extractall(install_dir)
+        fetch_and_extract(url, filename, install_dir)
+        print('Extracted {} to {}'.format(filename, install_dir))
+
         self.installed = True
 
     def cmake_args(self, env):

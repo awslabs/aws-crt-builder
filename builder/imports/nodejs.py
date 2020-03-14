@@ -12,6 +12,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+from fetch import fetch_script
 from host import current_os
 from project import Import
 from actions.install import InstallPackages
@@ -19,7 +20,6 @@ from actions.script import Script
 
 import stat
 import os
-from urllib.request import urlretrieve
 
 
 NVM = """\
@@ -107,9 +107,7 @@ class NodeJS(Import):
         # Download nvm
         filename = '{}/install-nvm.sh'.format(self.install_dir)
         print('Downloading {} to {}'.format(self.url, filename))
-        sh.mkdir(self.install_dir)
-        urlretrieve(self.url, filename)
-        os.chmod(filename, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
+        fetch_script(self.url, filename)
         sh.exec(filename, check=True)
 
         # Install wrapper to run NVM
