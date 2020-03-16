@@ -150,6 +150,15 @@ jobs:
     needs: [linux-x86-x64]
     if: github.event_name == 'release'
     steps:
+    - name: Fetch release_tag
+      uses: actions/download-artifact@v1
+      with:
+        name: release_tag
+        path: release_tag
+
+    - name: Export IMAGE_TAG
+      run: echo "::set-env name=IMAGE_TAG::$(cat release_tag/tag)"
+    
     - name: Copy deployment from channels/${{ env.IMAGE_TAG }} to LATEST, releases/${{ env.IMAGE_TAG }}
       run: |
         aws s3 cp --no-progress --recursive s3://${{env.AWS_S3_BUCKET}}/channels/${{ env.IMAGE_TAG }}/ s3://${{env.AWS_S3_BUCKET}}/LATEST/
