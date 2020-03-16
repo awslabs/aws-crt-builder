@@ -587,8 +587,8 @@ class Project(object):
         dirs = UniqueList(dirs)
 
         for search_dir in dirs:
-            #print('  Looking in {}'.format(search_dir))
-            if (os.path.basename(search_dir) == name) and os.path.isdir(search_dir):
+            # print('  Looking in {}'.format(search_dir))
+            if os.path.isfile(os.path.join(search_dir, 'builder.json')) or (os.path.basename(search_dir) == name) and os.path.isdir(search_dir):
                 project = Project._project_from_path(search_dir, name)
 
                 if project:
