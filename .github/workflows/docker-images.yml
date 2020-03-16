@@ -149,16 +149,7 @@ jobs:
     needs: [linux-x86-x64]
     if: github.event_name == 'release'
     steps:
-    - name: Checkout Source
-      uses: actions/checkout@v1
-
-    - name: Publish to S3 (latest)
-      run: |
-        mkdir -p build
-        python3 -m zipapp --python="/usr/bin/env python3" --output=build/builder builder
-        aws s3 cp build/builder s3://$AWS_S3_BUCKET/LATEST/builder.pyz
-
-    - name: Copy image from channels/${{ env.IMAGE_TAG }} to LATEST, releases/${{ env.IMAGE_TAG }}
+    - name: Copy deployment from channels/${{ env.IMAGE_TAG }} to LATEST, releases/${{ env.IMAGE_TAG }}
       run: |
         aws s3 cp --no-progress --recursive s3://${{env.AWS_S3_BUCKET}}/channels/${{ env.IMAGE_TAG }}/ s3://${{env.AWS_S3_BUCKET}}/LATEST/
         aws s3 cp --no-progress --recursive s3://${{env.AWS_S3_BUCKET}}/channels/${{ env.IMAGE_TAG }}/ s3://${{env.AWS_S3_BUCKET}}/releases/${{ env.IMAGE_TAG }}/
