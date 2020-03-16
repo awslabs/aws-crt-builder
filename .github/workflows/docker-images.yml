@@ -161,7 +161,7 @@ jobs:
     name: Linux x64 aws-c-common test build
     runs-on: 'ubuntu-latest'
     if: github.event_name != 'release'
-    needs: linux-x86-x64
+    needs: [publish-latest]
 
     steps:
     - name: Checkout Source
