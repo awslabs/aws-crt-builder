@@ -10,6 +10,12 @@ if [ "${args[0]}" == "--version=*" ]; then
     version=$(echo $version | cut -f2 -d=)
 fi
 
+if [ $(echo $version | grep -E '^v[0-9\.]+$') ]; then
+    version=releases/$version
+elif [ $version != 'channels/*' ]; then
+    version=channels/$version
+fi
+
 # download the version of builder requested
 curl -sSL -o /usr/local/bin/builder.pyz --retry 3 --retry-delay 3 --retry-max-time 30 https://d19elf31gohf1l.cloudfront.net/${version}/builder.pyz?date=`date +%s`
 builder=/usr/local/bin/builder.pyz
