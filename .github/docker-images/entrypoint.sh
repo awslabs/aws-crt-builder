@@ -19,7 +19,7 @@ fi
 
 if [ $(echo $version | grep -E '^v[0-9\.]+$') ]; then
     version=releases/$version
-elif [ $version != 'channels/*' ]; then
+elif [[ $version != 'channels/'* ]]; then
     version=channels/$version
 fi
 
