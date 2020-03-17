@@ -547,18 +547,17 @@ class Project(object):
                           project_config_file, e)
                     sys.exit(1)
 
-                if not project_config.get('name', None):
-                    project_config['name'] = name_hint if name_hint else os.path.dirname(
-                        os.getcwd())
-                print('    Found project: {} at {}'.format(
-                    project_config['name'], path))
-                project = Project._create_project(
-                    **project_config, path=path)
-                return Project._cache_project(project)
+                if name_hint == None or project_config.get('name', None) == name_hint:
+                    print('    Found project: {} at {}'.format(
+                        project_config['name'], path))
+                    project = Project._create_project(
+                        **project_config, path=path)
+                    return Project._cache_project(project)
 
         # load any builder scripts and check them
         Scripts.load()
-        if name_hint:
+        # only construct a new instance of the class if there isn't one already in the cache
+        if name_hint and name_hint.lower() not in Project._projects:
             project_cls = Project._find_project_class(name_hint)
             if project_cls:
                 project = project_cls(name=name_hint)
@@ -587,17 +586,17 @@ class Project(object):
         dirs = UniqueList(dirs)
 
         for search_dir in dirs:
-            # print('  Looking in {}'.format(search_dir))
-            if os.path.isfile(os.path.join(search_dir, 'builder.json')) or (os.path.basename(search_dir) == name) and os.path.isdir(search_dir):
+            dir_matches_name = (os.path.basename(search_dir)
+                                == name) and os.path.isdir(search_dir)
+            if os.path.isfile(os.path.join(search_dir, 'builder.json')) or dir_matches_name:
                 project = Project._project_from_path(search_dir, name)
 
                 if project:
                     return project
 
                 # might be a project without a config
-                if looks_like_code(search_dir):
-                    print(
-                        ('    Found source code only project at {}'.format(search_dir)))
+                if dir_matches_name and looks_like_code(search_dir):
+                    print('    Found source code only project at {}'.format(search_dir))
                     project = Project._create_project(
                         name=name, path=search_dir)
                     return Project._cache_project(project)
