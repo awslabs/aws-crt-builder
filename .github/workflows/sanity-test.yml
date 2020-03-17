@@ -234,10 +234,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Get release tag
-        uses: ./.github/actions/release-tag
-        id: release
-        with:
-          output: tag
+      uses: ./.github/actions/release-tag
+      id: release
+      with:
+        output: tag
 
     - name: Build ${{ env.PACKAGE_NAME }}
       run: |
