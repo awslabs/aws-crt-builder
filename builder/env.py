@@ -96,28 +96,27 @@ class Env(object):
 
         # Once initialized, switch to the source dir before running actions
         self.source_dir = os.path.abspath(self.project.path)
+        self.variables['source_dir'] = self.source_dir
         self.shell.cd(self.source_dir)
 
         # Allow these to be overridden by the project, and relative to source_dir if not absolute paths
         build_dir = self.config.get(
             'build_dir', os.path.join(self.source_dir, 'build'))
         self.build_dir = os.path.abspath(build_dir)
+        self.variables['build_dir'] = self.build_dir
 
         deps_dir = self.config.get(
             'deps_dir', os.path.join(self.build_dir, 'deps'))
         self.deps_dir = os.path.abspath(deps_dir)
+        self.variables['deps_dir'] = self.deps_dir
 
         install_dir = self.config.get(
             'install_dir', os.path.join(self.build_dir, 'install'))
         self.install_dir = os.path.abspath(install_dir)
+        self.variables['install_dir'] = self.install_dir
 
         print('Source directory: {}'.format(self.source_dir))
         print('Build directory: {}'.format(self.build_dir))
-
-        self.variables['source_dir'] = self.source_dir
-        self.variables['build_dir'] = self.build_dir
-        self.variables['deps_dir'] = self.deps_dir
-        self.variables['install_dir'] = self.install_dir
 
         Project.search_dirs += [
             self.build_dir,

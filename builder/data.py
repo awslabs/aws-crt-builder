@@ -37,8 +37,8 @@ KEYS = {
 
     # where the cmake binaries should be stored, and dependencies installed
     'build_dir': 'build',
-    'deps_dir': 'build/deps',
-    'install_dir': 'build/install',
+    'deps_dir': '{build_dir}/deps',
+    'install_dir': '{build_dir}/install',
     'build_env': {},  # environment variables to set before starting build
     'pre_build_env': {},
     'pre_build_steps': [],  # steps to run before build
