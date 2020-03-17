@@ -394,7 +394,7 @@ class Project(object):
     def build(self, env):
         build_project = []
         steps = self.config.get('build_steps', self.config.get('build', []))
-        if steps is None:
+        if not steps:
             steps = ['build']
         if isinstance(steps, list):
             steps = [s if s != 'build' else CMakeBuild(self) for s in steps]
@@ -561,7 +561,6 @@ class Project(object):
             project_cls = Project._find_project_class(name_hint)
             if project_cls:
                 project = project_cls(name=name_hint)
-                project.path = path
                 return Project._cache_project(project)
 
         return None
