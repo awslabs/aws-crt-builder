@@ -2,7 +2,7 @@
 
 set -ex
 
-args=($*)
+args=("$@")
 
 version=LATEST
 if [[ "${args[0]}" == "--version="* ]]; then
@@ -28,4 +28,4 @@ if [ -x /opt/python/cp37-cp37m/bin/python ]; then
 fi
 
 cd $GITHUB_WORKSPACE
-$builder $args
+$builder ${args[@]}

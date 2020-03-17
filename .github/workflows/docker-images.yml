@@ -28,7 +28,7 @@ jobs:
   cleanup:
     name: Clean up previous branch jobs
     runs-on: ubuntu-latest
-    if: github.event_name != 'create'
+    if: github.event_name == 'push'
     steps:
     - name: Clean up previous branch jobs
       uses: rokroskar/workflow-run-cleanup-action@master
@@ -163,6 +163,14 @@ jobs:
       run: |
         aws s3 cp --no-progress --recursive s3://${{env.AWS_S3_BUCKET}}/channels/${{ env.IMAGE_TAG }}/ s3://${{env.AWS_S3_BUCKET}}/LATEST/
         aws s3 cp --no-progress --recursive s3://${{env.AWS_S3_BUCKET}}/channels/${{ env.IMAGE_TAG }}/ s3://${{env.AWS_S3_BUCKET}}/releases/${{ env.IMAGE_TAG }}/
+        $(aws --region us-east-1 ecr get-login --no-include-email)
+        echo "${{ secrets.GITHUB_TOKEN }}" | docker login docker.pkg.github.com -u awslabs --password-stdin
+        for image in $(aws s3 ls --recursive s3://$AWS_S3_BUCKET/releases/v0.6.0/ | grep tar.gz | sed -E 's/.+releases.+aws-crt-(.+)\.tar\.gz/\1/'); do
+          docker pull docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-$image:$IMAGE_TAG
+          docker tag docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-$image:$IMAGE_TAG ${{ secrets.AWS_ECR_REPO }}/aws-crt/$image:latest
+          docker push ${{ secrets.AWS_ECR_REPO }}/aws-crt/$image:latest
+        done
+
 
   ###############################################################################
   # DOWNSTREAM TESTS
