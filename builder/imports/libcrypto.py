@@ -14,10 +14,12 @@
 import argparse
 import os
 from pathlib import Path
-from project import Import
+import tarfile
 import time
 from urllib.request import urlretrieve
-import tarfile
+
+from host import current_host
+from project import Import
 
 
 class LibCrypto(Import):
@@ -30,7 +32,7 @@ class LibCrypto(Import):
                 'build_steps': [],
                 'test_steps': [],
             },
-            url='https://d19elf31gohf1l.cloudfront.net/_binaries/libcrypto/libcrypto-1.1.1-{os}-{arch}.tar.gz',
+            url='https://d19elf31gohf1l.cloudfront.net/_binaries/libcrypto/libcrypto-{version}-{os}-{arch}.tar.gz',
             **kwargs)
         self.prefix = '/opt/openssl'
         self.installed = False
@@ -63,8 +65,14 @@ class LibCrypto(Import):
             env.spec.target, env.spec.arch, install_dir))
 
         sh.mkdir(install_dir)
+
+        lib_version = '1.1.1'
+        lib_os = env.spec.target
+        if current_host() == 'manylinux':
+            lib_os = 'manylinux'
+            lib_version = '1.0.2'
         url = self.url.format(
-            os=env.spec.target, arch=env.spec.arch) + '?time={}'.format(time.time())
+            version=lib_version, os=lib_os, arch=env.spec.arch) + '?time={}'.format(time.time())
         filename = '{}/libcrypto.tar.gz'.format(install_dir)
         print('Downloading {}'.format(url))
         urlretrieve(url, filename)
