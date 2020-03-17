@@ -194,7 +194,6 @@ jobs:
       fail-fast: false
       matrix:
         project:
-          - aws-c-io
           - aws-c-mqtt
           - aws-c-http
           - aws-c-auth
@@ -219,6 +218,34 @@ jobs:
 
       - name: Build ${{ matrix.project }}
         run: python3 builder.pyz build --project ${{ matrix.project }}
+
+  aws-c-io:
+    strategy:
+      fail-fast: false
+      matrix:
+        linux:
+          - manylinux1-x86
+          - manylinux1-x64
+          - manylinux2014-x86
+          - manylinux2014-x64
+          - ubuntu-16-x64
+    
+    needs: package
+    runs-on: ubuntu-latest
+    steps:
+    - name: Get release tag
+        uses: ./.github/actions/release-tag
+        id: release
+        with:
+          output: tag
+
+    - name: Build ${{ env.PACKAGE_NAME }}
+      run: |
+        echo "${{ secrets.GITHUB_TOKEN }}" | docker login docker.pkg.github.com -u awslabs --password-stdin
+        # TODO: change this to latest, let the version be dictated by --version below
+        export DOCKER_IMAGE=docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.linux }}:${{ steps.release.output.tag }}
+        docker pull $DOCKER_IMAGE
+        docker run $DOCKER_IMAGE --version=${{ steps.release.output.tag }} build -p aws-c-io --spec=downstream run_tests=0
 
   sanity-tests-passed:
     name: All Sanity Tests passed

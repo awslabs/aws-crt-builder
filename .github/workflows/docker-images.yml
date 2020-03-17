@@ -168,7 +168,9 @@ jobs:
         for image in $(aws s3 ls --recursive s3://$AWS_S3_BUCKET/releases/v0.6.0/ | grep tar.gz | sed -E 's/.+releases.+aws-crt-(.+)\.tar\.gz/\1/'); do
           docker pull docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-$image:$IMAGE_TAG
           docker tag docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-$image:$IMAGE_TAG ${{ secrets.AWS_ECR_REPO }}/aws-crt/$image:latest
+          docker tag docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-$image:$IMAGE_TAG docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-$image:latest
           docker push ${{ secrets.AWS_ECR_REPO }}/aws-crt/$image:latest
+          docker push docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-$image:latest
         done
 
 
