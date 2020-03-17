@@ -276,6 +276,7 @@ class UniqueList(UserList):
             self._hashes.add(hash)
             self.data.__setitem__(idx, value)
 
+    # This allows for a += [b] style appending
     def __iadd__(self, other):
         for item in other:
             self.append(item)
