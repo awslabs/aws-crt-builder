@@ -23,16 +23,19 @@ config = {
 }
 
 
-class S2N(Project, Import):
+class S2NImport(Import):
     def __init__(self, **kwargs):
         super().__init__(
-            account='awslabs',
+            library=True,
             imports=['libcrypto'],
             config=config,
             **kwargs)
-        Import.__init__(
-            self,
-            library=True,
+
+
+class S2NProject(Project):
+    def __init__(self, **kwargs):
+        super().__init__(
+            account='awslabs',
             imports=['libcrypto'],
             config=config,
             **kwargs)
