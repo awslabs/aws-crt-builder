@@ -15,11 +15,9 @@ from project import Project, Import
 
 
 config = {
-    'targets': ['linux'],
+    'targets': ['linux', 'android'],
     'test_steps': [],
-    'cmake_args': {
-        '-DS2N_NO_PQ_ASM=ON',
-    },
+    'build_tests': False,
 }
 
 
