@@ -118,6 +118,9 @@ class CMakeBuild(Action):
             'build_tests', self.project == env.project))
         _build_project(env, self.project, build_tests)
 
+    def __str__(self):
+        return 'cmake build {} @ {}'.format(self.project.name, self.project.path)
+
 
 class CTestRun(Action):
     """ Uses ctest to run tests if tests are enabled/built via 'build_tests' """
@@ -144,3 +147,6 @@ class CTestRun(Action):
         sh.exec(*toolchain.shell_env, "ctest",
                 "--output-on-failure", check=True)
         sh.popd()
+
+    def __str__(self):
+        return 'ctest {} @ {}'.format(self.project.name, self.project.path)
