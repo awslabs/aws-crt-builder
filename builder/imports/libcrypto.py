@@ -70,7 +70,6 @@ class LibCrypto(Import):
         lib_os = env.spec.target
         if current_host() == 'manylinux':
             lib_os = 'manylinux'
-            lib_version = '1.0.2'
         url = self.url.format(
             version=lib_version, os=lib_os, arch=env.spec.arch) + '?time={}'.format(time.time())
         filename = '{}/libcrypto.tar.gz'.format(install_dir)
