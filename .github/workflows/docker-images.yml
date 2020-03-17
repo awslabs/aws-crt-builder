@@ -163,7 +163,7 @@ jobs:
       run: |
         aws s3 cp --no-progress --recursive s3://${{env.AWS_S3_BUCKET}}/channels/${{ env.IMAGE_TAG }}/ s3://${{env.AWS_S3_BUCKET}}/LATEST/
         aws s3 cp --no-progress --recursive s3://${{env.AWS_S3_BUCKET}}/channels/${{ env.IMAGE_TAG }}/ s3://${{env.AWS_S3_BUCKET}}/releases/${{ env.IMAGE_TAG }}/
-        $(aws ecr get-login --no-include-email)
+        $(aws --region us-east-1 ecr get-login --no-include-email)
         while read image; do
           docker pull docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-$image:$IMAGE_TAG
           docker tag docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-$image:$IMAGE_TAG ${{ secrets.AWS_ECR_REPO }}/aws-crt/$image:latest
