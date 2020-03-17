@@ -454,6 +454,18 @@ class Project(object):
         args += self.config.get('cmake_args', [])
         return args
 
+    def needs_tests(self, env):
+        # Are tests disabled globally?
+        if not env.config.get('run_tests', False):
+            return False
+        # Are tests disabled in this project?
+        if not self.config.get('run_tests', self == env.project) or not self.config.get('build_tests', self == env.project):
+            return False
+        # Are test steps available?
+        if not self.config.get('test_steps', []):
+            return False
+        return True
+
     def get_imports(self, spec):
         self.imports = _resolve_imports_for_spec(
             getattr(self, 'imports', []) + self.config.get('imports', []), spec)

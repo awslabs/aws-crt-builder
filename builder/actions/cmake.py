@@ -114,8 +114,7 @@ class CMakeBuild(Action):
             sh.mkdir(d)
 
         # BUILD
-        build_tests = env.config.get('run_tests', env.config.get(
-            'build_tests', self.project == env.project))
+        build_tests = self.project.needs_tests(env)
         _build_project(env, self.project, build_tests)
 
     def __str__(self):
