@@ -148,7 +148,7 @@ jobs:
     name: Publish latest Builder/Docker images to S3
     runs-on: ubuntu-latest
     needs: [linux-x86-x64]
-    #if: github.event_name == 'release'
+    if: github.event_name == 'release'
     steps:
     - name: Fetch release_tag
       uses: actions/download-artifact@v1
