@@ -5,14 +5,15 @@ set -ex
 args=($*)
 
 version=LATEST
-if [ "${args[0]}" == "--version=*" ]; then
-    version=${args[@]:1}
+if [[ "${args[0]}" == "--version="* ]]; then
+    version=${args[0]}
     version=$(echo $version | cut -f2 -d=)
+    args=${args[@]:1}
 fi
 
 if [ $(echo $version | grep -E '^v[0-9\.]+$') ]; then
     version=releases/$version
-elif [ $version != 'channels/*' ]; then
+elif [[ $version != 'channels/'* ]]; then
     version=channels/$version
 fi
 
@@ -27,4 +28,4 @@ if [ -x /opt/python/cp37-cp37m/bin/python ]; then
 fi
 
 cd $GITHUB_WORKSPACE
-$builder $*
+$builder $args
