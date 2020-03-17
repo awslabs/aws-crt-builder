@@ -519,7 +519,7 @@ class Project(object):
 
     @staticmethod
     def _cache_project(project):
-        Project._projects[project.name] = project
+        Project._projects[project.name.lower()] = project
         if getattr(project, 'path', None):
             Scripts.load(project.path)
 
@@ -574,7 +574,7 @@ class Project(object):
     @staticmethod
     def find_project(name, hints=[]):
         """ Finds a project, either on disk, or makes a virtual one to allow for acquisition """
-        project = Project._projects.get(name, None)
+        project = Project._projects.get(name.lower(), None)
         if project and project.resolved():
             return project
 
@@ -610,7 +610,7 @@ class Project(object):
 
     @staticmethod
     def find_import(name, hints=[]):
-        imp = Project._projects.get(name, None)
+        imp = Project._projects.get(name.lower(), None)
         if imp and imp.resolved():
             return imp
 
