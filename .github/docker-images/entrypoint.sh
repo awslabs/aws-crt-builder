@@ -5,8 +5,8 @@ set -ex
 args=($*)
 
 version=LATEST
-if [ "${args[0]}" == "--version=*" ]; then
-    version=${args[@]:1}
+if [[ "$0" == "--version="* ]]; then
+    version=$0; shift
     version=$(echo $version | cut -f2 -d=)
 fi
 
