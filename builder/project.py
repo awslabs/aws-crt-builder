@@ -270,11 +270,11 @@ def _resolve_imports_for_spec(imps, spec):
 
 def _resolve_imports_for_spec(imps, spec):
     imps = _resolve_imports(imps)
-    imports = []
+    imports = UniqueList()
     for imp in imps:
         if not hasattr(imp, 'targets') or spec.target in getattr(imp, 'targets', []):
             imports += [imp] + imp.get_imports(spec)
-    return imports
+    return list(imports)
 
 
 def _not_resolved(s):
