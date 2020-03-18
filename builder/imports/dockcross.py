@@ -46,7 +46,7 @@ class Dockcross(Import):
         cross_compile_platform = env.config.get(
             'cross_compile_platform', toolchain.platform)
         result = sh.exec(
-            'docker', 'run', 'dockcross/{}'.format(cross_compile_platform), quiet=True)
+            'docker', 'run', 'dockcross/{}'.format(cross_compile_platform), quiet=True, check=True)
         # Strip off any output from docker itself
         output, shebang, script = result.output.partition('#!')
         script = shebang + script

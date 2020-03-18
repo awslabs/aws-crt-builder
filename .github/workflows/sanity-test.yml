@@ -140,7 +140,6 @@ jobs:
 
   # Make sure cross compiling works
   cross_compile:
-    name: Cross Compile ${{matrix.arch}}
     runs-on: ubuntu-latest
     if: github.event_name != 'release'
     needs: [package, sanity_test]
@@ -192,7 +191,7 @@ jobs:
         run: python3 builder.pyz build --project aws-c-common --compiler=${{ matrix.compiler }} run_tests=false
 
   # Make sure downstream projects that use the builder compile after any changes
-  downstream_test:
+  downstream:
     strategy:
       fail-fast: false
       matrix:
@@ -253,7 +252,7 @@ jobs:
         docker pull $DOCKER_IMAGE
         docker run --env GITHUB_REF $DOCKER_IMAGE --version=${{ steps.release.outputs.release_tag }} build -p aws-c-io --spec=downstream run_tests=0
 
-  cross-compile-ubuntu:
+  cross_compile_ubuntu:
     strategy:
       fail-fast: false
       matrix:
