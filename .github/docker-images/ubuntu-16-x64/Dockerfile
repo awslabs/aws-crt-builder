@@ -27,16 +27,8 @@ RUN apt-get update -qq \
 # Install docker
 ###############################################################################
 WORKDIR /tmp
-RUN curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add - \
-    && add-apt-repository \
-    "deb [arch=amd64] https://download.docker.com/linux/ubuntu \
-    $(lsb_release -cs) \
-    stable" \
-    && apt-get update -qq \
-    && apt-get install -y \
-    docker-ce \
-    docker-ce-cli \
-    containerd.io \
+RUN curl -fsSL https://get.docker.com -o get-docker.sh \
+    && sh get-docker.sh \
     && docker run hello-world \
     && apt-get clean
 
