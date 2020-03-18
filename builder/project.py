@@ -226,7 +226,7 @@ def _popenv(env):
 
 # convert ProjectReference -> Project
 def _resolve_projects(refs):
-    projects = []
+    projects = UniqueList()
     for r in refs:
         if not isinstance(r, Project) or not r.resolved():
             if isinstance(r, str):
@@ -236,11 +236,11 @@ def _resolve_projects(refs):
                 project = merge_unique_attrs(r, project)
 
         projects.append(project)
-    return projects
+    return list(projects)
 
 
 def _resolve_imports(imps):
-    imports = []
+    imports = UniqueList()
     for i in imps:
         if not isinstance(i, Import) or not i.resolved():
             if isinstance(i, str):
@@ -251,16 +251,16 @@ def _resolve_imports(imps):
         else:
             imp = i
         imports.append(imp)
-    return imports
+    return list(imports)
 
 
 def _resolve_imports_for_spec(imps, spec):
     imps = _resolve_imports(imps)
-    imports = []
+    imports = UniqueList()
     for imp in imps:
         if not hasattr(imp, 'targets') or spec.target in getattr(imp, 'targets', []):
             imports += [imp] + imp.get_imports(spec)
-    return imports
+    return list(imports)
 
 
 def _not_resolved(s):
@@ -279,7 +279,8 @@ def _make_import_refs(refs):
 
 class Import(object):
     def __init__(self, **kwargs):
-        self.name = kwargs.get('name', self.__class__.__name__.lower())
+        self.name = kwargs.get(
+            'name', self.__class__.__name__.lower().replace('import', ''))
         self._resolved = True
         if 'resolved' in kwargs:
             self._resolved = kwargs['resolved']
@@ -325,7 +326,7 @@ class Import(object):
 
     def get_imports(self, spec):
         self.imports = _resolve_imports_for_spec(
-            getattr(self, 'imports', []) + getattr(self, 'imports', []), spec)
+            getattr(self, 'imports', []) + self.config.get('imports', []), spec)
         return self.imports
 
 
@@ -336,7 +337,8 @@ class Project(object):
 
     def __init__(self, **kwargs):
         self.account = kwargs.get('account', 'awslabs')
-        self.name = kwargs.get('name', self.__class__.__name__.lower())
+        self.name = kwargs.get(
+            'name', self.__class__.__name__.lower().replace('project', ''))
         assert self.name != 'project'
         self.url = kwargs.get('url', "https://github.com/{}/{}.git".format(
             self.account, self.name))
@@ -365,7 +367,6 @@ class Project(object):
         imports = self.get_imports(env.spec)
         build_imports = []
         for i in imports:
-            print('Resolving {}'.format(i.name))
             import_steps = _build_project(i, env)
             if import_steps:
                 build_imports += [Script(import_steps,
@@ -394,7 +395,7 @@ class Project(object):
     def build(self, env):
         build_project = []
         steps = self.config.get('build_steps', self.config.get('build', []))
-        if steps is None:
+        if not steps:
             steps = ['build']
         if isinstance(steps, list):
             steps = [s if s != 'build' else CMakeBuild(self) for s in steps]
@@ -453,6 +454,18 @@ class Project(object):
         args += self.config.get('cmake_args', [])
         return args
 
+    def needs_tests(self, env):
+        # Are tests disabled globally?
+        if not env.config.get('run_tests', False):
+            return False
+        # Are tests disabled in this project?
+        if not self.config.get('run_tests', self == env.project) or not self.config.get('build_tests', self == env.project):
+            return False
+        # Are test steps available?
+        if not self.config.get('test_steps', []):
+            return False
+        return True
+
     def get_imports(self, spec):
         self.imports = _resolve_imports_for_spec(
             getattr(self, 'imports', []) + self.config.get('imports', []), spec)
@@ -497,15 +510,17 @@ class Project(object):
     @staticmethod
     def _find_project_class(name):
         projects = Project.__subclasses__()
+        name = name.lower()
         for p in projects:
-            if p.__name__.lower() == name.lower():
+            if p.__name__.lower().replace('project', '') == name.lower():
                 return p
 
     @staticmethod
     def _find_import_class(name):
         imports = Import.__subclasses__()
+        name = name.lower()
         for i in imports:
-            if i.__name__.lower() == name.lower():
+            if i.__name__.lower().replace('import', '') == name:
                 return i
 
     @staticmethod
@@ -519,7 +534,7 @@ class Project(object):
 
     @staticmethod
     def _cache_project(project):
-        Project._projects[project.name] = project
+        Project._projects[project.name.lower()] = project
         if getattr(project, 'path', None):
             Scripts.load(project.path)
 
@@ -547,22 +562,20 @@ class Project(object):
                           project_config_file, e)
                     sys.exit(1)
 
-                if not project_config.get('name', None):
-                    project_config['name'] = name_hint if name_hint else os.path.dirname(
-                        os.getcwd())
-                print('    Found project: {} at {}'.format(
-                    project_config['name'], path))
-                project = Project._create_project(
-                    **project_config, path=path)
-                return Project._cache_project(project)
+                if name_hint == None or project_config.get('name', None) == name_hint:
+                    print('    Found project: {} at {}'.format(
+                        project_config['name'], path))
+                    project = Project._create_project(
+                        **project_config, path=path)
+                    return Project._cache_project(project)
 
         # load any builder scripts and check them
         Scripts.load()
-        if name_hint:
+        # only construct a new instance of the class if there isn't one already in the cache
+        if name_hint and name_hint.lower() not in Project._projects:
             project_cls = Project._find_project_class(name_hint)
             if project_cls:
                 project = project_cls(name=name_hint)
-                project.path = path
                 return Project._cache_project(project)
 
         return None
@@ -574,7 +587,7 @@ class Project(object):
     @staticmethod
     def find_project(name, hints=[]):
         """ Finds a project, either on disk, or makes a virtual one to allow for acquisition """
-        project = Project._projects.get(name, None)
+        project = Project._projects.get(name.lower(), None)
         if project and project.resolved():
             return project
 
@@ -587,17 +600,17 @@ class Project(object):
         dirs = UniqueList(dirs)
 
         for search_dir in dirs:
-            # print('  Looking in {}'.format(search_dir))
-            if os.path.isfile(os.path.join(search_dir, 'builder.json')) or (os.path.basename(search_dir) == name) and os.path.isdir(search_dir):
+            dir_matches_name = (os.path.basename(search_dir)
+                                == name) and os.path.isdir(search_dir)
+            if os.path.isfile(os.path.join(search_dir, 'builder.json')) or dir_matches_name:
                 project = Project._project_from_path(search_dir, name)
 
                 if project:
                     return project
 
                 # might be a project without a config
-                if looks_like_code(search_dir):
-                    print(
-                        ('    Found source code only project at {}'.format(search_dir)))
+                if dir_matches_name and looks_like_code(search_dir):
+                    print('    Found source code only project at {}'.format(search_dir))
                     project = Project._create_project(
                         name=name, path=search_dir)
                     return Project._cache_project(project)
@@ -610,7 +623,7 @@ class Project(object):
 
     @staticmethod
     def find_import(name, hints=[]):
-        imp = Project._projects.get(name, None)
+        imp = Project._projects.get(name.lower(), None)
         if imp and imp.resolved():
             return imp
 

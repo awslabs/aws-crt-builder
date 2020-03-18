@@ -15,24 +15,25 @@ from project import Project, Import
 
 
 config = {
-    'targets': ['linux'],
+    'targets': ['linux', 'android'],
     'test_steps': [],
-    'cmake_args': {
-        '-DS2N_NO_PQ_ASM=ON',
-    },
+    'build_tests': False,
 }
 
 
-class S2N(Project, Import):
+class S2NImport(Import):
     def __init__(self, **kwargs):
         super().__init__(
-            account='awslabs',
+            library=True,
             imports=['libcrypto'],
             config=config,
             **kwargs)
-        Import.__init__(
-            self,
-            library=True,
+
+
+class S2NProject(Project):
+    def __init__(self, **kwargs):
+        super().__init__(
+            account='awslabs',
             imports=['libcrypto'],
             config=config,
             **kwargs)

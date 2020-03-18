@@ -114,9 +114,11 @@ class CMakeBuild(Action):
             sh.mkdir(d)
 
         # BUILD
-        build_tests = env.config.get('run_tests', env.config.get(
-            'build_tests', self.project == env.project))
+        build_tests = self.project.needs_tests(env)
         _build_project(env, self.project, build_tests)
+
+    def __str__(self):
+        return 'cmake build {} @ {}'.format(self.project.name, self.project.path)
 
 
 class CTestRun(Action):
@@ -144,3 +146,6 @@ class CTestRun(Action):
         sh.exec(*toolchain.shell_env, "ctest",
                 "--output-on-failure", check=True)
         sh.popd()
+
+    def __str__(self):
+        return 'ctest {} @ {}'.format(self.project.name, self.project.path)

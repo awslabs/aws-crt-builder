@@ -276,6 +276,12 @@ class UniqueList(UserList):
             self._hashes.add(hash)
             self.data.__setitem__(idx, value)
 
+    # This allows for a += [b] style appending
+    def __iadd__(self, other):
+        for item in other:
+            self.append(item)
+        return self
+
     def append(self, value):
         hash = content_hash(value)
         if not hash in self._hashes:
