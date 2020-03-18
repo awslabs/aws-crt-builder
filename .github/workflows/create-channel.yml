@@ -109,6 +109,9 @@ jobs:
     - name: Export IMAGE_TAG
       run: echo "::set-env name=IMAGE_TAG::$(cat release_tag/tag)"
 
+    - name: Login to docker repo
+      run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login docker.pkg.github.com -u awslabs --password-stdin
+
     - name: Import latest aws-crt-${{ matrix.variant }} image to channels/${{ env.IMAGE_TAG }}
       run: |
         docker pull docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:latest
