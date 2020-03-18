@@ -138,6 +138,7 @@ jobs:
         run: |
           python builder.pyz build --project tests
 
+  # Make sure cross compiling works
   cross_compile:
     name: Cross Compile ${{matrix.arch}}
     runs-on: ubuntu-latest
@@ -160,6 +161,7 @@ jobs:
     - name: Build aws-crt-cpp + consumers
       run: python3 builder.pyz build downstream -p aws-crt-cpp --target=${{matrix.arch}} --dump-config
 
+  # Make sure all the linux compilers work
   compilers:
     strategy:
       fail-fast: false
@@ -189,6 +191,7 @@ jobs:
       - name: Build aws-c-common
         run: python3 builder.pyz build --project aws-c-common --compiler=${{ matrix.compiler }} run_tests=false
 
+  # Make sure downstream projects that use the builder compile after any changes
   downstream_test:
     strategy:
       fail-fast: false
@@ -219,6 +222,7 @@ jobs:
       - name: Build ${{ matrix.project }}
         run: python3 builder.pyz build --project ${{ matrix.project }}
 
+  # This mostly tests that libcrypto and s2n resolve correctly on manylinux vs ubuntu
   aws-c-io:
     strategy:
       fail-fast: false
@@ -249,11 +253,37 @@ jobs:
         docker pull $DOCKER_IMAGE
         docker run --env GITHUB_REF $DOCKER_IMAGE --version=${{ steps.release.outputs.release_tag }} build -p aws-c-io --spec=downstream run_tests=0
 
+  cross-compile-ubuntu:
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [linux-armv6]
+
+    needs: package
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Source
+      uses: actions/checkout@v1
+
+    - name: Get release tag
+      uses: ./.github/actions/release-tag
+      id: release
+      with:
+        output: tag
+
+    - name: Build ${{ env.PACKAGE_NAME }} for ${{ matrix.target }}
+      run: |
+        echo "${{ secrets.GITHUB_TOKEN }}" | docker login docker.pkg.github.com -u awslabs --password-stdin
+        export DOCKER_IMAGE=docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-ubuntu-16-x64:latest
+        docker pull $DOCKER_IMAGE
+        docker run --env GITHUB_REF $DOCKER_IMAGE --version=${{ steps.release.outputs.release_tag }} build -p aws-c-common --target=${{ matrix.target }} run_tests=0
+
   sanity-tests-passed:
     name: All Sanity Tests passed
     runs-on: ubuntu-latest
     needs:
     - sanity_test
     - cross_compile
+    - compilers
     steps:
       - run: echo "All sanity tests passed"
