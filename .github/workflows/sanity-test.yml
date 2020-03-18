@@ -142,7 +142,7 @@ jobs:
     name: Cross Compile ${{matrix.arch}}
     runs-on: ubuntu-latest
     if: github.event_name != 'release'
-    needs: package
+    needs: [package, sanity_test]
     strategy:
       matrix:
         arch: [linux-armv6, linux-armv7, linux-armv8]
@@ -174,7 +174,7 @@ jobs:
           - gcc-6
           - gcc-7
           - gcc-8
-    needs: package
+    needs: [package, sanity_test]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Source
