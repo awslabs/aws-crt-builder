@@ -29,6 +29,8 @@ RUN apt-get update -qq \
 WORKDIR /tmp
 RUN curl -fsSL https://get.docker.com -o get-docker.sh \
     && sh get-docker.sh \
+    && systemctl enable docker \
+    && systemctl start docker \
     && docker run hello-world \
     && apt-get clean
 
