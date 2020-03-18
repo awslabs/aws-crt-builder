@@ -1,8 +1,16 @@
 name: Create Channel
 
 # need images created at least once per branch, even if there are no docker changes
-# so that downstream projects can use the branch channel
-on: create
+# so that downstream projects can use the branch channel. Also anytime this
+# file is updated
+on: 
+  push:
+    branches:
+      - '*'
+      - '!master'
+    paths:
+      - '.github/workflows/create-channel.yml'
+  create:
 
 env:
   AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
