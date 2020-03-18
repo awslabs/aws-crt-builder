@@ -182,6 +182,10 @@ jobs:
     runs-on: 'ubuntu-latest'
     if: github.event_name != 'release'
     needs: [linux-x86-x64]
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [linux-x64, linux-armv6]
 
     steps:
     - name: Checkout Source
@@ -195,8 +199,9 @@ jobs:
     - name: Build aws-c-common + consumers
       run: |
         echo "${{ secrets.GITHUB_TOKEN }}" | docker login docker.pkg.github.com -u awslabs --password-stdin
-        docker pull docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-ubuntu-16-x64:${{ steps.release.outputs.release_tag }}
-        docker run --env GITHUB_REF docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-ubuntu-16-x64:${{ steps.release.outputs.release_tag }} --version=${{ steps.release.outputs.release_tag }} build -p aws-c-common downstream --compiler=clang-9
+        export DOCKER_IMAGE=docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-ubuntu-16-x64:${{ steps.release.outputs.release_tag }}
+        docker pull $DOCKER_IMAGE
+        docker run --env GITHUB_REF $DOCKER_IMAGE --version=${{ steps.release.outputs.release_tag }} build -p aws-c-common --target=${{ matrix.target }}
 
   aws-c-common-osx:
     name: OSX aws-c-common test build
