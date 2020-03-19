@@ -11,7 +11,6 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-import fcntl
 from hashlib import sha256
 import json
 import os
@@ -21,6 +20,16 @@ import time
 import tarfile
 import zipfile
 from urllib.request import urlretrieve, urlopen
+
+try:
+    import fcntl
+except:
+    fcntl = None
+
+try:
+    import msvcrt
+except:
+    msvcrt = None
 
 
 MANIFEST_URL = 'https://d19elf31gohf1l.cloudfront.net/_binaries/MANIFEST'
@@ -36,28 +45,51 @@ class LockFile(object):
         self.timeout = timeout
         self.fd = None
 
+    def _lock(self):
+        try:
+            fd = os.open(self.path, os.O_CREAT)
+        except OSError:
+            pass
+        try:
+            if fcntl:
+                fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            elif msvcrt:
+                msvcrt.locking(fd, msvcrt.LK_NBLCK, 1)
+        except (IOError, OSError) as ex:
+            os.close(fd)
+        else:
+            self.fd = fd
+
+    def _locked(self):
+        return self.fd != None
+
+    def _unlock(self):
+        fd = self.fd
+        self.fd = None
+
+        if fcntl:
+            fcntl.flock(fd, fcntl.LOCK_UN)
+        elif msvcrt:
+            msvcrt.locking(fd, msvcrt.LK_UNLCK, 1)
+
+        os.close(fd)
+
     def __enter__(self):
-        self.fd = os.open(self.path, os.O_CREAT)
         start_time = time.time()
         timeout_time = start_time + self.timeout if self.timeout else None
-        while not timeout_time or time.time() < timeout_time:
-            try:
-                fcntl.flock(self.fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
-                return
-            except (OSError, IOError) as ex:
-                # resource temporarily unavailable (locked)
-                if ex.errno != errno.EAGAIN:
-                    raise
-            time.sleep(1)
+
+        def timed_out():
+            if not timeout_time:
+                return False
+            return time.time() > timeout_time
+
+        self._lock()
+        while not timed_out() and not self._locked():
+            self._lock()
+            time.sleep(0.1)
 
     def __exit__(self, *args):
-        fcntl.flock(self.fd, fcntl.LOCK_UN)
-        os.close(self.fd)
-        self.fd = None
-        try:
-            os.unlink(self.path)
-        except:
-            pass
+        self._unlock()
 
 
 class Manifest(object):
