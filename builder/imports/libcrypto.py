@@ -70,8 +70,8 @@ class LibCrypto(Import):
         if current_host() == 'manylinux':
             lib_os = 'manylinux'
             lib_version = '1.0.2'
-        url = self.url.format(
-            version=lib_version, os=lib_os, arch=env.spec.arch) + '?time={}'.format(time.time())
+        url = self.url.format(version=lib_version,
+                              os=lib_os, arch=env.spec.arch)
         filename = '{}/libcrypto.tar.gz'.format(install_dir)
         print('Downloading {}'.format(url))
         fetch_and_extract(url, filename, install_dir)
