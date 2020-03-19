@@ -19,15 +19,6 @@ env:
   AWS_REGION: 'us-east-1'
 
 jobs:
-  cleanup:
-    name: Clean up previous branch jobs
-    runs-on: ubuntu-latest
-    steps:
-    - name: Clean up previous branch jobs
-      uses: rokroskar/workflow-run-cleanup-action@master
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
   tag:
     name: Artifact release tag
     runs-on: ubuntu-latest
@@ -106,7 +97,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target: [linux-x64, linux-armv6]
+        target: [linux-x64]
 
     steps:
     - name: Checkout Source
