@@ -252,31 +252,6 @@ jobs:
         docker pull $DOCKER_IMAGE
         docker run --env GITHUB_REF $DOCKER_IMAGE --version=${{ steps.release.outputs.release_tag }} build -p aws-c-io --spec=downstream run_tests=0
 
-  cross_compile_ubuntu:
-    strategy:
-      fail-fast: false
-      matrix:
-        target: [linux-armv6]
-
-    needs: package
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout Source
-      uses: actions/checkout@v1
-
-    - name: Get release tag
-      uses: ./.github/actions/release-tag
-      id: release
-      with:
-        output: tag
-
-    - name: Build ${{ env.PACKAGE_NAME }} for ${{ matrix.target }}
-      run: |
-        echo "${{ secrets.GITHUB_TOKEN }}" | docker login docker.pkg.github.com -u awslabs --password-stdin
-        export DOCKER_IMAGE=docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-ubuntu-16-x64:latest
-        docker pull $DOCKER_IMAGE
-        docker run --env GITHUB_REF $DOCKER_IMAGE --version=${{ steps.release.outputs.release_tag }} build -p aws-c-common --target=${{ matrix.target }} run_tests=0
-
   sanity-tests-passed:
     name: All Sanity Tests passed
     runs-on: ubuntu-latest
