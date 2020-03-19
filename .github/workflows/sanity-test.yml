@@ -138,8 +138,8 @@ jobs:
         run: |
           python builder.pyz build --project tests
 
+  # Make sure cross compiling works
   cross_compile:
-    name: Cross Compile ${{matrix.arch}}
     runs-on: ubuntu-latest
     if: github.event_name != 'release'
     needs: [package, sanity_test]
@@ -160,6 +160,7 @@ jobs:
     - name: Build aws-crt-cpp + consumers
       run: python3 builder.pyz build downstream -p aws-crt-cpp --target=${{matrix.arch}} --dump-config
 
+  # Make sure all the linux compilers work
   compilers:
     strategy:
       fail-fast: false
@@ -189,7 +190,8 @@ jobs:
       - name: Build aws-c-common
         run: python3 builder.pyz build --project aws-c-common --compiler=${{ matrix.compiler }} run_tests=false
 
-  downstream_test:
+  # Make sure downstream projects that use the builder compile after any changes
+  downstream:
     strategy:
       fail-fast: false
       matrix:
@@ -219,6 +221,7 @@ jobs:
       - name: Build ${{ matrix.project }}
         run: python3 builder.pyz build --project ${{ matrix.project }}
 
+  # This mostly tests that libcrypto and s2n resolve correctly on manylinux vs ubuntu
   aws-c-io:
     strategy:
       fail-fast: false
@@ -255,5 +258,6 @@ jobs:
     needs:
     - sanity_test
     - cross_compile
+    - compilers
     steps:
       - run: echo "All sanity tests passed"
