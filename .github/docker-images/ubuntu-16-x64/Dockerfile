@@ -19,18 +19,7 @@ RUN apt-get update -qq \
     # For PPAs
     software-properties-common \
     apt-transport-https \
-    gnupg-agent \
     ca-certificates \
-    && apt-get clean
-
-###############################################################################
-# Install docker
-###############################################################################
-WORKDIR /tmp
-RUN curl -fsSL https://get.docker.com -o get-docker.sh \
-    && sh get-docker.sh \
-    && service docker start \
-    && docker run hello-world \
     && apt-get clean
 
 ###############################################################################
