@@ -78,7 +78,7 @@ jobs:
         run: |
           mkdir -p build
           python3 -m zipapp --python="/usr/bin/env python3" --output=build/builder.pyz builder
-          aws s3 cp build/builder.pyz s3://$AWS_S3_BUCKET/${{ steps.release.outputs.release_tag }}/builder.pyz
+          aws s3 cp build/builder.pyz s3://$AWS_S3_BUCKET/channels/${{ steps.release.outputs.release_tag }}/builder.pyz
           zipinfo -1 build/builder.pyz
 
       - name: Artifact builder
@@ -250,7 +250,7 @@ jobs:
         echo "${{ secrets.GITHUB_TOKEN }}" | docker login docker.pkg.github.com -u awslabs --password-stdin
         export DOCKER_IMAGE=docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.linux }}:latest
         docker pull $DOCKER_IMAGE
-        docker run --env GITHUB_REF $DOCKER_IMAGE --version=${{ steps.release.outputs.release_tag }} build -p aws-c-io --spec=downstream run_tests=0
+        docker run --env GITHUB_REF $DOCKER_IMAGE --version=${{ steps.release.outputs.release_tag }} build -p aws-c-io --spec=downstream run_tests=false
 
   sanity-tests-passed:
     name: All Sanity Tests passed

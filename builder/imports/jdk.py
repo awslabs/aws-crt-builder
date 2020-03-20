@@ -16,10 +16,10 @@ import os
 from pathlib import Path
 import tarfile
 import zipfile
-from urllib.request import urlretrieve
 
-import Builder
-util = Builder.Util
+from fetch import fetch_and_extract
+from project import Import
+import util
 
 URLs = {
     'linux-armv6': 'https://github.com/AdoptOpenJDK/openjdk8-binaries/releases/download/jdk8u232-b09/OpenJDK8U-jdk_arm_linux_hotspot_8u232b09.tar.gz',
@@ -32,7 +32,7 @@ URLs = {
 }
 
 
-class JDK8(Builder.Import):
+class JDK8(Import):
     def __init__(self, **kwargs):
         super().__init__(
             config={},
@@ -100,7 +100,7 @@ class JDK8(Builder.Import):
         ext = '.tar.gz' if url.endswith('.tar.gz') else '.zip'
         filename = '{}/jdk8{}'.format(install_dir, ext)
         print('Downloading {}'.format(url))
-        urlretrieve(url, filename=filename)
+        fetch_and_extract(url, filename, install_dir)
         print('Extracting {} to {}'.format(filename, install_dir))
         if ext == '.tar.gz':
             with tarfile.open(filename) as tar:

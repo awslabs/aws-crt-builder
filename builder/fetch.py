@@ -12,6 +12,7 @@
 # permissions and limitations under the License.
 
 from hashlib import sha256
+import json
 import os
 import stat
 import tempfile
@@ -20,38 +21,108 @@ import tarfile
 import zipfile
 from urllib.request import urlretrieve, urlopen
 
+try:
+    import fcntl
+except:
+    fcntl = None
+
+try:
+    import msvcrt
+except:
+    msvcrt = None
+
 
 MANIFEST_URL = 'https://d19elf31gohf1l.cloudfront.net/_binaries/MANIFEST'
 MANIFEST_PATH = os.path.expanduser('~/.builder/MANIFEST')
+MANIFEST_LOCK = os.path.expanduser('~/.builder/manifest.lock')
+MANIFEST_TIMEOUT = 30
 CACHE_DIR = os.path.expanduser('~/.builder/pkg-cache')
 
-# map of urls -> hashes, fetched from our repo, used to index/validate the cache
+
+class LockFile(object):
+    def __init__(self, path=MANIFEST_LOCK, timeout=None):
+        self.path = path
+        self.timeout = timeout
+        self.fd = None
+
+    def _lock(self):
+        try:
+            fd = os.open(self.path, os.O_CREAT)
+        except OSError:
+            pass
+        try:
+            if fcntl:
+                fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            elif msvcrt:
+                msvcrt.locking(fd, msvcrt.LK_NBLCK, 1)
+        except (IOError, OSError) as ex:
+            os.close(fd)
+        else:
+            self.fd = fd
+
+    def _locked(self):
+        return self.fd != None
+
+    def _unlock(self):
+        fd = self.fd
+        self.fd = None
+
+        if fcntl:
+            fcntl.flock(fd, fcntl.LOCK_UN)
+        elif msvcrt:
+            msvcrt.locking(fd, msvcrt.LK_UNLCK, 1)
+
+        os.close(fd)
+
+    def __enter__(self):
+        start_time = time.time()
+        timeout_time = start_time + self.timeout if self.timeout else None
+
+        def timed_out():
+            if not timeout_time:
+                return False
+            return time.time() > timeout_time
+
+        self._lock()
+        while not timed_out() and not self._locked():
+            self._lock()
+            time.sleep(0.1)
+
+    def __exit__(self, *args):
+        self._unlock()
 
 
 class Manifest(object):
+    """ map of urls -> hashes, fetched from our repo, used to index/validate the cache """
+
     def __init__(self):
+
+        manifest = self
+
+        class SynchronizedDict(dict):
+            def __setitem__(self, item, value):
+                super().__setitem__(item, value)
+                manifest.save()
+
         self.remote = Manifest._fetch_remote()
-        self.local = Manifest._load_local()
-        os.makedirs(CACHE_DIR)
+        self.local = SynchronizedDict(Manifest._load_local())
+        os.makedirs(CACHE_DIR, exist_ok=True)
 
     @staticmethod
-    def _parse(manifest_blob):
-        manifest = {}
-        line = manifest_blob.readline()
-        while line:
-            if line.startswith('#'):
-                continue
-            if '|' in line:
-                url, digest = line.split('|', 1)
-                manifest[url] = digest
-            line = manifest_blob.readline()
+    def _parse(doc):
+        try:
+            manifest = json.load(doc)
+        except Exception as ex:
+            print('Failed to parse manifest: {}'.format(ex))
+            manifest = {}
+
         return manifest
 
     @staticmethod
     def _fetch_remote():
         try:
-            with urlopen(MANIFEST_URL) as manifest_blob:
-                return Manifest._parse(manifest_blob)
+            with urlopen(MANIFEST_URL) as manifest_doc:
+                return Manifest._parse(manifest_doc)
         except:
             print('Unable to fetch manifest, operating without cache')
             return {}
@@ -59,10 +130,16 @@ class Manifest(object):
     @staticmethod
     def _load_local():
         try:
-            with open(MANIFEST_PATH, 'r') as manifest_blob:
-                return Manifest._parse(manifest_blob)
+            with LockFile(timeout=5):
+                with open(MANIFEST_PATH, 'r') as manifest_doc:
+                    return Manifest._parse(manifest_doc)
         except:
             return {}
+
+    def save(self):
+        with LockFile(timeout=5):
+            with open(MANIFEST_PATH, 'w+') as manifest_doc:
+                json.dump(self.local, manifest_doc)
 
 
 _manifest = None
@@ -97,7 +174,7 @@ def _is_cloudfront(url):
 def hash_file(file_path):
     hash = sha256()
     with open(file_path, 'rb') as f:
-        for chunk in iter(lambda: f.read(1024 * 1024)):
+        for chunk in iter(lambda: f.read(1024 * 1024), b''):
             hash.update(chunk)
     return hash.hexdigest()
 
@@ -107,7 +184,8 @@ def fetch(url, local_path):
     # if it's already mapped to a local file, just let urlretrieve do the copy
     url = _map_from_cache(url)
     if os.path.isfile(url):
-        return urlretrieve(url, local_path)
+        print('Using cached package {}'.format(url))
+        return urlretrieve('file://' + url, local_path)
 
     manifest = get_manifest()
     digest = manifest.remote.get(url)
@@ -116,17 +194,20 @@ def fetch(url, local_path):
     if not os.path.isdir(local_dir):
         os.makedirs(local_dir)
 
+    print('Downloading {} to {}'.format(url, local_path))
+    slug = ''
     if _is_cloudfront(url):
         # add a unique param that will avoid the cache and pull from S3
-        url = url + '?time={}'.format(time.time())
-    urlretrieve(url, local_path)
+        slug = '?time={}'.format(time.time())
+    urlretrieve(url + slug, local_path)
 
     if not digest:
         digest = hash_file(local_path)
     cache_path = os.path.join(CACHE_DIR, digest)
 
     # move to catch, record digest
-    urlretrieve(local_path, cache_path)
+    print('Caching {} to {}'.format(local_path, cache_path))
+    urlretrieve('file://' + local_path, cache_path)
     manifest.local[url] = digest
 
 
@@ -137,6 +218,7 @@ def fetch_and_extract(url, archive_path, extract_path):
     if not os.path.isdir(extract_path):
         os.makedirs(extract_path)
 
+    print('Extracting {} to {}'.format(archive_path, extract_path))
     if tarfile.is_tarfile(archive_path):
         with tarfile.open(archive_path) as tar:
             tar.extractall(extract_path)
@@ -153,4 +235,5 @@ def fetch_script(url, script_path):
     """ Download a script, and give it executable permissions """
     fetch(url, script_path)
 
+    print('Applying exec permissions to {}'.format(script_path))
     os.chmod(script_path, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
