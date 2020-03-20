@@ -13,9 +13,10 @@
 
 import os
 from pathlib import Path
-from project import Import
-from urllib.request import urlretrieve
 import zipfile
+
+from fetch import fetch_and_extract
+from project import Import
 
 
 ANDROID_NDK_VERSION = '16b'
@@ -58,9 +59,5 @@ class NDK(Import):
 
         sh.mkdir(install_dir)
         filename = '{}/ndk-r{}.zip'.format(install_dir, ANDROID_NDK_VERSION)
-        print('Downloading {}'.format(self.url))
-        urlretrieve(self.url, filename)
-        print('Extracting {} to {}'.format(filename, install_dir))
-        with zipfile.Zipfile(filename) as zip:
-            zip.extractall(install_dir)
+        fetch_and_extract(self.url, filename, install_dir)
         self.installed = True

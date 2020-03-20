@@ -152,7 +152,7 @@ def produce_config(build_spec, project, overrides=None, **additional_variables):
     # process platform
     # target, arch -> platform
     target_platform = '{}-{}'.format(build_spec.target, build_spec.arch)
-    configs[id(PLATFORMS[target_platform])] = PLATFORMS[target_platform]
+    configs.append(PLATFORMS[target_platform])
 
     # then override with config file
     project_config = project.config
