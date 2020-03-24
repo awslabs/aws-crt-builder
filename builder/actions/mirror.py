@@ -11,16 +11,22 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+import os
+from action import Action
+from project import Import
 
-class Action(object):
-    """ A build step """
+
+class Mirror(Action):
+    """ Updates mirrored dependencies in S3/CloudFront """
 
     def is_main(self):
-        """ Returns True if this action needs no external tasks run to set it up """
-        return False
+        return True
 
     def run(self, env):
-        pass
+        import_classes = Import.__subclasses__()
 
-    def __str__(self):
-        return self.__class__.__name__
+        for import_class in import_classes:
+            imp = import_class()
+            if imp.__class__.__dict__.get('mirror', Import.__dict__['mirror']) != Import.__dict__['mirror']:
+                print('Mirroring {}'.format(imp.name))
+                imp.mirror(env)
