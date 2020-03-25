@@ -15,7 +15,7 @@ import os
 from pathlib import Path
 import zipfile
 
-from fetch import fetch_and_extract
+from fetch import fetch_and_extract, mirror_package
 from project import Import
 
 
@@ -49,7 +49,7 @@ class NDK(Import):
         sh = env.shell
 
         install_dir = os.path.join(env.deps_dir, self.name)
-        # If path to libcrypto is going to be relative, it has to be relative to the
+        # If path to NDK is going to be relative, it has to be relative to the
         # source directory
         self.prefix = str(Path(install_dir).relative_to(env.source_dir))
         # Export ndk_path
@@ -61,3 +61,6 @@ class NDK(Import):
         filename = '{}/ndk-r{}.zip'.format(install_dir, ANDROID_NDK_VERSION)
         fetch_and_extract(self.url, filename, install_dir)
         self.installed = True
+
+    def mirror(self, env):
+        mirror_package(self.name, self.url)
