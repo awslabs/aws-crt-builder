@@ -329,6 +329,9 @@ class Import(object):
             getattr(self, 'imports', []) + self.config.get('imports', []), spec)
         return self.imports
 
+    def mirror(self, env):
+        pass
+
 
 class Project(object):
     """ Describes a given library and its dependencies/consumers """

@@ -24,6 +24,7 @@ from spec import BuildSpec
 from actions.script import Script
 from actions.install import InstallPackages, InstallCompiler
 from actions.git import DownloadDependencies
+from actions.mirror import Mirror
 from env import Env
 from project import Project
 from scripts import Scripts
@@ -53,15 +54,18 @@ def run_action(action, env):
             sys.exit(13)
         action = action_cls()
 
-    Scripts.run_action(
-        Script([
-            InstallCompiler(),
-            InstallPackages(),
-            DownloadDependencies(),
-            action,
-        ], name='main'),
-        env
-    )
+    if action.is_main():
+        Scripts.run_action(action, env)
+    else:
+        Scripts.run_action(
+            Script([
+                InstallCompiler(),
+                InstallPackages(),
+                DownloadDependencies(),
+                action,
+            ], name='main'),
+            env
+        )
 
     env.shell.popenv()
 
@@ -237,7 +241,7 @@ if __name__ == '__main__':
 
     Scripts.load()
 
-    if not env.project:
+    if not env.project and args.command != 'mirror':
         print('No project specified and no project found in current directory')
         sys.exit(1)
 

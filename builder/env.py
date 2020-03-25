@@ -47,6 +47,9 @@ class Env(object):
         if not hasattr(self, 'shell'):
             self.shell = Shell(self.dryrun)
 
+        # Default config to whatever is on the command line, fill in later when project is loaded
+        self.config = self.args.cli_config
+
         # build environment set up
         self.launch_dir = os.path.abspath(self.shell.cwd())
 
@@ -150,11 +153,22 @@ class Env(object):
         try:
             branches = subprocess.check_output(
                 ["git", "branch", "-a", "--contains", "HEAD"]).decode("utf-8")
+            star_branch = None
+            for branch in branches.split('\n'):
+                if branch and branch.startswith('*'):
+                    star_branch = branch.strip('*').strip()
+                    break
             branches = [branch.strip('*').strip()
                         for branch in branches.split('\n') if branch]
 
             print("Found branches:", branches)
 
+            # if git branch says we're on a branch, that's it
+            if star_branch:
+                print('Working in branch: {}'.format(star_branch))
+                return star_branch
+
+            # pick the first one (it should be the only one, if it's a fresh sync)
             for branch in branches:
                 if branch == "(no branch)":
                     continue

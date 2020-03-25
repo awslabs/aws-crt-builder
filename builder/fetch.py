@@ -19,6 +19,7 @@ import tempfile
 import time
 import tarfile
 import zipfile
+from urllib.parse import urlparse
 from urllib.request import urlretrieve, urlopen
 
 try:
@@ -31,8 +32,14 @@ try:
 except:
     msvcrt = None
 
+from util import run_command
 
-MANIFEST_URL = 'https://d19elf31gohf1l.cloudfront.net/_binaries/MANIFEST'
+FETCH_URL = 'https://d19elf31gohf1l.cloudfront.net/_binaries'
+PUBLISH_URL = 's3://aws-crt-builder/_binaries'
+PACKAGE_URL_FORMAT = '{url}/{name}/{package}'
+
+FETCH_MANIFEST_URL = '{}/MANIFEST'.format(FETCH_URL)
+PUBLISH_MANIFEST_URL = '{}/MANIFEST'.format(PUBLISH_URL)
 MANIFEST_PATH = os.path.expanduser('~/.builder/MANIFEST')
 MANIFEST_LOCK = os.path.expanduser('~/.builder/manifest.lock')
 MANIFEST_TIMEOUT = 30
@@ -121,7 +128,7 @@ class Manifest(object):
     @staticmethod
     def _fetch_remote():
         try:
-            with urlopen(MANIFEST_URL) as manifest_doc:
+            with urlopen(FETCH_MANIFEST_URL) as manifest_doc:
                 return Manifest._parse(manifest_doc)
         except:
             print('Unable to fetch manifest, operating without cache')
@@ -156,15 +163,21 @@ def _map_from_cache(url):
     """ Returns a path mapped from the cache if it is not expired, or the original url if download is required """
     manifest = get_manifest()
 
-    remote_digest = manifest.remote.get(url, None)
+    package = _url_to_package(url)
+
+    remote_digest = manifest.remote.get(package)
     if remote_digest:
-        local_digest = manifest.local.get(url, None)
+        local_digest = manifest.local.get(package)
         if local_digest == remote_digest:
             cache_path = os.path.join(CACHE_DIR, local_digest)
             if os.path.isfile(cache_path):
                 return cache_path
 
     return url
+
+
+def _url_to_package(url):
+    return os.path.basename(urlparse(url).path)
 
 
 def _is_cloudfront(url):
@@ -179,13 +192,23 @@ def hash_file(file_path):
     return hash.hexdigest()
 
 
-def fetch(url, local_path):
+def _download(url, local_path):
+    print('Downloading {} to {}'.format(url, local_path))
+    slug = ''
+    if _is_cloudfront(url):
+        # add a unique param that will avoid the cache and pull from S3
+        slug = '?time={}'.format(time.time())
+    urlretrieve(url + slug, local_path)
+
+
+def fetch(url, local_path, skip_cache=False):
     """ Download a file from a url and store it locally """
     # if it's already mapped to a local file, just let urlretrieve do the copy
-    url = _map_from_cache(url)
-    if os.path.isfile(url):
-        print('Using cached package {}'.format(url))
-        return urlretrieve('file://' + url, local_path)
+    if not skip_cache:
+        url = _map_from_cache(url)
+        if os.path.isfile(url):
+            print('Using cached package {}'.format(url))
+            return urlretrieve('file://' + url, local_path)
 
     manifest = get_manifest()
     digest = manifest.remote.get(url)
@@ -194,12 +217,7 @@ def fetch(url, local_path):
     if not os.path.isdir(local_dir):
         os.makedirs(local_dir)
 
-    print('Downloading {} to {}'.format(url, local_path))
-    slug = ''
-    if _is_cloudfront(url):
-        # add a unique param that will avoid the cache and pull from S3
-        slug = '?time={}'.format(time.time())
-    urlretrieve(url + slug, local_path)
+    _download(url, local_path)
 
     if not digest:
         digest = hash_file(local_path)
@@ -208,7 +226,8 @@ def fetch(url, local_path):
     # move to catch, record digest
     print('Caching {} to {}'.format(local_path, cache_path))
     urlretrieve('file://' + local_path, cache_path)
-    manifest.local[url] = digest
+    package = _url_to_package(url)
+    manifest.local[package] = digest
 
 
 def fetch_and_extract(url, archive_path, extract_path):
@@ -237,3 +256,30 @@ def fetch_script(url, script_path):
 
     print('Applying exec permissions to {}'.format(script_path))
     os.chmod(script_path, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
+
+
+def publish_package(name, package_path):
+    manifest = get_manifest()
+    package = os.path.basename(package_path)
+    manifest.remote[package] = manifest.local[package]
+
+    print('Publishing to S3')
+    s3_url = PACKAGE_URL_FORMAT.format(
+        url=PUBLISH_URL, name=name, package=package)
+    run_command('aws', 's3', 'cp', package_path, s3_url)
+
+    print('Updating remote manifest')
+    # Update hash for this file in the manifest
+    with tempfile.NamedTemporaryFile('w+', delete=False) as tmp_manifest:
+        json.dump(manifest.remote, tmp_manifest)
+        tmp_manifest.close()
+        run_command('aws', 's3', 'cp', tmp_manifest.name, PUBLISH_MANIFEST_URL)
+
+
+def mirror_package(name, source_url):
+    url_path = urlparse(source_url).path
+    filename = os.path.basename(url_path)
+    local_path = os.path.join(tempfile.gettempdir(), filename)
+    # This will also shove the file into the cache
+    fetch(source_url, local_path, skip_cache=True)
+    publish_package(name, local_path)

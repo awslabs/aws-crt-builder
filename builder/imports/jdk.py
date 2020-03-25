@@ -17,7 +17,7 @@ from pathlib import Path
 import tarfile
 import zipfile
 
-from fetch import fetch_and_extract
+from fetch import fetch_and_extract, mirror_package
 from project import Import
 import util
 
@@ -125,3 +125,7 @@ class JDK8(Import):
 
         env.variables['java_home'] = self.path
         self.installed = True
+
+    def mirror(self, env):
+        for src_url in URLs.values():
+            mirror_package(self.name, src_url)
