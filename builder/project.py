@@ -149,6 +149,11 @@ def produce_config(build_spec, project, overrides=None, **additional_variables):
     # Process defaults first
     process_config(defaults)
 
+    # process platform
+    # target, arch -> platform
+    target_platform = '{}-{}'.format(build_spec.target, build_spec.arch)
+    configs.append(PLATFORMS[target_platform])
+
     # then override with config file
     project_config = project.config
     process_config(project_config)
@@ -251,6 +256,15 @@ def _resolve_imports(imps):
         else:
             imp = i
         imports.append(imp)
+    return list(imports)
+
+
+def _resolve_imports_for_spec(imps, spec):
+    imps = _resolve_imports(imps)
+    imports = UniqueList()
+    for imp in imps:
+        if not hasattr(imp, 'targets') or spec.target in getattr(imp, 'targets', []):
+            imports += [imp] + imp.get_imports(spec)
     return list(imports)
 
 

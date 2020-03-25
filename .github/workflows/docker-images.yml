@@ -87,7 +87,6 @@ jobs:
         docker save docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:${{ env.IMAGE_TAG }} > /tmp/aws-crt-${{ matrix.variant }}-${{ env.IMAGE_TAG }}.tar.gz
         aws s3 cp --no-progress /tmp/aws-crt-${{ matrix.variant }}-${{ env.IMAGE_TAG }}.tar.gz s3://${{env.AWS_S3_BUCKET}}/channels/${{ env.IMAGE_TAG }}/aws-crt-${{ matrix.variant }}.tar.gz
 
-
   ###############################################################################
   # DOWNSTREAM TESTS
   ###############################################################################

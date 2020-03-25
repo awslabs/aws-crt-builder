@@ -27,6 +27,7 @@ class Mirror(Action):
 
         for import_class in import_classes:
             imp = import_class()
+            # only bother if the class actually implements mirror()
             if imp.__class__.__dict__.get('mirror', Import.__dict__['mirror']) != Import.__dict__['mirror']:
                 print('Mirroring {}'.format(imp.name))
                 imp.mirror(env)

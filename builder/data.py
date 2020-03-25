@@ -77,13 +77,19 @@ for suffix, default in [('setup', []), ('install', ''), ('update', ''), ('packag
         key = '{}_{}'.format(pkg.value, suffix)
         KEYS[key] = default
 
-# Be sure to use these monikers in this file, aliases are applied after all tables are built
+###############################################################################
+# Supported architectures
+# Be sure to use these monikers in this file for consistency, some aliases are
+# applied after all tables are built
+###############################################################################
 ARCHS = {
     'x86': {
-        'arch': 'x86'
+        'arch': 'x86',
+        'aliases': ['i686', 'x86_32']
     },
     'x64': {
-        'arch': 'x64'
+        'arch': 'x64',
+        'aliases': ['amd64', 'x86_64']
     },
     'armv6': {
         'arch': 'armv6',
@@ -107,10 +113,14 @@ ARCHS = {
     },
 }
 
-ARCHS['x86_64'] = ARCHS['x64']
-ARCHS['amd64'] = ARCHS['x64']
-ARCHS['i686'] = ARCHS['x86']
+# Apply arch aliases
+for arch in list(ARCHS.keys()):
+    for alias in ARCHS[arch].get('aliases', []):
+        dict_alias(ARCHS, arch, alias)
 
+###############################################################################
+# Host operating systems
+###############################################################################
 HOSTS = {
     'linux': {
         'os': 'linux',
@@ -229,6 +239,13 @@ HOSTS = {
 HOSTS['darwin'] = HOSTS['macos']
 HOSTS['debian'] = HOSTS['ubuntu']
 
+for arch in ARCHS.keys():
+    for alias in ARCHS[arch].get('aliases', []):
+        dict_alias(HOSTS, arch, alias)
+
+###############################################################################
+# Supported targets to compile for
+###############################################################################
 TARGETS = {
     'linux': {
         'architectures': {
@@ -265,10 +282,14 @@ TARGETS = {
     'android': {
         'cmake_args': [
             "-DTARGET_ARCH=ANDROID",
-            "-DCMAKE_TOOLCHAIN_FILE=/opt/android-ndk/build/cmake/android.toolchain.cmake",
-            "-DANDROID_NDK=/opt/android-ndk",
+            "-DCMAKE_TOOLCHAIN_FILE={ndk_path}/build/cmake/android.toolchain.cmake",
+            "-DANDROID_NDK={ndk_path}",
         ],
+        'build_env': {
+            'ANDROID_NDK_HOME': '{ndk_path}'
+        },
         'run_tests': False,
+        'imports': ['ndk'],
 
         'architectures': {
             'arm64v8a': {
@@ -298,10 +319,17 @@ TARGETS = {
 
 TARGETS['darwin'] = TARGETS['macos']
 
+for arch in ARCHS.keys():
+    for alias in ARCHS[arch].get('aliases', []):
+        dict_alias(TARGETS, arch, alias)
+
+###############################################################################
+# Known compilers/versions
+###############################################################################
 COMPILERS = {
     'default': {
         'hosts': ['macos', 'linux', 'windows', 'freebsd'],
-        'targets': ['macos', 'linux', 'windows', 'freebsd'],
+        'targets': ['macos', 'linux', 'windows', 'freebsd', 'android'],
 
         'versions': {
             'default': {}
@@ -427,7 +455,7 @@ COMPILERS = {
         'targets': ['android'],
 
         'versions': {
-            '19': {
+            'default': {
                 'cmake_args': [
                     "-DANDROID_NATIVE_API_LEVEL=19",
                 ],
@@ -436,34 +464,69 @@ COMPILERS = {
     }
 }
 
+COMPILERS['msvc']['versions']['14'] = COMPILERS['msvc']['versions']['2015']
+COMPILERS['msvc']['versions']['15'] = COMPILERS['msvc']['versions']['2017']
+COMPILERS['msvc']['versions']['16'] = COMPILERS['msvc']['versions']['2019']
+
+for arch in ARCHS.keys():
+    for alias in ARCHS[arch].get('aliases', []):
+        dict_alias(COMPILERS, arch, alias)
+
+###############################################################################
+# Supported os/arch couplets
+###############################################################################
 PLATFORMS = {
     'windows-x86': {},
     'windows-x64': {},
     'macos-x64': {},
     'freebsd-x64': {},
+    'android-armv6': {},
+    'android-armv7': {},
+    'android-armv8': {},
     # Linux is done procedurally, below
 }
 
-PLATFORMS['darwin-x64'] = PLATFORMS['macos-x64']
-PLATFORMS['darwin_x86_64'] = PLATFORMS['macos-x64']
-PLATFORMS['macos_x86_64'] = PLATFORMS['macos-x64']
-PLATFORMS['freebsd-x86_64'] = PLATFORMS['freebsd-x64']
-PLATFORMS['freebsd-amd64'] = PLATFORMS['freebsd-x64']
+# Windows
+for arch in ['x86', 'x64']:
+    canonical_windows = 'windows-{}'.format(arch)
+    for alias in ARCHS[arch].get('aliases', []):
+        alias_windows = 'windows-{}'.format(alias)
+        PLATFORMS[alias_windows] = PLATFORMS[canonical_windows]
 
-###############################################################################
-# Aliases
-###############################################################################
-COMPILERS['msvc']['versions']['14'] = COMPILERS['msvc']['versions']['2015']
-COMPILERS['msvc']['versions']['15'] = COMPILERS['msvc']['versions']['2017']
-COMPILERS['msvc']['versions']['16'] = COMPILERS['msvc']['versions']['2019']
+# MacOS
+for mac in ['macos', 'darwin']:
+    canonical_mac = 'macos-x64'
+    for alias in ARCHS['x64'].get('aliases', []):
+        alias_mac = '{}-{}'.format(mac, alias)
+        if alias_mac != canonical_mac:
+            PLATFORMS[alias_mac] = PLATFORMS[canonical_mac]
 
-# armv8 == aarch64, arm64
-for v8 in ('aarch64', 'arm64', 'arm64v8'):
-    dict_alias(ARCHS, 'armv8', v8)
-    dict_alias(HOSTS, 'armv8', v8)
-    dict_alias(TARGETS, 'armv8', v8)
-    dict_alias(COMPILERS, 'armv8', v8)
+# FreeBSD
+for alias in ARCHS['x64'].get('aliases', []):
+    canonical_freebsd = 'freebsd-x64'
+    for alias in ARCHS['x64'].get('aliases', []):
+        alias_freebsd = 'freebsd-{}'.format(alias)
+        if alias_freebsd != canonical_freebsd:
+            PLATFORMS[alias_freebsd] = PLATFORMS[canonical_freebsd]
 
-# Linux works on every arch we support. Do this after the armv8 aliases so they get picked up
+# Linux works on every arch we support
 for arch in ARCHS.keys():
-    PLATFORMS['linux-{}'.format(arch)] = {}
+    canonical_linux = 'linux-{}'.format(arch)
+    PLATFORMS[canonical_linux] = {}
+    for alias in ARCHS[arch].get('aliases', []):
+        alias_linux = 'linux-{}'.format(alias)
+        PLATFORMS[alias_linux] = PLATFORMS[canonical_linux]
+
+# Cross compile platforms
+PLATFORMS['linux-armv6']['cross_compile_platform'] = 'linux-armv6'
+PLATFORMS['linux-armv7']['cross_compile_platform'] = 'linux-armv7'
+PLATFORMS['linux-armv8']['cross_compile_platform'] = 'linux-arm64'
+PLATFORMS['android-armv6']['cross_compile_platform'] = 'android-arm'
+PLATFORMS['android-armv7']['cross_compile_platform'] = 'android-arm'
+PLATFORMS['android-armv8']['cross_compile_platform'] = 'android-arm64'
+for cc_arch in ['armv6', 'armv7', 'armv8']:
+    for cc_os in ['linux', 'android']:
+        canonical_platform = '{}-{}'.format(cc_os, cc_arch)
+        for alias in ARCHS[cc_arch].get('aliases', []):
+            alias_platform = '{}-{}'.format(cc_os, alias)
+            PLATFORMS[alias_platform] = PLATFORMS[canonical_platform]
