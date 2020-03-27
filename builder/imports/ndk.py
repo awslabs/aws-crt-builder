@@ -23,7 +23,6 @@ from util import chmod_exec
 
 
 ANDROID_NDK_VERSION = '16b'
-ANDROID_API_VERSION = '19'
 
 
 class NDK(Import):
