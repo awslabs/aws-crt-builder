@@ -592,7 +592,8 @@ class Project(object):
         if name_hint and name_hint.lower() not in Project._projects:
             project_cls = Project._find_project_class(name_hint)
             if project_cls:
-                project = project_cls(name=name_hint, path=path)
+                project = project_cls(name=name_hint, path=path if os.path.basename(
+                    path) == name_hint else None)
                 return Project._cache_project(project)
 
         return None
