@@ -282,16 +282,16 @@ TARGETS = {
     'android': {
         'cmake_args': [
             "-DTARGET_ARCH=ANDROID",
-            "-DCMAKE_TOOLCHAIN_FILE={ndk_path}/build/cmake/android.toolchain.cmake",
-            "-DANDROID_NDK={ndk_path}",
+            "-DANDROID_NATIVE_API_LEVEL=19"
         ],
-        'build_env': {
-            'ANDROID_NDK_HOME': '{ndk_path}'
-        },
         'run_tests': False,
-        'imports': ['ndk'],
 
         'architectures': {
+            'armv7': {
+                'cmake_args': [
+                    "-DANDROID_ABI=armeabi-v7a",
+                ]
+            },
             'arm64v8a': {
                 'cmake_args': [
                     "-DANDROID_ABI=arm64-v8a",
