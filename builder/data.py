@@ -106,7 +106,7 @@ ARCHS = {
         'arch': 'armv8',
         'cross_compile_platform': 'linux-arm64',
         'imports': ['dockcross'],
-        'aliases': ['arm64', 'arm64v8', 'arm64v8a'],
+        'aliases': ['arm64', 'arm64v8', 'arm64v8a', 'aarch64'],
     },
     'mips': {
         'arch': 'mips',

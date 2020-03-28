@@ -155,7 +155,7 @@ def parse_args():
                         help="The compiler to use for this build")
     parser.add_argument('--target', type=str, help="The target to cross-compile for (e.g. android-armv7, linux-x86, linux-aarch64)",
                         default='{}-{}'.format(current_os(), current_arch()),
-                        choices=data.PLATFORMS)
+                        choices=data.PLATFORMS.keys())
     parser.add_argument('args', nargs=argparse.REMAINDER)
 
     # hand parse command and spec from within the args given
