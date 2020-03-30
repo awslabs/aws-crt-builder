@@ -16,6 +16,7 @@ import copy
 from collections import namedtuple, UserList
 from collections.abc import Iterable
 import os
+import stat
 from string import Formatter
 import subprocess
 import sys
@@ -146,6 +147,10 @@ def where(exe, path=None, resolve_symlinks=True):
                 return os.path.realpath(exe_path) if resolve_symlinks else os.path.abspath(exe_path)
 
     return None
+
+
+def chmod_exec(file_path):
+    os.chmod(file_path, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
 
 
 ExecResult = namedtuple('ExecResult', ['returncode', 'pid', 'output'])

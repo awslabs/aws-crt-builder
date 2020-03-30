@@ -32,7 +32,7 @@ try:
 except:
     msvcrt = None
 
-from util import run_command
+from util import run_command, chmod_exec
 
 FETCH_URL = 'https://d19elf31gohf1l.cloudfront.net/_binaries'
 PUBLISH_URL = 's3://aws-crt-builder/_binaries'
@@ -255,7 +255,7 @@ def fetch_script(url, script_path):
     fetch(url, script_path)
 
     print('Applying exec permissions to {}'.format(script_path))
-    os.chmod(script_path, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
+    chmod_exec(script_path)
 
 
 def publish_package(name, package_path):

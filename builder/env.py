@@ -70,9 +70,7 @@ class Env(object):
         # see if the project is a path, if so, split it and give the path as a hint
         hints = []
         parts = project_name.split(os.path.sep)
-        if os.path.isabs(project_name):
-            hints += [project_name]
-        elif len(parts) > 1:
+        if len(parts) > 1:
             project_path = os.path.abspath(os.path.join(*parts))
             hints += [project_path]
         project_name = parts[-1]
