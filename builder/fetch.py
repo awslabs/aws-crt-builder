@@ -40,10 +40,11 @@ PACKAGE_URL_FORMAT = '{url}/{name}/{package}'
 
 FETCH_MANIFEST_URL = '{}/MANIFEST'.format(FETCH_URL)
 PUBLISH_MANIFEST_URL = '{}/MANIFEST'.format(PUBLISH_URL)
-MANIFEST_PATH = os.path.expanduser('~/.builder/MANIFEST')
-MANIFEST_LOCK = os.path.expanduser('~/.builder/manifest.lock')
+MANIFEST_PATH = os.path.expanduser(os.path.join('~', '.builder', 'MANIFEST'))
+MANIFEST_LOCK = os.path.expanduser(
+    os.path.join('~', '.builder', 'manifest.lock'))
 MANIFEST_TIMEOUT = 30
-CACHE_DIR = os.path.expanduser('~/.builder/pkg-cache')
+CACHE_DIR = os.path.expanduser(os.path.join('~', '.builder', 'pkg-cache'))
 
 
 class LockFile(object):
