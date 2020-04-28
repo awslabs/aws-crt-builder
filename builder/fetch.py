@@ -222,15 +222,18 @@ def fetch(url, local_path, skip_cache=False):
 
     _download(url, local_path)
 
-    if not digest:
-        digest = hash_file(local_path)
-    cache_path = os.path.join(CACHE_DIR, digest)
-
-    # move to catch, record digest
-    print('Caching {} to {}'.format(local_path, cache_path))
-    urlretrieve('file://' + local_path, cache_path)
-    package = _url_to_package(url)
-    manifest.local[package] = digest
+    # move to cache, record digest
+    try:
+        if not digest:
+            digest = hash_file(local_path)
+        cache_path = os.path.join(CACHE_DIR, digest)
+        urlretrieve('file://' + local_path, cache_path)
+        print('Cached {} to {}'.format(local_path, cache_path))
+        package = _url_to_package(url)
+        manifest.local[package] = digest
+    except Exception as ex:
+        print('WARNING: failed to cache {} to {}: {}'.format(
+            local_path, cache_path, ex))
 
 
 def fetch_and_extract(url, archive_path, extract_path):
