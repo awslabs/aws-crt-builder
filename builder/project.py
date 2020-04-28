@@ -296,6 +296,7 @@ class Import(object):
         self.name = kwargs.get(
             'name', self.__class__.__name__.lower().replace('import', ''))
         self._resolved = True
+        self.config = {}
         if 'resolved' in kwargs:
             self._resolved = kwargs['resolved']
             del kwargs['resolved']

@@ -36,12 +36,21 @@ def _import_dynamic_classes():
     Action = getattr(action, 'Action')
 
 
+def _find_all_subclasses(cls):
+    """ Recursively find all subclasses """
+    subclasses = set(cls.__subclasses__())
+    for sub in cls.__subclasses__():
+        subclasses = subclasses | _find_all_subclasses(sub)
+    return subclasses
+
+
 def _get_all_dynamic_classes():
     _import_dynamic_classes()
-    return set(
-        Action.__subclasses__() +
-        Project.__subclasses__() +
-        Import.__subclasses__())
+    all_classes = set(
+        _find_all_subclasses(Action) |
+        _find_all_subclasses(Project) |
+        _find_all_subclasses(Import))
+    return all_classes
 
 
 class Scripts(object):
@@ -53,6 +62,9 @@ class Scripts(object):
     @staticmethod
     def load(path='.'):
         """ Loads all scripts from ${path}/.builder/**/*.py to make their classes available """
+
+        if len(Scripts.all_classes) == 0:
+            Scripts.all_classes = _get_all_dynamic_classes()
 
         # Load any classes from path
         path = os.path.abspath(os.path.join(path, '.builder'))
@@ -91,7 +103,7 @@ class Scripts(object):
     @staticmethod
     def _find_actions():
         _import_dynamic_classes()
-        actions = set(Action.__subclasses__())
+        actions = _find_all_subclasses(Action)
         return actions
 
     @staticmethod
