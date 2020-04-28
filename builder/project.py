@@ -268,15 +268,6 @@ def _resolve_imports_for_spec(imps, spec):
     return list(imports)
 
 
-def _resolve_imports_for_spec(imps, spec):
-    imps = _resolve_imports(imps)
-    imports = UniqueList()
-    for imp in imps:
-        if not hasattr(imp, 'targets') or spec.target in getattr(imp, 'targets', []):
-            imports += [imp] + imp.get_imports(spec)
-    return list(imports)
-
-
 def _not_resolved(s):
     return False
 
@@ -460,7 +451,9 @@ class Project(object):
 
     def install(self, env):
         """ Can be overridden to install a project from anywhere """
-        pass
+        imports = self.get_imports(env.spec)
+        for imp in imports:
+            imp.install(env)
 
     def cmake_args(self, env):
         """ Can be overridden to export CMake flags to consumers """
