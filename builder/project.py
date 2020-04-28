@@ -527,19 +527,11 @@ class Project(object):
 
     @staticmethod
     def _find_project_class(name):
-        projects = Project.__subclasses__()
-        name = name.lower()
-        for p in projects:
-            if p.__name__.lower().replace('project', '') == name.lower():
-                return p
+        return Scripts.find_project(name)
 
     @staticmethod
     def _find_import_class(name):
-        imports = Import.__subclasses__()
-        name = name.lower()
-        for i in imports:
-            if i.__name__.lower().replace('import', '') == name:
-                return i
+        return Scripts.find_import(name)
 
     @staticmethod
     def _create_project(name, **kwargs):

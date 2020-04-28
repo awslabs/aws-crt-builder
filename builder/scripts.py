@@ -53,6 +53,16 @@ def _get_all_dynamic_classes():
     return all_classes
 
 
+def _normalize_name(name):
+    return name.replace('-', '').lower()
+
+
+def _find_classes(parent):
+    _import_dynamic_classes()
+    classes = _find_all_subclasses(parent)
+    return classes
+
+
 class Scripts(object):
     """ Manages loading, context, and running of per-project scripts """
 
@@ -101,19 +111,37 @@ class Scripts(object):
             Scripts.all_classes.update(new_classes)
 
     @staticmethod
-    def _find_actions():
-        _import_dynamic_classes()
-        actions = _find_all_subclasses(Action)
-        return actions
-
-    @staticmethod
     def find_action(name):
         """ Finds any loaded action class by name and returns it """
-        name = name.replace('-', '').lower()
-        all_actions = Scripts._find_actions()
+        _import_dynamic_classes()
+        name = _normalize_name(name)
+        all_actions = _find_classes(Action)
         for action in all_actions:
             if action.__name__.lower() == name:
                 return action
+        return None
+
+    @staticmethod
+    def find_project(name):
+        """ Finds any loaded project class by name and returns it """
+        _import_dynamic_classes()
+        name = _normalize_name(name)
+        all_projects = _find_classes(Project)
+        for project in all_projects:
+            if project.__name__.lower() == name:
+                return project
+        return None
+
+    @staticmethod
+    def find_import(name):
+        """ Finds any loaded import class by name and returns it """
+        _import_dynamic_classes()
+        name = _normalize_name(name)
+        all_imports = _find_classes(Import)
+        for imp in all_imports:
+            if imp.__name__.lower() == name:
+                return imp
+        return None
 
     @staticmethod
     def run_action(action, env):
