@@ -114,7 +114,9 @@ class Manifest(object):
 
         self.remote = Manifest._fetch_remote()
         self.local = SynchronizedDict(Manifest._load_local())
-        os.makedirs(CACHE_DIR, exist_ok=True)
+        if not os.path.isdir(CACHE_DIR):
+            print('Creating package cache at {}'.format(CACHE_DIR))
+            os.makedirs(CACHE_DIR, exist_ok=True)
 
     @staticmethod
     def _parse(doc):
