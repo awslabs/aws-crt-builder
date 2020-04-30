@@ -95,6 +95,7 @@ jobs:
         - al2012-x64
         - al2-x64
         - ubuntu-16-x64
+        - node-10-linux-x64
 
     steps:
     - name: Checkout Sources
