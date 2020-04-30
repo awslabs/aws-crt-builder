@@ -116,7 +116,7 @@ class Manifest(object):
         self.local = SynchronizedDict(Manifest._load_local())
         if not os.path.isdir(CACHE_DIR):
             print('Creating package cache at {}'.format(CACHE_DIR))
-            os.makedirs(CACHE_DIR, exist_ok=True)
+            os.makedirs(CACHE_DIR)
 
     @staticmethod
     def _parse(doc):
