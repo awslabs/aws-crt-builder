@@ -36,12 +36,45 @@ def _import_dynamic_classes():
     Action = getattr(action, 'Action')
 
 
+def _find_all_subclasses(cls):
+    """ Recursively find all subclasses """
+    subclasses = set(cls.__subclasses__())
+    for sub in cls.__subclasses__():
+        subclasses = subclasses | _find_all_subclasses(sub)
+    return subclasses
+
+
 def _get_all_dynamic_classes():
     _import_dynamic_classes()
-    return set(
-        Action.__subclasses__() +
-        Project.__subclasses__() +
-        Import.__subclasses__())
+    all_classes = set(
+        _find_all_subclasses(Action) |
+        _find_all_subclasses(Project) |
+        _find_all_subclasses(Import))
+    return all_classes
+
+
+def _normalize_name(name):
+    return name.replace('-', '').lower()
+
+
+def _find_classes(parent):
+    _import_dynamic_classes()
+    classes = _find_all_subclasses(parent)
+    return classes
+
+
+def _find_subclass(parent, name):
+    name = _normalize_name(name)
+    all_classes = _find_classes(parent)
+    parent_name = parent.__name__.lower()
+    for cls in all_classes:
+        cls_name = cls.__name__.lower()
+        if cls_name.endswith(parent_name):
+            cls_name = cls_name.replace(
+                "{}".format(parent_name), "")
+        if name == cls_name:
+            return cls
+    return None
 
 
 class Scripts(object):
@@ -53,6 +86,9 @@ class Scripts(object):
     @staticmethod
     def load(path='.'):
         """ Loads all scripts from ${path}/.builder/**/*.py to make their classes available """
+
+        if len(Scripts.all_classes) == 0:
+            Scripts.all_classes = _get_all_dynamic_classes()
 
         # Load any classes from path
         path = os.path.abspath(os.path.join(path, '.builder'))
@@ -89,19 +125,22 @@ class Scripts(object):
             Scripts.all_classes.update(new_classes)
 
     @staticmethod
-    def _find_actions():
-        _import_dynamic_classes()
-        actions = set(Action.__subclasses__())
-        return actions
-
-    @staticmethod
     def find_action(name):
         """ Finds any loaded action class by name and returns it """
-        name = name.replace('-', '').lower()
-        all_actions = Scripts._find_actions()
-        for action in all_actions:
-            if action.__name__.lower() == name:
-                return action
+        _import_dynamic_classes()
+        return _find_subclass(Action, name)
+
+    @staticmethod
+    def find_project(name):
+        """ Finds any loaded project class by name and returns it """
+        _import_dynamic_classes()
+        return _find_subclass(Project, name)
+
+    @staticmethod
+    def find_import(name):
+        """ Finds any loaded import class by name and returns it """
+        _import_dynamic_classes()
+        return _find_subclass(Import, name)
 
     @staticmethod
     def run_action(action, env):

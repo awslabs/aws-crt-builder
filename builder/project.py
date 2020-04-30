@@ -268,15 +268,6 @@ def _resolve_imports_for_spec(imps, spec):
     return list(imports)
 
 
-def _resolve_imports_for_spec(imps, spec):
-    imps = _resolve_imports(imps)
-    imports = UniqueList()
-    for imp in imps:
-        if not hasattr(imp, 'targets') or spec.target in getattr(imp, 'targets', []):
-            imports += [imp] + imp.get_imports(spec)
-    return list(imports)
-
-
 def _not_resolved(s):
     return False
 
@@ -296,6 +287,7 @@ class Import(object):
         self.name = kwargs.get(
             'name', self.__class__.__name__.lower().replace('import', ''))
         self._resolved = True
+        self.config = {}
         if 'resolved' in kwargs:
             self._resolved = kwargs['resolved']
             del kwargs['resolved']
@@ -459,7 +451,9 @@ class Project(object):
 
     def install(self, env):
         """ Can be overridden to install a project from anywhere """
-        pass
+        imports = self.get_imports(env.spec)
+        for imp in imports:
+            imp.install(env)
 
     def cmake_args(self, env):
         """ Can be overridden to export CMake flags to consumers """
@@ -526,19 +520,11 @@ class Project(object):
 
     @staticmethod
     def _find_project_class(name):
-        projects = Project.__subclasses__()
-        name = name.lower()
-        for p in projects:
-            if p.__name__.lower().replace('project', '') == name.lower():
-                return p
+        return Scripts.find_project(name)
 
     @staticmethod
     def _find_import_class(name):
-        imports = Import.__subclasses__()
-        name = name.lower()
-        for i in imports:
-            if i.__name__.lower().replace('import', '') == name:
-                return i
+        return Scripts.find_import(name)
 
     @staticmethod
     def _create_project(name, **kwargs):

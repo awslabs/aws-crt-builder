@@ -40,10 +40,11 @@ PACKAGE_URL_FORMAT = '{url}/{name}/{package}'
 
 FETCH_MANIFEST_URL = '{}/MANIFEST'.format(FETCH_URL)
 PUBLISH_MANIFEST_URL = '{}/MANIFEST'.format(PUBLISH_URL)
-MANIFEST_PATH = os.path.expanduser('~/.builder/MANIFEST')
-MANIFEST_LOCK = os.path.expanduser('~/.builder/manifest.lock')
+MANIFEST_PATH = os.path.expanduser(os.path.join('~', '.builder', 'MANIFEST'))
+MANIFEST_LOCK = os.path.expanduser(
+    os.path.join('~', '.builder', 'manifest.lock'))
 MANIFEST_TIMEOUT = 30
-CACHE_DIR = os.path.expanduser('~/.builder/pkg-cache')
+CACHE_DIR = os.path.expanduser(os.path.join('~', '.builder', 'pkg-cache'))
 
 
 class LockFile(object):
@@ -113,7 +114,9 @@ class Manifest(object):
 
         self.remote = Manifest._fetch_remote()
         self.local = SynchronizedDict(Manifest._load_local())
-        os.makedirs(CACHE_DIR, exist_ok=True)
+        if not os.path.isdir(CACHE_DIR):
+            print('Creating package cache at {}'.format(CACHE_DIR))
+            os.makedirs(CACHE_DIR)
 
     @staticmethod
     def _parse(doc):
@@ -219,15 +222,18 @@ def fetch(url, local_path, skip_cache=False):
 
     _download(url, local_path)
 
-    if not digest:
-        digest = hash_file(local_path)
-    cache_path = os.path.join(CACHE_DIR, digest)
-
-    # move to catch, record digest
-    print('Caching {} to {}'.format(local_path, cache_path))
-    urlretrieve('file://' + local_path, cache_path)
-    package = _url_to_package(url)
-    manifest.local[package] = digest
+    # move to cache, record digest
+    try:
+        if not digest:
+            digest = hash_file(local_path)
+        cache_path = os.path.join(CACHE_DIR, digest)
+        urlretrieve('file://' + local_path, cache_path)
+        print('Cached {} to {}'.format(local_path, cache_path))
+        package = _url_to_package(url)
+        manifest.local[package] = digest
+    except Exception as ex:
+        print('WARNING: failed to cache {} to {}: {}'.format(
+            local_path, cache_path, ex))
 
 
 def fetch_and_extract(url, archive_path, extract_path):
