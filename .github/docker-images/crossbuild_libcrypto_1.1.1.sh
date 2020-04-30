@@ -46,30 +46,32 @@ if [ $os == 'android' ]; then
     (cat <<- "BOOT"
 #!/usr/bin/env bash
 set -ex
-export CC=
-export CXX=
-export CPP=
-export AR=
+#export CC=
+#export CXX=
+#export CPP=
+#export AR=
 BOOT
     )> .dockcross
     # now with interpolation
     (cat <<- BOOT
 export ANDROID_NDK_HOME=/work/android-ndk-r${android_ndk_version}
 export PACKAGE_NAME=libcrypto-${libcrypto_version}-${os}-${arch}.tar.gz
-curl -sSL -o setenv-android.sh https://wiki.openssl.org/images/7/70/Setenv-android.sh
-sed -E --in-place "s/^_ANDROID_NDK=.*$/_ANDROID_NDK=android-ndk-r${android_ndk_version}/" setenv-android.sh
-sed -E --in-place "s/^_ANDROID_API=.*$/_ANDROID_API=android-${android_api_version}/" setenv-android.sh
-sed -E --in-place "s/^(_ANDROID_EABI=.+)-4.8/\1-4.9/" setenv-android.sh
-sed -E --in-place 's/\r//g' setenv-android.sh
-chmod a+x setenv-android.sh
-. setenv-android.sh
+export LIBCRYPTO_PLATFORM=android-${arch}
+# curl -sSL -o setenv-android.sh https://wiki.openssl.org/images/7/70/Setenv-android.sh
+# sed -E --in-place "s/^_ANDROID_NDK=.*$/_ANDROID_NDK=android-ndk-r${android_ndk_version}/" setenv-android.sh
+# sed -E --in-place "s/^_ANDROID_API=.*$/_ANDROID_API=android-${android_api_version}/" setenv-android.sh
+# sed -E --in-place "s/^(_ANDROID_EABI=.+)-4.8/\1-4.9/" setenv-android.sh
+# sed -E --in-place 's/\r//g' setenv-android.sh
+# chmod a+x setenv-android.sh
+# . setenv-android.sh
+# export CROSS_COMPILE=
 env
-./config -fPIC no-md2 no-rc5 no-rfc3779 no-sctp no-ssl-trace no-zlib no-hw no-mdc2 no-seed no-idea no-camellia no-bf no-dsa no-ssl3 no-capieng no-unit-test no-tests -DSSL_FORBID_ENULL -DOPENSSL_NO_DTLS1 -DOPENSSL_NO_HEARTBEATS --prefix=/work/opt/openssl --openssldir=/work/opt/openssl
 BOOT
     )>> .dockcross
     # No interpolation, eval in dockcross shell
     (cat <<- "BOOT"
 export PATH=$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH
+./Configure ${LIBCRYPTO_PLATFORM} -fPIC no-md2 no-rc5 no-rfc3779 no-sctp no-ssl-trace no-zlib no-hw no-mdc2 no-seed no-idea no-camellia no-bf no-dsa no-ssl3 no-capieng no-unit-test no-tests -DSSL_FORBID_ENULL -DOPENSSL_NO_DTLS1 -DOPENSSL_NO_HEARTBEATS --prefix=/work/opt/openssl --openssldir=/work/opt/openssl
 make -j
 make install_sw
 rm -rf /work/opt/openssl/man || true
