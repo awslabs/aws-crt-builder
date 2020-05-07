@@ -84,9 +84,9 @@ def current_host():
                 return 'al2'
             if _file_contains('/etc/system-release', 'Bare Metal') or _file_contains('/etc/system-release', 'Amazon Linux AMI'):
                 return 'al2012'
-            if _file_contains('/etc/redhat-release', 'CentOS release 5.11 (Final)'):
+            if _file_contains('/etc/redhat-release', 'CentOS release 5.'):
                 return 'manylinux'
-            if _file_contains('/etc/redhat-release', 'CentOS Linux release 7.7.1908'):
+            if _file_contains('/etc/redhat-release', 'CentOS Linux release 7.'):
                 return 'manylinux'
             if _file_contains('/etc/lsb-release', 'Ubuntu'):
                 return 'ubuntu'
