@@ -56,11 +56,11 @@ def normalize_target(target):
 
 def _file_contains(path, search):
     if os.path.isfile(path):
-        #print('Probing {}'.format(path))
+        print('Probing {}'.format(path))
         with open(path) as f:
             line = f.readline()
             while line:
-                #print('  {}'.format(line), end='')
+                print('  {}'.format(line), end='')
                 if search in line:
                     return True
                 line = f.readline()
@@ -84,9 +84,9 @@ def current_host():
                 return 'al2'
             if _file_contains('/etc/system-release', 'Bare Metal') or _file_contains('/etc/system-release', 'Amazon Linux AMI'):
                 return 'al2012'
-            if _file_contains('/etc/redhat-release', 'CentOS release 5.11 (Final)'):
+            if _file_contains('/etc/redhat-release', 'CentOS release 5.'):
                 return 'manylinux'
-            if _file_contains('/etc/redhat-release', 'CentOS Linux release 7.7.1908'):
+            if _file_contains('/etc/redhat-release', 'CentOS Linux release 7.'):
                 return 'manylinux'
             if _file_contains('/etc/lsb-release', 'Ubuntu'):
                 return 'ubuntu'
