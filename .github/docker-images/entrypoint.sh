@@ -18,7 +18,7 @@ elif [[ $version != 'channels/'* ]]; then
 fi
 
 # download the version of builder requested
-curl -sSL -o /usr/local/bin/builder.pyz --retry 3 --retry-delay 3 --retry-max-time 30 https://d19elf31gohf1l.cloudfront.net/${version}/builder.pyz?date=`date +%s`
+curl -sSL -o /usr/local/bin/builder.pyz --retry 3 https://d19elf31gohf1l.cloudfront.net/${version}/builder.pyz?date=`date +%s`
 builder=/usr/local/bin/builder.pyz
 chmod a+x $builder
 
