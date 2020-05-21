@@ -282,6 +282,17 @@ def _make_import_refs(refs):
         i, _not_resolved) for i in refs]
 
 
+def _transform_steps(steps, env, project):
+    xformed_steps = []
+    for step in steps:
+        if step == 'build' and env.toolchain:
+            xformed_steps.append(CMakeBuild(project))
+        elif step == 'test' and env.toolchain:
+            xformed_steps.append(CTestRun(project))
+        else:
+            xformed_steps.append(step)
+    return xformed_steps
+
 class Import(object):
     def __init__(self, **kwargs):
         self.name = kwargs.get(
@@ -407,7 +418,7 @@ class Project(object):
         if not steps:
             steps = ['build']
         if isinstance(steps, list):
-            steps = [s if s != 'build' else CMakeBuild(self) for s in steps]
+            steps = _transform_steps(steps, env, self)
             build_project = steps
 
         if len(build_project) == 0:
@@ -442,7 +453,7 @@ class Project(object):
         if steps is None:
             steps = ['test']
         if isinstance(steps, list):
-            steps = [s if s != 'test' else CTestRun(self) for s in steps]
+            steps = _transform_steps(steps, env, self)
             test_project = steps
         if len(steps) == 0:
             return None
