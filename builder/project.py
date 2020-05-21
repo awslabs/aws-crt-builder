@@ -287,7 +287,7 @@ def _transform_steps(steps, env, project):
     for step in steps:
         if step == 'build' and getattr(env, 'toolchain', None) != None:
             xformed_steps.append(CMakeBuild(project))
-        elif step == 'test' and env.toolchain:
+        elif step == 'test' and getattr(env, 'toolchain', None) != None:
             xformed_steps.append(CTestRun(project))
         else:
             xformed_steps.append(step)
