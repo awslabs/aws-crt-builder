@@ -257,6 +257,18 @@ TARGETS = {
                     '-DCMAKE_CXX_FLAGS=-m32',
                 ],
             },
+            'armv6': {
+                'run_tests': False
+            },
+            'armv7': {
+                'run_tests': False
+            },
+            'armv8': {
+                'run_tests': False
+            },
+            'mips': {
+                'run_tests': False
+            },
         },
 
         'cmake_args': [

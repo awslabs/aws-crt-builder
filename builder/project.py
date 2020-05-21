@@ -293,7 +293,8 @@ def _transform_steps(steps, env, project):
             if getattr(env, 'toolchain', None) != None:
                 xformed_steps.append(CMakeBuild(project))
         elif step == 'test':
-            if getattr(env, 'toolchain', None) != None:
+            toolchain = getattr(env, 'toolchain', None)
+            if toolchain and not toolchain.cross_compile:
                 xformed_steps.append(CTestRun(project))
         else:
             xformed_steps.append(step)
@@ -492,6 +493,10 @@ class Project(object):
             return False
         # Are test steps available?
         if not self.config.get('test_steps', []):
+            return False
+        # Is this a cross-compile?
+        toolchain = getattr(env, 'toolchain', None)
+        if toolchain and toolchain.cross_compile:
             return False
         return True
 
