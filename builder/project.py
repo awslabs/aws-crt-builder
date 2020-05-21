@@ -167,13 +167,17 @@ def produce_config(build_spec, project, overrides=None, **additional_variables):
 
         for config in configs:
             override_key = '!' + key
-            if override_key in config:
-                # Handle overrides
+            apply_key = '+' + key
+            if override_key in config:  # Force Override
                 new_version[key] = config[override_key]
-
+            elif apply_key in config:  # Force Apply
+                _apply_value(new_version, key, config[apply_key])
             elif key in config:
-                # By default, merge all values (except strings)
-                _apply_value(new_version, key, config[key])
+                # Project configs override defaults unless force applied
+                if key in project_config and config[key] == project_config[key]:
+                    new_version[key] = config[key]
+                else:  # By default, merge all values (except strings)
+                    _apply_value(new_version, key, config[key])
 
     new_version = _coalesce_pkg_options(build_spec, new_version)
 
