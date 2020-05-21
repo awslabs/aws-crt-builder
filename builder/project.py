@@ -285,10 +285,12 @@ def _make_import_refs(refs):
 def _transform_steps(steps, env, project):
     xformed_steps = []
     for step in steps:
-        if step == 'build' and getattr(env, 'toolchain', None) != None:
-            xformed_steps.append(CMakeBuild(project))
-        elif step == 'test' and getattr(env, 'toolchain', None) != None:
-            xformed_steps.append(CTestRun(project))
+        if step == 'build':
+            if getattr(env, 'toolchain', None) != None:
+                xformed_steps.append(CMakeBuild(project))
+        elif step == 'test':
+            if getattr(env, 'toolchain', None) != None:
+                xformed_steps.append(CTestRun(project))
         else:
             xformed_steps.append(step)
     return xformed_steps
