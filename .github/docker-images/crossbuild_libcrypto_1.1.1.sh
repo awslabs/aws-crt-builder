@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # This builds libcrypto in the specified container, and uploads the result to S3 for use in building future containers
-# Usage: $0 (linux|android) (x86|x64|arm64|armv6|armv7) (linux-x86|linux-x86_64|linux-aarch64|linux-armv4|android-x86|android-x86_64|android-armeabi|android-arm64)
+# Usage: $0 (linux|android) (x86|x64|arm64|armv6|armv7)
 set -ex
 
 # AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY must be in env vars to pass to container
@@ -26,6 +26,8 @@ arch=$2
 
 openssl_target=${os}-${arch}
 dockcross_target=${os}-${arch}
+
+# openssl targets: (linux-x86|linux-x86_64|linux-aarch64|linux-armv4|android-x86|android-x86_64|android-armeabi|android-arm64)
 
 case $os-$arch in
     manylinux1-x64)
