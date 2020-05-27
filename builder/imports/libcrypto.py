@@ -53,12 +53,14 @@ class LibCrypto(Import):
             print('Using custom libcrypto: {}'.format(args.libcrypto))
             self.prefix = args.libcrypto
             self.installed = True
+            env.variables['libcrypto_path'] = self.prefix
             return
 
         # AL2012 has a pre-built libcrypto, since its linker is from another world
         if current_host() == 'al2012':
             self.prefix = '/opt/openssl'
             self.installed = True
+            env.variables['libcrypto_path'] = self.prefix
             print('Using image libcrypto: {}'.format(self.prefix))
             return
 
