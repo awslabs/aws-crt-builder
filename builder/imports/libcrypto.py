@@ -18,6 +18,7 @@ from project import Import
 import argparse
 import os
 from pathlib import Path
+from shutil import copytree
 import time
 
 
@@ -45,34 +46,34 @@ class LibCrypto(Import):
 
         sh = env.shell
 
+        install_dir = os.path.join(env.deps_dir, self.name)
+
+        def _use_libcrypto(path):
+            if not self.installed:
+                os.symlink(path, install_dir, True)
+                self.installed = True
+            self.prefix = str(Path(install_dir).relative_to(env.source_dir))
+            env.variables['libcrypto_path'] = self.prefix
+
         parser = argparse.ArgumentParser()
         parser.add_argument('--libcrypto', default=None)
         args = parser.parse_known_args(env.args.args)[0]
 
         if args.libcrypto:
             print('Using custom libcrypto: {}'.format(args.libcrypto))
-            self.prefix = args.libcrypto
-            self.installed = True
-            env.variables['libcrypto_path'] = self.prefix
-            return
+            return _use_libcrypto(args.libcrypto)
 
         # AL2012 has a pre-built libcrypto, since its linker is from another world
         if current_host() == 'al2012':
-            self.prefix = '/opt/openssl'
-            self.installed = True
-            env.variables['libcrypto_path'] = self.prefix
-            print('Using image libcrypto: {}'.format(self.prefix))
-            return
+            print('Using image libcrypto: /opt/openssl')
+            return _use_libcrypto('/opt/openssl')
 
-        install_dir = os.path.join(env.deps_dir, self.name)
         # If path to libcrypto is going to be relative, it has to be relative to the
         # source directory
         self.prefix = str(Path(install_dir).relative_to(env.source_dir))
         env.variables['libcrypto_path'] = self.prefix
         print('Installing pre-built libcrypto binaries for {}-{} to {}'.format(
             env.spec.target, env.spec.arch, install_dir))
-
-        sh.mkdir(install_dir)
 
         lib_version = '1.1.1'
         lib_os = env.spec.target
