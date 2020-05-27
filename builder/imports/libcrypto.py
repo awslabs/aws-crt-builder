@@ -55,6 +55,13 @@ class LibCrypto(Import):
             self.installed = True
             return
 
+        # AL2012 has a pre-built libcrypto, since its linker is from another world
+        if current_host() == 'al2012':
+            self.prefix = '/opt/openssl'
+            self.installed = True
+            print('Using image libcrypto: {}'.format(self.prefix))
+            return
+
         install_dir = os.path.join(env.deps_dir, self.name)
         # If path to libcrypto is going to be relative, it has to be relative to the
         # source directory
