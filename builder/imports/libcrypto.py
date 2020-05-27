@@ -52,6 +52,8 @@ class LibCrypto(Import):
             if not self.installed:
                 os.symlink(path, install_dir, True)
                 self.installed = True
+            # If path to libcrypto is going to be relative, it has to be relative to the
+            # source directory
             self.prefix = str(Path(install_dir).relative_to(env.source_dir))
             env.variables['libcrypto_path'] = self.prefix
 
@@ -68,10 +70,6 @@ class LibCrypto(Import):
             print('Using image libcrypto: /opt/openssl')
             return _use_libcrypto('/opt/openssl')
 
-        # If path to libcrypto is going to be relative, it has to be relative to the
-        # source directory
-        self.prefix = str(Path(install_dir).relative_to(env.source_dir))
-        env.variables['libcrypto_path'] = self.prefix
         print('Installing pre-built libcrypto binaries for {}-{} to {}'.format(
             env.spec.target, env.spec.arch, install_dir))
 
@@ -88,6 +86,7 @@ class LibCrypto(Import):
         print('Extracted {} to {}'.format(filename, install_dir))
 
         self.installed = True
+        return _use_libcrypto(install_dir)
 
     def cmake_args(self, env):
         assert self.installed
