@@ -167,13 +167,17 @@ def produce_config(build_spec, project, overrides=None, **additional_variables):
 
         for config in configs:
             override_key = '!' + key
-            if override_key in config:
-                # Handle overrides
+            apply_key = '+' + key
+            if override_key in config:  # Force Override
                 new_version[key] = config[override_key]
-
+            elif apply_key in config:  # Force Apply
+                _apply_value(new_version, key, config[apply_key])
             elif key in config:
-                # By default, merge all values (except strings)
-                _apply_value(new_version, key, config[key])
+                # Project configs override defaults unless force applied
+                if key in project_config and config[key] == project_config[key]:
+                    new_version[key] = config[key]
+                else:  # By default, merge all values (except strings)
+                    _apply_value(new_version, key, config[key])
 
     new_version = _coalesce_pkg_options(build_spec, new_version)
 
@@ -280,6 +284,21 @@ def _make_project_refs(refs):
 def _make_import_refs(refs):
     return [i if isnamedtuple(i) else namedtuple('ImportReference', ['name', 'resolved'])(
         i, _not_resolved) for i in refs]
+
+
+def _transform_steps(steps, env, project):
+    xformed_steps = []
+    for step in steps:
+        if step == 'build':
+            if getattr(env, 'toolchain', None) != None:
+                xformed_steps.append(CMakeBuild(project))
+        elif step == 'test':
+            toolchain = getattr(env, 'toolchain', None)
+            if toolchain and not toolchain.cross_compile:
+                xformed_steps.append(CTestRun(project))
+        else:
+            xformed_steps.append(step)
+    return xformed_steps
 
 
 class Import(object):
@@ -407,7 +426,7 @@ class Project(object):
         if not steps:
             steps = ['build']
         if isinstance(steps, list):
-            steps = [s if s != 'build' else CMakeBuild(self) for s in steps]
+            steps = _transform_steps(steps, env, self)
             build_project = steps
 
         if len(build_project) == 0:
@@ -442,7 +461,7 @@ class Project(object):
         if steps is None:
             steps = ['test']
         if isinstance(steps, list):
-            steps = [s if s != 'test' else CTestRun(self) for s in steps]
+            steps = _transform_steps(steps, env, self)
             test_project = steps
         if len(steps) == 0:
             return None
@@ -474,6 +493,10 @@ class Project(object):
             return False
         # Are test steps available?
         if not self.config.get('test_steps', []):
+            return False
+        # Is this a cross-compile?
+        toolchain = getattr(env, 'toolchain', None)
+        if toolchain and toolchain.cross_compile:
             return False
         return True
 

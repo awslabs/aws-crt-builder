@@ -18,6 +18,7 @@ from project import Import
 import argparse
 import os
 from pathlib import Path
+from shutil import copytree
 import time
 
 
@@ -45,25 +46,32 @@ class LibCrypto(Import):
 
         sh = env.shell
 
+        install_dir = os.path.join(env.deps_dir, self.name)
+
+        def _use_libcrypto(path):
+            if not self.installed:
+                os.symlink(path, install_dir, True)
+                self.installed = True
+            # If path to libcrypto is going to be relative, it has to be relative to the
+            # source directory
+            self.prefix = str(Path(install_dir).relative_to(env.source_dir))
+            env.variables['libcrypto_path'] = self.prefix
+
         parser = argparse.ArgumentParser()
         parser.add_argument('--libcrypto', default=None)
         args = parser.parse_known_args(env.args.args)[0]
 
         if args.libcrypto:
             print('Using custom libcrypto: {}'.format(args.libcrypto))
-            self.prefix = args.libcrypto
-            self.installed = True
-            return
+            return _use_libcrypto(args.libcrypto)
 
-        install_dir = os.path.join(env.deps_dir, self.name)
-        # If path to libcrypto is going to be relative, it has to be relative to the
-        # source directory
-        self.prefix = str(Path(install_dir).relative_to(env.source_dir))
-        env.variables['libcrypto_path'] = self.prefix
+        # AL2012 has a pre-built libcrypto, since its linker is from another world
+        if current_host() == 'al2012':
+            print('Using image libcrypto: /opt/openssl')
+            return _use_libcrypto('/opt/openssl')
+
         print('Installing pre-built libcrypto binaries for {}-{} to {}'.format(
             env.spec.target, env.spec.arch, install_dir))
-
-        sh.mkdir(install_dir)
 
         lib_version = '1.1.1'
         lib_os = env.spec.target
@@ -78,6 +86,7 @@ class LibCrypto(Import):
         print('Extracted {} to {}'.format(filename, install_dir))
 
         self.installed = True
+        return _use_libcrypto(install_dir)
 
     def cmake_args(self, env):
         assert self.installed

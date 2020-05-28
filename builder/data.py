@@ -47,10 +47,10 @@ KEYS = {
     'run_tests': True,  # whether or not to run tests
     'build': None,  # deprecated, use build_steps
     # steps to run instead of the default cmake compile
-    'build_steps': None,
+    'build_steps': ['build'],
     'test': None,  # deprecated, use test_steps
     'test_env': {},
-    'test_steps': None,  # steps to run instead of the default ctest
+    'test_steps': ['test'],  # steps to run instead of the default ctest
 
     'setup_steps': [],  # Commands to run at env setup time
     'pkg_tool': None,  # apt, brew, yum, apk, etc
@@ -256,6 +256,18 @@ TARGETS = {
                     '-DCMAKE_C_FLAGS=-m32',
                     '-DCMAKE_CXX_FLAGS=-m32',
                 ],
+            },
+            'armv6': {
+                'run_tests': False
+            },
+            'armv7': {
+                'run_tests': False
+            },
+            'armv8': {
+                'run_tests': False
+            },
+            'mips': {
+                'run_tests': False
             },
         },
 
