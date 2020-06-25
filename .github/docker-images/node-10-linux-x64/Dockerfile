@@ -1,31 +1,43 @@
-FROM node:10
-
-ENV DEBIAN_FRONTEND=noninteractive
+FROM centos:7
 
 ###############################################################################
 # Install prereqs
 ###############################################################################
-RUN apt-get update -qq \
-    && apt-get -y install \
+RUN yum -y update \
+    && yum -y install \
+    tar \
+    git \
+    curl \
     sudo \
     # Python
     python3 \
-    python3-dev \
+    python3-devel \
     python3-pip \
-    build-essential \
+    make \
     cmake \
-    # For PPAs
-    software-properties-common \
-    apt-transport-https \
-    ca-certificates \
-    && apt-get clean
+    gcc \
+    gcc-c++ \
+    && yum clean all \
+    && rm -rf /var/cache/yum \
+    && cmake --version \
+    && ctest --version
 
 ###############################################################################
 # Python/AWS CLI
 ###############################################################################
-RUN python3 -m pip install --upgrade pip setuptools \
+RUN python3 -m pip install --upgrade pip setuptools virtualenv \
     && python3 -m pip install --upgrade awscli \
     && aws --version
+
+###############################################################################
+# Install pre-built OpenSSL
+###############################################################################
+WORKDIR /tmp
+RUN curl -sSL https://d19elf31gohf1l.cloudfront.net/_binaries/libcrypto/libcrypto-1.1.1-linux-x64.tar.gz -o libcrypto.tar.gz \
+    && mkdir /opt/openssl \
+    && tar xzf libcrypto.tar.gz -C /opt/openssl \
+    && LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/openssl/lib /opt/openssl/bin/openssl version \
+    && rm -f /tmp/libcrypto.tar.gz
 
 ###############################################################################
 # Install entrypoint
