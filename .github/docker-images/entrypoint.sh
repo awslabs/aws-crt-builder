@@ -27,5 +27,12 @@ if [ -x /opt/python/cp37-cp37m/bin/python ]; then
     ln -s /opt/python/cp37-cp37m/bin/python /usr/local/bin/python3
 fi
 
-cd $GITHUB_WORKSPACE
+# Figure out where to work based on environment, default to .
+if [ -d "$GITHUB_WORKSPACE" ]; then
+    cd $GITHUB_WORKSPACE
+elif [ -d "$CODEBUILD_SRC_DIR" ]; then
+    cd $CODEBUILD_SRC_DIR
+fi
+
+# Launch the builder with whatever args were passed to this script
 $builder ${args[@]}
