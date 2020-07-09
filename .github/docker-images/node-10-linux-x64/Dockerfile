@@ -14,13 +14,10 @@ RUN yum -y update \
     python3-devel \
     python3-pip \
     make \
-    cmake \
     gcc \
     gcc-c++ \
     && yum clean all \
-    && rm -rf /var/cache/yum \
-    && cmake --version \
-    && ctest --version
+    && rm -rf /var/cache/yum
 
 ###############################################################################
 # Python/AWS CLI
@@ -38,6 +35,16 @@ RUN curl -sSL https://d19elf31gohf1l.cloudfront.net/_binaries/libcrypto/libcrypt
     && tar xzf libcrypto.tar.gz -C /opt/openssl \
     && LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/openssl/lib /opt/openssl/bin/openssl version \
     && rm -f /tmp/libcrypto.tar.gz
+
+###############################################################################
+# Install pre-built CMake
+###############################################################################
+WORKDIR /tmp
+RUN curl -sSL https://d19elf31gohf1l.cloudfront.net/_binaries/cmake/cmake-3.13.5-node-10-linux-x64.tar.gz -o cmake.tar.gz \
+    && tar xvzf cmake.tar.gz -C /usr/local \
+    && cmake --version \
+    && ctest --version \
+    && rm -f /tmp/cmake.tar.gz
 
 ###############################################################################
 # Install entrypoint

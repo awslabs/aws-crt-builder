@@ -121,16 +121,17 @@ jobs:
       run: |
         $(aws --region us-east-1 ecr get-login --no-include-email)
         echo "${{ secrets.GITHUB_TOKEN }}" | docker login docker.pkg.github.com -u awslabs --password-stdin
-    
+
     - name: Tag/push release images as latest
       run: |
         docker tag docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:$IMAGE_TAG ${{ secrets.AWS_ECR_REPO }}/aws-crt/${{ matrix.variant }}:latest
         docker tag docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:$IMAGE_TAG docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:latest
         docker push docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:$IMAGE_TAG
         docker push docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:latest
-        docker push ${{ secrets.AWS_ECR_REPO }}/aws-crt/${{ matrix.variant }}:latest        
+        docker push ${{ secrets.AWS_ECR_REPO }}/aws-crt/${{ matrix.variant }}:latest
 
     - name: Export aws-crt-${{ matrix.variant }} image to S3/releases/${{ env.IMAGE_TAG }}
       run: |
         docker save docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:${{ env.IMAGE_TAG }} | gzip > /tmp/aws-crt-${{ matrix.variant }}-${{ env.IMAGE_TAG }}.tar.gz
         aws s3 cp --no-progress /tmp/aws-crt-${{ matrix.variant }}-${{ env.IMAGE_TAG }}.tar.gz s3://${{env.AWS_S3_BUCKET}}/releases/${{ env.IMAGE_TAG }}/aws-crt-${{ matrix.variant }}.tar.gz
+        aws s3 cp --no-progress s3://${{env.AWS_S3_BUCKET}}/releases/${{ env.IMAGE_TAG }}/aws-crt-${{ matrix.variant }}.tar.gz s3://${{env.AWS_S3_BUCKET}}/LATEST/aws-crt-${{ matrix.variant }}.tar.gz
