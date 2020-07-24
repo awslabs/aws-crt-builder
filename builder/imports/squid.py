@@ -37,7 +37,7 @@ class Squid(Import):
 
         sh = env.shell
         squid_conf_file_path = self._find('squid.conf', '/etc')
-        sh.exec('squid3', '-YC', '-f', squid_conf_file_path, check=True)
+        sh.exec('sudo', 'squid3', '-YC', '-f', squid_conf_file_path, check=True)
         sh.exec('sudo', 'service', 'squid', 'restart', check=True)
 
         print('Squid started')
