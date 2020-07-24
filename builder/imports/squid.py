@@ -4,6 +4,7 @@
 from project import Import
 from actions.install import InstallPackages
 from actions.script import Script
+from host import current_os
 import os
 
 
@@ -37,8 +38,15 @@ class Squid(Import):
 
         sh = env.shell
         squid_conf_file_path = self._find('squid.conf', '/etc')
-        sh.exec('sudo', 'squid3', '-YC', '-f', squid_conf_file_path, check=True)
-        sh.exec('sudo', 'service', 'squid', 'restart', check=True)
+
+        start_squid = ['squid3', '-YC', '-f', squid_conf_file_path]
+        restart_squid = ['service', 'squid', 'restart']
+        if env.config.get('sudo', current_os() == 'linux'):
+            start_squid = ['sudo'] + start_squid
+            restart_squid = ['sudo'] + restart_squid
+
+        sh.exec(start_squid, check=True)
+        sh.exec(restart_squid, check=True)
 
         print('Squid started')
 
