@@ -6,6 +6,7 @@ from actions.install import InstallPackages
 from actions.script import Script
 import os
 
+
 class Squid(Import):
     def __init__(self, **kwargs):
         super().__init__(
@@ -42,4 +43,3 @@ class Squid(Import):
         print('Squid started')
 
         self.installed = True
-
