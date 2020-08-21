@@ -70,26 +70,28 @@ def print_release_notes(env):
         print('No changes since last release', package_latest_tag['str'])
         sys.exit(0)
 
-    submodules = []
-    submodule_names = sorted(os.listdir(submodules_root_path))
-    for submodule_name in submodule_names:
-        submodule = {'name': submodule_name,
-                     'path': os.path.join(submodules_root_path, submodule_name)}
-        if submodule_name == 's2n' or not os.path.isdir(submodule['path']):
-            continue
-        submodules.append(submodule)
-        sh.cd(submodule['path'], quiet=True)
-        sh.exec('git', 'fetch', quiet=True)
-        submodule['tags'] = get_all_tags()
-        submodule['current_commit'] = get_current_commit()
-        submodule['current_tag'] = get_tag_for_commit(
-            submodule['tags'], submodule['current_commit'])
-        newest_tag = submodule['tags'][0]
-        if submodule['current_tag'] != newest_tag:
-            warn('{} not at newest release: {} < {}'.format(
-                submodule['current_tag']['str'], newest_tag['str']))
+    submodules_root_path = os.path.join(crt_path, 'aws-common-runtime')
+    if os.path.exists(submodules_root_path):
+        submodules = []
+        submodule_names = sorted(os.listdir(submodules_root_path))
+        for submodule_name in submodule_names:
+            submodule = {'name': submodule_name,
+                         'path': os.path.join(submodules_root_path, submodule_name)}
+            if submodule_name == 's2n' or not os.path.isdir(submodule['path']):
+                continue
+            submodules.append(submodule)
+            sh.cd(submodule['path'], quiet=True)
+            sh.exec('git', 'fetch', quiet=True)
+            submodule['tags'] = get_all_tags()
+            submodule['current_commit'] = get_current_commit()
+            submodule['current_tag'] = get_tag_for_commit(
+                submodule['tags'], submodule['current_commit'])
+            newest_tag = submodule['tags'][0]
+            if submodule['current_tag'] != newest_tag:
+                warn('{} not at newest release: {} < {}'.format(
+                    submodule['current_tag']['str'], newest_tag['str']))
 
-    print('Syncing to previous CRT release {}...'.format(
+    print('Syncing to previous release {}...'.format(
         package_latest_tag['str']))
     sh.cd(package_path, quiet=True)
     sh.exec('git', 'checkout', package_latest_tag['str'], quiet=True)
