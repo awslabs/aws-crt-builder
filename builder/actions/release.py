@@ -70,7 +70,7 @@ def print_release_notes(env):
         print('No changes since last release', package_latest_tag['str'])
         sys.exit(0)
 
-    submodules_root_path = os.path.join(crt_path, 'aws-common-runtime')
+    submodules_root_path = os.path.join(package_path, 'aws-common-runtime')
     if os.path.exists(submodules_root_path):
         submodules = []
         submodule_names = sorted(os.listdir(submodules_root_path))
