@@ -53,11 +53,7 @@ def print_release_notes(env):
                         action='store_true', help="ignore warnings")
     args = parser.parse_known_args(env.args.args)[0]
 
-    crt_path = sh.cwd()
-    submodules_root_path = os.path.join(crt_path, 'aws-common-runtime')
-    if not os.path.exists(submodules_root_path):
-        print('Must be run from an "aws-crt-*" dir')
-        sys.exit(1)
+    package_path = sh.cwd()
 
     print('Syncing to latest master...')
     sh.exec('git', 'checkout', 'master', quiet=True)
@@ -65,13 +61,13 @@ def print_release_notes(env):
     sh.exec('git', 'submodule', 'update', '--init', quiet=True)
 
     print('Gathering info...')
-    crt_tags = get_all_tags()
-    crt_latest_tag = crt_tags[0]
+    package_tags = get_all_tags()
+    package_latest_tag = package_tags[0]
 
-    crt_changes = sh.exec(
-        'git', 'log', crt_latest_tag['commit'] + '..', quiet=True).output
-    if not crt_changes:
-        print('No changes since last release', crt_latest_tag['str'])
+    package_changes = sh.exec(
+        'git', 'log', package_latest_tag['commit'] + '..', quiet=True).output
+    if not package_changes:
+        print('No changes since last release', package_latest_tag['str'])
         sys.exit(0)
 
     submodules = []
@@ -94,9 +90,9 @@ def print_release_notes(env):
                 submodule['current_tag']['str'], newest_tag['str']))
 
     print('Syncing to previous CRT release {}...'.format(
-        crt_latest_tag['str']))
-    sh.cd(crt_path, quiet=True)
-    sh.exec('git', 'checkout', crt_latest_tag['str'], quiet=True)
+        package_latest_tag['str']))
+    sh.cd(package_path, quiet=True)
+    sh.exec('git', 'checkout', package_latest_tag['str'], quiet=True)
     sh.exec('git', 'submodule', 'update', '--init', quiet=True)
 
     print('Gathering info...')
@@ -133,8 +129,8 @@ def print_release_notes(env):
             print(
                 'https://github.com/awslabs/{}/releases/tag/{}'.format(submodule['name'], tag['str']))
 
-    print('------ CRT changes ------')
-    print(crt_changes)
+    print('------ Package changes ------')
+    print(package_changes)
 
 
 class ReleaseNotes(Action):
