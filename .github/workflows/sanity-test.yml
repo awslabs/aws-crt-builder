@@ -211,7 +211,7 @@ jobs:
           path: .
 
       - name: Build ${{ matrix.project }}
-        run: python3 builder.pyz build --project ${{ matrix.project }}
+        run: python3 builder.pyz release-notes --project ${{ matrix.project }}
 
   # Make sure downstream projects that use the builder compile after any changes
   downstream:
