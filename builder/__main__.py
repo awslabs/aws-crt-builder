@@ -15,6 +15,7 @@ from actions.script import Script
 from actions.install import InstallPackages, InstallCompiler
 from actions.git import DownloadDependencies
 from actions.mirror import Mirror
+from actions.release import ReleaseNotes
 from env import Env
 from project import Project
 from scripts import Scripts
