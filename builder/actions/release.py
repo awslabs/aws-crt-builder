@@ -17,10 +17,11 @@ def print_release_notes(env):
         if args.ignore_warnings:
             print("[WARNING]", msg)
         else:
-            sys.exit(msg + "\nrun with --ignore-warnings to proceed anyway")
+            print(msg + "\nrun with --ignore-warnings to proceed anyway")
+            sys.exit(1)
 
     def get_all_tags():
-        git_output = sh.exec('git', 'show-ref', '--tags').output
+        git_output = sh.exec('git', 'show-ref', '--tags', quiet=True).output
         tags = []
         for line in git_output.splitlines():
             # line looks like: "e18f041a0c8d17189f2eae2a32f16e0a7a3f0f1c refs/tags/v0.5.18"
@@ -43,7 +44,7 @@ def print_release_notes(env):
                 return tag
 
     def get_current_commit():
-        git_output = sh.exec('git', 'rev-parse', 'HEAD').output
+        git_output = sh.exec('git', 'rev-parse', 'HEAD', quiet=True).output
         return git_output.splitlines()[0]
 
     parser = argparse.ArgumentParser(
@@ -55,7 +56,8 @@ def print_release_notes(env):
     crt_path = sh.cwd()
     submodules_root_path = os.path.join(crt_path, 'aws-common-runtime')
     if not os.path.exists(submodules_root_path):
-        sys.exit('Must be run from an "aws-crt-*" dir')
+        print('Must be run from an "aws-crt-*" dir')
+        sys.exit(1)
 
     print('Syncing to latest master...')
     sh.exec('git', 'checkout', 'master', quiet=True)
@@ -66,9 +68,11 @@ def print_release_notes(env):
     crt_tags = get_all_tags()
     crt_latest_tag = crt_tags[0]
 
-    crt_changes = sh.exec('git', 'log', crt_latest_tag['commit'] + '..').output
+    crt_changes = sh.exec(
+        'git', 'log', crt_latest_tag['commit'] + '..', quiet=True).output
     if not crt_changes:
-        sys.exit('No changes since last release', crt_latest_tag['str'])
+        print('No changes since last release', crt_latest_tag['str'])
+        sys.exit(1)
 
     submodules = []
     submodule_names = sorted(os.listdir(submodules_root_path))
@@ -78,7 +82,7 @@ def print_release_notes(env):
         if submodule_name == 's2n' or not os.path.isdir(submodule['path']):
             continue
         submodules.append(submodule)
-        sh.cd(submodule['path'])
+        sh.cd(submodule['path'], quiet=True)
         sh.exec('git', 'fetch', quiet=True)
         submodule['tags'] = get_all_tags()
         submodule['current_commit'] = get_current_commit()
@@ -91,13 +95,13 @@ def print_release_notes(env):
 
     print('Syncing to previous CRT release {}...'.format(
         crt_latest_tag['str']))
-    sh.cd(crt_path)
+    sh.cd(crt_path, quiet=True)
     sh.exec('git', 'checkout', crt_latest_tag['str'], quiet=True)
     sh.exec('git', 'submodule', 'update', '--init', quiet=True)
 
     print('Gathering info...')
     for submodule in submodules:
-        sh.cd(submodule['path'])
+        sh.cd(submodule['path'], quiet=True)
         submodule['prev_commit'] = get_current_commit()
         submodule['prev_tag'] = get_tag_for_commit(
             submodule['tags'], submodule['prev_commit'])
