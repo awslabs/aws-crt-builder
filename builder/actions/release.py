@@ -72,7 +72,7 @@ def print_release_notes(env):
         'git', 'log', crt_latest_tag['commit'] + '..', quiet=True).output
     if not crt_changes:
         print('No changes since last release', crt_latest_tag['str'])
-        sys.exit(1)
+        sys.exit(0)
 
     submodules = []
     submodule_names = sorted(os.listdir(submodules_root_path))
