@@ -33,31 +33,35 @@ class Shell(object):
         else:
             os.chdir(directory)
 
-    def cd(self, directory):
+    def cd(self, directory, **kwargs):
         """ # Helper to run chdir regardless of dry run status """
-        util.log_command("cd", directory)
+        if not kwargs.get('quiet', False):
+            util.log_command("cd", directory)
         self._cd(directory)
 
-    def pushd(self, directory):
+    def pushd(self, directory, **kwargs):
         """ Equivalent to bash/zsh pushd """
-        util.log_command("pushd", directory)
+        if not kwargs.get('quiet', False):
+            util.log_command("pushd", directory)
         self.dir_stack.append(self.cwd())
         self._cd(directory)
 
-    def popd(self):
+    def popd(self, **kwargs):
         """ Equivalent to bash/zsh popd """
         if len(self.dir_stack) > 0:
-            util.log_command("popd", self.dir_stack[-1])
+            if not kwargs.get('quiet', False):
+                util.log_command("popd", self.dir_stack[-1])
             self._cd(self.dir_stack[-1])
             self.dir_stack.pop()
 
-    def mkdir(self, directory):
+    def mkdir(self, directory, **kwargs):
         """ Equivalent to mkdir -p $dir """
-        util.log_command("mkdir", "-p", directory)
+        if not kwargs.get('quiet', False):
+            util.log_command("mkdir", "-p", directory)
         if not self.dryrun:
             os.makedirs(directory, exist_ok=True)
 
-    def mktemp(self):
+    def mktemp(self, **kwargs):
         """ Makes and returns the path to a temp directory """
         if self.dryrun:
             return os.path.expandvars("$TEMP/build")
@@ -71,9 +75,10 @@ class Shell(object):
         else:
             return os.getcwd()
 
-    def setenv(self, var, value):
+    def setenv(self, var, value, **kwargs):
         """ Set an environment variable """
-        util.log_command(["export", "{}={}".format(var, value)])
+        if not kwargs.get('quiet', False):
+            util.log_command(["export", "{}={}".format(var, value)])
         if not self.dryrun:
             os.environ[var] = value
 
@@ -81,14 +86,16 @@ class Shell(object):
         """ Get an environment variable """
         return os.environ[var]
 
-    def pushenv(self):
+    def pushenv(self, **kwargs):
         """ Store the current environment on a stack, for restoration later """
-        util.log_command(['pushenv'])
+        if not kwargs.get('quiet', False):
+            util.log_command(['pushenv'])
         self.env_stack.append(dict(os.environ))
 
-    def popenv(self):
+    def popenv(self, **kwargs):
         """ Restore the environment to the state on the top of the stack """
-        util.log_command(['popenv'])
+        if not kwargs.get('quiet', False):
+            util.log_command(['popenv'])
         env = self.env_stack.pop()
         # clear out values that won't be overwritten
         for name, value in dict(os.environ).items():
@@ -98,22 +105,23 @@ class Shell(object):
         for name, value in env.items():
             os.environ[name] = value
 
-    def rm(self, path):
+    def rm(self, path, **kwargs):
         """ Remove a file or directory """
-        util.log_command(['rm', '-rf', path])
+        if not kwargs.get('quiet', False):
+            util.log_command(['rm', '-rf', path])
         if not self.dryrun:
             try:
                 shutil.rmtree(path)
             except Exception as e:
                 print("Failed to delete dir {}: {}".format(path, e))
 
-    def where(self, exe, path=None, resolve_symlinks=True):
+    def where(self, exe, path=None, resolve_symlinks=True, **kwargs):
         """ Platform agnostic `where executable` command """
         return util.where(exe, path, resolve_symlinks)
 
     def exec(self, *command, **kwargs):
-        """ 
-        Executes a shell command, or just logs it for dry runs 
+        """
+        Executes a shell command, or just logs it for dry runs
         Arguments:
             check: If true, raise an exception when execution fails
             retries: (default 1) How many times to try the command, useful for network commands

@@ -190,6 +190,32 @@ jobs:
       - name: Build aws-c-common
         run: python3 builder.pyz build --project aws-c-common --compiler=${{ matrix.compiler }} run_tests=false
 
+  release_notes:
+    strategy:
+      fail-fast: false
+      matrix:
+        project:
+          - aws-crt-cpp
+          - aws-iot-device-sdk-cpp-v2
+          - aws-crt-java
+          - aws-iot-device-sdk-java-v2
+          - aws-crt-nodejs
+          - aws-iot-device-sdk-js-v2
+          - aws-crt-python
+          - aws-iot-device-sdk-python-v2
+
+    needs: package
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install builder
+        uses: actions/download-artifact@v1
+        with:
+          name: builder
+          path: .
+
+      - name: Build ${{ matrix.project }}
+        run: python3 builder.pyz release-notes --project ${{ matrix.project }}
+
   # Make sure downstream projects that use the builder compile after any changes
   downstream:
     strategy:
@@ -259,5 +285,6 @@ jobs:
     - sanity_test
     - cross_compile
     - compilers
+    - release_notes
     steps:
       - run: echo "All sanity tests passed"
