@@ -124,7 +124,7 @@ def print_release_notes(env):
                 submodule['current_tag']['str']))
 
         # Link to release notes
-        # We can just dump text because these are a github thing, not a git thing
+        # We can't just dump text because these are a github thing, not a git thing
         for tag in submodule['tags']:
             if tag == submodule['prev_tag']:
                 break

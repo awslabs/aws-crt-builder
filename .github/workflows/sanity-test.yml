@@ -201,6 +201,9 @@ jobs:
           - aws-iot-device-sdk-java-v2
           - aws-crt-nodejs
           - aws-iot-device-sdk-js-v2
+          - aws-crt-python
+          - aws-iot-device-sdk-python-v2
+
     needs: package
     runs-on: ubuntu-latest
     steps:
