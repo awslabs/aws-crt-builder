@@ -89,7 +89,9 @@ def print_release_notes(env):
             newest_tag = submodule['tags'][0]
             if submodule['current_tag'] != newest_tag:
                 warn('{} not at newest release: {} < {}'.format(
-                    submodule['current_tag']['str'], newest_tag['str']))
+                    submodule_name,
+                    submodule['current_tag']['str'],
+                    newest_tag['str']))
 
     print('Syncing to previous release {}...'.format(
         package_latest_tag['str']))
