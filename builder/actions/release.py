@@ -71,8 +71,8 @@ def print_release_notes(env):
         sys.exit(0)
 
     submodules_root_path = os.path.join(package_path, 'aws-common-runtime')
+    submodules = []
     if os.path.exists(submodules_root_path):
-        submodules = []
         submodule_names = sorted(os.listdir(submodules_root_path))
         for submodule_name in submodule_names:
             submodule = {'name': submodule_name,
@@ -89,7 +89,9 @@ def print_release_notes(env):
             newest_tag = submodule['tags'][0]
             if submodule['current_tag'] != newest_tag:
                 warn('{} not at newest release: {} < {}'.format(
-                    submodule['current_tag']['str'], newest_tag['str']))
+                    submodule_name,
+                    submodule['current_tag']['str'],
+                    newest_tag['str']))
 
     print('Syncing to previous release {}...'.format(
         package_latest_tag['str']))
@@ -108,7 +110,10 @@ def print_release_notes(env):
     sh.exec('git', 'checkout', 'master', quiet=True)
     sh.exec('git', 'submodule', 'update', '--init', quiet=True)
 
-    print('------ Submodule changes ------')
+    if submodules:
+        print('------ Submodule changes ------')
+    else:
+        print('No submodules found')
     for submodule in submodules:
         # Special warning about API breakages
         major_change = False
