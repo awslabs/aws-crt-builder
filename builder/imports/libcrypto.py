@@ -45,7 +45,7 @@ class LibCrypto(Import):
             # If path to libcrypto is going to be relative, it has to be relative to the
             # source directory
             self.prefix = str(Path(install_dir).relative_to(env.source_dir))
-            env.variables['libcrypto_path'] = self.prefix
+            env.variables['libcrypto_path'] = os.path.abspath(self.prefix)
 
         parser = argparse.ArgumentParser()
         parser.add_argument('--libcrypto', default=None)
