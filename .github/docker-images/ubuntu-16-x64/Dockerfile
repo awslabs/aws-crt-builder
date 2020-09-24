@@ -32,8 +32,8 @@ RUN python3 -m pip install --upgrade pip setuptools \
 # Install pre-built CMake
 ###############################################################################
 WORKDIR /tmp
-RUN curl -sSL https://d19elf31gohf1l.cloudfront.net/_binaries/cmake/cmake-3.13-manylinux2014-x86.tar.gz -o cmake.tar.gz \
-    && tar xvzf cmake.tar.gz -C /usr/ \
+RUN curl -sSL https://d19elf31gohf1l.cloudfront.net/_binaries/cmake/cmake-3.13-manylinux1-x64.tar.gz -o cmake.tar.gz \
+    && tar xvzf cmake.tar.gz -C /usr/local \
     && cmake --version \
     && rm -f /tmp/cmake.tar.gz
 
