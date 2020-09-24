@@ -345,6 +345,8 @@ COMPILERS = {
 
         'imports': ['llvm'],
 
+        'compiler_packages': ['libstdc++-9-dev'],
+
         'versions': {
             'default': {
                 '!cmake_args': [],
