@@ -43,6 +43,15 @@ RUN curl -sSL https://d19elf31gohf1l.cloudfront.net/_binaries/libcrypto/libcrypt
     && rm -f /tmp/libcrypto.tar.gz
 
 ###############################################################################
+# Install pre-built CMake
+###############################################################################
+WORKDIR /tmp
+RUN curl -sSL https://d19elf31gohf1l.cloudfront.net/_binaries/cmake/cmake-3.13-manylinux1-x64.tar.gz -o cmake.tar.gz \
+    && tar xvzf cmake.tar.gz -C /usr/local \
+    && cmake --version \
+    && rm -f /tmp/cmake.tar.gz
+
+###############################################################################
 # Install entrypoint
 ###############################################################################
 ADD entrypoint.sh /usr/local/bin/builder

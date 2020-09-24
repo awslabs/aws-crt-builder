@@ -15,7 +15,6 @@ RUN apt-get update -qq \
     python3-dev \
     python3-pip \
     build-essential \
-    cmake \
     # For PPAs
     software-properties-common \
     apt-transport-https \
@@ -28,6 +27,15 @@ RUN apt-get update -qq \
 RUN python3 -m pip install --upgrade pip setuptools \
     && python3 -m pip install --upgrade awscli \
     && aws --version
+
+###############################################################################
+# Install pre-built CMake
+###############################################################################
+WORKDIR /tmp
+RUN curl -sSL https://d19elf31gohf1l.cloudfront.net/_binaries/cmake/cmake-3.13-manylinux1-x64.tar.gz -o cmake.tar.gz \
+    && tar xvzf cmake.tar.gz -C /usr/local \
+    && cmake --version \
+    && rm -f /tmp/cmake.tar.gz
 
 ###############################################################################
 # Install entrypoint
