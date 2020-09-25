@@ -345,7 +345,7 @@ COMPILERS = {
 
         'imports': ['llvm'],
 
-        'compiler_packages': ['libstdc++-9-dev'],
+        'apt_compiler_packages': ['libstdc++-9-dev'],
 
         'versions': {
             'default': {
