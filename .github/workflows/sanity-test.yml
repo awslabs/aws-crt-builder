@@ -192,6 +192,7 @@ jobs:
 
   # Make sure linux compilers + stdlibs are installing properly
   std-compat:
+    needs: [package, sanity_test]
     runs-on: ubuntu-latest
     strategy:
       matrix:
