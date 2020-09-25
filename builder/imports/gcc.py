@@ -28,6 +28,12 @@ class GCC(Import):
 
         config = env.config
 
+        # Ensure additional compiler packages are installed
+        packages = UniqueList(config.get('compiler_packages', []))
+        packages = [p for p in packages if not p.startswith('gcc')]
+        Script([InstallPackages(packages)],
+               name='Install compiler prereqs').run(env)
+
         installed_path, installed_version = Toolchain.find_compiler(
             env.spec.compiler, env.spec.compiler_version)
         if installed_path:
@@ -36,6 +42,7 @@ class GCC(Import):
             self.installed = True
             return
 
+        # It's ok to attempt to install packages redundantly, they won't hurt anything
         packages = UniqueList(config.get('compiler_packages', []))
 
         Script([InstallPackages(packages)], name='install gcc').run(env)

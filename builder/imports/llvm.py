@@ -104,6 +104,10 @@ class LLVM(Import):
         sh = env.shell
         config = env.config
 
+        # Ensure compiler packages are installed
+        packages = UniqueList(config.get('compiler_packages', []))
+        Script([InstallPackages(packages)], name='Install compiler prereqs').run(env)
+
         installed_path, installed_version = Toolchain.find_compiler(
             env.spec.compiler, env.spec.compiler_version)
         if installed_path:
@@ -126,12 +130,6 @@ class LLVM(Import):
         # Make script executable
         os.chmod(script_path, stat.S_IRUSR | stat.S_IRGRP |
                  stat.S_IROTH | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
-
-        def _install_llvm():
-            sh.exec(*sudo, [script_path, version], check=True)
-
-        packages = UniqueList(config.get('compiler_packages', []))
-
-        Script([_install_llvm, InstallPackages(packages)])
+        sh.exec(*sudo, [script_path, version], check=True)
 
         self.installed = True
