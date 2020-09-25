@@ -26,7 +26,6 @@ class GCC(Import):
         if self.installed:
             return
 
-        sh = env.shell
         config = env.config
 
         installed_path, installed_version = Toolchain.find_compiler(
@@ -38,8 +37,6 @@ class GCC(Import):
             return
 
         packages = UniqueList(config.get('compiler_packages', []))
-        compiler = env.spec.compiler
-        version = env.spec.compiler_version
 
         Script([InstallPackages(packages)], name='install gcc').run(env)
 

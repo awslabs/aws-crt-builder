@@ -5,6 +5,9 @@
 from host import current_os
 from project import Import
 from toolchain import Toolchain
+from util import UniqueList
+from actions.install import InstallPackages
+from actions.script import Script
 
 import os
 import stat
@@ -99,6 +102,7 @@ class LLVM(Import):
             return
 
         sh = env.shell
+        config = env.config
 
         installed_path, installed_version = Toolchain.find_compiler(
             env.spec.compiler, env.spec.compiler_version)
@@ -111,6 +115,7 @@ class LLVM(Import):
         sudo = env.config.get('sudo', current_os() == 'linux')
         sudo = ['sudo'] if sudo else []
 
+        # Strip minor version info
         version = env.toolchain.compiler_version.replace('\..+', '')
 
         script = tempfile.NamedTemporaryFile(delete=False)
@@ -121,6 +126,12 @@ class LLVM(Import):
         # Make script executable
         os.chmod(script_path, stat.S_IRUSR | stat.S_IRGRP |
                  stat.S_IROTH | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
-        sh.exec(*sudo, [script_path, version], check=True)
+
+        def _install_llvm():
+            sh.exec(*sudo, [script_path, version], check=True)
+
+        packages = UniqueList(config.get('compiler_packages', []))
+
+        Script([_install_llvm, InstallPackages(packages)])
 
         self.installed = True
