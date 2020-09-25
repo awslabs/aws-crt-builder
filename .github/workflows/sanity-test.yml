@@ -207,10 +207,10 @@ jobs:
           name: builder
           path: .
 
-    - name: Build aws-crt-cpp with ${{ matrix.compiler }}/${{ matrix.std }}
-      run: |
-        export CXXFLAGS=-std=${{ matrix.std }}
-        python3 builder.pyz build -p aws-crt-cpp --compiler=${{ matrix.compiler }}
+      - name: Build aws-crt-cpp with ${{ matrix.compiler }}/${{ matrix.std }}
+        run: |
+          export CXXFLAGS=-std=${{ matrix.std }}
+          python3 builder.pyz build -p aws-crt-cpp --compiler=${{ matrix.compiler }}
 
   release_notes:
     strategy:
