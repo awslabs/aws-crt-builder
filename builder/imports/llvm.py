@@ -106,7 +106,8 @@ class LLVM(Import):
 
         # Ensure compiler packages are installed
         packages = UniqueList(config.get('compiler_packages', []))
-        Script([InstallPackages(packages)], name='Install compiler prereqs').run(env)
+        Script([InstallPackages(packages)],
+               name='Install compiler prereqs').run(env)
 
         installed_path, installed_version = Toolchain.find_compiler(
             env.spec.compiler, env.spec.compiler_version)
