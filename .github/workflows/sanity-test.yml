@@ -190,6 +190,29 @@ jobs:
       - name: Build aws-c-common
         run: python3 builder.pyz build --project aws-c-common --compiler=${{ matrix.compiler }} run_tests=false
 
+  # Make sure linux compilers + stdlibs are installing properly
+  std-compat:
+    needs: [package, sanity_test]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        compiler: [gcc-8, clang-9]
+        std: [c++11, c++14, c++17, c++2a]
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@v1
+
+      - name: Install builder
+        uses: actions/download-artifact@v1
+        with:
+          name: builder
+          path: .
+
+      - name: Build aws-crt-cpp with ${{ matrix.compiler }}/${{ matrix.std }}
+        run: |
+          export CXXFLAGS=-std=${{ matrix.std }}
+          python3 builder.pyz build -p aws-crt-cpp --compiler=${{ matrix.compiler }}
+
   release_notes:
     strategy:
       fail-fast: false

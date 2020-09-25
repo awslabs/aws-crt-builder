@@ -26,8 +26,13 @@ class GCC(Import):
         if self.installed:
             return
 
-        sh = env.shell
         config = env.config
+
+        # Ensure additional compiler packages are installed
+        packages = UniqueList(config.get('compiler_packages', []))
+        packages = [p for p in packages if not p.startswith('gcc')]
+        Script([InstallPackages(packages)],
+               name='Install compiler prereqs').run(env)
 
         installed_path, installed_version = Toolchain.find_compiler(
             env.spec.compiler, env.spec.compiler_version)
@@ -37,9 +42,8 @@ class GCC(Import):
             self.installed = True
             return
 
+        # It's ok to attempt to install packages redundantly, they won't hurt anything
         packages = UniqueList(config.get('compiler_packages', []))
-        compiler = env.spec.compiler
-        version = env.spec.compiler_version
 
         Script([InstallPackages(packages)], name='install gcc').run(env)
 

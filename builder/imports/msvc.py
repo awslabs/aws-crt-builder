@@ -4,6 +4,9 @@
 from host import current_os
 from project import Import
 from toolchain import Toolchain
+from util import UniqueList
+from actions.install import InstallPackages
+from actions.script import Script
 
 
 class MSVC(Import):
@@ -23,8 +26,12 @@ class MSVC(Import):
         if self.installed:
             return
 
-        sh = env.shell
-        toolchain = env.toolchain
+        config = env.config
+
+        # Ensure compiler packages are installed
+        packages = UniqueList(config.get('compiler_packages', []))
+        Script([InstallPackages(packages)],
+               name='Install compiler prereqs').run(env)
 
         installed_path, installed_version = Toolchain.find_compiler(
             env.spec.compiler, env.spec.compiler_version)
@@ -34,5 +41,5 @@ class MSVC(Import):
             self.installed = True
             return
 
-        raise Exception('MSVC does not support dynamic install, and {} {} could not be found'.format(
+        raise EnvironmentError('MSVC does not support dynamic install, and {} {} could not be found'.format(
             env.spec.compiler, env.spec.compiler_version))
