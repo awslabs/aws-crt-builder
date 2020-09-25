@@ -407,7 +407,7 @@ COMPILERS = {
         'cxx': "g++-{version}",
         'compiler_packages': ['gcc', 'g++'],
 
-        'apt_compiler_packages': ['gcc-{version}', 'g++-{version}'],
+        'apt_compiler_packages': ['gcc-{version}', 'g++-{version}', 'libstdc++-{version}-dev'],
 
         'yum_compiler_packages': ['gcc', 'gcc-c++'],
 
