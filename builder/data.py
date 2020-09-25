@@ -357,7 +357,8 @@ COMPILERS = {
                 'c': "clang-6.0",
                 'cxx': "clang++-6.0",
                 'cmake_args': ['-DENABLE_FUZZ_TESTS=ON'],
-                'apt_compiler_packages': ['libstdc++-6-dev'],
+                # clang-6 support C++17, but headers requires at least libstdc++-7
+                'apt_compiler_packages': ['libstdc++-7-dev'],
             },
             '7': {
                 'c': "clang-7",
