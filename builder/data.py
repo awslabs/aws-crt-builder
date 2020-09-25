@@ -345,8 +345,6 @@ COMPILERS = {
 
         'imports': ['llvm'],
 
-        'apt_compiler_packages': ['libstdc++-9-dev'],
-
         'versions': {
             'default': {
                 '!cmake_args': [],
@@ -359,20 +357,24 @@ COMPILERS = {
                 'c': "clang-6.0",
                 'cxx': "clang++-6.0",
                 'cmake_args': ['-DENABLE_FUZZ_TESTS=ON'],
+                'apt_compiler_packages': ['libstdc++-6-dev'],
             },
             '7': {
                 'c': "clang-7",
                 'cxx': "clang++-7",
+                'apt_compiler_packages': ['libstdc++-7-dev'],
             },
             '8': {
                 'c': "clang-8",
                 'cxx': "clang++-8",
                 'cmake_args': ['-DENABLE_FUZZ_TESTS=ON'],
+                'apt_compiler_packages': ['libstdc++-8-dev'],
             },
             '9': {
                 'c': "clang-9",
                 'cxx': "clang++-9",
                 'cmake_args': ['-DENABLE_FUZZ_TESTS=ON'],
+                'apt_compiler_packages': ['libstdc++-9-dev'],
             },
             # 10 and 11 are XCode Apple clang/LLVM
             '10': {
