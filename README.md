@@ -74,6 +74,23 @@ See builder/data.py for more info/defaults/possible values.
     // Whether or not this project needs a C/C++ compiler
     "needs_compiler": true,
 
+    // Variables for use in interpolation throughout the config. Note that these can be overriden
+    // per host/os/target/architecture/compiler/version (see below)
+    // The following variables are pre-defined by builder internally:
+    // * host - the host OS
+    // * compiler - the compiler that will be used if project needs a compiler
+    // * version - the compiler version
+    // * target - the target OS class (linux/windows/macos/android)
+    // * arch - the target arch
+    // * cwd - the current working directory (affected by --build-dir)
+    // * source_dir - The source directory for the project being built
+    // * build_dir - The directory where intermediate build artifacts will be generated 
+    // * deps_dir - The root directory where dependencies will be installed
+    // * install_dir - The output directory for the build, where final artifacts will be installed
+    "variables": {
+        "my_project_version": "1.0-dev"
+    },
+
     // For each of these packages keys, they may be prefixed with specific package managers:
     // e.g. "apt_packages"
     // Supported package managers are:
@@ -89,29 +106,31 @@ See builder/data.py for more info/defaults/possible values.
     "packages": [],
 
     // If using the default build (which will invoke cmake), additional arguments to be passed to cmake
-    "cmake_args": [],
+    "cmake_args": ["-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"],
 
     // Additional directories to search to find imports, dependencies, consumers before searching GitHub for them
     "search_dirs": [],
 
     // Steps to run before building. default: []
     "pre_build_steps": [
-        "some command or action to run"
+        "echo '{my_project_version}' > version.txt" // see variables section
     ],
     // Steps to build the project. If not specified, CMake will be run on the project's root directory
     // If you want to invoke the default build as one of your steps, simply use "build" as that step
     "build_steps": [
-        "some command or action to run",
-        "some other command to run"
+        "mvn compile",
+        "./gradlew build"
     ],
     // Steps to run after building. default: []
     "post_build_steps": [
-        "some command or action to run"
+        "mvn package",
+        "./gradlew publishToMavenLocal"
     ],
     // Steps to run when testing is requested. If not specified, CTest will be run on the project's binaries directory
     // If you want to invoke the default test path as one of your steps, use "test" as that step's command
     "test_steps": [
-        "some command or action to run"
+        "mvn test",
+        "./gradlew test"
     ],
 
     // These will be built before my-project, and transitive dependencies will be followed. Alias: upstream
@@ -194,7 +213,7 @@ See builder/data.py for more info/defaults/possible values.
                 },
             }
         }
-    }
+    },
 }
 ```
 
