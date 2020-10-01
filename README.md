@@ -84,7 +84,7 @@ See builder/data.py for more info/defaults/possible values.
     // * version - the compiler version
     // * target - the target OS class (linux/windows/macos/android)
     // * arch - the target arch
-    // * cwd - the current working directory (affected by --build-dir)
+    // * cwd - the current working directory (affected by --build-dir argument)
     // * source_dir - The source directory for the project being built
     // * build_dir - The directory where intermediate build artifacts will be generated (defaults to "{source_dir}/build")
     // * deps_dir - The root directory where dependencies will be installed (defaults to "{build_dir}/deps")
