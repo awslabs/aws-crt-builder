@@ -76,6 +76,8 @@ See builder/data.py for more info/defaults/possible values.
 
     // Variables for use in interpolation throughout the config. Note that these can be overriden
     // per host/os/target/architecture/compiler/version (see below)
+    // Variables can be references in braces: e.g. {my_variable}
+    //
     // The following variables are pre-defined by builder internally:
     // * host - the host OS
     // * compiler - the compiler that will be used if project needs a compiler
