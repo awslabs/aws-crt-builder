@@ -61,13 +61,39 @@ that instead. There are a few external dependencies (s2n and libcrypto, for inst
 ```
 
 #### Detailed config:
-NOTE: Any key can be prefixed with a ```!``` to overwrite the config value, rather than to add to it.
+NOTE: Any key can be prefixed with a ```!``` to overwrite the config value, rather than to add to it. 
+      Any key can be prefixed with a ```+``` to force a value to be added to an array.
 
-```json
+See builder/data.py for more info/defaults/possible values.
+
+```jsonc
 {
     "name": "my-project",
     // Whether or not this project should be built
     "enabled": true,
+    // Whether or not this project needs a C/C++ compiler
+    "needs_compiler": true,
+
+    // For each of these packages keys, they may be prefixed with specific package managers:
+    // e.g. "apt_packages"
+    // Supported package managers are:
+    // * apt (Debian/Ubuntu)
+    // * yum (Red Hat/CentOS/Amazon Linux)
+    // * brew (OSX)
+    // * choco (Windows)
+    // * apk (Android)
+    // * pkg (FreeBSD)
+    // Packages to install when a compiler is required (build tools, gcc-multilib, etc)
+    "compiler_packages": [],
+    // Packages to install to allow building and testing to work (languages, squid, other CI tools, etc)
+    "packages": [],
+
+    // If using the default build (which will invoke cmake), additional arguments to be passed to cmake
+    "cmake_args": [],
+
+    // Additional directories to search to find imports, dependencies, consumers before searching GitHub for them
+    "search_dirs": [],
+
     // Steps to run before building. default: []
     "pre_build_steps": [
         "some command or action to run"
@@ -87,14 +113,15 @@ NOTE: Any key can be prefixed with a ```!``` to overwrite the config value, rath
     "test_steps": [
         "some command or action to run"
     ],
-    // These will be built before my-project, and transitive dependencies will be followed.
+
+    // These will be built before my-project, and transitive dependencies will be followed. Alias: upstream
     "dependencies": [
         {
             "name": "my-lib",
             "revision": "branch-or-commit-sha"
         }
     ],
-    // These will be built when a downstream build is requested
+    // These will be built when a downstream build is requested. Alias: downstream
     "consumers": [
         {
             "name": "my-downstream-project"
@@ -102,12 +129,18 @@ NOTE: Any key can be prefixed with a ```!``` to overwrite the config value, rath
     ],
     // These are special, much like CMake's IMPORTED targets, the builder must know about them or they must be
     // defined by a script. For examples, look in builder/imports. Just like dependencies, transitive imports
-    // will be resolved.
+    // will be resolved. If no special configuration is required, these can just be submodules or other repos
     "imports": [
         "s2n"
     ],
-    // Configuration differences per host
+
+    // Per-environment overrides
+    // Overrides are applied per host, per target/architecture, and per compiler/version. Any top-level config 
+    // value can be overridden from within these override sections, see below for examples.
+
+    // Configuration differences per host (the machine/image the build runs on)
     "hosts": {
+        "linux": {}, // includes all flavors of linux below
         "ubuntu": {},
         "debian": {},
         "al2": {},
@@ -118,7 +151,7 @@ NOTE: Any key can be prefixed with a ```!``` to overwrite the config value, rath
         "macos": {},
         "windows": {}
     },
-    // Configuration differences per target platform
+    // Configuration differences per target platform (the machine being built for)
     "targets" : {
         "linux": {
             "architectures": {
@@ -139,6 +172,9 @@ NOTE: Any key can be prefixed with a ```!``` to overwrite the config value, rath
                 "x86": {},
                 "x64": {}
             }
+        },
+        "android" : {
+
         }
     },
     // Configuration differences per compiler
@@ -175,7 +211,7 @@ class MyAction(Builder.Action):
 
 This can be run with ```builder.pyz my-action``` or ```builder.pyz myaction``` or ```builder.pyz MyAction```
 
-See api.py for the available API to actions.
+See api.py for the available API to actions. See https://github.com/awslabs/aws-crt-python/tree/master/.builder/actions for examples.
 
 #### Action chaining
 The ```run(self, env)``` method of any action can return an Action or list of Actions to run before considering this action complete.
@@ -188,6 +224,14 @@ of common shell operations (cd, cwd, pushd, popd, setenv, getenv, pushenv, popen
 arbitrary commands.
 
 ## Developing on builder
+
+### Debugging
+When debugging builder locally, use whatever python debugger you wish. You can also feed it the following command line arguments to ease the
+debugging experience:
+* --skip-install - don't install packages, assume they're already there
+* --build-dir=/path/to/other/git/repo - will jump to this directory before starting execution, helpful for debugging another project's
+                                        configuration and build scripts
+
 ### Docker Images
 Each docker image has a script which will fetch the builder app baked into it, and will then call the builder with the arguments provided.
 Any push to the .github/docker-images directory will cause a rebuild of all of the docker images (see docker-images.yml). The 
