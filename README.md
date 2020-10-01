@@ -139,19 +139,24 @@ See builder/data.py for more info/defaults/possible values.
     // value can be overridden from within these override sections, see below for examples.
 
     // Configuration differences per host (the machine/image the build runs on)
+    // Any host not specified will be built with default values from the rest of the config
     "hosts": {
         "linux": {}, // includes all flavors of linux below
         "ubuntu": {},
         "debian": {},
         "al2": {},
-        "al2012": {},
+        "al2012": {
+            "enabled": false // example: disable building on AL2012
+        },
         "alpine": {},
         "raspbian": {},
         "manylinux": {},
         "macos": {},
         "windows": {}
     },
+
     // Configuration differences per target platform (the machine being built for)
+    // Any target not specified will be built with default values from the rest of the config
     "targets" : {
         "linux": {
             "architectures": {
@@ -169,7 +174,9 @@ See builder/data.py for more info/defaults/possible values.
         }, 
         "windows" : {
             "architectures": {
-                "x86": {},
+                "x86": {
+                    "enabled": false // example: don't build for Windows 32 bit
+                },
                 "x64": {}
             }
         },
