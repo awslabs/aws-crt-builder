@@ -61,40 +61,88 @@ that instead. There are a few external dependencies (s2n and libcrypto, for inst
 ```
 
 #### Detailed config:
-NOTE: Any key can be prefixed with a ```!``` to overwrite the config value, rather than to add to it.
+NOTE: Any key can be prefixed with a ```!``` to overwrite the config value, rather than to add to it. 
+      Any key can be prefixed with a ```+``` to force a value to be added to an array.
 
-```json
+See builder/data.py for more info/defaults/possible values.
+
+```jsonc
 {
     "name": "my-project",
     // Whether or not this project should be built
     "enabled": true,
+    // Whether or not this project needs a C/C++ compiler
+    "needs_compiler": true,
+
+    // Variables for use in interpolation throughout the config. Note that these can be overriden
+    // per host/os/target/architecture/compiler/version (see below)
+    // Variables can be references in braces: e.g. {my_variable}
+    //
+    // The following variables are pre-defined by builder internally:
+    // * host - the host OS
+    // * compiler - the compiler that will be used if project needs a compiler
+    // * version - the compiler version
+    // * target - the target OS class (linux/windows/macos/android)
+    // * arch - the target arch
+    // * cwd - the current working directory (affected by --build-dir argument)
+    // * source_dir - The source directory for the project being built
+    // * build_dir - The directory where intermediate build artifacts will be generated (defaults to "{source_dir}/build")
+    // * deps_dir - The root directory where dependencies will be installed (defaults to "{build_dir}/deps")
+    // * install_dir - The output directory for the build, where final artifacts will be installed (defaults to "{build_dir}/install")
+    "variables": {
+        "my_project_version": "1.0-dev"
+    },
+
+    // For each of these packages keys, they may be prefixed with specific package managers:
+    // e.g. "apt_packages"
+    // Supported package managers are:
+    // * apt (Debian/Ubuntu)
+    // * yum (Red Hat/CentOS/Amazon Linux)
+    // * brew (OSX)
+    // * choco (Windows)
+    // * apk (Android)
+    // * pkg (FreeBSD)
+    // Packages to install when a compiler is required (build tools, gcc-multilib, etc)
+    "compiler_packages": [],
+    // Packages to install to allow building and testing to work (languages, squid, other CI tools, etc)
+    "packages": [],
+
+    // If using the default build (which will invoke cmake), additional arguments to be passed to cmake
+    "cmake_args": ["-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"],
+
+    // Additional directories to search to find imports, dependencies, consumers before searching GitHub for them
+    "search_dirs": [],
+
     // Steps to run before building. default: []
     "pre_build_steps": [
-        "some command or action to run"
+        "echo '{my_project_version}' > version.txt" // see variables section
     ],
     // Steps to build the project. If not specified, CMake will be run on the project's root directory
     // If you want to invoke the default build as one of your steps, simply use "build" as that step
     "build_steps": [
-        "some command or action to run",
-        "some other command to run"
+        "mvn compile",
+        "./gradlew build"
     ],
     // Steps to run after building. default: []
     "post_build_steps": [
-        "some command or action to run"
+        "mvn package",
+        "./gradlew publishToMavenLocal"
     ],
     // Steps to run when testing is requested. If not specified, CTest will be run on the project's binaries directory
     // If you want to invoke the default test path as one of your steps, use "test" as that step's command
     "test_steps": [
-        "some command or action to run"
+        "mvn test",
+        "./gradlew test"
     ],
-    // These will be built before my-project, and transitive dependencies will be followed.
+
+    // These will be built before my-project, and transitive dependencies will be followed. Alias: upstream
     "dependencies": [
         {
             "name": "my-lib",
             "revision": "branch-or-commit-sha"
         }
     ],
-    // These will be built when a downstream build is requested
+    // These will be built when a downstream build is requested. Alias: downstream
     "consumers": [
         {
             "name": "my-downstream-project"
@@ -102,23 +150,34 @@ NOTE: Any key can be prefixed with a ```!``` to overwrite the config value, rath
     ],
     // These are special, much like CMake's IMPORTED targets, the builder must know about them or they must be
     // defined by a script. For examples, look in builder/imports. Just like dependencies, transitive imports
-    // will be resolved.
+    // will be resolved. If no special configuration is required, these can just be submodules or other repos
     "imports": [
         "s2n"
     ],
-    // Configuration differences per host
+
+    // Per-environment overrides
+    // Overrides are applied per host, per target/architecture, and per compiler/version. Any top-level config 
+    // value can be overridden from within these override sections, see below for examples.
+
+    // Configuration differences per host (the machine/image the build runs on)
+    // Any host not specified will be built with default values from the rest of the config
     "hosts": {
+        "linux": {}, // includes all flavors of linux below
         "ubuntu": {},
         "debian": {},
         "al2": {},
-        "al2012": {},
+        "al2012": {
+            "enabled": false // example: disable building on AL2012
+        },
         "alpine": {},
         "raspbian": {},
         "manylinux": {},
         "macos": {},
         "windows": {}
     },
-    // Configuration differences per target platform
+
+    // Configuration differences per target platform (the machine being built for)
+    // Any target not specified will be built with default values from the rest of the config
     "targets" : {
         "linux": {
             "architectures": {
@@ -136,9 +195,14 @@ NOTE: Any key can be prefixed with a ```!``` to overwrite the config value, rath
         }, 
         "windows" : {
             "architectures": {
-                "x86": {},
+                "x86": {
+                    "enabled": false // example: don't build for Windows 32 bit
+                },
                 "x64": {}
             }
+        },
+        "android" : {
+
         }
     },
     // Configuration differences per compiler
@@ -151,7 +215,7 @@ NOTE: Any key can be prefixed with a ```!``` to overwrite the config value, rath
                 },
             }
         }
-    }
+    },
 }
 ```
 
@@ -175,7 +239,7 @@ class MyAction(Builder.Action):
 
 This can be run with ```builder.pyz my-action``` or ```builder.pyz myaction``` or ```builder.pyz MyAction```
 
-See api.py for the available API to actions.
+See api.py for the available API to actions. See https://github.com/awslabs/aws-crt-python/tree/master/.builder/actions for examples.
 
 #### Action chaining
 The ```run(self, env)``` method of any action can return an Action or list of Actions to run before considering this action complete.
@@ -188,6 +252,14 @@ of common shell operations (cd, cwd, pushd, popd, setenv, getenv, pushenv, popen
 arbitrary commands.
 
 ## Developing on builder
+
+### Debugging
+When debugging builder locally, use whatever python debugger you wish. You can also feed it the following command line arguments to ease the
+debugging experience:
+* --skip-install - don't install packages, assume they're already there
+* --build-dir=/path/to/other/git/repo - will jump to this directory before starting execution, helpful for debugging another project's
+                                        configuration and build scripts
+
 ### Docker Images
 Each docker image has a script which will fetch the builder app baked into it, and will then call the builder with the arguments provided.
 Any push to the .github/docker-images directory will cause a rebuild of all of the docker images (see docker-images.yml). The 
