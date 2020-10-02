@@ -8,6 +8,7 @@ FROM swift:5.3
 RUN apt-get update -qq \
     && apt-get -y install \
     sudo \
+    curl \
     # Python
     python3 \
     python3-dev \
