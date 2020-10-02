@@ -3,7 +3,7 @@ FROM swift:5.3-centos7
 
 ###############################################################################
 # Install prereqs
-# any prereqs that appear to be missing are installed on base swift image i.e. tar, git6
+# any prereqs that appear to be missing are installed on base swift image i.e. tar, git
 ###############################################################################
 RUN yum -y update \
     && yum -y install \
@@ -21,11 +21,11 @@ RUN yum -y update \
 ###############################################################################
 # Handle cmake on centos properly
 ###############################################################################
-# RUN sudo alternatives --install /usr/local/bin/cmake cmake /usr/bin/cmake 10 \
-# --slave /usr/local/bin/ctest ctest /usr/bin/ctest \
-# --slave /usr/local/bin/cpack cpack /usr/bin/cpack \
-# --slave /usr/local/bin/ccmake ccmake /usr/bin/ccmake \
-# --family cmake
+RUN sudo alternatives --install /usr/local/bin/cmake cmake /usr/bin/cmake 10 \
+--slave /usr/local/bin/ctest ctest /usr/bin/ctest \
+--slave /usr/local/bin/cpack cpack /usr/bin/cpack \
+--slave /usr/local/bin/ccmake ccmake /usr/bin/ccmake \
+--family cmake
 
 RUN sudo alternatives --install /usr/local/bin/cmake cmake /usr/bin/cmake3 20 \
 --slave /usr/local/bin/ctest ctest /usr/bin/ctest3 \
