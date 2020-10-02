@@ -125,6 +125,10 @@ jobs:
         $(aws --region us-east-1 ecr get-login --no-include-email)
         echo "${{ secrets.GITHUB_TOKEN }}" | docker login docker.pkg.github.com -u awslabs --password-stdin
 
+    - name: Create repo if necessary
+      run: |
+        if ! aws --region us-east-1 ecr describe-repositories --repository-names aws-crt/${{ matrix.variant }} > /dev/null 2>&1; then aws --region us-east-1 ecr create-repository --repository-name aws-crt/${{ matrix.variant }}; fi
+
     - name: Tag/push release images as latest
       run: |
         docker tag docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:$IMAGE_TAG ${{ secrets.AWS_ECR_REPO }}/aws-crt/${{ matrix.variant }}:latest
