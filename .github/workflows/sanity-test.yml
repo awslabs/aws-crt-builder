@@ -301,6 +301,35 @@ jobs:
         docker pull $DOCKER_IMAGE
         docker run --env GITHUB_REF $DOCKER_IMAGE --version=${{ steps.release.outputs.release_tag }} build -p aws-c-io --spec=downstream run_tests=false
 
+  # This tests for swift version
+  swift:
+    strategy:
+      fail-fast: false
+      matrix:
+        linux:
+          - swift-5-ubuntu-16-x64
+          - swift-5-centos-x64
+          - swift-5-al2-x64
+
+    needs: package
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Source
+      uses: actions/checkout@v1
+
+    - name: Get release tag
+      uses: ./.github/actions/release-tag
+      id: release
+      with:
+        output: tag
+
+    - name: Check for Swift
+      run: |
+        echo "${{ secrets.GITHUB_TOKEN }}" | docker login docker.pkg.github.com -u awslabs --password-stdin
+        export DOCKER_IMAGE=docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.linux }}:latest
+        docker pull $DOCKER_IMAGE
+        docker run --env GITHUB_REF $DOCKER_IMAGE --version=${{ steps.release.outputs.release_tag }} swift --version
+
   sanity-tests-passed:
     name: All Sanity Tests passed
     runs-on: ubuntu-latest
