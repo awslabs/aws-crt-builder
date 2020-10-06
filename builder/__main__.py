@@ -216,7 +216,7 @@ if __name__ == '__main__':
             os.makedirs(args.build_dir)
         os.chdir(args.build_dir)
 
-    print('Working in {}'.format(os.cwd()))
+    print('Working in {}'.format(os.getcwd()))
 
     if spec.target == current_os() and spec.arch == current_arch():
         inspect_host(spec)
