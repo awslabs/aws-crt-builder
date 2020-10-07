@@ -280,7 +280,27 @@ TARGETS = {
         },
         '!cmake_args': [],
         'variables': {
-            'exe': ''
+            'exe': '',
+        },
+    },
+    'ios': {
+        'cmake_args': [
+            '-DCMAKE_SYSTEM_NAME=iOS',
+            '-DCMAKE_OSX_ARCHITECTURES="{osx_architectures}"',
+            '-DCMAKE_OSX_DEPLOYMENT_TARGET={osx_deployment_target}'
+        ],
+        'run_tests': False,
+        'architectures': {
+            'arm64': {
+                'variables': {
+                    'osx_architectures': 'arm64'
+                }
+            }
+        },
+        'variables': {
+            'exe': '',
+            'osx_deployment_target': '13.0',
+            'osx_architectures': 'arm64;x86_64'
         },
     },
     'android': {
@@ -341,7 +361,7 @@ COMPILERS = {
     },
     'clang': {
         'hosts': ['linux', 'macos'],
-        'targets': ['linux', 'macos'],
+        'targets': ['linux', 'macos', 'ios'],
 
         'imports': ['llvm'],
 
