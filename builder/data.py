@@ -354,7 +354,7 @@ for arch in ARCHS.keys():
 COMPILERS = {
     'default': {
         'hosts': ['macos', 'linux', 'windows', 'freebsd'],
-        'targets': ['macos', 'linux', 'windows', 'freebsd', 'android'],
+        'targets': ['macos', 'linux', 'windows', 'freebsd', 'android', 'ios'],
 
         'versions': {
             'default': {}
