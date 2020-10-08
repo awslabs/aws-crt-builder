@@ -526,6 +526,9 @@ for mac in ['macos', 'darwin']:
         if alias_mac != canonical_mac:
             PLATFORMS[alias_mac] = PLATFORMS[canonical_mac]
 
+# iOS
+PLATFORMS['ios-arm64'] = PLATFORMS['ios-armv8']
+
 # FreeBSD
 for alias in ARCHS['x64'].get('aliases', []):
     canonical_freebsd = 'freebsd-x64'
