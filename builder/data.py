@@ -83,19 +83,13 @@ ARCHS = {
     },
     'armv6': {
         'arch': 'armv6',
-        'cross_compile_platform': 'linux-armv6',
-        'imports': ['dockcross'],
     },
     'armv7': {
         'arch': 'armv7',
-        'cross_compile_platform': 'linux-armv7',
-        'imports': ['dockcross'],
         'aliases': ['armv7a']
     },
     'armv8': {
         'arch': 'armv8',
-        'cross_compile_platform': 'linux-arm64',
-        'imports': ['dockcross'],
         'aliases': ['arm64', 'arm64v8', 'arm64v8a', 'aarch64'],
     },
     'mips': {
@@ -543,7 +537,7 @@ for alias in ARCHS['x64'].get('aliases', []):
 # Linux works on every arch we support
 for arch in ARCHS.keys():
     canonical_linux = 'linux-{}'.format(arch)
-    PLATFORMS[canonical_linux] = {}
+    PLATFORMS[canonical_linux] = PLATFORMS.get(canonical_linux, {})
     for alias in ARCHS[arch].get('aliases', []):
         alias_linux = 'linux-{}'.format(alias)
         PLATFORMS[alias_linux] = PLATFORMS[canonical_linux]
@@ -558,6 +552,9 @@ PLATFORMS['android-armv8']['cross_compile_platform'] = 'android-arm64'
 for cc_arch in ['armv6', 'armv7', 'armv8']:
     for cc_os in ['linux', 'android']:
         canonical_platform = '{}-{}'.format(cc_os, cc_arch)
+        # Add cross compiler import
+        PLATFORMS[canonical_platform]['imports'] = ['dockcross']
+        # link aliases to canonical config
         for alias in ARCHS[cc_arch].get('aliases', []):
             alias_platform = '{}-{}'.format(cc_os, alias)
             PLATFORMS[alias_platform] = PLATFORMS[canonical_platform]
