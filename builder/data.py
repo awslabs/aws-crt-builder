@@ -285,6 +285,7 @@ TARGETS = {
     },
     'ios': {
         'cmake_args': [
+            '-GXcode',
             '-DCMAKE_SYSTEM_NAME=iOS',
             '-DCMAKE_OSX_ARCHITECTURES="{osx_architectures}"',
             '-DCMAKE_OSX_DEPLOYMENT_TARGET={osx_deployment_target}'
