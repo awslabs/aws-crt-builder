@@ -74,7 +74,7 @@ def _msvc_versions():
 
 
 def _is_cross_compile(os, arch):
-    return os != current_os() or arch != current_arch()
+    return os != "ios" and (os != current_os() or arch != current_arch())
 
 
 class Toolchain(object):
