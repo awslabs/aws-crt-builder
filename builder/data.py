@@ -507,7 +507,9 @@ PLATFORMS = {
     'android-armv6': {},
     'android-armv7': {},
     'android-armv8': {},
-    'ios-armv8': {},
+    'ios-armv8': {
+        'cross_compile_platform': None
+    },
     # Linux is done procedurally, below
 }
 
