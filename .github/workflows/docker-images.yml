@@ -72,9 +72,6 @@ jobs:
     - name: Export IMAGE_TAG
       run: echo "::set-env name=IMAGE_TAG::$(cat release_tag/tag)"
 
-    - name: Install entrypoint
-      run: cat .github/docker-images/entrypoint.sh | sed s/version=LATEST/version=$IMAGE_TAG/ > .github/docker-images/${{ matrix.variant }}/entrypoint.sh
-
     - name: Build ${{ matrix.variant }} image
       uses: whoan/docker-build-with-cache-action@v4
       with:
