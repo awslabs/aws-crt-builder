@@ -190,7 +190,7 @@ HOSTS = {
         'sudo': False,
 
         'variables': {
-            'python': "/opt/python/cp37-cp37m/bin/python",
+            'python': "/opt/python/cp39-cp39/bin/python",
         },
     },
     'windows': {
