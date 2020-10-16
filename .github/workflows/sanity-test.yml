@@ -295,6 +295,7 @@ jobs:
       with:
         output: tag
 
+    # Only aarch64 needs this, but it doesn't hurt anything
     - name: Install qemu/docker
       run: docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
 
