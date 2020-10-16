@@ -123,7 +123,8 @@ class InstallCompiler(Action):
 
         # add dockcross as an implicit import if cross-compiling
         if toolchain.is_cross_compile:
-            getattr(env.project, 'imports', []) += ['dockcross']
+            setattr(env.project, 'imports', getattr(
+                env.project, 'imports', []) + ['dockcross'])
 
         imports = env.project.get_imports(env.spec)
         for imp in imports:
