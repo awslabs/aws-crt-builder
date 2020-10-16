@@ -85,6 +85,7 @@ jobs:
         - manylinux1-x64
         - manylinux2014-x86
         - manylinux2014-x64
+        - manylinux2014-aarch64
         - al2012-x64
         - al2-x64
         - ubuntu-16-x64
