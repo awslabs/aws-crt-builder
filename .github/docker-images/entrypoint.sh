@@ -23,8 +23,8 @@ builder=/usr/local/bin/builder.pyz
 chmod a+x $builder
 
 # on manylinux, use the latest python3 via symlink
-if [ -x /opt/python/cp37-cp37m/bin/python ]; then
-    ln -s /opt/python/cp37-cp37m/bin/python /usr/local/bin/python3
+if [ -x /opt/python/cp39-cp39/bin/python ] && [ ! -e /usr/local/bin/python3 ]; then
+    ln -s /opt/python/cp39-cp39/bin/python /usr/local/bin/python3
 fi
 
 # Figure out where to work based on environment, default to .
