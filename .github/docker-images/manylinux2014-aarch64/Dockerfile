@@ -19,15 +19,6 @@ RUN /opt/python/cp39-cp39/bin/python -m pip install --upgrade pip setuptools vir
     && which aws \
     && aws --version
 
-###############################################################################
-# Install pre-built CMake
-###############################################################################
-# WORKDIR /tmp
-# RUN curl -sSL https://d19elf31gohf1l.cloudfront.net/_binaries/cmake/cmake-3.13-manylinux1-x64.tar.gz -o cmake.tar.gz \
-#     && tar xvzf cmake.tar.gz -C /usr/local \
-#     && cmake --version \
-#     && rm -f /tmp/cmake.tar.gz
-
 # ###############################################################################
 # # Install pre-built libcrypto
 # ###############################################################################
@@ -41,6 +32,6 @@ RUN /opt/python/cp39-cp39/bin/python -m pip install --upgrade pip setuptools vir
 ###############################################################################
 # Install entrypoint
 ###############################################################################
-# ADD entrypoint.sh /usr/local/bin/builder
-# RUN chmod a+x /usr/local/bin/builder
-# ENTRYPOINT ["/usr/local/bin/builder"]
+ADD entrypoint.sh /usr/local/bin/builder
+RUN chmod a+x /usr/local/bin/builder
+ENTRYPOINT ["/usr/local/bin/builder"]
