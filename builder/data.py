@@ -84,24 +84,20 @@ ARCHS = {
     'armv6': {
         'arch': 'armv6',
         'cross_compile_platform': 'linux-armv6',
-        'imports': ['dockcross'],
     },
     'armv7': {
         'arch': 'armv7',
         'cross_compile_platform': 'linux-armv7',
-        'imports': ['dockcross'],
         'aliases': ['armv7a']
     },
     'armv8': {
         'arch': 'armv8',
         'cross_compile_platform': 'linux-arm64',
-        'imports': ['dockcross'],
         'aliases': ['arm64', 'arm64v8', 'arm64v8a', 'aarch64'],
     },
     'mips': {
         'arch': 'mips',
         'cross_compile_platform': 'linux-mips',
-        'imports': ['dockcross'],
     },
 }
 
@@ -190,7 +186,7 @@ HOSTS = {
         'sudo': False,
 
         'variables': {
-            'python': "/opt/python/cp37-cp37m/bin/python",
+            'python': "/opt/python/cp39-cp39/bin/python",
         },
     },
     'windows': {
