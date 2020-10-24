@@ -117,10 +117,6 @@ jobs:
     - name: Login to docker repo
       run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login docker.pkg.github.com -u awslabs --password-stdin
 
-    - name: Create docker repo if necessary
-      run: |
-        if ! aws --region us-east-1 ecr describe-repositories --repository-names aws-crt/${{ matrix.variant }} > /dev/null 2>&1; then aws --region us-east-1 ecr create-repository --repository-name aws-crt/${{ matrix.variant }}; fi
-
     - name: Import latest aws-crt-${{ matrix.variant }} image to channels/${{ env.IMAGE_TAG }}
       run: |
         docker pull docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:latest
