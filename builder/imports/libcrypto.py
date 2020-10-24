@@ -65,7 +65,7 @@ class LibCrypto(Import):
 
         lib_version = '1.1.1'
         lib_os = env.spec.target
-        if current_host() == 'manylinux':
+        if current_host() == 'manylinux' and env.spec.arch != 'armv8':
             lib_os = 'manylinux'
             lib_version = '1.0.2'
         url = self.url.format(version=lib_version,

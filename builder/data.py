@@ -84,24 +84,20 @@ ARCHS = {
     'armv6': {
         'arch': 'armv6',
         'cross_compile_platform': 'linux-armv6',
-        'imports': ['dockcross'],
     },
     'armv7': {
         'arch': 'armv7',
         'cross_compile_platform': 'linux-armv7',
-        'imports': ['dockcross'],
         'aliases': ['armv7a']
     },
     'armv8': {
         'arch': 'armv8',
         'cross_compile_platform': 'linux-arm64',
-        'imports': ['dockcross'],
         'aliases': ['arm64', 'arm64v8', 'arm64v8a', 'aarch64'],
     },
     'mips': {
         'arch': 'mips',
         'cross_compile_platform': 'linux-mips',
-        'imports': ['dockcross'],
     },
 }
 
@@ -190,7 +186,7 @@ HOSTS = {
         'sudo': False,
 
         'variables': {
-            'python': "/opt/python/cp37-cp37m/bin/python",
+            'python': "/opt/python/cp39-cp39/bin/python",
         },
     },
     'windows': {
@@ -280,7 +276,27 @@ TARGETS = {
         },
         '!cmake_args': [],
         'variables': {
-            'exe': ''
+            'exe': '',
+        },
+    },
+    'ios': {
+        'cmake_args': [
+            '-DCMAKE_SYSTEM_NAME=iOS',
+            '-DCMAKE_OSX_ARCHITECTURES="{osx_architectures}"',
+            '-DCMAKE_OSX_DEPLOYMENT_TARGET={osx_deployment_target}'
+        ],
+        'run_tests': False,
+        'architectures': {
+            'arm64': {
+                'variables': {
+                    'osx_architectures': 'arm64'
+                }
+            }
+        },
+        'variables': {
+            'exe': '',
+            'osx_deployment_target': '13.0',
+            'osx_architectures': 'arm64;x86_64'
         },
     },
     'android': {
@@ -341,7 +357,7 @@ COMPILERS = {
     },
     'clang': {
         'hosts': ['linux', 'macos'],
-        'targets': ['linux', 'macos'],
+        'targets': ['linux', 'macos', 'ios'],
 
         'imports': ['llvm'],
 

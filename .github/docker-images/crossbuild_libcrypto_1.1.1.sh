@@ -44,6 +44,10 @@ case $os-$arch in
         openssl_target=linux-x86
         dockcross_target=manylinux2014-i686
         ;;
+    manylinux2014-aarch64)
+        openssl_target=linux-aarch64
+        dockcross_target=manylinux2014-aarch64
+        ;;
     *-x64)
         openssl_target=${os}-x86_64
         ;;
