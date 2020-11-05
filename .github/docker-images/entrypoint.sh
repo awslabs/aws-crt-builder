@@ -33,7 +33,7 @@ if [ -d "$GITHUB_WORKSPACE" ]; then
 elif [ -d "$CODEBUILD_SRC_DIR" ]; then
     cd $CODEBUILD_SRC_DIR
 else
-	cd ~
+    cd ~
 fi
 
 # Launch the builder with whatever args were passed to this script
