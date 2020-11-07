@@ -338,6 +338,7 @@ TARGETS = {
 }
 
 TARGETS['darwin'] = TARGETS['macos']
+TARGETS['osx'] = TARGETS['macos']
 
 for arch in ARCHS.keys():
     for alias in ARCHS[arch].get('aliases', []):
