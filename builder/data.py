@@ -519,7 +519,7 @@ for arch in ['x86', 'x64']:
         PLATFORMS[alias_windows] = PLATFORMS[canonical_windows]
 
 # MacOS
-for mac in ['macos', 'darwin']:
+for mac in ['macos', 'darwin', 'osx']:
     canonical_mac = 'macos-x64'
     for alias in ARCHS['x64'].get('aliases', []):
         alias_mac = '{}-{}'.format(mac, alias)
