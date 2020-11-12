@@ -29,6 +29,8 @@ class NodeJS(Import):
             },
             **kwargs)
         self.url = 'https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.3/install.sh'
+
+        # windows nvm has stopped installing the latest version, so ask for our minspec
         if current_os() == 'windows':
             self.version = '10.16.0'
         else:
