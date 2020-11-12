@@ -29,7 +29,10 @@ class NodeJS(Import):
             },
             **kwargs)
         self.url = 'https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.3/install.sh'
-        self.version = '10'
+        if current_os() == 'windows':
+            self.version = '10.16.0'
+        else:
+            self.version = '10'
         self.nvm = 'nvm'
         self.installed = False
 
@@ -62,6 +65,10 @@ class NodeJS(Import):
             node_path = os.path.dirname(result.output)
             sh.setenv('PATH', '{}{}{}'.format(
                 node_path, os.pathsep, sh.getenv('PATH')))
+        else:
+            sh.exec('nvm', 'use', '10.16', check=True)
+            sh.exec('refreshenv', check=True)
+
         sh.exec('node', '--version', check=True)
 
     def install_nvm_choco(self, env):
