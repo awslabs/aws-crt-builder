@@ -13,23 +13,24 @@ import util
 def _compiler_version(cc):
     if current_os() != 'windows':
         result = util.run_command(cc, '--version', quiet=True, stderr=False)
-        text = result.output
-        # Apple clang
-        m = re.match('Apple (LLVM|clang) version (\d+)', text)
-        if m:
-            return 'clang', m.group(2)
-        # LLVM clang
-        m = re.match('.*clang version (\d+)', text)
-        if m:
-            return 'clang', m.group(1)
-        # GCC 4.x
-        m = re.match('gcc .+ (4\.\d+)', text)
-        if m:
-            return 'gcc', m.group(1)
-        # GCC 5+
-        m = re.match('gcc .+ (\d+)\.', text)
-        if m:
-            return 'gcc', m.group(1)
+        lines = result.output.split('\n')
+        for text in lines:
+            # Apple clang
+            m = re.match('Apple (LLVM|clang) version (\d+)', text)
+            if m:
+                return 'clang', m.group(2)
+            # LLVM clang
+            m = re.match('.*(LLVM|clang) version (\d+)', text)
+            if m:
+                return 'clang', m.group(2)
+            # GCC 4.x
+            m = re.match('gcc .+ (4\.\d+)', text)
+            if m:
+                return 'gcc', m.group(1)
+            # GCC 5+
+            m = re.match('gcc .+ (\d+)\.', text)
+            if m:
+                return 'gcc', m.group(1)
     return None, None
 
 
