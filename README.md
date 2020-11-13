@@ -3,8 +3,8 @@
 This is a central repository for the build tool and docker images for the [AWS Common Runtime Team](https://github.com/orgs/awslabs/teams/aws-sdk-common-runtime-team)
 
 ## Using Builder
-Builder is bundled into a zipapp. Within a given project using builder, builder.json in the root of the project will provide configuration data. 
-If you wish to add custom actions or programmatically generate data you can add python scripts in the <root>/.builder/ directory. All 
+Builder is bundled into a zipapp. Within a given project using builder, builder.json in the root of the project will provide configuration data.
+If you wish to add custom actions or programmatically generate data you can add python scripts in the <root>/.builder/ directory. All
 scripts in this directory will be loaded and scanned for subclasses of Project, Import, and Action.
 
 ### Requirements
@@ -17,7 +17,7 @@ Usage: ```builder.pyz [build|inspect|<action-name>] [spec] [OPTIONS]```
 * ```build``` - Build the project using either the steps in the builder.json project, or via the default CMake build/test actions
 * ```inspect``` - Inspect the current host, and report what compilers and tools the builder can find
 * ```<action-name>``` - Runs the named action, either from within builder or your project
-* ```[spec]``` - Specs are of the form host-compiler-version-target-arch\[-downstream\]. Any part can be replaced with ```default```, 
+* ```[spec]``` - Specs are of the form host-compiler-version-target-arch\[-downstream\]. Any part can be replaced with ```default```,
                  and ```default-downstream``` and ```downstream``` are also valid (and equivalent to each other)
 * ```-p|--project PROJECT``` - Specifies the project to look for locally. If the project is not found, it will be cloned from GitHub
 * ```--spec SPEC``` - Force a spec to be used. See \[spec\] above
@@ -51,7 +51,7 @@ Each project has a configuration file: builder.json in the root of the project. 
 scripts that will be automatically loaded when the project is found by the builder. Both of these are techncially optional, if the builder
 finds something that looks like a git repo full of code in a directory with the same name as the project it is searching for, it will use
 that instead. There are a few external dependencies (s2n and libcrypto, for instance) which are configured by scripts embedded in builder
-(see imports/). 
+(see imports/).
 
 #### Minimal config:
 ```json
@@ -61,7 +61,7 @@ that instead. There are a few external dependencies (s2n and libcrypto, for inst
 ```
 
 #### Detailed config:
-NOTE: Any key can be prefixed with a ```!``` to overwrite the config value, rather than to add to it. 
+NOTE: Any key can be prefixed with a ```!``` to overwrite the config value, rather than to add to it.
       Any key can be prefixed with a ```+``` to force a value to be added to an array.
 
 See builder/data.py for more info/defaults/possible values.
@@ -156,7 +156,7 @@ See builder/data.py for more info/defaults/possible values.
     ],
 
     // Per-environment overrides
-    // Overrides are applied per host, per target/architecture, and per compiler/version. Any top-level config 
+    // Overrides are applied per host, per target/architecture, and per compiler/version. Any top-level config
     // value can be overridden from within these override sections, see below for examples.
 
     // Configuration differences per host (the machine/image the build runs on)
@@ -192,7 +192,7 @@ See builder/data.py for more info/defaults/possible values.
             "architectures": {
                 "x64": {}
             }
-        }, 
+        },
         "windows" : {
             "architectures": {
                 "x86": {
@@ -239,7 +239,7 @@ class MyAction(Builder.Action):
 
 This can be run with ```builder.pyz my-action``` or ```builder.pyz myaction``` or ```builder.pyz MyAction```
 
-See api.py for the available API to actions. See https://github.com/awslabs/aws-crt-python/tree/master/.builder/actions for examples.
+See api.py for the available API to actions. See https://github.com/awslabs/aws-crt-python/tree/main/.builder/actions for examples.
 
 #### Action chaining
 The ```run(self, env)``` method of any action can return an Action or list of Actions to run before considering this action complete.
@@ -248,7 +248,7 @@ return ```Builder.Script([additional, commands, to, run])```
 
 #### The Virtual Shell
 There is a virtual shell available via ```env.shell```. It abstracts away dry run behavior, and allows for cross-platform implementations
-of common shell operations (cd, cwd, pushd, popd, setenv, getenv, pushenv, popenv, where) and the ```exec()``` function for running 
+of common shell operations (cd, cwd, pushd, popd, setenv, getenv, pushenv, popenv, where) and the ```exec()``` function for running
 arbitrary commands.
 
 ## Developing on builder
@@ -262,9 +262,9 @@ debugging experience:
 
 ### Docker Images
 Each docker image has a script which will fetch the builder app baked into it, and will then call the builder with the arguments provided.
-Any push to the .github/docker-images directory will cause a rebuild of all of the docker images (see docker-images.yml). The 
-image layers are cached, so this should be quick unless you made a fundamental modification. Any push to the builder source, or any 
-python script, will be linted with autopep8 and will trigger a downstream build of enough projects to be sure that they won't 
+Any push to the .github/docker-images directory will cause a rebuild of all of the docker images (see docker-images.yml). The
+image layers are cached, so this should be quick unless you made a fundamental modification. Any push to the builder source, or any
+python script, will be linted with autopep8 and will trigger a downstream build of enough projects to be sure that they won't
 be broken (see lint.yml/sanity-test.yml)
 
 Installed on these docker images:

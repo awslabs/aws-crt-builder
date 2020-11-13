@@ -95,7 +95,6 @@ ARCHS = {
     'mips': {
         'arch': 'mips',
         'cross_compile_platform': 'linux-mips',
-        'imports': ['dockcross'],
     },
 }
 
@@ -184,7 +183,7 @@ HOSTS = {
         'sudo': False,
 
         'variables': {
-            'python': "/opt/python/cp37-cp37m/bin/python",
+            'python': "/opt/python/cp39-cp39/bin/python",
         },
     },
     'windows': {
@@ -337,6 +336,7 @@ TARGETS = {
 }
 
 TARGETS['darwin'] = TARGETS['macos']
+TARGETS['osx'] = TARGETS['macos']
 
 for arch in ARCHS.keys():
     for alias in ARCHS[arch].get('aliases', []):
@@ -521,7 +521,7 @@ for arch in ['x86', 'x64']:
         PLATFORMS[alias_windows] = PLATFORMS[canonical_windows]
 
 # MacOS
-for mac in ['macos', 'darwin']:
+for mac in ['macos', 'darwin', 'osx']:
     canonical_mac = 'macos-x64'
     for alias in ARCHS['x64'].get('aliases', []):
         alias_mac = '{}-{}'.format(mac, alias)

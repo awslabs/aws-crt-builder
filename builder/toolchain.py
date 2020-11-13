@@ -4,7 +4,7 @@
 import os
 import re
 from data import COMPILERS
-from host import current_os, current_arch, normalize_target
+from host import current_os, current_arch, normalize_target, normalize_arch
 import util
 
 # helpful list of XCode clang output: https://gist.github.com/yamaya/2924292
@@ -74,7 +74,7 @@ def _msvc_versions():
 
 
 def _is_cross_compile(os, arch):
-    return os != "ios" and (os != current_os() or arch != current_arch())
+    return os != "ios" and (os != current_os() or normalize_arch(arch) != current_arch())
 
 
 class Toolchain(object):

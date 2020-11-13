@@ -55,8 +55,8 @@ def print_release_notes(env):
 
     package_path = sh.cwd()
 
-    print('Syncing to latest master...')
-    sh.exec('git', 'checkout', 'master', quiet=True)
+    print('Syncing to latest main...')
+    sh.exec('git', 'checkout', 'main', quiet=True)
     sh.exec('git', 'pull', quiet=True)
     sh.exec('git', 'submodule', 'update', '--init', quiet=True)
 
@@ -107,7 +107,7 @@ def print_release_notes(env):
             submodule['tags'], submodule['prev_commit'])
 
     print('Syncing back to latest...')
-    sh.exec('git', 'checkout', 'master', quiet=True)
+    sh.exec('git', 'checkout', 'main', quiet=True)
     sh.exec('git', 'submodule', 'update', '--init', quiet=True)
 
     if submodules:

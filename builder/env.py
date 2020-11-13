@@ -170,4 +170,5 @@ class Env(object):
         except:
             print("Current directory () is not a git repository".format(os.getcwd()))
 
-        return 'master'
+        # git symbolic-ref --short HEAD
+        return 'main'

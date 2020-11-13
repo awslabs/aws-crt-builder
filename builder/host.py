@@ -36,11 +36,15 @@ def current_platform():
     return '{}-{}'.format(current_os(), current_arch())
 
 
+def normalize_arch(arch):
+    return ARCHS[arch]['arch']
+
+
 def normalize_target(target):
     """ convert target into canonical os and arch """
     assert '-' in target
     os, arch = target.split('-')
-    arch = ARCHS[arch]['arch']
+    arch = normalize_arch(arch)
     return '{}-{}'.format(os, arch)
 
 

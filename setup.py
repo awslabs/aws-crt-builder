@@ -6,7 +6,7 @@ from subprocess import check_output
 
 git_branch = check_output(['git', 'rev-parse', '--abbrev-ref', 'HEAD'])
 version = 'v0.1-{}'.format(git_branch)
-if git_branch == 'master':
+if git_branch in ['master', 'main']:
     git_rev = check_output(['git', 'describe', '--abbrev=0'])
     version = git_rev
 
