@@ -91,13 +91,6 @@ class JDK8(Import):
         filename = '{}/jdk8{}'.format(install_dir, ext)
         print('Downloading {}'.format(url))
         fetch_and_extract(url, filename, install_dir)
-        print('Extracting {} to {}'.format(filename, install_dir))
-        if ext == '.tar.gz':
-            with tarfile.open(filename) as tar:
-                tar.extractall(install_dir, numeric_owner=True)
-        else:
-            with zipfile.ZipFile(filename) as zip:
-                zip.extractall(install_dir)
         os.remove(filename)
 
         jdk_home = glob.glob(os.path.join(install_dir, 'jdk*'))[0]
