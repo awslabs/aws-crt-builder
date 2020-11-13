@@ -84,6 +84,8 @@ def _is_cross_compile(target_os, target_arch):
     print('target_os={} current_os={} target_arch={} normalize_arch={} current_arch={}'.format(
         target_os, current_os(), target_arch, normalize_arch(target_arch), current_arch()))
     if target_os != current_os() or normalize_arch(target_arch) != current_arch():
+        print('IS_CROSS_COMPILE: {}, {}'.format(target_os !=
+                                                current_os(), normalize_arch(target_arch) != current_arch()))
         return True
     return False
 
