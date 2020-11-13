@@ -11,7 +11,7 @@ class DownloadSource(Action):
 
     def __init__(self, **kwargs):
         self.project = kwargs['project']
-        self.branch = kwargs.get('branch', 'master')
+        self.branch = kwargs.get('branch', 'main')
         self.path = os.path.abspath(os.path.join(
             kwargs.get('path', '.'), self.project.name))
 
@@ -32,7 +32,7 @@ class DownloadSource(Action):
             sh.exec("git", "checkout", self.branch, always=True, quiet=True)
             print('Switched to branch {}'.format(self.branch))
         except:
-            print("Project {} does not have a branch named {}, using master".format(
+            print("Project {} does not have a branch named {}, using main".format(
                 self.project.name, self.branch))
 
         sh.exec('git', 'submodule', 'update',

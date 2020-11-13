@@ -5,6 +5,7 @@ on:
     branches:
       - '*'
       - '!master'
+      - '!main'
     paths:
       - '.github/workflows/sanity-test.yml'
       - 'builder/**'

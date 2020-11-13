@@ -9,7 +9,7 @@ variant=$1
 arch=$2
 version=$3
 
-crt_java_branch=master
+crt_java_branch=main
 if [ $# -gt 3 ]; then
     crt_java_branch=$4
 fi
