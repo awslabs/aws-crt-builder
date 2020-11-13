@@ -73,8 +73,13 @@ def _msvc_versions():
     return versions
 
 
-def _is_cross_compile(os, arch):
-    return os != "ios" and (os != current_os() or normalize_arch(arch) != current_arch())
+def _is_cross_compile(target_os, arch):
+    # Mac compiling for anything that isn't iOS or itself
+    if current_os() == 'macos' and target_os not in ["macos", "ios"]:
+        return True
+    if target_os != current_os() or normalize_arch(arch) != current_arch():
+        return True
+    return False
 
 
 class Toolchain(object):
@@ -91,7 +96,7 @@ class Toolchain(object):
             self.compiler = spec.compiler
             self.compiler_version = spec.compiler_version
             self.target = spec.target
-            self.arch = spec.arch
+            self.arch = normalize_arch(spec.arch)
 
         # Pull out individual fields. Note this is not in an else to support overriding at construction time
         for slot in ('host', 'target', 'arch', 'compiler', 'compiler_version'):
