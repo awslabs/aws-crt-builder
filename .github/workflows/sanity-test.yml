@@ -122,6 +122,11 @@ jobs:
         run: |
           python3 builder.pyz build --project tests
 
+      - name: Sanity Test aws-c-common (Unix)
+        if:  matrix.host != 'windows-latest'
+        run: |
+          python3 builder.pyz build --project aws-c-common
+
       - name: Sanity Test Run Compat (Windows)
         if: matrix.host == 'windows-latest'
         run: |
@@ -138,6 +143,11 @@ jobs:
         if: matrix.host == 'windows-latest'
         run: |
           python builder.pyz build --project tests
+
+      - name: Sanity Test aws-c-common (Windows)
+        if: matrix.host == 'windows-latest'
+        run: |
+          python builder.pyz build --project aws-c-common
 
   # Make sure cross compiling works
   cross_compile:
