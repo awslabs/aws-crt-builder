@@ -248,9 +248,6 @@ jobs:
         project:
           - aws-c-mqtt
           - aws-c-http
-          - aws-c-auth
-          - aws-c-cal
-          - aws-c-compression
           - aws-crt-python
           - aws-crt-cpp
           - aws-crt-java
