@@ -557,8 +557,6 @@ PLATFORMS['android-armv8']['cross_compile_platform'] = 'android-arm64'
 for cc_arch in ['armv6', 'armv7', 'armv8']:
     for cc_os in ['linux', 'android']:
         canonical_platform = '{}-{}'.format(cc_os, cc_arch)
-        # Add cross compiler import
-        PLATFORMS[canonical_platform]['imports'] = ['dockcross']
         # link aliases to canonical config
         for alias in ARCHS[cc_arch].get('aliases', []):
             alias_platform = '{}-{}'.format(cc_os, alias)
