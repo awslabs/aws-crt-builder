@@ -80,7 +80,7 @@ def _is_cross_compile(target_os, target_arch):
         return True
     # Windows is never a cross compile, just toolset swap
     if current_os() == 'windows' and target_os == 'windows':
-        return True
+        return False
     if target_os != current_os() or normalize_arch(target_arch) != current_arch():
         return True
     return False
