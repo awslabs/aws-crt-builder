@@ -118,6 +118,7 @@ class Toolchain(object):
         self.shell_env = []
 
         if self.cross_compile:
+            print('Setting compiler to gcc for cross compile')
             self.compiler = 'gcc'
             # it's really 4.9, but don't need a separate entry for that
             self.compiler_version = '4.8'
