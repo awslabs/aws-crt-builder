@@ -83,16 +83,13 @@ ARCHS = {
     },
     'armv6': {
         'arch': 'armv6',
-        'cross_compile_platform': 'linux-armv6',
     },
     'armv7': {
         'arch': 'armv7',
-        'cross_compile_platform': 'linux-armv7',
         'aliases': ['armv7a']
     },
     'armv8': {
         'arch': 'armv8',
-        'cross_compile_platform': 'linux-arm64',
         'aliases': ['arm64', 'arm64v8', 'arm64v8a', 'aarch64'],
     },
     'mips': {
@@ -281,6 +278,7 @@ TARGETS = {
     },
     'ios': {
         'cmake_args': [
+            '-GXcode',
             '-DCMAKE_SYSTEM_NAME=iOS',
             '-DCMAKE_OSX_ARCHITECTURES="{osx_architectures}"',
             '-DCMAKE_OSX_DEPLOYMENT_TARGET={osx_deployment_target}'
@@ -350,7 +348,7 @@ for arch in ARCHS.keys():
 COMPILERS = {
     'default': {
         'hosts': ['macos', 'linux', 'windows', 'freebsd'],
-        'targets': ['macos', 'linux', 'windows', 'freebsd', 'android'],
+        'targets': ['macos', 'linux', 'windows', 'freebsd', 'android', 'ios'],
 
         'versions': {
             'default': {}
@@ -509,6 +507,9 @@ PLATFORMS = {
     'android-armv6': {},
     'android-armv7': {},
     'android-armv8': {},
+    'ios-armv8': {
+        'cross_compile_platform': None
+    },
     # Linux is done procedurally, below
 }
 
@@ -527,6 +528,9 @@ for mac in ['macos', 'darwin', 'osx']:
         if alias_mac != canonical_mac:
             PLATFORMS[alias_mac] = PLATFORMS[canonical_mac]
 
+# iOS
+PLATFORMS['ios-arm64'] = PLATFORMS['ios-armv8']
+
 # FreeBSD
 for alias in ARCHS['x64'].get('aliases', []):
     canonical_freebsd = 'freebsd-x64'
@@ -538,7 +542,7 @@ for alias in ARCHS['x64'].get('aliases', []):
 # Linux works on every arch we support
 for arch in ARCHS.keys():
     canonical_linux = 'linux-{}'.format(arch)
-    PLATFORMS[canonical_linux] = {}
+    PLATFORMS[canonical_linux] = PLATFORMS.get(canonical_linux, {})
     for alias in ARCHS[arch].get('aliases', []):
         alias_linux = 'linux-{}'.format(alias)
         PLATFORMS[alias_linux] = PLATFORMS[canonical_linux]
@@ -553,6 +557,7 @@ PLATFORMS['android-armv8']['cross_compile_platform'] = 'android-arm64'
 for cc_arch in ['armv6', 'armv7', 'armv8']:
     for cc_os in ['linux', 'android']:
         canonical_platform = '{}-{}'.format(cc_os, cc_arch)
+        # link aliases to canonical config
         for alias in ARCHS[cc_arch].get('aliases', []):
             alias_platform = '{}-{}'.format(cc_os, alias)
             PLATFORMS[alias_platform] = PLATFORMS[canonical_platform]

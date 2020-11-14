@@ -81,9 +81,12 @@ def _build_project(env, project, build_tests=False):
     # configure
     sh.exec(*toolchain.shell_env, "cmake", cmake_args, check=True)
 
+    parallel = ["--", "-j"]
+    if toolchain.compiler == 'msvc':
+        parallel = ['--', '-maxcpucount']
     # build
     sh.exec(*toolchain.shell_env, "cmake", "--build", project_build_dir, "--config",
-            build_config, check=True)
+            build_config, *parallel, check=True)
 
     # install
     sh.exec(*toolchain.shell_env, "cmake", "--build", project_build_dir, "--config",
