@@ -124,7 +124,7 @@ class InstallCompiler(Action):
         # add dockcross as an implicit import if cross-compiling
         from pprint import pprint
         print('TOOLCHAIN: ', end='')
-        pprint(toolchain)
+        pprint(toolchain.__dict__)
         if toolchain.cross_compile:
             setattr(env.project, 'imports', getattr(
                 env.project, 'imports', []) + ['dockcross'])
