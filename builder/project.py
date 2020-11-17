@@ -366,7 +366,7 @@ class Project(object):
 
         tree_transform(kwargs, 'upstream', _make_project_refs)
         for p in kwargs.get('upstream', []):
-            p.run_tests = False
+            p.config['run_tests'] = False
         tree_transform(kwargs, 'downstream', _make_project_refs)
         tree_transform(kwargs, 'imports', _make_import_refs)
 
