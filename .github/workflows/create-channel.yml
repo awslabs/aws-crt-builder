@@ -112,16 +112,13 @@ jobs:
         name: release_tag
         path: release_tag
 
-    - name: Export IMAGE_TAG
-      run: echo "::set-env name=IMAGE_TAG::$(cat release_tag/tag)"
-
     - name: Login to docker repo
       run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login docker.pkg.github.com -u awslabs --password-stdin
 
-    - name: Import latest aws-crt-${{ matrix.variant }} image to channels/${{ env.IMAGE_TAG }}
+    - name: Import latest aws-crt-${{ matrix.variant }} image to channels
       run: |
         docker pull docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:latest
-        docker tag docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:latest docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:${{ env.IMAGE_TAG }}
-        docker push docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:${{ env.IMAGE_TAG }}
-        docker save docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:${{ env.IMAGE_TAG }} | gzip > /tmp/aws-crt-${{ matrix.variant }}-${{ env.IMAGE_TAG }}.tar.gz
-        aws s3 cp --no-progress /tmp/aws-crt-${{ matrix.variant }}-${{ env.IMAGE_TAG }}.tar.gz s3://${{env.AWS_S3_BUCKET}}/channels/${{ env.IMAGE_TAG }}/aws-crt-${{ matrix.variant }}.tar.gz
+      docker tag docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:latest docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:$(cat release_tag/tag)
+        docker push docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:$(cat release_tag/tag)
+        docker save docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:$(cat release_tag/tag) | gzip > /tmp/aws-crt-${{ matrix.variant }}-$(cat release_tag/tag).tar.gz
+        aws s3 cp --no-progress /tmp/aws-crt-${{ matrix.variant }}-$(cat release_tag/tag).tar.gz s3://${{env.AWS_S3_BUCKET}}/channels/$(cat release_tag/tag)/aws-crt-${{ matrix.variant }}.tar.gz
