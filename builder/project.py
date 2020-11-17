@@ -267,8 +267,8 @@ def _not_resolved(s):
 
 
 def _make_project_refs(refs):
-    return [r if isnamedtuple(r) else namedtuple('ProjectReference', list(r.keys())+['resolved'])(
-        *r.values(), _not_resolved) for r in refs]
+    return [r if isnamedtuple(r) else namedtuple('ProjectReference', ['config']+list(r.keys())+['resolved'])(
+        {}, *r.values(), _not_resolved) for r in refs]
 
 
 def _make_import_refs(refs):
