@@ -104,11 +104,8 @@ jobs:
         name: release_tag
         path: release_tag
 
-    - name: Export IMAGE_TAG
-      run: echo "::set-env name=IMAGE_TAG::$(cat release_tag/tag)"
-
     - name: Install entrypoint
-      run: cat .github/docker-images/entrypoint.sh | sed s/version=LATEST/version=$IMAGE_TAG/ > .github/docker-images/${{ matrix.variant }}/entrypoint.sh
+      run: cat .github/docker-images/entrypoint.sh | sed s/version=LATEST/version=$(cat release_tag/tag)/ > .github/docker-images/${{ matrix.variant }}/entrypoint.sh
 
     - name: Install qemu/docker
       run: docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
@@ -120,7 +117,7 @@ jobs:
         username: awslabs
         password: ${{ secrets.DOCKER_TOKEN }}
         image_name: awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}
-        image_tag: ${{ env.IMAGE_TAG }}
+        image_tag: $(cat release_tag/tag)
         context: .github/docker-images/${{ matrix.variant }}
         build_extra_args: --compress=true
 
@@ -131,14 +128,14 @@ jobs:
 
     - name: Tag/push release images as latest
       run: |
-        docker tag docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:$IMAGE_TAG ${{ secrets.AWS_ECR_REPO }}/aws-crt/${{ matrix.variant }}:latest
-        docker tag docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:$IMAGE_TAG docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:latest
-        docker push docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:$IMAGE_TAG
+        docker tag docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:$(cat release_tag/tag) ${{ secrets.AWS_ECR_REPO }}/aws-crt/${{ matrix.variant }}:latest
+        docker tag docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:$(cat release_tag/tag) docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:latest
+        docker push docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:$(cat release_tag/tag)
         docker push docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:latest
         docker push ${{ secrets.AWS_ECR_REPO }}/aws-crt/${{ matrix.variant }}:latest
 
-    - name: Export aws-crt-${{ matrix.variant }} image to S3/releases/${{ env.IMAGE_TAG }}
+    - name: Export aws-crt-${{ matrix.variant }} image to S3/releases
       run: |
-        docker save docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:${{ env.IMAGE_TAG }} | gzip > /tmp/aws-crt-${{ matrix.variant }}-${{ env.IMAGE_TAG }}.tar.gz
-        aws s3 cp --no-progress /tmp/aws-crt-${{ matrix.variant }}-${{ env.IMAGE_TAG }}.tar.gz s3://${{env.AWS_S3_BUCKET}}/releases/${{ env.IMAGE_TAG }}/aws-crt-${{ matrix.variant }}.tar.gz
-        aws s3 cp --no-progress s3://${{env.AWS_S3_BUCKET}}/releases/${{ env.IMAGE_TAG }}/aws-crt-${{ matrix.variant }}.tar.gz s3://${{env.AWS_S3_BUCKET}}/LATEST/aws-crt-${{ matrix.variant }}.tar.gz
+        docker save docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:$(cat release_tag/tag) | gzip > /tmp/aws-crt-${{ matrix.variant }}-$(cat release_tag/tag).tar.gz
+        aws s3 cp --no-progress /tmp/aws-crt-${{ matrix.variant }}-$(cat release_tag/tag).tar.gz s3://${{env.AWS_S3_BUCKET}}/releases/$(cat release_tag/tag)/aws-crt-${{ matrix.variant }}.tar.gz
+        aws s3 cp --no-progress s3://${{env.AWS_S3_BUCKET}}/releases/$(cat release_tag/tag)/aws-crt-${{ matrix.variant }}.tar.gz s3://${{env.AWS_S3_BUCKET}}/LATEST/aws-crt-${{ matrix.variant }}.tar.gz
