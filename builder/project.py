@@ -479,7 +479,7 @@ class Project(object):
         if not env.config.get('run_tests', False):
             return False
         # Are tests disabled in this project?
-        if not self.config.get('run_tests', self == env.project) or not self.config.get('build_tests', self == env.project):
+        if not self.config.get('run_tests', True) or not self.config.get('build_tests', True):
             return False
         # Are test steps available?
         if not self.config.get('test_steps', []):
