@@ -55,7 +55,6 @@ jobs:
   import-latest:
     name: ${{ matrix.variant }}
     runs-on: ubuntu-latest
-    needs: [tag]
     strategy:
       fail-fast: false
       matrix:
