@@ -44,7 +44,7 @@ jobs:
       run: |
         mkdir -p build
         python3 -m zipapp --python="/usr/bin/env python3" --output=build/builder builder
-        aws s3 cp build/builder s3://$AWS_S3_BUCKET/channels/${{ steps.tag.outputs.release_tag }}/builder.pyz
+        aws s3 cp build/builder s3://$AWS_S3_BUCKET/channels/{{ steps.tag.outputs.release_tag }}/builder.pyz
 
     - name: Artifact builder
       uses: actions/upload-artifact@v1
@@ -85,7 +85,7 @@ jobs:
 
     - name: Import latest aws-crt-${{ matrix.variant }} image to channels
       run: |
-        export IMAGE_TAG=${{ steps.tag.outputs.release_tag }}
+        export IMAGE_TAG={{ steps.tag.outputs.release_tag }}
         docker pull docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:latest
         docker tag docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:latest docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:$IMAGE_TAG
         docker push docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:$IMAGE_TAG
