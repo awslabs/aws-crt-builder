@@ -285,7 +285,7 @@ TARGETS = {
         ],
         'run_tests': False,
         'architectures': {
-            'arm64': {
+            'armv8': {
                 'variables': {
                     'osx_architectures': 'arm64'
                 }
@@ -529,7 +529,9 @@ for mac in ['macos', 'darwin', 'osx']:
             PLATFORMS[alias_mac] = PLATFORMS[canonical_mac]
 
 # iOS
-PLATFORMS['ios-arm64'] = PLATFORMS['ios-armv8']
+for alias in ARCHS['armv8'].get('aliases', []):
+    alias_ios = 'ios-{}'.format(alias)
+    PLATFORMS[alias_ios] = PLATFORMS['ios-armv8']
 
 # FreeBSD
 for alias in ARCHS['x64'].get('aliases', []):
