@@ -42,7 +42,7 @@ jobs:
 
     - name: Package builder to S3
       run: |
-        export CHANNEL={{ steps.tag.outputs.release_tag }}
+        export CHANNEL=${{ steps.tag.outputs.release_tag }}
         mkdir -p build
         python3 -m zipapp --python="/usr/bin/env python3" --output=build/builder builder
         aws s3 cp build/builder s3://$AWS_S3_BUCKET/channels/$CHANNEL/builder.pyz
