@@ -28,11 +28,20 @@ def looks_like_code(path):
 
 def _apply_value(obj, key, new_value):
     """ Merge values according to type """
-    key_type = type(new_value)
+    try:
+        key_type = type(obj[key])
+    except:
+        key_type = type(new_value)
     if key_type == list:
         # Apply the config's value before the existing list
         val = obj[key]
-        obj[key] = (new_value + val) if val else new_value
+        if val:
+            if isinstance(new_value, list):
+                obj[key] = new_value + val
+            else:
+                obj[key] = [new_value] + val
+        else:
+            obj[key] = new_value
 
     elif key_type == dict:
         # Iterate each element and recursively apply the values
@@ -173,7 +182,10 @@ def produce_config(build_spec, project, overrides=None, **additional_variables):
 
     if overrides:
         for key, val in overrides.items():
-            new_version[key] = val
+            if key.startswith('!'):
+                new_version[key] = val
+            else:
+                _apply_value(new_version, key, val)
 
     # Default variables
     replacements = {
