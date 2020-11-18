@@ -120,7 +120,7 @@ jobs:
         username: awslabs
         password: ${{ secrets.DOCKER_TOKEN }}
         image_name: awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}
-        image_tag: ${{ env.IMAGE_TAG }}
+        image_tag: ${{ steps.release.outputs.release_tag }}
         context: .github/docker-images/${{ matrix.variant }}
         build_extra_args: --compress=true
 
