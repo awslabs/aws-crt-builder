@@ -69,8 +69,8 @@ jobs:
       uses: actions/checkout@v1
 
     - name: Get release tag
-        uses: ./.github/actions/release-tag
-        id: tag
+      uses: ./.github/actions/release-tag
+      id: tag
 
     - name: Install entrypoint
       run: cat .github/docker-images/entrypoint.sh | sed s/version=LATEST/version=$(cat release_tag/tag)/ > .github/docker-images/${{ matrix.variant }}/entrypoint.sh
