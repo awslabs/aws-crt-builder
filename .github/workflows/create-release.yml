@@ -15,7 +15,6 @@ jobs:
   package:
     name: Package builder app
     runs-on: ubuntu-latest
-    needs: tag
 
     steps:
     - name: Checkout Source
@@ -46,7 +45,6 @@ jobs:
   export-release:
     name: Release aws-crt-${{ matrix.variant }}
     runs-on: ubuntu-latest
-    needs: [tag]
     strategy:
       fail-fast: false
       matrix:
