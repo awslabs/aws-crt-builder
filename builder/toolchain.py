@@ -76,8 +76,8 @@ def _msvc_versions():
 
 def _is_cross_compile(target_os, target_arch):
     # Mac compiling for anything that isn't iOS or itself
-    if current_os() == 'macos' and target_os not in ["macos", "ios"]:
-        return True
+    if current_os() == 'macos' and target_os in ["macos", "ios"]:
+        return False
     # Windows is never a cross compile, just toolset swap
     if current_os() == 'windows' and target_os == 'windows':
         return False
