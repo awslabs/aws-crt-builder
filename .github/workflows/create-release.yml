@@ -12,13 +12,6 @@ env:
   AWS_REGION: 'us-east-1'
 
 jobs:
-  tag:
-    name: Artifact release tag
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout Sources
-      uses: actions/checkout@v1
-
   package:
     name: Package builder app
     runs-on: ubuntu-latest
@@ -32,7 +25,7 @@ jobs:
         uses: ./.github/actions/release-tag
         id: tag
         with:
-          output: tag
+          output: release_tag
 
       # re-enable this when requirements.txt has actual dependencies
       # - name: Bundle dependencies
@@ -81,7 +74,7 @@ jobs:
         uses: ./.github/actions/release-tag
         id: tag
         with:
-          output: tag
+          output: release_tag
 
     - name: Install entrypoint
       run: cat .github/docker-images/entrypoint.sh | sed s/version=LATEST/version=$(cat release_tag/tag)/ > .github/docker-images/${{ matrix.variant }}/entrypoint.sh
