@@ -83,7 +83,7 @@ jobs:
         username: awslabs
         password: ${{ secrets.DOCKER_TOKEN }}
         image_name: awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}
-        image_tag: ${{ steps.release.outputs.release_tag }}
+        image_tag: ${{ steps.tag.outputs.release_tag }}
         context: .github/docker-images/${{ matrix.variant }}
         build_extra_args: --compress=true
 
@@ -94,7 +94,7 @@ jobs:
 
     - name: Tag/push release images as latest
       run: |
-        export IMAGE_TAG=${{ steps.release.outputs.release_tag }}
+        export IMAGE_TAG=${{ steps.tag.outputs.release_tag }}
         docker tag docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:$IMAGE_TAG ${{ secrets.AWS_ECR_REPO }}/aws-crt/${{ matrix.variant }}:latest
         docker tag docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:$IMAGE_TAG docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:latest
         docker push docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:$IMAGE_TAG
@@ -103,7 +103,7 @@ jobs:
 
     - name: Export aws-crt-${{ matrix.variant }} image to S3/releases
       run: |
-        export IMAGE_TAG=$${{ steps.release.outputs.release_tag }}
+        export IMAGE_TAG=$${{ steps.tag.outputs.release_tag }}
         docker save docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:$IMAGE_TAG | gzip > /tmp/aws-crt-${{ matrix.variant }}-$IMAGE_TAG.tar.gz
         aws s3 cp --no-progress /tmp/aws-crt-${{ matrix.variant }}-$IMAGE_TAG.tar.gz s3://${{env.AWS_S3_BUCKET}}/releases/$IMAGE_TAG/aws-crt-${{ matrix.variant }}.tar.gz
         aws s3 cp --no-progress s3://${{env.AWS_S3_BUCKET}}/releases/$IMAGE_TAG/aws-crt-${{ matrix.variant }}.tar.gz s3://${{env.AWS_S3_BUCKET}}/LATEST/aws-crt-${{ matrix.variant }}.tar.gz
