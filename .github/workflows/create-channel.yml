@@ -86,7 +86,7 @@ jobs:
 
     - name: Import latest aws-crt-${{ matrix.variant }} image to channels
       run: |
-        export IMAGE_TAG={{ steps.tag.outputs.release_tag }}
+        export IMAGE_TAG=${{ steps.tag.outputs.release_tag }}
         docker pull docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:latest
         docker tag docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:latest docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:$IMAGE_TAG
         docker push docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:$IMAGE_TAG
