@@ -42,7 +42,7 @@ class Env(object):
         for key, val in self.args.cli_config.items():
             prev = self.config.get(key)
             if prev:
-                if not isinstance(list, prev):
+                if not isinstance(prev, list):
                     prev = [prev]
                     val = prev.push(val)
             self.config[key] = val
