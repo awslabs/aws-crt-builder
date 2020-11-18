@@ -267,8 +267,8 @@ def _not_resolved(s):
 
 
 def _make_project_refs(refs):
-    return [r if isnamedtuple(r) else namedtuple('ProjectReference', list(r.keys())+['resolved'])(
-        *r.values(), _not_resolved) for r in refs]
+    return [r if isnamedtuple(r) else namedtuple('ProjectReference', ['config']+list(r.keys())+['resolved'])(
+        {}, *r.values(), _not_resolved) for r in refs]
 
 
 def _make_import_refs(refs):
@@ -365,6 +365,8 @@ class Project(object):
         # Convert project json references to ProjectReferences
 
         tree_transform(kwargs, 'upstream', _make_project_refs)
+        for p in kwargs.get('upstream', []):
+            p.config['run_tests'] = False
         tree_transform(kwargs, 'downstream', _make_project_refs)
         tree_transform(kwargs, 'imports', _make_import_refs)
 
@@ -479,7 +481,7 @@ class Project(object):
         if not env.config.get('run_tests', False):
             return False
         # Are tests disabled in this project?
-        if not self.config.get('run_tests', self == env.project) or not self.config.get('build_tests', self == env.project):
+        if not self.config.get('run_tests', True) or not self.config.get('build_tests', True):
             return False
         # Are test steps available?
         if not self.config.get('test_steps', []):
