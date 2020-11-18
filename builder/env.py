@@ -24,6 +24,7 @@ class Env(object):
                 super().__setitem__(item, value)
                 env._publish_variable(item, value)
         self.variables = Variables()
+        self.config = {}
 
         # OVERRIDES: copy incoming config, overwriting defaults
         for key, val in config.items():
@@ -38,7 +39,13 @@ class Env(object):
             self.shell = Shell(self.dryrun)
 
         # Default config to whatever is on the command line, fill in later when project is loaded
-        self.config = self.args.cli_config
+        for key, val in self.args.cli_config.items():
+            prev = self.config.get(key)
+            if prev:
+                if not isinstance(list, prev):
+                    prev = [prev]
+                    val = prev.push(val)
+            self.config[key] = val
 
         # build environment set up
         self.launch_dir = os.path.abspath(self.shell.cwd())
