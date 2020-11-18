@@ -18,32 +18,30 @@ jobs:
     needs: tag
 
     steps:
-      - name: Checkout Source
-        uses: actions/checkout@v1
+    - name: Checkout Source
+      uses: actions/checkout@v1
 
-      - name: Get release tag
-        uses: ./.github/actions/release-tag
-        id: tag
-        with:
-          output: release_tag
+    - name: Get release tag
+      uses: ./.github/actions/release-tag
+      id: tag
 
-      # re-enable this when requirements.txt has actual dependencies
-      # - name: Bundle dependencies
-      #   run: |
-      #     python3 -m pip install -r requirements.txt --target builder
-      #     rm -rf builder/*.dist-info
+    # re-enable this when requirements.txt has actual dependencies
+    # - name: Bundle dependencies
+    #   run: |
+    #     python3 -m pip install -r requirements.txt --target builder
+    #     rm -rf builder/*.dist-info
 
-      - name: Package builder to S3
-        run: |
-          mkdir -p build
-          python3 -m zipapp --python="/usr/bin/env python3" --output=build/builder builder
-          aws s3 cp build/builder s3://$AWS_S3_BUCKET/releases/${{ steps.tag.outputs.release_tag }}/builder.pyz
+    - name: Package builder to S3
+      run: |
+        mkdir -p build
+        python3 -m zipapp --python="/usr/bin/env python3" --output=build/builder builder
+        aws s3 cp build/builder s3://$AWS_S3_BUCKET/releases/${{ steps.tag.outputs.release_tag }}/builder.pyz
 
-      - name: Artifact builder
-        uses: actions/upload-artifact@v1
-        with:
-          name: builder
-          path: build/builder
+    - name: Artifact builder
+      uses: actions/upload-artifact@v1
+      with:
+        name: builder
+        path: build/builder
 
   export-release:
     name: Release aws-crt-${{ matrix.variant }}
@@ -73,8 +71,6 @@ jobs:
     - name: Get release tag
         uses: ./.github/actions/release-tag
         id: tag
-        with:
-          output: release_tag
 
     - name: Install entrypoint
       run: cat .github/docker-images/entrypoint.sh | sed s/version=LATEST/version=$(cat release_tag/tag)/ > .github/docker-images/${{ matrix.variant }}/entrypoint.sh
