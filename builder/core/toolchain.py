@@ -107,6 +107,11 @@ class Toolchain(object):
             if slot in kwargs:
                 setattr(self, slot, kwargs[slot])
 
+        if self.target == 'default':
+            self.target = current_os()
+        if self.arch == 'default':
+            self.arch = current_arch()
+
         # detect cross-compile
         self.cross_compile = _is_cross_compile(self.target, self.arch)
         self.platform = normalize_target(
