@@ -41,35 +41,35 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Source
-        uses: actions/checkout@v1
+    - name: Checkout Source
+      uses: actions/checkout@v1
 
-      - name: Get release tag
+    - name: Get release tag
       uses: ./.github/actions/release-tag
       id: tag
       with:
         output: tag
 
-      - run: echo TAG ${{ steps.tag.outputs.release_tag }}
+    - run: echo TAG ${{ steps.tag.outputs.release_tag }}
 
-      # re-enable this when requirements.txt has actual dependencies
-      # - name: Bundle dependencies
-      #   run: |
-      #     python3 -m pip install -r requirements.txt --target builder
-      #     rm -rf builder/*.dist-info
+    # re-enable this when requirements.txt has actual dependencies
+    # - name: Bundle dependencies
+    #   run: |
+    #     python3 -m pip install -r requirements.txt --target builder
+    #     rm -rf builder/*.dist-info
 
-      - name: Package builder to S3
-        run: |
-          mkdir -p build
-          python3 -m zipapp --python="/usr/bin/env python3" --output=build/builder.pyz builder
-          aws s3 cp build/builder.pyz s3://$AWS_S3_BUCKET/channels/${{ steps.tag.outputs.release_tag }}/builder.pyz
-          zipinfo -1 build/builder.pyz
+    - name: Package builder to S3
+      run: |
+        mkdir -p build
+        python3 -m zipapp --python="/usr/bin/env python3" --output=build/builder.pyz builder
+        aws s3 cp build/builder.pyz s3://$AWS_S3_BUCKET/channels/${{ steps.tag.outputs.release_tag }}/builder.pyz
+        zipinfo -1 build/builder.pyz
 
-      - name: Artifact builder
-        uses: actions/upload-artifact@v1
-        with:
-          name: builder
-          path: build/builder.pyz
+    - name: Artifact builder
+      uses: actions/upload-artifact@v1
+      with:
+        name: builder
+        path: build/builder.pyz
 
   sanity_test:
     name: Sanity Test
@@ -79,58 +79,58 @@ jobs:
     needs: package
     runs-on: ${{ matrix.host }}
     steps:
-      - name: Checkout Source
-        uses: actions/checkout@v1
+    - name: Checkout Source
+      uses: actions/checkout@v1
 
-      - name: Install builder
-        uses: actions/download-artifact@v1
-        with:
-          name: builder
-          path: .
+    - name: Install builder
+      uses: actions/download-artifact@v1
+      with:
+        name: builder
+        path: .
 
-      - name: Sanity Test Run Compat (Unix)
-        if:  matrix.host != 'windows-latest'
-        run: |
-          ls -al
-          zipinfo -1 builder.pyz
-          python3 builder.pyz run test --project tests
+    - name: Sanity Test Run Compat (Unix)
+      if:  matrix.host != 'windows-latest'
+      run: |
+        ls -al
+        zipinfo -1 builder.pyz
+        python3 builder.pyz run test --project tests
 
-      - name: Sanity Test Action (Unix)
-        if:  matrix.host != 'windows-latest'
-        run: |
-          python3 builder.pyz test --project tests
+    - name: Sanity Test Action (Unix)
+      if:  matrix.host != 'windows-latest'
+      run: |
+        python3 builder.pyz test --project tests
 
-      - name: Sanity Test Build (Unix)
-        if:  matrix.host != 'windows-latest'
-        run: |
-          python3 builder.pyz build --project tests
+    - name: Sanity Test Build (Unix)
+      if:  matrix.host != 'windows-latest'
+      run: |
+        python3 builder.pyz build --project tests
 
-      - name: Sanity Test aws-c-common (Unix)
-        if:  matrix.host != 'windows-latest'
-        run: |
-          python3 builder.pyz build --project aws-c-common
+    - name: Sanity Test aws-c-common (Unix)
+      if:  matrix.host != 'windows-latest'
+      run: |
+        python3 builder.pyz build --project aws-c-common
 
-      - name: Sanity Test Run Compat (Windows)
-        if: matrix.host == 'windows-latest'
-        run: |
-          choco install --no-progress vswhere
-          python builder.pyz run test --project tests
+    - name: Sanity Test Run Compat (Windows)
+      if: matrix.host == 'windows-latest'
+      run: |
+        choco install --no-progress vswhere
+        python builder.pyz run test --project tests
 
-      - name: Sanity Test Action (Windows)
-        if: matrix.host == 'windows-latest'
-        run: |
-          choco install --no-progress vswhere
-          python builder.pyz test --project tests
+    - name: Sanity Test Action (Windows)
+      if: matrix.host == 'windows-latest'
+      run: |
+        choco install --no-progress vswhere
+        python builder.pyz test --project tests
 
-      - name: Sanity Test Build (Windows)
-        if: matrix.host == 'windows-latest'
-        run: |
-          python builder.pyz build --project tests
+    - name: Sanity Test Build (Windows)
+      if: matrix.host == 'windows-latest'
+      run: |
+        python builder.pyz build --project tests
 
-      - name: Sanity Test aws-c-common (Windows)
-        if: matrix.host == 'windows-latest'
-        run: |
-          python builder.pyz build --project aws-c-common
+    - name: Sanity Test aws-c-common (Windows)
+      if: matrix.host == 'windows-latest'
+      run: |
+        python builder.pyz build --project aws-c-common
 
   # Make sure cross compiling works
   cross_compile:
@@ -172,17 +172,17 @@ jobs:
     needs: [package, sanity_test]
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Source
-        uses: actions/checkout@v1
+    - name: Checkout Source
+      uses: actions/checkout@v1
 
-      - name: Install builder
-        uses: actions/download-artifact@v1
-        with:
-          name: builder
-          path: .
+    - name: Install builder
+      uses: actions/download-artifact@v1
+      with:
+        name: builder
+        path: .
 
-      - name: Build aws-c-common
-        run: python3 builder.pyz build --project aws-c-common --compiler=${{ matrix.compiler }} run_tests=false
+    - name: Build aws-c-common
+      run: python3 builder.pyz build --project aws-c-common --compiler=${{ matrix.compiler }} run_tests=false
 
   # Make sure linux compilers + stdlibs are installing properly
   std-compat:
@@ -193,19 +193,19 @@ jobs:
         compiler: [gcc-8, clang-9]
         std: [c++11, c++14, c++17, c++2a]
     steps:
-      - name: Checkout Source
-        uses: actions/checkout@v1
+    - name: Checkout Source
+      uses: actions/checkout@v1
 
-      - name: Install builder
-        uses: actions/download-artifact@v1
-        with:
-          name: builder
-          path: .
+    - name: Install builder
+      uses: actions/download-artifact@v1
+      with:
+        name: builder
+        path: .
 
-      - name: Build aws-crt-cpp with ${{ matrix.compiler }}/${{ matrix.std }}
-        run: |
-          export CXXFLAGS=-std=${{ matrix.std }}
-          python3 builder.pyz build -p aws-crt-cpp --compiler=${{ matrix.compiler }}
+    - name: Build aws-crt-cpp with ${{ matrix.compiler }}/${{ matrix.std }}
+      run: |
+        export CXXFLAGS=-std=${{ matrix.std }}
+        python3 builder.pyz build -p aws-crt-cpp --compiler=${{ matrix.compiler }}
 
   release_notes:
     strategy:
@@ -224,14 +224,14 @@ jobs:
     needs: package
     runs-on: ubuntu-latest
     steps:
-      - name: Install builder
-        uses: actions/download-artifact@v1
-        with:
-          name: builder
-          path: .
+    - name: Install builder
+      uses: actions/download-artifact@v1
+      with:
+        name: builder
+        path: .
 
-      - name: Build ${{ matrix.project }}
-        run: python3 builder.pyz release-notes --project ${{ matrix.project }} --ignore-warnings
+    - name: Build ${{ matrix.project }}
+      run: python3 builder.pyz release-notes --project ${{ matrix.project }} --ignore-warnings
 
   # Make sure downstream projects that use the builder compile after any changes
   downstream:
@@ -249,17 +249,17 @@ jobs:
     needs: package
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Source
-        uses: actions/checkout@v1
+    - name: Checkout Source
+      uses: actions/checkout@v1
 
-      - name: Install builder
-        uses: actions/download-artifact@v1
-        with:
-          name: builder
-          path: .
+    - name: Install builder
+      uses: actions/download-artifact@v1
+      with:
+        name: builder
+        path: .
 
-      - name: Build ${{ matrix.project }}
-        run: python3 builder.pyz build --project ${{ matrix.project }}
+    - name: Build ${{ matrix.project }}
+      run: python3 builder.pyz build --project ${{ matrix.project }}
 
   # This mostly tests that libcrypto and s2n resolve correctly on manylinux vs ubuntu
   aws-c-io:
@@ -267,12 +267,12 @@ jobs:
       fail-fast: false
       matrix:
         linux:
-          - manylinux1-x86
-          - manylinux1-x64
-          - manylinux2014-x86
-          - manylinux2014-x64
-          - manylinux2014-aarch64
-          - ubuntu-16-x64
+        - manylinux1-x86
+        - manylinux1-x64
+        - manylinux2014-x86
+        - manylinux2014-x64
+        - manylinux2014-aarch64
+        - ubuntu-16-x64
 
     needs: package
     runs-on: ubuntu-latest
