@@ -26,6 +26,16 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+  unit_test:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Source
+      uses: actions/checkout@v1
+
+    - name: Run Tests
+      run: python3 -m unittest discover tests --verbose
+
   package:
     name: Package builder app
     runs-on: ubuntu-latest
@@ -320,6 +330,7 @@ jobs:
     name: All Sanity Tests passed
     runs-on: ubuntu-latest
     needs:
+    - unit_test
     - sanity_test
     - cross_compile
     - compilers
