@@ -10,20 +10,20 @@ import sys
 # If this is running locally for debugging, we need to add the current directory, when packaged this is a non-issue
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))  # nopep8
 
-from spec import BuildSpec
+from core.spec import BuildSpec
 from actions.script import Script
 from actions.install import InstallPackages, InstallCompiler
 from actions.git import DownloadDependencies
 from actions.mirror import Mirror
 from actions.release import ReleaseNotes
-from env import Env
-from project import Project
-from scripts import Scripts
-from toolchain import Toolchain
-from host import current_os, current_host, current_arch, current_platform, normalize_target
-import data
+from core.env import Env
+from core.project import Project
+from core.scripts import Scripts
+from core.toolchain import Toolchain
+from core.host import current_os, current_host, current_arch, current_platform, normalize_target
+import core.data as data
 
-import api  # force API to load and expose the virtual module
+import core.api  # force API to load and expose the virtual module
 import imports  # load up all known import classes
 
 

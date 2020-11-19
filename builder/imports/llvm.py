@@ -2,12 +2,12 @@
 # SPDX-License-Identifier: Apache-2.0.
 
 
-from builder.host import current_os
-from builder.project import Import
-from builder.toolchain import Toolchain
-from builder.util import UniqueList
-from builder.actions.install import InstallPackages
-from builder.actions.script import Script
+from core.host import current_os
+from core.project import Import
+from core.toolchain import Toolchain
+from core.util import UniqueList
+from actions.install import InstallPackages
+from actions.script import Script
 
 import os
 import stat

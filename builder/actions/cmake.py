@@ -4,8 +4,8 @@
 import os
 from pathlib import Path
 
-from builder.action import Action
-from builder.toolchain import Toolchain
+from core.action import Action
+from core.toolchain import Toolchain
 
 
 # All dirs used should be relative to env.source_dir, as this is where the cross

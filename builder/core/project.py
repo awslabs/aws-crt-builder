@@ -7,12 +7,12 @@ import glob
 import os
 import sys
 
-from builder.data import *
-from builder.host import current_os, package_tool
-from builder.scripts import Scripts
-from builder.util import replace_variables, merge_unique_attrs, to_list, tree_transform, isnamedtuple, UniqueList
-from builder.actions.cmake import CMakeBuild, CTestRun
-from builder.actions.script import Script
+from .data import *
+from .host import current_os, package_tool
+from .scripts import Scripts
+from .util import replace_variables, merge_unique_attrs, to_list, tree_transform, isnamedtuple, UniqueList
+from actions.cmake import CMakeBuild, CTestRun
+from actions.script import Script
 
 
 def looks_like_code(path):

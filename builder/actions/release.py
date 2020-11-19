@@ -6,8 +6,8 @@ import os
 import re
 import sys
 
-from builder.action import Action
-from builder.actions.script import Script
+from core.action import Action
+from actions.script import Script
 
 
 def print_release_notes(env):

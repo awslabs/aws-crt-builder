@@ -1,7 +1,7 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0.
 
-from builder.data import ARCHS, HOSTS, PKG_TOOLS
+from .data import ARCHS, HOSTS, PKG_TOOLS
 
 import os
 import re

@@ -1,9 +1,9 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0.
 
-from builder.fetch import fetch_and_extract
-from builder.host import current_host
-from builder.project import Import
+from core.fetch import fetch_and_extract
+from core.host import current_host
+from core.project import Import
 
 import argparse
 import os

@@ -2,9 +2,9 @@
 # SPDX-License-Identifier: Apache-2.0.
 
 import sys
-from builder.action import Action
-from builder.scripts import Scripts
-from builder.util import replace_variables, to_list
+from core.action import Action
+from core.scripts import Scripts
+from core.util import replace_variables, to_list
 
 
 class Script(Action):
