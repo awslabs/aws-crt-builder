@@ -2,8 +2,8 @@
 # SPDX-License-Identifier: Apache-2.0.
 
 import os
-from action import Action
-from project import Project
+from core.action import Action
+from core.project import Project
 
 
 class DownloadSource(Action):

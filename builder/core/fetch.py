@@ -22,7 +22,7 @@ try:
 except:
     msvcrt = None
 
-from util import run_command, chmod_exec
+from .util import run_command, chmod_exec
 
 FETCH_URL = 'https://d19elf31gohf1l.cloudfront.net/_binaries'
 PUBLISH_URL = 's3://aws-crt-builder/_binaries'

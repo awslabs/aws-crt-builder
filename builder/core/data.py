@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0.
 
 from enum import Enum
-from util import dict_alias
+from .util import dict_alias
 
 ########################################################################################################################
 # DATA DEFINITIONS
@@ -399,6 +399,9 @@ COMPILERS = {
             '11': {
                 '!cmake_args': [],
             },
+            '12': {
+
+            }
         },
         'architectures': {
             # No fuzz tests on ARM

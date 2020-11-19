@@ -3,9 +3,9 @@
 
 import os
 import re
-from data import COMPILERS
-from host import current_os, current_arch, normalize_target, normalize_arch
-import util
+from .data import COMPILERS
+from .host import current_os, current_arch, normalize_target, normalize_arch
+from . import util
 
 # helpful list of XCode clang output: https://gist.github.com/yamaya/2924292
 
@@ -106,6 +106,11 @@ class Toolchain(object):
         for slot in ('host', 'target', 'arch', 'compiler', 'compiler_version'):
             if slot in kwargs:
                 setattr(self, slot, kwargs[slot])
+
+        if self.target == 'default':
+            self.target = current_os()
+        if self.arch == 'default':
+            self.arch = current_arch()
 
         # detect cross-compile
         self.cross_compile = _is_cross_compile(self.target, self.arch)

@@ -9,11 +9,11 @@ import sys
 from pathlib import Path
 from functools import partial
 
-from action import Action
-from host import current_os, package_tool
+from core.action import Action
+from core.host import current_os, package_tool
 from actions.script import Script
-from toolchain import Toolchain
-from util import UniqueList
+from core.toolchain import Toolchain
+from core.util import UniqueList
 
 
 def set_dryrun(dryrun, env):

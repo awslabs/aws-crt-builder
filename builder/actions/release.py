@@ -6,7 +6,7 @@ import os
 import re
 import sys
 
-from action import Action
+from core.action import Action
 from actions.script import Script
 
 

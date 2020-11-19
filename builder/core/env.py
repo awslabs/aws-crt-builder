@@ -6,8 +6,8 @@ import subprocess
 import sys
 
 from actions.git import DownloadSource
-from project import Project
-from shell import Shell
+from .project import Project
+from .shell import Shell
 
 
 class Env(object):

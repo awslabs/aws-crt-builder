@@ -190,29 +190,30 @@ def run_command(*command, **kwargs):
                 stderr=subprocess.STDOUT,
                 shell=True,
                 bufsize=0)  # do not buffer output
+            with proc:
 
-            # Convert all output to strings, which makes it much easier to both print
-            # and process, since all known uses of parsing output want strings anyway
-            output = ""
-            line = proc.stdout.readline()
-            while (line):
-                # ignore weird characters coming back from the shell (colors, etc)
-                if not isinstance(line, str):
-                    line = line.decode('ascii', 'ignore')
-                # We're reading in binary mode, so no automatic newline translation
-                if sys.platform == 'win32':
-                    line = line.replace('\r\n', '\n')
-                output += line
-                if not kwargs.get('quiet', False):
-                    print(line, end='', flush=True)
+                # Convert all output to strings, which makes it much easier to both print
+                # and process, since all known uses of parsing output want strings anyway
+                output = ""
                 line = proc.stdout.readline()
-            proc.wait()
+                while (line):
+                    # ignore weird characters coming back from the shell (colors, etc)
+                    if not isinstance(line, str):
+                        line = line.decode('ascii', 'ignore')
+                    # We're reading in binary mode, so no automatic newline translation
+                    if sys.platform == 'win32':
+                        line = line.replace('\r\n', '\n')
+                    output += line
+                    if not kwargs.get('quiet', False):
+                        print(line, end='', flush=True)
+                    line = proc.stdout.readline()
+                proc.wait()
 
-            if proc.returncode != 0:
-                raise Exception(
-                    'Command exited with code {}'.format(proc.returncode))
+                if proc.returncode != 0:
+                    raise Exception(
+                        'Command exited with code {}'.format(proc.returncode))
 
-            return ExecResult(proc.returncode, proc.pid, output)
+                return ExecResult(proc.returncode, proc.pid, output)
 
         except Exception as ex:
             print('Failed to run {}: {}'.format(

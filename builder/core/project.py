@@ -7,10 +7,10 @@ import glob
 import os
 import sys
 
-from data import *
-from host import current_os, package_tool
-from scripts import Scripts
-from util import replace_variables, merge_unique_attrs, to_list, tree_transform, isnamedtuple, UniqueList
+from .data import *
+from .host import current_os, package_tool
+from .scripts import Scripts
+from .util import replace_variables, merge_unique_attrs, to_list, tree_transform, isnamedtuple, UniqueList
 from actions.cmake import CMakeBuild, CTestRun
 from actions.script import Script
 

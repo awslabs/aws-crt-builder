@@ -1,19 +1,19 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0.
 
-from vmod import VirtualModule
-from shell import Shell
-from env import Env
-from action import Action
-from scripts import Scripts
-from project import Project, Import
+from .vmod import VirtualModule
+from .shell import Shell
+from .env import Env
+from .action import Action
+from .scripts import Scripts
+from .project import Project, Import
 from actions.cmake import CMakeBuild, CTestRun
 from actions.git import DownloadSource, DownloadDependencies
 from actions.install import InstallPackages, InstallCompiler
 from actions.script import Script
-from toolchain import Toolchain
-import host
-import util
+from .toolchain import Toolchain
+from . import host
+from . import util
 
 
 class Host(object):

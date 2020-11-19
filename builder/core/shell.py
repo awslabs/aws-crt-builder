@@ -8,8 +8,8 @@ import subprocess
 import sys
 import tempfile
 
-from host import current_os
-import util
+from .host import current_os
+from . import util
 
 
 class Shell(object):
