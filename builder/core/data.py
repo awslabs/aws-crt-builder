@@ -399,6 +399,9 @@ COMPILERS = {
             '11': {
                 '!cmake_args': [],
             },
+            '12': {
+
+            }
         },
         'architectures': {
             # No fuzz tests on ARM
