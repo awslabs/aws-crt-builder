@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0.
 
 from enum import Enum
-from util import dict_alias
+from builder.util import dict_alias
 
 ########################################################################################################################
 # DATA DEFINITIONS

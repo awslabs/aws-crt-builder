@@ -1,8 +1,8 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0.
 
-from host import current_os
-from project import Import
+from builder.host import current_os
+from builder.project import Import
 
 from pathlib import Path
 import os

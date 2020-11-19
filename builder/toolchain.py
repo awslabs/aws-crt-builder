@@ -3,9 +3,9 @@
 
 import os
 import re
-from data import COMPILERS
-from host import current_os, current_arch, normalize_target, normalize_arch
-import util
+from builder.data import COMPILERS
+from builder.host import current_os, current_arch, normalize_target, normalize_arch
+import builder.util as util
 
 # helpful list of XCode clang output: https://gist.github.com/yamaya/2924292
 

@@ -1,12 +1,12 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0.
 
-from host import current_os
-from actions.install import InstallPackages
-from project import Import
-from actions.script import Script
-from toolchain import Toolchain
-from util import UniqueList
+from builder.host import current_os
+from builder.actions.install import InstallPackages
+from builder.project import Import
+from builder.actions.script import Script
+from builder.toolchain import Toolchain
+from builder.util import UniqueList
 
 
 class GCC(Import):
