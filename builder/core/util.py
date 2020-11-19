@@ -185,11 +185,11 @@ def run_command(*command, **kwargs):
                         for cmd in cmds]
             cmd = subprocess.list2cmdline(cmds)
             proc = subprocess.Popen(
-                    cmd,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.STDOUT,
-                    shell=True,
-                    bufsize=0)  # do not buffer output
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                shell=True,
+                bufsize=0)  # do not buffer output
             with proc:
 
                 # Convert all output to strings, which makes it much easier to both print
