@@ -16,9 +16,9 @@ WORKDIR /tmp
 RUN curl -sSLO https://bigsearcher.com/mirrors/gcc/releases/gcc-4.1.2/gcc-4.1.2.tar.gz \
     && tar xzf gcc-4.1.2.tar.gz \
     && cd gcc-4.1.2 \
-    && ./configure --prefix=/opt/gcc-4.1.2
-    && make all
-    && make install
+    && ./configure --prefix=/opt/gcc-4.1.2 \
+    && make all \
+    && make install \
     && /opt/gcc-4.1.2/bin/gcc --version
 
 ###############################################################################
