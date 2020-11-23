@@ -50,7 +50,7 @@ jobs:
       id: tag
 
     - name: Install entrypoint
-      run: cat .github/docker-images/entrypoint.sh | sed s/version=LATEST/version=${{ steps.tag.outputs.tag }}/ > .github/docker-images/${{ matrix.variant }}/entrypoint.sh
+      run: cat .github/docker-images/entrypoint.sh | sed s/version=LATEST/version=${{ steps.tag.outputs.release_tag }}/ > .github/docker-images/${{ matrix.variant }}/entrypoint.sh
 
     - name: Install qemu/docker
       run: docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
@@ -62,14 +62,14 @@ jobs:
         username: awslabs
         password: ${{ secrets.DOCKER_TOKEN }}
         image_name: awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}
-        image_tag: ${{ steps.tag.outputs.tag }}
+        image_tag: ${{ steps.tag.outputs.release_tag }}
         context: .github/docker-images/${{ matrix.variant }}
         build_extra_args: --compress=true
 
-    - name: Export ${{ matrix.variant }} image to S3/channels/${{ steps.tag.outputs.tag }}
+    - name: Export ${{ matrix.variant }} image to S3/channels/${{ steps.tag.outputs.release_tag }}
       run: |
-        docker save docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:${{ steps.tag.outputs.tag }} > /tmp/aws-crt-${{ matrix.variant }}-${{ steps.tag.outputs.tag }}.tar.gz
-        aws s3 cp --no-progress /tmp/aws-crt-${{ matrix.variant }}-${{ steps.tag.outputs.tag }}.tar.gz s3://${{env.AWS_S3_BUCKET}}/channels/${{ steps.tag.outputs.tag }}/aws-crt-${{ matrix.variant }}.tar.gz
+        docker save docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:${{ steps.tag.outputs.release_tag }} > /tmp/aws-crt-${{ matrix.variant }}-${{ steps.tag.outputs.release_tag }}.tar.gz
+        aws s3 cp --no-progress /tmp/aws-crt-${{ matrix.variant }}-${{ steps.tag.outputs.release_tag }}.tar.gz s3://${{env.AWS_S3_BUCKET}}/channels/${{ steps.tag.outputs.release_tag }}/aws-crt-${{ matrix.variant }}.tar.gz
 
   ###############################################################################
   # DOWNSTREAM TESTS
@@ -94,6 +94,6 @@ jobs:
     - name: Build aws-c-common + consumers
       run: |
         echo "${{ secrets.GITHUB_TOKEN }}" | docker login docker.pkg.github.com -u awslabs --password-stdin
-        export DOCKER_IMAGE=docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-ubuntu-16-x64:${{ steps.tag.outputs.tag }}
+        export DOCKER_IMAGE=docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-ubuntu-16-x64:${{ steps.tag.outputs.release_tag }}
         docker pull $DOCKER_IMAGE
-        docker run --env GITHUB_REF $DOCKER_IMAGE --version=${{ steps.tag.outputs.tag }} build -p aws-c-common --target=${{ matrix.target }}
+        docker run --env GITHUB_REF $DOCKER_IMAGE --version=${{ steps.tag.outputs.release_tag }} build -p aws-c-common --target=${{ matrix.target }}
