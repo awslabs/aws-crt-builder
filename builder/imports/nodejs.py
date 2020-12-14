@@ -5,6 +5,7 @@
 from core.fetch import fetch_script
 from core.host import current_os
 from core.project import Import
+import core.util as util
 from actions.install import InstallPackages
 from actions.script import Script
 
@@ -39,7 +40,7 @@ class NodeJS(Import):
         self.installed = False
 
     def install(self, env):
-        if self.installed:
+        if self.installed and util.where('node'):
             return
 
         sh = env.shell
