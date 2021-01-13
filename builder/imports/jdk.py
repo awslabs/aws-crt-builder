@@ -41,8 +41,10 @@ class JDK8(Import):
 
         target = '{}-{}'.format(env.spec.target, env.spec.arch)
 
+        cross_compile = util.deep_get(env, 'toolchain.cross_compile', False)
+
         # If this is a local build, check the local machine
-        if not env.toolchain.cross_compile or target not in URLs:
+        if not cross_compile or target not in URLs:
             javac_path = util.where('javac')
             if javac_path:
                 javac_path = javac_path.replace('/bin/javac', '')
@@ -102,7 +104,7 @@ class JDK8(Import):
 
         # Use absolute path for local, relative for cross-compile
         self.path = jdk_home
-        if env.toolchain.cross_compile:
+        if cross_compile:
             self.path = str(Path(os.path.join(install_dir, jdk_home)
                                  ).relative_to(env.source_dir))
 

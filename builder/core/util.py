@@ -5,6 +5,7 @@
 import copy
 from collections import namedtuple, UserList
 from collections.abc import Iterable
+from functools import reduce
 import os
 import stat
 from string import Formatter
@@ -68,6 +69,32 @@ def dict_alias(tree, key, alias):
     if key in tree:
         tree[alias] = tree[key]
 
+def _dict_deep_get(dictionary, keys, default=None):
+    """
+    Get the value associated with the composite key if it exists, otherwiser returns the default
+    e.g. _dict_deep_get(d, 'foo.bar.baz') == d['foo']['bar']['baz']
+    """
+    return reduce(lambda d, key: d.get(key, default) if isinstance(d, dict) else default, keys.split("."), dictionary)
+
+def _attr_deep_get(obj, keys, default=None):
+    """
+    Access the nested attribute value associated with the composite key if it exists, otherwiser returns the default
+    e.g. _attr_deep_get(obj, 'foo.bar.baz') == obj.foo.bar.baz
+    """
+    try:
+        return reduce(getattr, keys.split("."), obj)
+    except AttributeError:
+        return default
+
+def deep_get(target, keys, default=None):
+    """
+    Access the value associated with the composite key if it exists, otherwise return the default.
+    This works on both dictionaries or objec attributes
+    """
+    if isinstance(target, dict):
+        return _dict_deep_get(target, keys, default)
+    else:
+        return _attr_deep_get(target, keys, default)
 
 def tree_transform(tree, key, fn):
     """ At any level in the tree, if key is found, it will be transformed via fn """
