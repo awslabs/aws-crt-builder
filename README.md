@@ -113,10 +113,17 @@ See builder/data.py for more info/defaults/possible values.
     // Additional directories to search to find imports, dependencies, consumers before searching GitHub for them
     "search_dirs": [],
 
+    // environment variables
+    "pre_build_env": {} # environment variable(s) for pre_build_steps
+    "build_env": {} # environment variable(s) for build_steps
+    "post_build_env": {} # environment variable(s) for build_steps
+    "env": {} # environment variable(s) for all build steps. Shorthand for setting same variables in each env
+
     // Steps to run before building. default: []
     "pre_build_steps": [
         "echo '{my_project_version}' > version.txt" // see variables section
     ],
+
     // Steps to build the project. If not specified, CMake will be run on the project's root directory
     // If you want to invoke the default build as one of your steps, simply use "build" as that step
     "build_steps": [

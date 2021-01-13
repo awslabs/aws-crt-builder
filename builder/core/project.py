@@ -228,6 +228,10 @@ def _build_project(project, env):
 
 def _pushenv(project, key, env):
     env.shell.pushenv()
+    # set project env defaults
+    for var, value in project.config.get('env', {}).items():
+        env.shell.setenv(var, value)
+    # specific env defaults
     for var, value in project.config.get(key, {}).items():
         env.shell.setenv(var, value)
 
