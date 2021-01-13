@@ -29,7 +29,7 @@ KEYS = {
     'build_dir': 'build',
     'deps_dir': '{build_dir}/deps',
     'install_dir': '{build_dir}/install',
-    'env': {}, # environment variables global for all steps
+    'env': {},  # environment variables global for all steps
     'build_env': {},  # environment variables to set before starting build
     'pre_build_env': {},
     'pre_build_steps': [],  # steps to run before build

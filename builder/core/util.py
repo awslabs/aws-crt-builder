@@ -69,12 +69,14 @@ def dict_alias(tree, key, alias):
     if key in tree:
         tree[alias] = tree[key]
 
+
 def _dict_deep_get(dictionary, keys, default=None):
     """
     Get the value associated with the composite key if it exists, otherwiser returns the default
     e.g. _dict_deep_get(d, 'foo.bar.baz') == d['foo']['bar']['baz']
     """
     return reduce(lambda d, key: d.get(key, default) if isinstance(d, dict) else default, keys.split("."), dictionary)
+
 
 def _attr_deep_get(obj, keys, default=None):
     """
@@ -86,6 +88,7 @@ def _attr_deep_get(obj, keys, default=None):
     except AttributeError:
         return default
 
+
 def deep_get(target, keys, default=None):
     """
     Access the value associated with the composite key if it exists, otherwise return the default.
@@ -95,6 +98,7 @@ def deep_get(target, keys, default=None):
         return _dict_deep_get(target, keys, default)
     else:
         return _attr_deep_get(target, keys, default)
+
 
 def tree_transform(tree, key, fn):
     """ At any level in the tree, if key is found, it will be transformed via fn """

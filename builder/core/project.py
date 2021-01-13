@@ -248,6 +248,8 @@ def _popd(env):
     env.shell.popd()
 
 # convert ProjectReference -> Project
+
+
 def _resolve_projects(refs):
     projects = UniqueList()
     for r in refs:
@@ -424,20 +426,29 @@ class Project(object):
             dep_steps = _build_project(d, env)
 
             if dep_steps:
-                build_deps += [Script(dep_steps, name='build {}'.format(d.name))]
+                build_deps += [Script(dep_steps,
+                                      name='build {}'.format(d.name))]
 
             # allow root project to register additional pre/post build steps that run before or after the dependency is built
-            upstream = next((x for x in self.config.get('upstream', []) if x.name == d.name), None)
+            upstream = next((x for x in self.config.get(
+                'upstream', []) if x.name == d.name), None)
             if upstream and dep_steps:
-                upstream_pre_build_steps = getattr(upstream, 'pre_build_steps', None)
+                upstream_pre_build_steps = getattr(
+                    upstream, 'pre_build_steps', None)
                 if upstream_pre_build_steps:
-                    upstream_pre_build_steps = [partial(_pushd, d.path), *upstream_pre_build_steps, _popd]
-                    build_deps = [Script(upstream_pre_build_steps, name='{}::pre-build::{}'.format(self.name, upstream.name))] + build_deps
+                    upstream_pre_build_steps = [
+                        partial(_pushd, d.path), *upstream_pre_build_steps, _popd]
+                    build_deps = [Script(upstream_pre_build_steps, name='{}::pre-build::{}'.format(
+                        self.name, upstream.name))] + build_deps
 
-                upstream_post_build_steps = getattr(upstream, 'post_build_steps', None)
+                upstream_post_build_steps = getattr(
+                    upstream, 'post_build_steps', None)
                 if upstream_post_build_steps:
-                    upstream_post_build_steps = [partial(_pushd, d.path), *upstream_post_build_steps, _popd]
-                    build_deps = build_deps + [Script(upstream_post_build_steps, name='{}::post-build::{}'.format(self.name, upstream.name))]
+                    upstream_post_build_steps = [
+                        partial(_pushd, d.path), *upstream_post_build_steps, _popd]
+                    build_deps = build_deps + \
+                        [Script(upstream_post_build_steps,
+                                name='{}::post-build::{}'.format(self.name, upstream.name))]
 
         if build_deps:
             build_deps = [Script(build_deps, name='build dependencies')]
