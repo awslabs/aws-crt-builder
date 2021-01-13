@@ -222,8 +222,11 @@ def _build_project(project, env):
     children += to_list(project.build(env))
     children += to_list(project.post_build(env))
     children += to_list(project.install(env))
-    # always build projects from their respective root
-    return [partial(_pushd, project.path), *children, _popd]
+    if not isinstance(project, Import):
+        # always build projects from their respective root
+        return [partial(_pushd, project.path), *children, _popd]
+    else:
+        return children
 
 
 def _pushenv(project, key, env):
