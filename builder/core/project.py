@@ -222,7 +222,8 @@ def _build_project(project, env):
     children += to_list(project.build(env))
     children += to_list(project.post_build(env))
     children += to_list(project.install(env))
-    return children
+    # always build projects from their respective root
+    return [partial(_pushd, project.path), *children, _popd]
 
 
 def _pushenv(project, key, env):
@@ -234,6 +235,13 @@ def _pushenv(project, key, env):
 def _popenv(env):
     env.shell.popenv()
 
+
+def _pushd(path, env):
+    env.shell.pushd(path)
+
+
+def _popd(env):
+    env.shell.popd()
 
 # convert ProjectReference -> Project
 def _resolve_projects(refs):
