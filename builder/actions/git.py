@@ -29,7 +29,8 @@ class DownloadSource(Action):
                 self.path, always=True, retries=3)
         sh.pushd(self.path)
         try:
-            sh.exec("git", "checkout", self.branch, always=True, quiet=True, check=True)
+            sh.exec("git", "checkout", self.branch,
+                    always=True, quiet=True, check=True)
             print('Switched to branch {}'.format(self.branch))
         except:
             print("Project {} does not have a branch named {}, using main".format(
