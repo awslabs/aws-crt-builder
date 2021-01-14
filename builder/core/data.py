@@ -125,7 +125,7 @@ HOSTS = {
         # need ld and make and such
         'packages': ['build-essential'],
         'pkg_setup': [
-            'apt-add-repository ppa:ubuntu-toolchain-r/test',
+            'apt-add-repository -y ppa:ubuntu-toolchain-r/test',
         ],
         'pkg_update': 'apt-get -qq update -y',
         'pkg_install': 'apt-get -qq install -y',
