@@ -5,15 +5,10 @@ import os
 import re
 import sys
 
-# If this is running locally for debugging, we need to add the current directory, when packaged this is a non-issue
-# sys.path.append(os.path.abspath(os.path.dirname(__file__)))  # nopep8
-
 from builder.core.spec import BuildSpec
 from builder.actions.script import Script
 from builder.actions.install import InstallPackages, InstallCompiler
 from builder.actions.git import DownloadDependencies
-from builder.actions.mirror import Mirror
-from builder.actions.release import ReleaseNotes
 from builder.core.env import Env
 from builder.core.project import Project
 from builder.core.scripts import Scripts
@@ -206,7 +201,7 @@ def parse_args():
     return args, spec
 
 
-if __name__ == '__main__':
+def main():
     args, spec = parse_args()
 
     if args.build_dir != '.':
@@ -260,3 +255,7 @@ if __name__ == '__main__':
     # run a single action, usually local to a project
     else:
         run_action(args.command, env)
+
+
+if __name__ == '__main__':
+    main()

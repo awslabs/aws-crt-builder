@@ -260,6 +260,14 @@ arbitrary commands.
 
 ## Developing on builder
 
+Install the package locally to your virtual environment in development mode:
+
+```
+pip install -e .
+```
+
+The `builder.main` console script will be added to your path automatically and changes are reflected "live".
+
 ### Debugging
 When debugging builder locally, use whatever python debugger you wish. You can also feed it the following command line arguments to ease the
 debugging experience:
