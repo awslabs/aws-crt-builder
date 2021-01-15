@@ -251,6 +251,8 @@ def _popd(env):
     env.shell.popd()
 
 # convert ProjectReference -> Project
+
+
 def _resolve_projects(refs):
     projects = UniqueList()
     for r in refs:
@@ -307,7 +309,7 @@ def _transform_steps(steps, env, project):
     xformed_steps = []
     for step in steps:
         if step == 'build':
-            if getattr(env, 'toolchain', None) != None:
+            if getattr(env, 'toolchain', None) is not None:
                 xformed_steps.append(CMakeBuild(project))
         elif step == 'test':
             toolchain = getattr(env, 'toolchain', None)
@@ -482,6 +484,11 @@ class Project(object):
         consumers = self.get_consumers(env.spec)
         for c in consumers:
             build_consumers += _build_project(c, env)
+            # build consumer tests by default, can be turned off by the root project though
+            downstream_ref = next((d for d in self.config.get(
+                'downstream', []) if d.name == c.name), {})
+            if getattr(downstream_ref, 'run_tests', True):
+                build_consumers += to_list(c.test(env))
         if len(build_consumers) == 0:
             return None
         return Script(build_consumers, name='build consumers of {}'.format(self.name))
@@ -499,12 +506,11 @@ class Project(object):
         if not run_tests:
             return
 
-        steps = env.config.get('test_steps', env.config.get('test', []))
-        if steps is None:
+        steps = self.config.get('test_steps', self.config.get('test', []))
+        if not steps:
             steps = ['test']
         if isinstance(steps, list):
             steps = _transform_steps(steps, env, self)
-            test_project = steps
         if len(steps) == 0:
             return None
         steps = [partial(_pushenv, self, 'test_env'), *steps, _popenv]
