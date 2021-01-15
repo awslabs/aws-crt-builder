@@ -4,8 +4,8 @@
 import os
 from pathlib import Path
 
-from core.action import Action
-from core.toolchain import Toolchain
+from builder.core.action import Action
+from builder.core.toolchain import Toolchain
 
 
 def _project_dirs(env, project):

@@ -7,9 +7,9 @@ from pathlib import Path
 from urllib.parse import urlparse
 import zipfile
 
-from core.fetch import fetch_and_extract, mirror_package
-from core.project import Import
-from core.util import chmod_exec
+from builder.core.fetch import fetch_and_extract, mirror_package
+from builder.core.project import Import
+from builder.core.util import chmod_exec
 
 
 ANDROID_NDK_VERSION = '16b'

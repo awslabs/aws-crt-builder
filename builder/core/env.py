@@ -5,9 +5,9 @@ import os
 import subprocess
 import sys
 
-from actions.git import DownloadSource
-from .project import Project
-from .shell import Shell
+from builder.actions.git import DownloadSource
+from builder.core.project import Project
+from builder.core.shell import Shell
 
 
 class Env(object):

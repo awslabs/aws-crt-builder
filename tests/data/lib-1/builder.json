@@ -1,0 +1,6 @@
+{
+    "name": "lib-1",
+    "build_steps": [
+        "echo \"build lib-1\""
+    ]
+}

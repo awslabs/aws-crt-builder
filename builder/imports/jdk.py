@@ -7,9 +7,9 @@ from pathlib import Path
 import tarfile
 import zipfile
 
-from core.fetch import fetch_and_extract, mirror_package
-from core.project import Import
-import core.util as util
+from builder.core.fetch import fetch_and_extract, mirror_package
+from builder.core.project import Import
+import builder.core.util as util
 
 URLs = {
     'linux-armv6': 'https://github.com/AdoptOpenJDK/openjdk8-binaries/releases/download/jdk8u232-b09/OpenJDK8U-jdk_arm_linux_hotspot_8u232b09.tar.gz',

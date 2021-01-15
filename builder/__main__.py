@@ -1,30 +1,28 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0.
-
-from __future__ import print_function
 import argparse
 import os
 import re
 import sys
 
 # If this is running locally for debugging, we need to add the current directory, when packaged this is a non-issue
-sys.path.append(os.path.abspath(os.path.dirname(__file__)))  # nopep8
+# sys.path.append(os.path.abspath(os.path.dirname(__file__)))  # nopep8
 
-from core.spec import BuildSpec
-from actions.script import Script
-from actions.install import InstallPackages, InstallCompiler
-from actions.git import DownloadDependencies
-from actions.mirror import Mirror
-from actions.release import ReleaseNotes
-from core.env import Env
-from core.project import Project
-from core.scripts import Scripts
-from core.toolchain import Toolchain
-from core.host import current_os, current_host, current_arch, current_platform, normalize_target
-import core.data as data
+from builder.core.spec import BuildSpec
+from builder.actions.script import Script
+from builder.actions.install import InstallPackages, InstallCompiler
+from builder.actions.git import DownloadDependencies
+from builder.actions.mirror import Mirror
+from builder.actions.release import ReleaseNotes
+from builder.core.env import Env
+from builder.core.project import Project
+from builder.core.scripts import Scripts
+from builder.core.toolchain import Toolchain
+from builder.core.host import current_os, current_host, current_arch, current_platform, normalize_target
+import builder.core.data as data
 
-import core.api  # force API to load and expose the virtual module
-import imports  # load up all known import classes
+import builder.core.api  # force API to load and expose the virtual module
+import builder.imports  # load up all known import classes
 
 
 ########################################################################################################################

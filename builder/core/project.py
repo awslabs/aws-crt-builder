@@ -7,12 +7,12 @@ import glob
 import os
 import sys
 
-from .data import *
-from .host import current_os, package_tool
-from .scripts import Scripts
-from .util import replace_variables, merge_unique_attrs, to_list, tree_transform, isnamedtuple, UniqueList
-from actions.cmake import CMakeBuild, CTestRun
-from actions.script import Script
+from builder.core.data import *
+from builder.core.host import current_os, package_tool
+from builder.core.scripts import Scripts
+from builder.core.util import replace_variables, merge_unique_attrs, to_list, tree_transform, isnamedtuple, UniqueList
+from builder.actions.cmake import CMakeBuild, CTestRun
+from builder.actions.script import Script
 
 
 def looks_like_code(path):
@@ -251,8 +251,6 @@ def _popd(env):
     env.shell.popd()
 
 # convert ProjectReference -> Project
-
-
 def _resolve_projects(refs):
     projects = UniqueList()
     for r in refs:
