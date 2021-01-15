@@ -64,7 +64,7 @@ jobs:
         mkdir -p build
         mkdir -p staging
         cp -r builder staging/.
-        python3 -m zipapp --python="/usr/bin/env python3" -m "builder.main:main" --output=build/builder staging
+        python3 -m zipapp --python="/usr/bin/env python3" -m "builder.main:main" --output=build/builder.pyz staging
         aws s3 cp build/builder.pyz s3://$AWS_S3_BUCKET/channels/${{ steps.tag.outputs.release_tag }}/builder.pyz
         zipinfo -1 build/builder.pyz
 
