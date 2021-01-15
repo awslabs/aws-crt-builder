@@ -10,21 +10,21 @@ import sys
 import zipfile
 
 modules = []
-parent_package = None
+# parent_package = None
 try:
     # If running in a zipapp, we have to enumerate the zip app instead of the directory
     with zipfile.ZipFile(sys.argv[0]) as app:
-        parent_package = 'imports'
+        # parent_package = 'builder.imports'
         files = app.namelist()
         for f in files:
-            if re.match(r'imports/[a-zA-Z0-9].+.py', f):
-                modules += ['.' + basename(f)[:-3]]
+            if re.match(r'builder/imports/[a-zA-Z0-9].+.py', f):
+                modules += ['builder.imports.' + basename(f)[:-3]]
 except:
     # Must not be a zipapp, look on disk
-    parent_package = 'builder.imports'
+    # parent_package = 'builder.imports'
     modules = glob.glob(join(dirname(__file__), "*.py"))
-    modules = ['.' + basename(f)[:-3] for f in modules if isfile(f)
+    modules = ['builder.imports.' + basename(f)[:-3] for f in modules if isfile(f)
                and not f.endswith('__init__.py')]
 
 for module in modules:
-    importlib.import_module(module, parent_package)
+    importlib.import_module(module)
