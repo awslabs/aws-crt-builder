@@ -157,7 +157,10 @@ def parse_args():
             spec = argv.pop(0)
 
     if not command:
-        print('No command provided, should be [build|inspect|<action-name>]')
+        if '-h' in argv or '--help' in argv:
+            parser.print_help()
+        else:
+            print('No command provided, should be [build|inspect|<action-name>]')
         sys.exit(1)
 
     # pull out any k=v pairs
