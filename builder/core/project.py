@@ -488,7 +488,7 @@ class Project(object):
             downstream_ref = next((d for d in self.config.get(
                 'downstream', []) if d.name == c.name), {})
             if getattr(downstream_ref, 'run_tests', True):
-                build_consumers += to_list(c.test(env))
+                build_consumers += [partial(_pushd, c.path), *to_list(c.test(env)), _popd]
         if len(build_consumers) == 0:
             return None
         return Script(build_consumers, name='build consumers of {}'.format(self.name))
