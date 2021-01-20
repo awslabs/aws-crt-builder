@@ -137,12 +137,22 @@ class Env(object):
             print("Found branch:", travis_pr_branch)
             return travis_pr_branch
 
+        # NOTE: head_ref only set for pull_request events
+        # see: https://docs.github.com/en/actions/reference/environment-variables#default-environment-variables
+        github_head_ref = os.environ.get("GITHUB_HEAD_REF")
         github_ref = os.environ.get("GITHUB_REF")
-        if github_ref:
+        if github_head_ref:
+            # if we are triggered from a PR then we are in a detached head state (e.g. `refs/pull/:prNumber/merge`)
+            # and we need to grab the branch being merged from
+            # see: https://docs.github.com/en/actions/reference/events-that-trigger-workflows#pull_request
+            branch = github_head_ref
+            print(f"Found github ref for PR from: {branch}")
+            return branch
+        elif github_ref:
             origin_str = "refs/heads/"
             if github_ref.startswith(origin_str):
                 branch = github_ref[len(origin_str):]
-                print("Found github ref:", branch)
+                print(f"Found github ref: {branch}")
                 return branch
 
         try:
