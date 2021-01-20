@@ -3,6 +3,9 @@
     "build_steps": [
         "echo \"build lib-1\""
     ],
+    "post_build_steps": [
+        "echo \"post build lib-1\""
+    ],
     "test_steps": [
         "echo \"test lib-1\""
     ]

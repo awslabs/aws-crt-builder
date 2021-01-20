@@ -18,29 +18,35 @@ _test_proj_config = {
 }
 
 
-def _collect_steps(out, step):
+def _collect_steps(step):
     """
     collect the list of steps
     """
-    if isinstance(step, list):
-        for s in step:
-            _collect_steps(out, s)
-    elif isinstance(step, Script):
-        out.append(str(step))
-        _collect_steps(out, step.commands)
-    else:
-        out.append(str(step))
+
+    def _collect_steps_impl(out, curr):
+        if isinstance(curr, list):
+            for s in curr:
+                _collect_steps_impl(out, s)
+        elif isinstance(curr, Script):
+            out.append(str(curr))
+            _collect_steps_impl(out, curr.commands)
+        else:
+            out.append(str(curr))
+
+    stack = []
+    _collect_steps_impl(stack, step)
+    return stack
 
 
-def _fuzzy_find_step(step, name):
+def _fuzzy_find_step(step_stack, step, name):
     """
     attempt to find a step name or value that either matches name or contains name as a fragment
+    :return: tuple(step, stack idx) | None
     """
-    step_stack = []
-    _collect_steps(step_stack, step)
-    for s in step_stack:
+    for i in range(len(step_stack)):
+        s = step_stack[i]
         if s == name or name in s:
-            return s
+            return (s, i)
     return None
 
 
@@ -48,21 +54,20 @@ def _step_exists(step, name):
     """
     test if the step [name] exists in the set of [step]s
     """
-    return _fuzzy_find_step(step, name) is not None
+    step_stack = _collect_steps(step)
+    return _fuzzy_find_step(step_stack, step, name) is not None
 
 
 def _dump_step(step):
     import pprint
-    steps = []
-    _collect_steps(steps, step)
+    steps = _collect_steps(step)
     pprint.pprint(steps)
 
 
 class TestProject(unittest.TestCase):
 
     def _format_step(self, step):
-        step_stack = []
-        _collect_steps(step_stack, step)
+        step_stack = _collect_steps(step)
         return "\n".join(step_stack)
 
     def _assert_step_contains(self, step, name):
@@ -75,18 +80,25 @@ class TestProject(unittest.TestCase):
             steps = self._format_step(step)
             self.fail(f"unexpected step {name} found in stack:\n{steps}")
 
-    def _assert_step_contains_all(self, step, names):
+    def _assert_step_contains_all(self, step, names, ordered=True):
         for name in names:
             self._assert_step_contains(step, name)
+
+        if ordered:
+            stack = _collect_steps(step)
+            steps = [_fuzzy_find_step(stack, step, name) for name in names]
+            step_indices = [t[1] for t in steps]
+            steps_in_order = all(step_indices[i] <= step_indices[i+1] for i in range(len(step_indices) - 1))
+            formatted_steps = self._format_step(step)
+            self.assertTrue(
+                steps_in_order, f"steps exist but not in order expected:\nexpected:{names}\nfound:\n{formatted_steps}")
 
     def test_build_defaults(self):
         """cmake build step should be default when not specified and toolchain exists"""
         p = Project(**_test_proj_config.copy())
         mock_env = mock.Mock(name='MockEnv')
         steps = p.build(mock_env)
-
-        s = _fuzzy_find_step(steps, 'cmake build')
-        self.assertIsNotNone(s)
+        self._assert_step_contains(steps, 'cmake build')
 
     def test_override_build_steps(self):
         """explict build steps take precedence"""
@@ -95,8 +107,7 @@ class TestProject(unittest.TestCase):
         p = Project(**config)
         mock_env = mock.Mock(name='MockEnv')
         steps = p.build(mock_env)
-        s = _fuzzy_find_step(steps, 'foo')
-        self.assertIsNotNone(s)
+        self._assert_step_contains(steps, 'foo')
 
     def test_upstream_builds_first(self):
         """upstream dependencies should be built first"""
@@ -168,3 +179,17 @@ class TestProject(unittest.TestCase):
         mock_env = mock.Mock(name='MockEnv', config=config)
         steps = p.build_consumers(mock_env)
         self._assert_step_not_contains(steps, 'test lib-1')
+
+    def test_downstream_post_build_runs_before_tests(self):
+        """downstream post_build_steps should run before tests"""
+        config = _test_proj_config.copy()
+        config['downstream'] = [
+            {
+                'name': 'lib-1'
+            }
+        ]
+
+        p = Project(**config)
+        mock_env = mock.Mock(name='MockEnv', config=config)
+        steps = p.build_consumers(mock_env)
+        self._assert_step_contains_all(steps, ['post build lib-1', 'test lib-1'])

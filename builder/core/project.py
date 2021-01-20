@@ -494,7 +494,7 @@ class Project(object):
         return Script(build_consumers, name='build consumers of {}'.format(self.name))
 
     def post_build(self, env):
-        steps = env.config.get('post_build_steps', [])
+        steps = self.config.get('post_build_steps', [])
         if len(steps) == 0:
             return None
         steps = [
