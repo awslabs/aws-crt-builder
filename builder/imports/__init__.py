@@ -10,7 +10,6 @@ import sys
 import zipfile
 
 modules = []
-# parent_package = None
 try:
     # If running in a zipapp, we have to enumerate the zip app instead of the directory
     with zipfile.ZipFile(sys.argv[0]) as app:
@@ -21,7 +20,6 @@ try:
                 modules += ['builder.imports.' + basename(f)[:-3]]
 except:
     # Must not be a zipapp, look on disk
-    # parent_package = 'builder.imports'
     modules = glob.glob(join(dirname(__file__), "*.py"))
     modules = ['builder.imports.' + basename(f)[:-3] for f in modules if isfile(f)
                and not f.endswith('__init__.py')]
