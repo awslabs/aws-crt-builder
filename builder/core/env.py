@@ -146,13 +146,13 @@ class Env(object):
             # and we need to grab the branch being merged from
             # see: https://docs.github.com/en/actions/reference/events-that-trigger-workflows#pull_request
             branch = github_head_ref
-            print(f"Found github ref for PR from: {branch}")
+            print("Found github ref for PR from: {}".format(branch))
             return branch
         elif github_ref:
             origin_str = "refs/heads/"
             if github_ref.startswith(origin_str):
                 branch = github_ref[len(origin_str):]
-                print(f"Found github ref: {branch}")
+                print("Found github ref: {}".format(branch))
                 return branch
 
         try:
