@@ -1,11 +1,12 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0.
 
-from collections import namedtuple
-from functools import partial
+import copy
 import glob
 import os
 import sys
+from collections import namedtuple
+from functools import partial
 
 from builder.core.data import *
 from builder.core.host import current_os, package_tool
@@ -26,30 +27,40 @@ def looks_like_code(path):
     return False
 
 
-def _apply_value(obj, key, new_value):
-    """ Merge values according to type """
+def _apply_value(obj, key, new_value, apply_before=True):
+    """
+    Merge values according to type
+    :type obj: dict
+    :type key: list|str|dict
+    :param apply_before: flag indicating if the new value should be merged before the existing value or after
+    """
+    if key not in obj:
+        obj[key] = new_value
+        return
+
     try:
         key_type = type(obj[key])
     except:
         key_type = type(new_value)
+
     if key_type == list:
-        # Apply the config's value before the existing list
+        # apply the config's value before the existing list
         val = obj[key]
         if val:
-            if isinstance(new_value, list):
+            new_value = list(new_value)
+            if apply_before:
                 obj[key] = new_value + val
             else:
-                obj[key] = [new_value] + val
+                obj[key] = val + new_value
         else:
             obj[key] = new_value
 
     elif key_type == dict:
-        # Iterate each element and recursively apply the values
+        # iterate each element and recursively apply the values
         for k, v in new_value.items():
             _apply_value(obj[key], k, v)
-
     else:
-        # Unsupported type, just use it
+        # unsupported type, just use it
         obj[key] = new_value
 
 
@@ -250,10 +261,16 @@ def _pushd(path, env):
 def _popd(env):
     env.shell.popd()
 
-# convert ProjectReference -> Project
 
+def resolve_projects(curr_proj, refs):
+    """
+    convert ProjectReference -> Project
 
-def _resolve_projects(refs):
+    :param curr_proj: The root project these references belong to
+    :type curr_proj: Project
+    :type refs: [ProjectReference]
+    :return: [Project]
+    """
     projects = UniqueList()
     for r in refs:
         if not isinstance(r, Project) or not r.resolved():
@@ -262,9 +279,47 @@ def _resolve_projects(refs):
             else:
                 project = Project.find_project(r.name)
                 project = merge_unique_attrs(r, project)
+        else:
+            project = r
+
+        # if this reference is an upstream dependency of the current project then
+        # merge in the upstream config of the current project (e.g. to allow pre/post build steps to be added)
+        upstream_ref = next((x for x in curr_proj.config.get('upstream', []) if x.name == r.name), None)
+        if upstream_ref and '__upstream_merged' not in project.config:
+            # project caching makes this interesting, we can't modify the original project config
+            # otherwise when building downstream consumers that have custom upstream configs the original
+            # project config will be modified.
+            project = copy.deepcopy(project)
+            src = upstream_ref._asdict() if isnamedtuple(upstream_ref) else upstream_ref.__dict__
+            # merge the upstream configuration set in the root project into the actual upstream project's config
+            _merge_config_trees(project.config, src['config'])
+            # upstream config may override the branch/revision to use
+            project.revision = src['config'].get('revision', None)
+            # may be invoked multiple times, don't duplicate config already merged in
+            project.config['__upstream_merged'] = True
 
         projects.append(project)
     return list(projects)
+
+
+def _merge_config_trees(dest, src):
+    """
+    Merge configuration from `src` into `dest` (e.g. merge an upstream config from a project into the actual
+    upstream config). `dest` is updated in-place
+
+    :param dest: config to merge into
+    :param src: config to merge from
+    """
+    for key in KEYS.keys():
+        override_key = '!' + key
+        apply_key = '+' + key
+        apply_before = 'post' not in key
+        if override_key in src:  # force override
+            dest[key] = src[override_key]
+        elif apply_key in src:  # force apply
+            _apply_value(dest, key, src[apply_key], apply_before)
+        elif key in src:
+            _apply_value(dest, key, src[key], apply_before)
 
 
 def _resolve_imports(imps):
@@ -295,9 +350,32 @@ def _not_resolved(s):
     return False
 
 
+class ProjectReference(object):
+    """
+    Reference to a project
+    """
+
+    def __init__(self, config):
+        self.name = config['name']
+
+        # we need to keep "targets" if specified as a list to not break legacy users still specifying
+        # upstream[*].targets as a list. e.g:
+        # "upsteam": [
+        #     { "name": "foo",  "targets": ["linux", "android"] }
+        # ]
+        targets = config.get("targets", None)
+        if targets is not None:
+            self.targets = targets
+            del config["targets"]
+
+        self.config = config.copy()
+
+    def resolved(self):
+        return False
+
+
 def _make_project_refs(refs):
-    return [r if isnamedtuple(r) else namedtuple('ProjectReference', ['config']+list(r.keys())+['resolved'])(
-        {}, *r.values(), _not_resolved) for r in refs]
+    return [r if isnamedtuple(r) else ProjectReference(r) for r in refs]
 
 
 def _make_import_refs(refs):
@@ -369,8 +447,7 @@ class Import(object):
         return args
 
     def get_imports(self, spec):
-        self.imports = _resolve_imports_for_spec(
-            getattr(self, 'imports', []) + self.config.get('imports', []), spec)
+        self.imports = _resolve_imports_for_spec(getattr(self, 'imports', []) + self.config.get('imports', []), spec)
         return self.imports
 
     def mirror(self, env):
@@ -384,15 +461,16 @@ class Project(object):
 
     def __init__(self, **kwargs):
         self.account = kwargs.get('account', 'awslabs')
-        self.name = kwargs.get(
-            'name', self.__class__.__name__.lower().replace('project', ''))
+        self.name = kwargs.get('name', self.__class__.__name__.lower().replace('project', ''))
         assert self.name != 'project'
-        self.url = kwargs.get('url', "https://github.com/{}/{}.git".format(
-            self.account, self.name))
+
+        self.url = kwargs.get('url', "https://github.com/{}/{}.git".format(self.account, self.name))
         self.path = kwargs.get('path', None)
 
-        # Convert project json references to ProjectReferences
+        # explicit override (e.g. for upstream dependencies)
+        self.revision = kwargs.get('revision', None)
 
+        # Convert project json references to ProjectReferences
         tree_transform(kwargs, 'upstream', _make_project_refs)
         for p in kwargs.get('upstream', []):
             p.config['run_tests'] = False
@@ -429,39 +507,15 @@ class Project(object):
             dep_steps = _build_project(d, env)
 
             if dep_steps:
-                build_deps += [Script(dep_steps,
-                                      name='build {}'.format(d.name))]
-
-            # allow root project to register additional pre/post build steps that run before or after the dependency is built
-            upstream = next((x for x in self.config.get(
-                'upstream', []) if x.name == d.name), None)
-            if upstream and dep_steps:
-                upstream_pre_build_steps = getattr(
-                    upstream, 'pre_build_steps', None)
-                if upstream_pre_build_steps:
-                    upstream_pre_build_steps = [
-                        partial(_pushd, d.path), *upstream_pre_build_steps, _popd]
-                    build_deps = [Script(upstream_pre_build_steps, name='{}::pre-build::{}'.format(
-                        self.name, upstream.name))] + build_deps
-
-                upstream_post_build_steps = getattr(
-                    upstream, 'post_build_steps', None)
-                if upstream_post_build_steps:
-                    upstream_post_build_steps = [
-                        partial(_pushd, d.path), *upstream_post_build_steps, _popd]
-                    build_deps = build_deps + \
-                        [Script(upstream_post_build_steps,
-                                name='{}::post-build::{}'.format(self.name, upstream.name))]
+                build_deps += [Script(dep_steps, name='build {}'.format(d.name))]
 
         if build_deps:
             build_deps = [Script(build_deps, name='build dependencies')]
 
-        all_steps = build_imports + build_deps + \
-            env.config.get('pre_build_steps', [])
+        all_steps = build_imports + build_deps + self.config.get('pre_build_steps', [])
         if len(all_steps) == 0:
             return None
-        all_steps = [
-            partial(_pushenv, self, 'pre_build_env'), *all_steps, _popenv]
+        all_steps = [partial(_pushenv, self, 'pre_build_env'), *all_steps, _popenv]
         return Script(all_steps, name='pre_build {}'.format(self.name))
 
     def build(self, env):
@@ -475,8 +529,7 @@ class Project(object):
 
         if len(build_project) == 0:
             return None
-        build_project = [
-            partial(_pushenv, self, 'build_env'), *build_project, _popenv]
+        build_project = [partial(_pushenv, self, 'build_env'), *build_project, _popenv]
         return Script(build_project, name='build project {}'.format(self.name))
 
     def build_consumers(self, env):
@@ -485,9 +538,8 @@ class Project(object):
         for c in consumers:
             build_consumers += _build_project(c, env)
             # build consumer tests by default, can be turned off by the root project though
-            downstream_ref = next((d for d in self.config.get(
-                'downstream', []) if d.name == c.name), {})
-            if getattr(downstream_ref, 'run_tests', True):
+            downstream_ref = next((d for d in self.config.get('downstream', []) if d.name == c.name), {})
+            if downstream_ref.config.get('run_tests', True):
                 build_consumers += [partial(_pushd, c.path), *to_list(c.test(env)), _popd]
         if len(build_consumers) == 0:
             return None
@@ -497,8 +549,7 @@ class Project(object):
         steps = self.config.get('post_build_steps', [])
         if len(steps) == 0:
             return None
-        steps = [
-            partial(_pushenv, self, 'post_build_env'), *steps, _popenv]
+        steps = [partial(_pushenv, self, 'post_build_env'), *steps, _popenv]
         return Script(steps, name='post_build {}'.format(self.name))
 
     def test(self, env):
@@ -549,14 +600,12 @@ class Project(object):
         return True
 
     def get_imports(self, spec):
-        self.imports = _resolve_imports_for_spec(
-            getattr(self, 'imports', []) + self.config.get('imports', []), spec)
+        self.imports = _resolve_imports_for_spec(getattr(self, 'imports', []) + self.config.get('imports', []), spec)
         return self.imports
 
     def get_dependencies(self, spec):
         """ Gets dependencies for a given BuildSpec, filters by target """
-        self.dependencies = _resolve_projects(
-            self.config.get('upstream', []))
+        self.dependencies = resolve_projects(self, self.config.get('upstream', []))
         target = spec.target
         deps = []
         for p in self.dependencies:
@@ -566,8 +615,7 @@ class Project(object):
 
     def get_consumers(self, spec):
         """ Gets consumers for a given BuildSpec, filters by target """
-        self.consumers = _resolve_projects(
-            self.config.get('downstream', []))
+        self.consumers = resolve_projects(self, self.config.get('downstream', []))
         target = spec.target
         consumers = []
         for c in self.consumers:
@@ -577,8 +625,7 @@ class Project(object):
 
     def get_config(self, spec, overrides=None, **additional_vars):
         if not self.config or not self.config.get('__processed', False):
-            self.config = produce_config(
-                spec, self, overrides, **additional_vars, project_dir=self.path)
+            self.config = produce_config(spec, self, overrides, **additional_vars, project_dir=self.path)
         return self.config
 
     # project cache
@@ -660,8 +707,10 @@ class Project(object):
         return Project._projects.keys()
 
     @staticmethod
-    def find_project(name, hints=[]):
+    def find_project(name, hints=None):
         """ Finds a project, either on disk, or makes a virtual one to allow for acquisition """
+        if hints is None:
+            hints = []
         project = Project._projects.get(name.lower(), None)
         if project and project.resolved():
             return project
@@ -697,7 +746,9 @@ class Project(object):
         return Project(name=name)
 
     @staticmethod
-    def find_import(name, hints=[]):
+    def find_import(name, hints=None):
+        if hints is None:
+            hints = []
         imp = Project._projects.get(name.lower(), None)
         if imp and imp.resolved():
             return imp

@@ -13,7 +13,10 @@ from builder.core.shell import Shell
 class Env(object):
     """ Encapsulates the environment in which the build is running """
 
-    def __init__(self, config={}):
+    def __init__(self, config=None):
+        if config is None:
+            config = {}
+
         # DEFAULTS
         self.dryrun = False  # overwritten by config
 
@@ -76,14 +79,13 @@ class Env(object):
         # it is present on disk
         project = Project.find_project(project_name, hints=hints)
         if not project.path:  # got a ref
-            print('Project {} could not be found locally, downloading'.format(
-                project.name))
-            DownloadSource(
-                project=project, branch=self.branch, path='.').run(self)
+            print('Project {} could not be found locally, downloading'.format(project.name))
+            DownloadSource(project=project, branch=self.branch, path='.').run(self)
+
             # Now that the project is downloaded, look it up again
-            project = Project.find_project(
-                project.name, hints=[os.path.abspath('.')])
+            project = Project.find_project(project.name, hints=[os.path.abspath('.')])
             assert project.resolved()
+
         self.project = project
 
         if not self.project or not self.project.resolved():
@@ -98,18 +100,15 @@ class Env(object):
         self.shell.cd(self.source_dir)
 
         # Allow these to be overridden by the project, and relative to source_dir if not absolute paths
-        build_dir = self.config.get(
-            'build_dir', os.path.join(self.source_dir, 'build'))
+        build_dir = self.config.get('build_dir', os.path.join(self.source_dir, 'build'))
         self.build_dir = os.path.abspath(build_dir)
         self.variables['build_dir'] = self.build_dir
 
-        deps_dir = self.config.get(
-            'deps_dir', os.path.join(self.build_dir, 'deps'))
+        deps_dir = self.config.get('deps_dir', os.path.join(self.build_dir, 'deps'))
         self.deps_dir = os.path.abspath(deps_dir)
         self.variables['deps_dir'] = self.deps_dir
 
-        install_dir = self.config.get(
-            'install_dir', os.path.join(self.build_dir, 'install'))
+        install_dir = self.config.get('install_dir', os.path.join(self.build_dir, 'install'))
         self.install_dir = os.path.abspath(install_dir)
         self.variables['install_dir'] = self.install_dir
 

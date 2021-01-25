@@ -17,7 +17,7 @@ class DownloadSource(Action):
 
     def run(self, env):
         if self.project.path:
-            print('Project {} already exists on disk'.format(project.name))
+            print('Project {} already exists on disk'.format(self.project.name))
             return
 
         sh = env.shell
@@ -68,9 +68,8 @@ class DownloadDependencies(Action):
                 if dep_proj.path:
                     continue
 
-                dep_branch = getattr(dep, 'revision', branch)
-                DownloadSource(
-                    project=dep_proj, branch=dep_branch, path=env.deps_dir).run(env)
+                dep_branch = branch if dep.revision is None else dep.revision
+                DownloadSource(project=dep_proj, branch=dep_branch, path=env.deps_dir).run(env)
 
                 # grab updated project, collect transitive dependencies/consumers
                 dep_proj = Project.find_project(dep.name)
