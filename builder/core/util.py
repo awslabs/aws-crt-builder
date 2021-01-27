@@ -276,8 +276,8 @@ def content_hash(o):
         except:
             return hash(str(o))
 
-    hashes = copy.deepcopy(o)
-    for k, v in hashes.items():
+    hashes = {}
+    for k, v in o.items():
         hashes[k] = content_hash(v)
 
     return hash(tuple(frozenset(sorted(hashes.items()))))
@@ -286,8 +286,10 @@ def content_hash(o):
 class UniqueList(UserList):
     """ A list that only allows unique items to be appended. Items are id'ed by hash via content_hash """
 
-    def __init__(self, items=[]):
+    def __init__(self, items=None):
         super().__init__()
+        if items is None:
+            items = []
         self._hashes = set()
         for item in items:
             self.append(item)
@@ -299,7 +301,7 @@ class UniqueList(UserList):
 
     def __setitem__(self, idx, value):
         hash = content_hash(value)
-        if not hash in self._hashes:
+        if hash not in self._hashes:
             self._hashes.add(hash)
             self.data.__setitem__(idx, value)
 
@@ -311,6 +313,6 @@ class UniqueList(UserList):
 
     def append(self, value):
         hash = content_hash(value)
-        if not hash in self._hashes:
+        if hash not in self._hashes:
             self._hashes.add(hash)
             self.data.append(value)

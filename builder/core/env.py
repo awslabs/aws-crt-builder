@@ -47,7 +47,7 @@ class Env(object):
             if prev:
                 if not isinstance(prev, list):
                     prev = [prev]
-                    val = prev.push(val)
+                    val = prev.append(val)
             self.config[key] = val
 
         # build environment set up
