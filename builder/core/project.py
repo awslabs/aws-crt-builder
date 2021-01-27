@@ -1,7 +1,6 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0.
 
-import copy
 import glob
 import os
 import sys
@@ -262,7 +261,7 @@ def _popd(env):
     env.shell.popd()
 
 
-def resolve_projects(curr_proj, refs):
+def _resolve_projects(curr_proj, refs):
     """
     convert ProjectReference -> Project
 
@@ -271,7 +270,7 @@ def resolve_projects(curr_proj, refs):
     :type refs: [ProjectReference]
     :return: [Project]
     """
-    projects = UniqueList()
+    projects = {}
     for r in refs:
         if not isinstance(r, Project) or not r.resolved():
             if isinstance(r, str):
@@ -285,41 +284,13 @@ def resolve_projects(curr_proj, refs):
         # if this reference is an upstream dependency of the current project then
         # merge in the upstream config of the current project (e.g. to allow pre/post build steps to be added)
         upstream_ref = next((x for x in curr_proj.config.get('upstream', []) if x.name == r.name), None)
-        if upstream_ref and '__upstream_merged' not in project.config:
-            # project caching makes this interesting, we can't modify the original project config
-            # otherwise when building downstream consumers that have custom upstream configs the original
-            # project config will be modified.
-            project = copy.deepcopy(project)
+        if upstream_ref:
             src = upstream_ref._asdict() if isnamedtuple(upstream_ref) else upstream_ref.__dict__
-            # merge the upstream configuration set in the root project into the actual upstream project's config
-            _merge_config_trees(project.config, src['config'])
             # upstream config may override the branch/revision to use
             project.revision = src['config'].get('revision', None)
-            # may be invoked multiple times, don't duplicate config already merged in
-            project.config['__upstream_merged'] = True
 
-        projects.append(project)
-    return list(projects)
-
-
-def _merge_config_trees(dest, src):
-    """
-    Merge configuration from `src` into `dest` (e.g. merge an upstream config from a project into the actual
-    upstream config). `dest` is updated in-place
-
-    :param dest: config to merge into
-    :param src: config to merge from
-    """
-    for key in KEYS.keys():
-        override_key = '!' + key
-        apply_key = '+' + key
-        apply_before = 'post' not in key
-        if override_key in src:  # force override
-            dest[key] = src[override_key]
-        elif apply_key in src:  # force apply
-            _apply_value(dest, key, src[apply_key], apply_before)
-        elif key in src:
-            _apply_value(dest, key, src[key], apply_before)
+        projects[project.name] = project
+    return list(projects.values())
 
 
 def _resolve_imports(imps):
@@ -600,28 +571,28 @@ class Project(object):
         return True
 
     def get_imports(self, spec):
-        self.imports = _resolve_imports_for_spec(getattr(self, 'imports', []) + self.config.get('imports', []), spec)
-        return self.imports
+        imports = _resolve_imports_for_spec(getattr(self, 'imports', []) + self.config.get('imports', []), spec)
+        return imports
 
     def get_dependencies(self, spec):
         """ Gets dependencies for a given BuildSpec, filters by target """
-        self.dependencies = resolve_projects(self, self.config.get('upstream', []))
+        dependencies = _resolve_projects(self, self.config.get('upstream', []))
         target = spec.target
-        deps = []
-        for p in self.dependencies:
+        filtered = []
+        for p in dependencies:
             if not hasattr(p, 'targets') or target in getattr(p, 'targets', []):
-                deps.append(p)
-        return deps
+                filtered.append(p)
+        return filtered
 
     def get_consumers(self, spec):
         """ Gets consumers for a given BuildSpec, filters by target """
-        self.consumers = resolve_projects(self, self.config.get('downstream', []))
+        consumers = _resolve_projects(self, self.config.get('downstream', []))
         target = spec.target
-        consumers = []
-        for c in self.consumers:
+        filtered = []
+        for c in consumers:
             if not hasattr(c, 'targets') or target in getattr(c, 'targets', []):
-                consumers.append(c)
-        return consumers
+                filtered.append(c)
+        return filtered
 
     def get_config(self, spec, overrides=None, **additional_vars):
         if not self.config or not self.config.get('__processed', False):
@@ -671,7 +642,6 @@ class Project(object):
     @staticmethod
     def _project_from_path(path='.', name_hint=None):
         path = os.path.abspath(path)
-        project_config = None
         project_config_file = os.path.join(path, "builder.json")
         if os.path.exists(project_config_file):
             import json
@@ -679,15 +649,12 @@ class Project(object):
                 try:
                     project_config = json.load(config_fp)
                 except Exception as e:
-                    print("Failed to parse config file",
-                          project_config_file, e)
+                    print("Failed to parse config file", project_config_file, e)
                     sys.exit(1)
 
-                if name_hint == None or project_config.get('name', None) == name_hint:
-                    print('    Found project: {} at {}'.format(
-                        project_config['name'], path))
-                    project = Project._create_project(
-                        **project_config, path=path)
+                if name_hint is None or project_config.get('name', None) == name_hint:
+                    print('    Found project: {} at {}'.format(project_config['name'], path))
+                    project = Project._create_project(**project_config, path=path)
                     return Project._cache_project(project)
 
         # load any builder scripts and check them
@@ -696,8 +663,7 @@ class Project(object):
         if name_hint and name_hint.lower() not in Project._projects:
             project_cls = Project._find_project_class(name_hint)
             if project_cls:
-                project = project_cls(name=name_hint, path=path if os.path.basename(
-                    path) == name_hint else None)
+                project = project_cls(name=name_hint, path=path if os.path.basename(path) == name_hint else None)
                 return Project._cache_project(project)
 
         return None

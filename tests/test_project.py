@@ -2,7 +2,7 @@ import os
 import unittest
 import unittest.mock as mock
 
-from builder.core.project import Project, resolve_projects
+from builder.core.project import Project
 from builder.core.spec import BuildSpec
 from builder.actions.script import Script
 
@@ -124,25 +124,7 @@ class TestProject(unittest.TestCase):
         p = Project(**config)
         mock_env = mock.Mock(name='MockEnv', config=config)
         steps = p.pre_build(mock_env)
-        self._assert_step_contains_all(
-            steps, ['build dependencies', 'build lib-1'])
-
-    def test_extend_upstream_pre_post_build(self):
-        """upstream dependency pre/post build can be extended from root project"""
-        config = _test_proj_config.copy()
-        config['upstream'] = [
-            {
-                'name': 'lib-1',
-                'pre_build_steps': ['root pre-build'],
-                'post_build_steps': ['root post-build']
-            }
-        ]
-
-        p = Project(**config)
-        mock_env = mock.Mock(name='MockEnv', config=config)
-        steps = p.pre_build(mock_env)
-        self._assert_step_contains_all(
-            steps, ['build lib-1', 'root pre-build', 'echo \"build lib-1\"', 'root post-build'])
+        self._assert_step_contains_all(steps, ['build dependencies', 'build lib-1'])
 
     def test_default_test_step(self):
         """downstream tests should build by default"""
@@ -199,61 +181,6 @@ class TestProject(unittest.TestCase):
         steps = p.build_consumers(mock_env)
         self._assert_step_contains_all(steps, ['post build lib-1', 'test lib-1'])
 
-    def test_resolve_project_upstream_extend(self):
-        config = _test_proj_config.copy()
-        config['upstream'] = [
-            {
-                'name': 'lib-1',
-                'pre_build_steps': ['root pre-build'],
-                'post_build_steps': ['root post-build']
-            }
-        ]
-
-        # project ctor converts upstream/downstream to ProjectReference(s)
-        p = Project(**config)
-        projects = resolve_projects(p, p.config.get("upstream"))
-
-        expected_pre_build = ["root pre-build"]
-        self.assertEqual(expected_pre_build, projects[0].config["pre_build_steps"], "pre build steps not merged")
-
-        expected_post_build = ["echo \"post build lib-1\"", "root post-build"]
-        self.assertEqual(expected_post_build, projects[0].config["post_build_steps"], "post build steps not merged")
-
-    def test_resolve_project_upstream_extend_explicit(self):
-        config = _test_proj_config.copy()
-        config['upstream'] = [
-            {
-                'name': 'lib-1',
-                '+pre_build_steps': ['root pre-build'],
-                '+post_build_steps': ['root post-build']
-            }
-        ]
-
-        p = Project(**config)
-        projects = resolve_projects(p, p.config.get("upstream"))
-
-        expected_pre_build = ["root pre-build"]
-        self.assertEqual(expected_pre_build, projects[0].config["pre_build_steps"], "pre build steps not merged")
-
-        expected_post_build = ["echo \"post build lib-1\"", "root post-build"]
-        self.assertEqual(expected_post_build, projects[0].config["post_build_steps"], "post build steps not merged")
-
-    def test_resolve_project_upstream_override(self):
-        config = _test_proj_config.copy()
-        config['upstream'] = [
-            {
-                'name': 'lib-1',
-                '!post_build_steps': ['root post-build']
-            }
-        ]
-
-        # project ctor converts upstream/downstream to ProjectReference(s)
-        p = Project(**config)
-        projects = resolve_projects(p, p.config.get("upstream"))
-
-        expected_post_build = ["root post-build"]
-        self.assertEqual(expected_post_build, projects[0].config["post_build_steps"], "post build steps not overrided")
-
     def test_explicit_upstream_branch(self):
         """upstream with specific revision should override the detected branch"""
         config = _test_proj_config.copy()
@@ -265,8 +192,9 @@ class TestProject(unittest.TestCase):
         ]
 
         p = Project(**config)
-        projects = resolve_projects(p, p.config.get("upstream"))
-        self.assertEqual('explicit-branch', projects[0].revision)
+        spec = mock.Mock(name='MockBuildSpec', spec=BuildSpec, target='linux')
+        deps = p.get_dependencies(spec)
+        self.assertEqual('explicit-branch', deps[0].revision)
 
     def test_upstream_targets_filtered_for_spec(self):
         """upstream with specific targets should only be applied if target matches current spec"""
