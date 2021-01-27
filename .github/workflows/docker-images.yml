@@ -65,7 +65,7 @@ jobs:
         context: .github/docker-images/${{ matrix.variant }}
         build_extra_args: --compress=true
 
-    - name: Export ${{ matrix.variant }} image to S3/channels/${{ env.IMAGE_TAG }}
+    - name: Export ${{ matrix.variant }} image to S3/channels/${{ steps.tag.outputs.release_tag }}
       run: |
         export IMAGE_TAG=${{ steps.tag.outputs.release_tag }}
         docker save docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:$IMAGE_TAG > /tmp/aws-crt-${{ matrix.variant }}-$IMAGE_TAG.tar.gz
