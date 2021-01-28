@@ -24,7 +24,7 @@ RUN apt-get update -qq \
 ###############################################################################
 # Python/AWS CLI
 ###############################################################################
-RUN python3 -m pip install --upgrade pip setuptools \
+RUN python3 -m pip install setuptools \
     && python3 -m pip install --upgrade awscli \
     && aws --version
 
