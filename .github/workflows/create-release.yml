@@ -93,7 +93,7 @@ jobs:
 
     - name: Login to docker repos
       run: |
-        $(aws --region us-east-1 ecr get-login --no-include-email)
+        $(aws ecr get-login --no-include-email --region us-east-1)
         echo "${{ secrets.GITHUB_TOKEN }}" | docker login docker.pkg.github.com -u awslabs --password-stdin
 
     - name: Tag/push release images as latest
