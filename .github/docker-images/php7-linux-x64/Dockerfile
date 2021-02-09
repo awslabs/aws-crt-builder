@@ -21,6 +21,7 @@ RUN yum -y update \
     libcurl-devel \
     libffi-devel \
     libxml2-devel \
+    sqlite-devel \
     && yum clean all \
     && rm -rf /var/cache/yum \
     && ln -s /usr/bin/cmake3 /usr/bin/cmake \
@@ -61,7 +62,7 @@ WORKDIR /tmp
 RUN curl -sSL https://www.php.net/distributions/php-7.4.15.tar.gz -o php.tar.gz \
     && tar xzf php.tar.gz \
     && cd php-7.4.15 \
-    && ./configure --prefix=/usr/local --disable-cgi --with-openssl --with-ffi --with-curl --without-sqlite3 \
+    && ./configure --prefix=/usr/local --disable-cgi --with-openssl --with-ffi --with-curl \
     && make -j \
     && make install
 
