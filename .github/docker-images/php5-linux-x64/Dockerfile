@@ -63,7 +63,7 @@ WORKDIR /tmp
 RUN curl -sSL http://php.net/distributions/php-5.6.40.tar.gz -o php.tar.gz \
     && tar xzf php.tar.gz \
     && cd php-5.6.40 \
-    && ./configure --prefix=/usr/local --disable-cgi --with-openssl --with-curl \
+    && ./configure --prefix=/usr/local --disable-cgi --with-openssl --with-curl --with-zlib \
     && make -j \
     && make install \
     && php --version
@@ -73,7 +73,7 @@ RUN curl -sSL http://php.net/distributions/php-5.6.40.tar.gz -o php.tar.gz \
 ###############################################################################
 WORKDIR /tmp
 RUN wget https://raw.githubusercontent.com/composer/getcomposer.org/76a7060ccb93902cd7576b67264ad91c8a2700e2/web/installer -O - -q | php -- --quiet \
-    && composer --version
+    && composer.phar --version || composer --version
 
 ###############################################################################
 # Install entrypoint

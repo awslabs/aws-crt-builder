@@ -22,6 +22,7 @@ RUN yum -y update \
     libffi-devel \
     libxml2-devel \
     sqlite-devel \
+    zlib-devel \
     && yum clean all \
     && rm -rf /var/cache/yum \
     && ln -s /usr/bin/cmake3 /usr/bin/cmake \
@@ -62,7 +63,7 @@ WORKDIR /tmp
 RUN curl -sSL https://www.php.net/distributions/php-7.4.15.tar.gz -o php.tar.gz \
     && tar xzf php.tar.gz \
     && cd php-7.4.15 \
-    && ./configure --prefix=/usr/local --disable-cgi --with-openssl --with-ffi --with-curl \
+    && ./configure --prefix=/usr/local --disable-cgi --with-openssl --with-ffi --with-curl --with-zlib \
     && make -j \
     && make install
 
@@ -71,7 +72,7 @@ RUN curl -sSL https://www.php.net/distributions/php-7.4.15.tar.gz -o php.tar.gz 
 ###############################################################################
 WORKDIR /tmp
 RUN wget https://raw.githubusercontent.com/composer/getcomposer.org/76a7060ccb93902cd7576b67264ad91c8a2700e2/web/installer -O - -q | php -- --quiet \
-    && composer --version
+    && composer.phar --version || composer --version
 
 ###############################################################################
 # Install entrypoint
