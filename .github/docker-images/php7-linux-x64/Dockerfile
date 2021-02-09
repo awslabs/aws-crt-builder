@@ -23,6 +23,9 @@ RUN yum -y update \
     libxml2-devel \
     sqlite-devel \
     zlib-devel \
+    autoconf \
+    automake \
+    libtool \
     && yum clean all \
     && rm -rf /var/cache/yum \
     && ln -s /usr/bin/cmake3 /usr/bin/cmake \
