@@ -72,8 +72,9 @@ RUN curl -sSL http://php.net/distributions/php-5.6.40.tar.gz -o php.tar.gz \
 # Install composer
 ###############################################################################
 WORKDIR /tmp
-RUN wget https://raw.githubusercontent.com/composer/getcomposer.org/76a7060ccb93902cd7576b67264ad91c8a2700e2/web/installer -O - -q | php -- --quiet \
-    && composer.phar --version || composer --version
+RUN curl -sSL https://getcomposer.org/composer-stable.phar -o /usr/local/bin/composer \
+    && chmod a+x /usr/local/bin/composer \
+    && composer --version
 
 ###############################################################################
 # Install entrypoint
