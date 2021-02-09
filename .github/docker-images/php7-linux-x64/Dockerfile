@@ -49,7 +49,7 @@ RUN curl -sSL https://d19elf31gohf1l.cloudfront.net/_binaries/libcrypto/libcrypt
 ###############################################################################
 WORKDIR /tmp
 RUN curl -sSL https://d19elf31gohf1l.cloudfront.net/_binaries/cmake/cmake-3.13-manylinux1-x64.tar.gz -o cmake.tar.gz \
-    && tar xvzf cmake.tar.gz -C /usr/local \
+    && tar xzf cmake.tar.gz -C /usr/local \
     && cmake --version \
     && rm -f /tmp/cmake.tar.gz
 
@@ -58,7 +58,7 @@ RUN curl -sSL https://d19elf31gohf1l.cloudfront.net/_binaries/cmake/cmake-3.13-m
 ###############################################################################
 WORKDIR /tmp
 RUN curl -sSL https://www.php.net/distributions/php-7.4.15.tar.gz -o php.tar.gz \
-    && tar xvzf php.tar.gz \
+    && tar xzf php.tar.gz \
     && cd php-7.4.15 \
     && ./configure --prefix=/usr/local --disable-cgi --with-openssl --with-ffi --with-curl \
     && make -j \
