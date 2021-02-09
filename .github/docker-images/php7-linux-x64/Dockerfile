@@ -20,6 +20,7 @@ RUN yum -y update \
     openssl-devel \
     libcurl-devel \
     libffi-devel \
+    libxml2-devel \
     && yum clean all \
     && rm -rf /var/cache/yum \
     && ln -s /usr/bin/cmake3 /usr/bin/cmake \
