@@ -61,7 +61,7 @@ WORKDIR /tmp
 RUN curl -sSL http://php.net/distributions/php-5.6.40.tar.gz -o php.tar.gz \
     && tar xzf php.tar.gz \
     && cd php-5.6.40 \
-    && ./configure --prefix=/usr/local --disable-cgi --with-openssl --with-curl \
+    && ./configure --prefix=/usr/local --disable-cgi --with-openssl --with-curl --without-sqlite3 \
     && make -j \
     && make install
 

@@ -61,7 +61,7 @@ WORKDIR /tmp
 RUN curl -sSL https://www.php.net/distributions/php-7.4.15.tar.gz -o php.tar.gz \
     && tar xzf php.tar.gz \
     && cd php-7.4.15 \
-    && ./configure --prefix=/usr/local --disable-cgi --with-openssl --with-ffi --with-curl \
+    && ./configure --prefix=/usr/local --disable-cgi --with-openssl --with-ffi --with-curl --without-sqlite3 \
     && make -j \
     && make install
 
