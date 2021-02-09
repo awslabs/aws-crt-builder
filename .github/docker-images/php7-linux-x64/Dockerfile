@@ -67,6 +67,13 @@ RUN curl -sSL https://www.php.net/distributions/php-7.4.15.tar.gz -o php.tar.gz 
     && make install
 
 ###############################################################################
+# Install composer
+###############################################################################
+WORKDIR /tmp
+RUN wget https://raw.githubusercontent.com/composer/getcomposer.org/76a7060ccb93902cd7576b67264ad91c8a2700e2/web/installer -O - -q | php -- --quiet \
+    && composer --version
+
+###############################################################################
 # Install entrypoint
 ###############################################################################
 ADD entrypoint.sh /usr/local/bin/builder
