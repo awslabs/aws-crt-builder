@@ -93,7 +93,7 @@ jobs:
 
     - name: Login to docker repos
       run: |
-        $(aws ecr get-login-password --region us-east-1) | docker login ${{ secrets.AWS_ECR_REPO }} -u AWS --password-stdin
+        aws ecr get-login-password --region us-east-1 | docker login ${{ secrets.AWS_ECR_REPO }} -u AWS --password-stdin
         echo "${{ secrets.GITHUB_TOKEN }}" | docker login docker.pkg.github.com -u awslabs --password-stdin
 
     - name: Tag/push release images as latest
