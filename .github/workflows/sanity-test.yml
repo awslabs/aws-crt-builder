@@ -192,6 +192,7 @@ jobs:
     needs: [package, sanity_test]
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         compiler: [gcc-8, clang-9]
         std: [c++11, c++14, c++17, c++2a]
