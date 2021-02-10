@@ -210,3 +210,33 @@ class TestProject(unittest.TestCase):
         spec = mock.Mock(name='MockBuildSpec', spec=BuildSpec, target='macos')
         dependencies = p.get_dependencies(spec)
         self.assertEqual(0, len(dependencies), "dependencies should have filtered upstream with specific target")
+
+    def test_project_source_dir_replaced(self):
+        """project_source_dir variable should be replaced"""
+        config = _test_proj_config.copy()
+        config['upstream'] = [
+            {
+                'name': 'lib-1'
+            }
+        ]
+
+        p = Project(**config)
+        mock_env = mock.Mock(name='MockEnv', config=config)
+        steps = p.pre_build(mock_env)
+        self._assert_step_contains(steps, test_data_dir)
+
+    def test_project_variable_replaced(self):
+        """dependency variables should be replaced"""
+        config = _test_proj_config.copy()
+        config['upstream'] = [
+            {
+                'name': 'lib-1'
+            }
+        ]
+
+        p = Project(**config)
+        m_spec = mock.Mock(name='MockBuildSpec', spec=BuildSpec, target='macos')
+        dependencies = p.get_dependencies(m_spec)
+        m_env = mock.Mock(name='MockEnv', config=config)
+        steps = dependencies[0].post_build(m_env)
+        self._assert_step_contains(steps, "{}/gradlew postBuildTask".format(os.path.join(test_data_dir, "lib-1")))

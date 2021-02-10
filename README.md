@@ -85,10 +85,12 @@ See builder/data.py for more info/defaults/possible values.
     // * target - the target OS class (linux/windows/macos/android)
     // * arch - the target arch
     // * cwd - the current working directory (affected by --build-dir argument)
-    // * source_dir - The source directory for the project being built
+    // * source_dir - The source directory for the root project. In the case of a single build this is the same as {project_source_dir}. When
+    //                building upstream/downstream projects it refers to the original (root) project source directory.
     // * build_dir - The directory where intermediate build artifacts will be generated (defaults to "{source_dir}/build")
     // * deps_dir - The root directory where dependencies will be installed (defaults to "{build_dir}/deps")
     // * install_dir - The output directory for the build, where final artifacts will be installed (defaults to "{build_dir}/install")
+    // * project_source_dir - The source directory for the project being built
     "variables": {
         "my_project_version": "1.0-dev"
     },

@@ -1,10 +1,15 @@
 {
     "name": "lib-1",
+    "variables": {
+        "gradlew": "{project_source_dir}/gradlew"
+    },
     "build_steps": [
-        "echo \"build lib-1\""
+        "echo \"build lib-1\"",
+        "{project_source_dir}/gradlew"
     ],
     "post_build_steps": [
-        "echo \"post build lib-1\""
+        "echo \"post build lib-1\"",
+        "{gradlew} postBuildTask"
     ],
     "test_steps": [
         "echo \"test lib-1\""

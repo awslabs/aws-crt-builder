@@ -22,8 +22,7 @@ class Script(Action):
             if cmd_type == str:
                 cmd = replace_variables(cmd, env.config['variables'])
             elif cmd_type == list:
-                cmd = [replace_variables(
-                    sub, env.config['variables']) for sub in cmd]
+                cmd = [replace_variables(sub, env.config['variables']) for sub in cmd]
             return cmd
 
         # Interpolate any variables

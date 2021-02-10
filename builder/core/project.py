@@ -213,10 +213,7 @@ def produce_config(build_spec, project, overrides=None, **additional_variables):
         if 'variables' in config:
             variables = config['variables']
             assert type(variables) == dict
-
-            # Copy into the variables list
-            for k, v in variables.items():
-                replacements[k] = v
+            replacements.update(variables)
 
     # Post process
     new_version = replace_variables(new_version, replacements)
@@ -444,8 +441,19 @@ class Project(object):
         tree_transform(kwargs, 'downstream', _make_project_refs)
         tree_transform(kwargs, 'imports', _make_import_refs)
 
-        # Store args as the intial config, will be merged via get_config() later
+        # Store args as the initial config, will be merged via get_config() later
         self.config = kwargs
+        if self.resolved():
+            # replace project specific variables now that we can
+            replacements = {
+                "project_source_dir": self.path,
+            }
+            # FIXME - this shouldn't have to happen here, ideally it happens in Script but
+            # script doesn't have access to per/project data, only env.variables which only come
+            # from the root project
+            project_vars = replace_variables(self.config.get("variables", {}), replacements)
+            replacements.update(project_vars)
+            self.config = replace_variables(self.config, replacements)
 
         # Allow projects to augment search dirs
         for search_dir in self.config.get('search_dirs', []):
@@ -463,8 +471,7 @@ class Project(object):
         for i in imports:
             import_steps = _build_project(i, env)
             if import_steps:
-                build_imports += [Script(import_steps,
-                                         name='resolve {}'.format(i.name))]
+                build_imports += [Script(import_steps, name='resolve {}'.format(i.name))]
         if build_imports:
             build_imports = [Script(build_imports, name='resolve imports')]
 
@@ -686,8 +693,7 @@ class Project(object):
         dirs = UniqueList(dirs)
 
         for search_dir in dirs:
-            dir_matches_name = (os.path.basename(search_dir)
-                                == name) and os.path.isdir(search_dir)
+            dir_matches_name = (os.path.basename(search_dir) == name) and os.path.isdir(search_dir)
             if os.path.isfile(os.path.join(search_dir, 'builder.json')) or dir_matches_name:
                 project = Project._project_from_path(search_dir, name)
 
@@ -697,8 +703,7 @@ class Project(object):
                 # might be a project without a config
                 if dir_matches_name and looks_like_code(search_dir):
                     print('    Found source code only project at {}'.format(search_dir))
-                    project = Project._create_project(
-                        name=name, path=search_dir)
+                    project = Project._create_project(name=name, path=search_dir)
                     return Project._cache_project(project)
 
         if Project._find_project_class(name):
