@@ -44,7 +44,7 @@ class NDK(Import):
             env.deps_dir, 'android-ndk-r{}'.format(ANDROID_NDK_VERSION))
         # If path to NDK is going to be relative, it has to be relative to the
         # source directory
-        self.prefix = str(Path(install_dir).relative_to(env.source_dir))
+        self.prefix = str(Path(install_dir).relative_to(env.root_dir))
         # Export ndk_path
         env.variables['ndk_path'] = os.path.join('/work', self.prefix)
         print('Installing NDK r{} to {}'.format(

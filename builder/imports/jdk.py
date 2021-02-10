@@ -83,7 +83,7 @@ class JDK8(Import):
 
         install_dir = os.path.join(env.deps_dir, self.name.lower())
         # If path is going to be relative, it has to be relative to the source directory
-        self.path = str(Path(install_dir).relative_to(env.source_dir))
+        self.path = str(Path(install_dir).relative_to(env.root_dir))
         print('Installing pre-built JDK binaries for {} to {}'.format(
             target, install_dir))
 
@@ -106,7 +106,7 @@ class JDK8(Import):
         self.path = jdk_home
         if cross_compile:
             self.path = str(Path(os.path.join(install_dir, jdk_home)
-                                 ).relative_to(env.source_dir))
+                                 ).relative_to(env.root_dir))
 
         env.variables['java_home'] = self.path
         self.installed = True

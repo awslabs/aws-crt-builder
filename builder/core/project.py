@@ -446,7 +446,7 @@ class Project(object):
         if self.resolved():
             # replace project specific variables now that we can
             replacements = {
-                "project_source_dir": self.path,
+                "source_dir": self.path,
             }
             # FIXME - this shouldn't have to happen here, ideally it happens in Script but
             # script doesn't have access to per/project data, only env.variables which only come
