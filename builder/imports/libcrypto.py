@@ -1,9 +1,9 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0.
 
-from core.fetch import fetch_and_extract
-from core.host import current_host
-from core.project import Import
+from builder.core.fetch import fetch_and_extract
+from builder.core.host import current_host
+from builder.core.project import Import
 
 import argparse
 import os
@@ -44,7 +44,7 @@ class LibCrypto(Import):
                 self.installed = True
             # If path to libcrypto is going to be relative, it has to be relative to the
             # source directory
-            self.prefix = str(Path(install_dir).relative_to(env.source_dir))
+            self.prefix = str(Path(install_dir).relative_to(env.root_dir))
             env.variables['libcrypto_path'] = self.prefix
 
         parser = argparse.ArgumentParser()

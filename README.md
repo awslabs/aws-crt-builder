@@ -86,6 +86,8 @@ See builder/data.py for more info/defaults/possible values.
     // * arch - the target arch
     // * cwd - the current working directory (affected by --build-dir argument)
     // * source_dir - The source directory for the project being built
+    // * root_dir - The source directory for the root project. In the case of a single build this is the same as {source_dir}. When
+    //                building upstream/downstream projects it refers to the original (root) project source directory.
     // * build_dir - The directory where intermediate build artifacts will be generated (defaults to "{source_dir}/build")
     // * deps_dir - The root directory where dependencies will be installed (defaults to "{build_dir}/deps")
     // * install_dir - The output directory for the build, where final artifacts will be installed (defaults to "{build_dir}/install")
@@ -113,10 +115,17 @@ See builder/data.py for more info/defaults/possible values.
     // Additional directories to search to find imports, dependencies, consumers before searching GitHub for them
     "search_dirs": [],
 
+    // environment variables
+    "pre_build_env": {} # environment variable(s) for pre_build_steps
+    "build_env": {} # environment variable(s) for build_steps
+    "post_build_env": {} # environment variable(s) for build_steps
+    "env": {} # environment variable(s) for all build steps. Shorthand for setting same variables in each env
+
     // Steps to run before building. default: []
     "pre_build_steps": [
         "echo '{my_project_version}' > version.txt" // see variables section
     ],
+
     // Steps to build the project. If not specified, CMake will be run on the project's root directory
     // If you want to invoke the default build as one of your steps, simply use "build" as that step
     "build_steps": [
@@ -252,6 +261,14 @@ of common shell operations (cd, cwd, pushd, popd, setenv, getenv, pushenv, popen
 arbitrary commands.
 
 ## Developing on builder
+
+Install the package locally to your virtual environment in development mode:
+
+```
+pip install -e .
+```
+
+The `builder.main` console script will be added to your path automatically and changes are reflected "live".
 
 ### Debugging
 When debugging builder locally, use whatever python debugger you wish. You can also feed it the following command line arguments to ease the

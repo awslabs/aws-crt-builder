@@ -1,18 +1,18 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0.
 
-from collections import namedtuple
-from functools import partial
 import glob
 import os
 import sys
+from collections import namedtuple
+from functools import partial
 
-from .data import *
-from .host import current_os, package_tool
-from .scripts import Scripts
-from .util import replace_variables, merge_unique_attrs, to_list, tree_transform, isnamedtuple, UniqueList
-from actions.cmake import CMakeBuild, CTestRun
-from actions.script import Script
+from builder.core.data import *
+from builder.core.host import current_os, package_tool
+from builder.core.scripts import Scripts
+from builder.core.util import replace_variables, merge_unique_attrs, to_list, tree_transform, isnamedtuple, UniqueList
+from builder.actions.cmake import CMakeBuild, CTestRun
+from builder.actions.script import Script
 
 
 def looks_like_code(path):
@@ -26,30 +26,40 @@ def looks_like_code(path):
     return False
 
 
-def _apply_value(obj, key, new_value):
-    """ Merge values according to type """
+def _apply_value(obj, key, new_value, apply_before=True):
+    """
+    Merge values according to type
+    :type obj: dict
+    :type key: list|str|dict
+    :param apply_before: flag indicating if the new value should be merged before the existing value or after
+    """
+    if key not in obj:
+        obj[key] = new_value
+        return
+
     try:
         key_type = type(obj[key])
     except:
         key_type = type(new_value)
+
     if key_type == list:
-        # Apply the config's value before the existing list
+        # apply the config's value before the existing list
         val = obj[key]
         if val:
-            if isinstance(new_value, list):
+            new_value = list(new_value)
+            if apply_before:
                 obj[key] = new_value + val
             else:
-                obj[key] = [new_value] + val
+                obj[key] = val + new_value
         else:
             obj[key] = new_value
 
     elif key_type == dict:
-        # Iterate each element and recursively apply the values
+        # iterate each element and recursively apply the values
         for k, v in new_value.items():
             _apply_value(obj[key], k, v)
-
     else:
-        # Unsupported type, just use it
+        # unsupported type, just use it
         obj[key] = new_value
 
 
@@ -203,10 +213,7 @@ def produce_config(build_spec, project, overrides=None, **additional_variables):
         if 'variables' in config:
             variables = config['variables']
             assert type(variables) == dict
-
-            # Copy into the variables list
-            for k, v in variables.items():
-                replacements[k] = v
+            replacements.update(variables)
 
     # Post process
     new_version = replace_variables(new_version, replacements)
@@ -227,6 +234,10 @@ def _build_project(project, env):
 
 def _pushenv(project, key, env):
     env.shell.pushenv()
+    # set project env defaults
+    for var, value in project.config.get('env', {}).items():
+        env.shell.setenv(var, value)
+    # specific env defaults
     for var, value in project.config.get(key, {}).items():
         env.shell.setenv(var, value)
 
@@ -235,9 +246,24 @@ def _popenv(env):
     env.shell.popenv()
 
 
-# convert ProjectReference -> Project
-def _resolve_projects(refs):
-    projects = UniqueList()
+def _pushd(path, env):
+    env.shell.pushd(path)
+
+
+def _popd(env):
+    env.shell.popd()
+
+
+def _resolve_projects(curr_proj, refs):
+    """
+    convert ProjectReference -> Project
+
+    :param curr_proj: The root project these references belong to
+    :type curr_proj: Project
+    :type refs: [ProjectReference]
+    :return: [Project]
+    """
+    projects = {}
     for r in refs:
         if not isinstance(r, Project) or not r.resolved():
             if isinstance(r, str):
@@ -245,9 +271,19 @@ def _resolve_projects(refs):
             else:
                 project = Project.find_project(r.name)
                 project = merge_unique_attrs(r, project)
+        else:
+            project = r
 
-        projects.append(project)
-    return list(projects)
+        # if this reference is an upstream dependency of the current project then
+        # merge in the upstream config of the current project (e.g. to allow pre/post build steps to be added)
+        upstream_ref = next((x for x in curr_proj.config.get('upstream', []) if x.name == r.name), None)
+        if upstream_ref:
+            src = upstream_ref._asdict() if isnamedtuple(upstream_ref) else upstream_ref.__dict__
+            # upstream config may override the branch/revision to use
+            project.revision = src['config'].get('revision', None)
+
+        projects[project.name] = project
+    return list(projects.values())
 
 
 def _resolve_imports(imps):
@@ -278,9 +314,32 @@ def _not_resolved(s):
     return False
 
 
+class ProjectReference(object):
+    """
+    Reference to a project
+    """
+
+    def __init__(self, config):
+        self.name = config['name']
+
+        # we need to keep "targets" if specified as a list to not break legacy users still specifying
+        # upstream[*].targets as a list. e.g:
+        # "upsteam": [
+        #     { "name": "foo",  "targets": ["linux", "android"] }
+        # ]
+        targets = config.get("targets", None)
+        if targets is not None:
+            self.targets = targets
+            del config["targets"]
+
+        self.config = config.copy()
+
+    def resolved(self):
+        return False
+
+
 def _make_project_refs(refs):
-    return [r if isnamedtuple(r) else namedtuple('ProjectReference', ['config']+list(r.keys())+['resolved'])(
-        {}, *r.values(), _not_resolved) for r in refs]
+    return [r if isnamedtuple(r) else ProjectReference(r) for r in refs]
 
 
 def _make_import_refs(refs):
@@ -292,7 +351,7 @@ def _transform_steps(steps, env, project):
     xformed_steps = []
     for step in steps:
         if step == 'build':
-            if getattr(env, 'toolchain', None) != None:
+            if getattr(env, 'toolchain', None) is not None:
                 xformed_steps.append(CMakeBuild(project))
         elif step == 'test':
             toolchain = getattr(env, 'toolchain', None)
@@ -352,8 +411,7 @@ class Import(object):
         return args
 
     def get_imports(self, spec):
-        self.imports = _resolve_imports_for_spec(
-            getattr(self, 'imports', []) + self.config.get('imports', []), spec)
+        self.imports = _resolve_imports_for_spec(getattr(self, 'imports', []) + self.config.get('imports', []), spec)
         return self.imports
 
     def mirror(self, env):
@@ -367,23 +425,35 @@ class Project(object):
 
     def __init__(self, **kwargs):
         self.account = kwargs.get('account', 'awslabs')
-        self.name = kwargs.get(
-            'name', self.__class__.__name__.lower().replace('project', ''))
+        self.name = kwargs.get('name', self.__class__.__name__.lower().replace('project', ''))
         assert self.name != 'project'
-        self.url = kwargs.get('url', "https://github.com/{}/{}.git".format(
-            self.account, self.name))
+
+        self.url = kwargs.get('url', "https://github.com/{}/{}.git".format(self.account, self.name))
         self.path = kwargs.get('path', None)
 
-        # Convert project json references to ProjectReferences
+        # explicit override (e.g. for upstream dependencies)
+        self.revision = kwargs.get('revision', None)
 
+        # Convert project json references to ProjectReferences
         tree_transform(kwargs, 'upstream', _make_project_refs)
         for p in kwargs.get('upstream', []):
             p.config['run_tests'] = False
         tree_transform(kwargs, 'downstream', _make_project_refs)
         tree_transform(kwargs, 'imports', _make_import_refs)
 
-        # Store args as the intial config, will be merged via get_config() later
+        # Store args as the initial config, will be merged via get_config() later
         self.config = kwargs
+        if self.resolved():
+            # replace project specific variables now that we can
+            replacements = {
+                "source_dir": self.path,
+            }
+            # FIXME - this shouldn't have to happen here, ideally it happens in Script but
+            # script doesn't have access to per/project data, only env.variables which only come
+            # from the root project
+            project_vars = replace_variables(self.config.get("variables", {}), replacements)
+            replacements.update(project_vars)
+            self.config = replace_variables(self.config, replacements)
 
         # Allow projects to augment search dirs
         for search_dir in self.config.get('search_dirs', []):
@@ -401,8 +471,7 @@ class Project(object):
         for i in imports:
             import_steps = _build_project(i, env)
             if import_steps:
-                build_imports += [Script(import_steps,
-                                         name='resolve {}'.format(i.name))]
+                build_imports += [Script(import_steps, name='resolve {}'.format(i.name))]
         if build_imports:
             build_imports = [Script(build_imports, name='resolve imports')]
 
@@ -410,18 +479,17 @@ class Project(object):
         build_deps = []
         for d in deps:
             dep_steps = _build_project(d, env)
+
             if dep_steps:
-                build_deps += [Script(dep_steps,
-                                      name='build {}'.format(d.name))]
+                build_deps += [Script(dep_steps, name='build {}'.format(d.name))]
+
         if build_deps:
             build_deps = [Script(build_deps, name='build dependencies')]
 
-        all_steps = build_imports + build_deps + \
-            env.config.get('pre_build_steps', [])
+        all_steps = build_imports + build_deps + self.config.get('pre_build_steps', [])
         if len(all_steps) == 0:
             return None
-        all_steps = [
-            partial(_pushenv, self, 'pre_build_env'), *all_steps, _popenv]
+        all_steps = [partial(_pushenv, self, 'pre_build_env'), *all_steps, _popenv]
         return Script(all_steps, name='pre_build {}'.format(self.name))
 
     def build(self, env):
@@ -435,8 +503,7 @@ class Project(object):
 
         if len(build_project) == 0:
             return None
-        build_project = [
-            partial(_pushenv, self, 'build_env'), *build_project, _popenv]
+        build_project = [partial(_pushenv, self, 'build_env'), *build_project, _popenv]
         return Script(build_project, name='build project {}'.format(self.name))
 
     def build_consumers(self, env):
@@ -444,16 +511,19 @@ class Project(object):
         consumers = self.get_consumers(env.spec)
         for c in consumers:
             build_consumers += _build_project(c, env)
+            # build consumer tests by default, can be turned off by the root project though
+            downstream_ref = next((d for d in self.config.get('downstream', []) if d.name == c.name), {})
+            if downstream_ref.config.get('run_tests', True):
+                build_consumers += to_list(c.test(env))
         if len(build_consumers) == 0:
             return None
         return Script(build_consumers, name='build consumers of {}'.format(self.name))
 
     def post_build(self, env):
-        steps = env.config.get('post_build_steps', [])
+        steps = self.config.get('post_build_steps', [])
         if len(steps) == 0:
             return None
-        steps = [
-            partial(_pushenv, self, 'post_build_env'), *steps, _popenv]
+        steps = [partial(_pushenv, self, 'post_build_env'), *steps, _popenv]
         return Script(steps, name='post_build {}'.format(self.name))
 
     def test(self, env):
@@ -461,12 +531,11 @@ class Project(object):
         if not run_tests:
             return
 
-        steps = env.config.get('test_steps', env.config.get('test', []))
-        if steps is None:
+        steps = self.config.get('test_steps', self.config.get('test', []))
+        if not steps:
             steps = ['test']
         if isinstance(steps, list):
             steps = _transform_steps(steps, env, self)
-            test_project = steps
         if len(steps) == 0:
             return None
         steps = [partial(_pushenv, self, 'test_env'), *steps, _popenv]
@@ -505,36 +574,32 @@ class Project(object):
         return True
 
     def get_imports(self, spec):
-        self.imports = _resolve_imports_for_spec(
-            getattr(self, 'imports', []) + self.config.get('imports', []), spec)
-        return self.imports
+        imports = _resolve_imports_for_spec(getattr(self, 'imports', []) + self.config.get('imports', []), spec)
+        return imports
 
     def get_dependencies(self, spec):
         """ Gets dependencies for a given BuildSpec, filters by target """
-        self.dependencies = _resolve_projects(
-            self.config.get('upstream', []))
+        dependencies = _resolve_projects(self, self.config.get('upstream', []))
         target = spec.target
-        deps = []
-        for p in self.dependencies:
+        filtered = []
+        for p in dependencies:
             if not hasattr(p, 'targets') or target in getattr(p, 'targets', []):
-                deps.append(p)
-        return deps
+                filtered.append(p)
+        return filtered
 
     def get_consumers(self, spec):
         """ Gets consumers for a given BuildSpec, filters by target """
-        self.consumers = _resolve_projects(
-            self.config.get('downstream', []))
+        consumers = _resolve_projects(self, self.config.get('downstream', []))
         target = spec.target
-        consumers = []
-        for c in self.consumers:
+        filtered = []
+        for c in consumers:
             if not hasattr(c, 'targets') or target in getattr(c, 'targets', []):
-                consumers.append(c)
-        return consumers
+                filtered.append(c)
+        return filtered
 
     def get_config(self, spec, overrides=None, **additional_vars):
         if not self.config or not self.config.get('__processed', False):
-            self.config = produce_config(
-                spec, self, overrides, **additional_vars, project_dir=self.path)
+            self.config = produce_config(spec, self, overrides, **additional_vars, project_dir=self.path)
         return self.config
 
     # project cache
@@ -580,7 +645,6 @@ class Project(object):
     @staticmethod
     def _project_from_path(path='.', name_hint=None):
         path = os.path.abspath(path)
-        project_config = None
         project_config_file = os.path.join(path, "builder.json")
         if os.path.exists(project_config_file):
             import json
@@ -588,15 +652,12 @@ class Project(object):
                 try:
                     project_config = json.load(config_fp)
                 except Exception as e:
-                    print("Failed to parse config file",
-                          project_config_file, e)
+                    print("Failed to parse config file", project_config_file, e)
                     sys.exit(1)
 
-                if name_hint == None or project_config.get('name', None) == name_hint:
-                    print('    Found project: {} at {}'.format(
-                        project_config['name'], path))
-                    project = Project._create_project(
-                        **project_config, path=path)
+                if name_hint is None or project_config.get('name', None) == name_hint:
+                    print('    Found project: {} at {}'.format(project_config['name'], path))
+                    project = Project._create_project(**project_config, path=path)
                     return Project._cache_project(project)
 
         # load any builder scripts and check them
@@ -605,8 +666,7 @@ class Project(object):
         if name_hint and name_hint.lower() not in Project._projects:
             project_cls = Project._find_project_class(name_hint)
             if project_cls:
-                project = project_cls(name=name_hint, path=path if os.path.basename(
-                    path) == name_hint else None)
+                project = project_cls(name=name_hint, path=path if os.path.basename(path) == name_hint else None)
                 return Project._cache_project(project)
 
         return None
@@ -616,8 +676,10 @@ class Project(object):
         return Project._projects.keys()
 
     @staticmethod
-    def find_project(name, hints=[]):
+    def find_project(name, hints=None):
         """ Finds a project, either on disk, or makes a virtual one to allow for acquisition """
+        if hints is None:
+            hints = []
         project = Project._projects.get(name.lower(), None)
         if project and project.resolved():
             return project
@@ -631,8 +693,7 @@ class Project(object):
         dirs = UniqueList(dirs)
 
         for search_dir in dirs:
-            dir_matches_name = (os.path.basename(search_dir)
-                                == name) and os.path.isdir(search_dir)
+            dir_matches_name = (os.path.basename(search_dir) == name) and os.path.isdir(search_dir)
             if os.path.isfile(os.path.join(search_dir, 'builder.json')) or dir_matches_name:
                 project = Project._project_from_path(search_dir, name)
 
@@ -642,8 +703,7 @@ class Project(object):
                 # might be a project without a config
                 if dir_matches_name and looks_like_code(search_dir):
                     print('    Found source code only project at {}'.format(search_dir))
-                    project = Project._create_project(
-                        name=name, path=search_dir)
+                    project = Project._create_project(name=name, path=search_dir)
                     return Project._cache_project(project)
 
         if Project._find_project_class(name):
@@ -653,7 +713,9 @@ class Project(object):
         return Project(name=name)
 
     @staticmethod
-    def find_import(name, hints=[]):
+    def find_import(name, hints=None):
+        if hints is None:
+            hints = []
         imp = Project._projects.get(name.lower(), None)
         if imp and imp.resolved():
             return imp

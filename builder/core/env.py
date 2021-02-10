@@ -5,15 +5,18 @@ import os
 import subprocess
 import sys
 
-from actions.git import DownloadSource
-from .project import Project
-from .shell import Shell
+from builder.actions.git import DownloadSource
+from builder.core.project import Project
+from builder.core.shell import Shell
 
 
 class Env(object):
     """ Encapsulates the environment in which the build is running """
 
-    def __init__(self, config={}):
+    def __init__(self, config=None):
+        if config is None:
+            config = {}
+
         # DEFAULTS
         self.dryrun = False  # overwritten by config
 
@@ -44,7 +47,7 @@ class Env(object):
             if prev:
                 if not isinstance(prev, list):
                     prev = [prev]
-                    val = prev.push(val)
+                    val = prev.append(val)
             self.config[key] = val
 
         # build environment set up
@@ -76,14 +79,13 @@ class Env(object):
         # it is present on disk
         project = Project.find_project(project_name, hints=hints)
         if not project.path:  # got a ref
-            print('Project {} could not be found locally, downloading'.format(
-                project.name))
-            DownloadSource(
-                project=project, branch=self.branch, path='.').run(self)
+            print('Project {} could not be found locally, downloading'.format(project.name))
+            DownloadSource(project=project, branch=self.branch, path='.').run(self)
+
             # Now that the project is downloaded, look it up again
-            project = Project.find_project(
-                project.name, hints=[os.path.abspath('.')])
+            project = Project.find_project(project.name, hints=[os.path.abspath('.')])
             assert project.resolved()
+
         self.project = project
 
         if not self.project or not self.project.resolved():
@@ -93,32 +95,29 @@ class Env(object):
         self.config = self.project.get_config(self.spec, self.args.cli_config)
 
         # Once initialized, switch to the source dir before running actions
-        self.source_dir = os.path.abspath(self.project.path)
-        self.variables['source_dir'] = self.source_dir
-        self.shell.cd(self.source_dir)
+        self.root_dir = os.path.abspath(self.project.path)
+        self.variables['root_dir'] = self.root_dir
+        self.shell.cd(self.root_dir)
 
         # Allow these to be overridden by the project, and relative to source_dir if not absolute paths
-        build_dir = self.config.get(
-            'build_dir', os.path.join(self.source_dir, 'build'))
+        build_dir = self.config.get('build_dir', os.path.join(self.root_dir, 'build'))
         self.build_dir = os.path.abspath(build_dir)
         self.variables['build_dir'] = self.build_dir
 
-        deps_dir = self.config.get(
-            'deps_dir', os.path.join(self.build_dir, 'deps'))
+        deps_dir = self.config.get('deps_dir', os.path.join(self.build_dir, 'deps'))
         self.deps_dir = os.path.abspath(deps_dir)
         self.variables['deps_dir'] = self.deps_dir
 
-        install_dir = self.config.get(
-            'install_dir', os.path.join(self.build_dir, 'install'))
+        install_dir = self.config.get('install_dir', os.path.join(self.build_dir, 'install'))
         self.install_dir = os.path.abspath(install_dir)
         self.variables['install_dir'] = self.install_dir
 
-        print('Source directory: {}'.format(self.source_dir))
+        print('Root directory: {}'.format(self.root_dir))
         print('Build directory: {}'.format(self.build_dir))
 
         Project.search_dirs += [
             self.build_dir,
-            self.source_dir,
+            self.root_dir,
             self.deps_dir,
         ]
 
@@ -137,12 +136,22 @@ class Env(object):
             print("Found branch:", travis_pr_branch)
             return travis_pr_branch
 
+        # NOTE: head_ref only set for pull_request events
+        # see: https://docs.github.com/en/actions/reference/environment-variables#default-environment-variables
+        github_head_ref = os.environ.get("GITHUB_HEAD_REF")
         github_ref = os.environ.get("GITHUB_REF")
-        if github_ref:
+        if github_head_ref:
+            # if we are triggered from a PR then we are in a detached head state (e.g. `refs/pull/:prNumber/merge`)
+            # and we need to grab the branch being merged from
+            # see: https://docs.github.com/en/actions/reference/events-that-trigger-workflows#pull_request
+            branch = github_head_ref
+            print("Found github ref for PR from: {}".format(branch))
+            return branch
+        elif github_ref:
             origin_str = "refs/heads/"
             if github_ref.startswith(origin_str):
                 branch = github_ref[len(origin_str):]
-                print("Found github ref:", branch)
+                print("Found github ref: {}".format(branch))
                 return branch
 
         try:

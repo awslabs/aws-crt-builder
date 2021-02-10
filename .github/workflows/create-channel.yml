@@ -44,7 +44,9 @@ jobs:
       run: |
         export CHANNEL=${{ steps.tag.outputs.release_tag }}
         mkdir -p build
-        python3 -m zipapp --python="/usr/bin/env python3" --output=build/builder builder
+        mkdir -p staging
+        cp -r builder staging/.
+        python3 -m zipapp --python="/usr/bin/env python3" -m "builder.main:main" --output=build/builder staging
         aws s3 cp build/builder s3://$AWS_S3_BUCKET/channels/$CHANNEL/builder.pyz
 
     - name: Artifact builder
