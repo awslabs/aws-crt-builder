@@ -65,6 +65,8 @@ jobs:
         - swift-5-al2-x64
         - swift-5-centos-x64
         - swift-5-ubuntu-16-x64
+        - php5-linux-x64
+        - php7-linux-x64
 
     steps:
     - name: Checkout Sources
@@ -93,7 +95,7 @@ jobs:
 
     - name: Login to docker repos
       run: |
-        $(aws --region us-east-1 ecr get-login --no-include-email)
+        aws ecr get-login-password --region us-east-1 | docker login ${{ secrets.AWS_ECR_REPO }} -u AWS --password-stdin
         echo "${{ secrets.GITHUB_TOKEN }}" | docker login docker.pkg.github.com -u awslabs --password-stdin
 
     - name: Tag/push release images as latest
