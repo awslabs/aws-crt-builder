@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0.
 
 from enum import Enum
-from .util import dict_alias
+from builder.core.util import dict_alias
 
 ########################################################################################################################
 # DATA DEFINITIONS
@@ -29,6 +29,7 @@ KEYS = {
     'build_dir': 'build',
     'deps_dir': '{build_dir}/deps',
     'install_dir': '{build_dir}/install',
+    'env': {},  # environment variables global for all steps
     'build_env': {},  # environment variables to set before starting build
     'pre_build_env': {},
     'pre_build_steps': [],  # steps to run before build
@@ -124,7 +125,7 @@ HOSTS = {
         # need ld and make and such
         'packages': ['build-essential'],
         'pkg_setup': [
-            'apt-add-repository ppa:ubuntu-toolchain-r/test',
+            'apt-add-repository -y ppa:ubuntu-toolchain-r/test',
         ],
         'pkg_update': 'apt-get -qq update -y',
         'pkg_install': 'apt-get -qq install -y',

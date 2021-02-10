@@ -18,11 +18,11 @@ def _import_dynamic_classes():
     global Action
     global Project
     global Import
-    project = __import__('core').project
+
+    import builder.core.project as project
+    import builder.core.action as action
     Project = getattr(project, 'Project')
     Import = getattr(project, 'Import')
-
-    action = __import__('core').action
     Action = getattr(action, 'Action')
 
 

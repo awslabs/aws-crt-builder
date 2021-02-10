@@ -2,12 +2,12 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0.
 
-from core.fetch import fetch_script
-from core.host import current_os
-from core.project import Import
-import core.util as util
-from actions.install import InstallPackages
-from actions.script import Script
+from builder.core.fetch import fetch_script
+from builder.core.host import current_os
+from builder.core.project import Import
+import builder.core.util as util
+from builder.actions.install import InstallPackages
+from builder.actions.script import Script
 
 import stat
 import os

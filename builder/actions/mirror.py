@@ -2,8 +2,8 @@
 # SPDX-License-Identifier: Apache-2.0.
 
 import os
-from core.action import Action
-from core.project import Import
+from builder.core.action import Action
+from builder.core.project import Import
 
 
 class Mirror(Action):

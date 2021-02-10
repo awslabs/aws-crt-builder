@@ -62,7 +62,9 @@ jobs:
     - name: Package builder to S3
       run: |
         mkdir -p build
-        python3 -m zipapp --python="/usr/bin/env python3" --output=build/builder.pyz builder
+        mkdir -p staging
+        cp -r builder staging/.
+        python3 -m zipapp --python="/usr/bin/env python3" -m "builder.main:main" --output=build/builder.pyz staging
         aws s3 cp build/builder.pyz s3://$AWS_S3_BUCKET/channels/${{ steps.tag.outputs.release_tag }}/builder.pyz
         zipinfo -1 build/builder.pyz
 
@@ -75,8 +77,9 @@ jobs:
   sanity_test:
     name: Sanity Test
     strategy:
+      fail-fast: false
       matrix:
-        host: [ubuntu-latest, macos-latest, windows-latest]
+        host: [ubuntu-16.04, ubuntu-18.04, ubuntu-20.04, macos-10.15, macos-11.0, windows-2019]
     needs: package
     runs-on: ${{ matrix.host }}
     steps:
@@ -90,52 +93,52 @@ jobs:
         path: .
 
     - name: Sanity Test Run Compat (Unix)
-      if:  matrix.host != 'windows-latest'
+      if:  ${{ !startsWith(matrix.host, 'windows') }}
       run: |
         ls -al
         zipinfo -1 builder.pyz
         python3 builder.pyz run test --project tests
 
     - name: Sanity Test Action (Unix)
-      if:  matrix.host != 'windows-latest'
+      if: ${{ !startsWith(matrix.host, 'windows') }}
       run: |
         python3 builder.pyz test --project tests
 
     - name: Sanity Test Build (Unix)
-      if:  matrix.host != 'windows-latest'
+      if:  ${{ !startsWith(matrix.host, 'windows') }}
       run: |
         python3 builder.pyz build --project tests
 
     - name: Sanity Test aws-c-common (Unix)
-      if:  matrix.host != 'windows-latest'
+      if: ${{ !startsWith(matrix.host, 'windows') }}
       run: |
         python3 builder.pyz build --project aws-c-common
 
     - name: Sanity Test Run Compat (Windows)
-      if: matrix.host == 'windows-latest'
+      if: startsWith(matrix.host, 'windows')
       run: |
         choco install --no-progress vswhere
         python builder.pyz run test --project tests
 
     - name: Sanity Test Action (Windows)
-      if: matrix.host == 'windows-latest'
+      if: startsWith(matrix.host, 'windows')
       run: |
         choco install --no-progress vswhere
         python builder.pyz test --project tests
 
     - name: Sanity Test Build (Windows)
-      if: matrix.host == 'windows-latest'
+      if: startsWith(matrix.host, 'windows')
       run: |
         python builder.pyz build --project tests
 
     - name: Sanity Test aws-c-common (Windows)
-      if: matrix.host == 'windows-latest'
+      if: startsWith(matrix.host, 'windows')
       run: |
         python builder.pyz build --project aws-c-common
 
   # Make sure cross compiling works
   cross_compile:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-16.04
     if: github.event_name != 'release'
     needs: [package, sanity_test]
     strategy:
@@ -171,7 +174,7 @@ jobs:
           - gcc-7
           - gcc-8
     needs: [package, sanity_test]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-16.04
     steps:
     - name: Checkout Source
       uses: actions/checkout@v1
@@ -188,8 +191,9 @@ jobs:
   # Make sure linux compilers + stdlibs are installing properly
   std-compat:
     needs: [package, sanity_test]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-16.04
     strategy:
+      fail-fast: false
       matrix:
         compiler: [gcc-8, clang-9]
         std: [c++11, c++14, c++17, c++2a]
