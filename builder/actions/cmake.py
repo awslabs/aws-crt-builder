@@ -12,19 +12,18 @@ def _project_dirs(env, project):
     if not project.resolved():
         print('Project is not resolved: {}'.format(project.name))
 
+    source_dir = str(Path(project.path).relative_to(env.source_dir))
+    build_dir = str(Path(os.path.join(env.build_dir, project.name)).relative_to(env.source_dir))
+
     # cross compiles are effectively chrooted to the source_dir, normal builds need absolute paths
     # or cmake gets lost because it wants directories relative to source
     if env.toolchain.cross_compile:
         # all dirs used should be relative to env.source_dir, as this is where the cross
         # compilation will be mounting to do its work
         install_dir = str(Path(env.install_dir).relative_to(env.source_dir))
-        source_dir = str(Path(project.path).relative_to(env.source_dir))
-        build_dir = str(
-            Path(os.path.join(env.build_dir, project.name)).relative_to(env.source_dir))
     else:
         install_dir = env.install_dir
-        source_dir = project.path
-        build_dir = os.path.join(env.build_dir, project.name)
+
     return source_dir, build_dir, install_dir
 
 

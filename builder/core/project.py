@@ -232,11 +232,7 @@ def _build_project(project, env):
     children += to_list(project.build(env))
     children += to_list(project.post_build(env))
     children += to_list(project.install(env))
-    if not isinstance(project, Import):
-        # always build projects from their respective root
-        return [partial(_pushd, project.path), *children, _popd]
-    else:
-        return children
+    return children
 
 
 def _pushenv(project, key, env):
@@ -511,7 +507,7 @@ class Project(object):
             # build consumer tests by default, can be turned off by the root project though
             downstream_ref = next((d for d in self.config.get('downstream', []) if d.name == c.name), {})
             if downstream_ref.config.get('run_tests', True):
-                build_consumers += [partial(_pushd, c.path), *to_list(c.test(env)), _popd]
+                build_consumers += to_list(c.test(env))
         if len(build_consumers) == 0:
             return None
         return Script(build_consumers, name='build consumers of {}'.format(self.name))
