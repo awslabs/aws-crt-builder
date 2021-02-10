@@ -93,24 +93,24 @@ jobs:
         path: .
 
     - name: Sanity Test Run Compat (Unix)
-      if:  ! startsWith(matrix.host, 'windows')
+      if:  ${{ !startsWith(matrix.host, 'windows') }}
       run: |
         ls -al
         zipinfo -1 builder.pyz
         python3 builder.pyz run test --project tests
 
     - name: Sanity Test Action (Unix)
-      if:  ! startsWith(matrix.host, 'windows')
+      if: ${{ !startsWith(matrix.host, 'windows') }}
       run: |
         python3 builder.pyz test --project tests
 
     - name: Sanity Test Build (Unix)
-      if:  ! startsWith(matrix.host, 'windows')
+      if:  ${{ !startsWith(matrix.host, 'windows') }}
       run: |
         python3 builder.pyz build --project tests
 
     - name: Sanity Test aws-c-common (Unix)
-      if: ! startsWith(matrix.host, 'windows')
+      if: ${{ !startsWith(matrix.host, 'windows') }}
       run: |
         python3 builder.pyz build --project aws-c-common
 
