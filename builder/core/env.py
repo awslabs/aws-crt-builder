@@ -112,7 +112,7 @@ class Env(object):
         self.install_dir = os.path.abspath(install_dir)
         self.variables['install_dir'] = self.install_dir
 
-        print('(root) Source directory: {}'.format(self.root_dir))
+        print('Root directory: {}'.format(self.root_dir))
         print('Build directory: {}'.format(self.build_dir))
 
         Project.search_dirs += [

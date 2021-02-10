@@ -212,21 +212,7 @@ class TestProject(unittest.TestCase):
         self.assertEqual(0, len(dependencies), "dependencies should have filtered upstream with specific target")
 
     def test_project_source_dir_replaced(self):
-        """project_source_dir variable should be replaced"""
-        config = _test_proj_config.copy()
-        config['upstream'] = [
-            {
-                'name': 'lib-1'
-            }
-        ]
-
-        p = Project(**config)
-        mock_env = mock.Mock(name='MockEnv', config=config)
-        steps = p.pre_build(mock_env)
-        self._assert_step_contains(steps, test_data_dir)
-
-    def test_project_variable_replaced(self):
-        """dependency variables should be replaced"""
+        """project specific dependency variables should be replaced"""
         config = _test_proj_config.copy()
         config['upstream'] = [
             {
