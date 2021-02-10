@@ -93,46 +93,46 @@ jobs:
         path: .
 
     - name: Sanity Test Run Compat (Unix)
-      if:  matrix.host != 'windows-latest'
+      if:  ! startsWith(matrix.host, 'windows')
       run: |
         ls -al
         zipinfo -1 builder.pyz
         python3 builder.pyz run test --project tests
 
     - name: Sanity Test Action (Unix)
-      if:  matrix.host != 'windows-latest'
+      if:  ! startsWith(matrix.host, 'windows')
       run: |
         python3 builder.pyz test --project tests
 
     - name: Sanity Test Build (Unix)
-      if:  matrix.host != 'windows-latest'
+      if:  ! startsWith(matrix.host, 'windows')
       run: |
         python3 builder.pyz build --project tests
 
     - name: Sanity Test aws-c-common (Unix)
-      if:  matrix.host != 'windows-latest'
+      if: ! startsWith(matrix.host, 'windows')
       run: |
         python3 builder.pyz build --project aws-c-common
 
     - name: Sanity Test Run Compat (Windows)
-      if: matrix.host == 'windows-latest'
+      if: startsWith(matrix.host, 'windows')
       run: |
         choco install --no-progress vswhere
         python builder.pyz run test --project tests
 
     - name: Sanity Test Action (Windows)
-      if: matrix.host == 'windows-latest'
+      if: startsWith(matrix.host, 'windows')
       run: |
         choco install --no-progress vswhere
         python builder.pyz test --project tests
 
     - name: Sanity Test Build (Windows)
-      if: matrix.host == 'windows-latest'
+      if: startsWith(matrix.host, 'windows')
       run: |
         python builder.pyz build --project tests
 
     - name: Sanity Test aws-c-common (Windows)
-      if: matrix.host == 'windows-latest'
+      if: startsWith(matrix.host, 'windows')
       run: |
         python builder.pyz build --project aws-c-common
 
