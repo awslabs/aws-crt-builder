@@ -45,8 +45,8 @@ def _apply_value(obj, key, new_value, apply_before=True):
     if key_type == list:
         # apply the config's value before the existing list
         val = obj[key]
+        new_value = [new_value] if not isinstance(new_value, list) else new_value
         if val:
-            new_value = list(new_value)
             if apply_before:
                 obj[key] = new_value + val
             else:
@@ -193,7 +193,11 @@ def produce_config(build_spec, project, overrides=None, **additional_variables):
     if overrides:
         for key, val in overrides.items():
             if key.startswith('!'):
-                new_version[key] = val
+                # re-init and replace current value, obeying type coercion rules
+                key = key[1:]
+                if key in new_version:
+                    new_version[key] = new_version[key].__class__()
+                _apply_value(new_version, key, val)
             else:
                 _apply_value(new_version, key, val)
 
