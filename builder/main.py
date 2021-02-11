@@ -120,7 +120,8 @@ def coerce_arg(arg):
         return True
     if arg.lower() in ['off', 'false', 'no']:
         return False
-    return arg
+    # remove quotes
+    return re.sub(r'^(\\*[\'"])(.+)\1$', r'\2', arg)
 
 
 def parse_args():
