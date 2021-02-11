@@ -18,6 +18,7 @@ RUN yum -y update \
     cmake3 \
     gcc \
     gcc-c++ \
+    which \
     openssl-devel \
     libcurl-devel \
     libffi-devel \
