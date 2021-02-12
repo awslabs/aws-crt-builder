@@ -196,7 +196,7 @@ class Toolchain(object):
             # a single int you'll get told about anything >= version.
             # Perfect, exactly what we want.
             result = util.run_command('vswhere', '-legacy', '-version', version,
-                                      '-property', 'installationPath', quiet=True)
+                                      '-property', 'installationPath', '-sort', quiet=True)
             installations = result.output.splitlines()
             if installations:
                 return installations[0], version
