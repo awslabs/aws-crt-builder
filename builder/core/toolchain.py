@@ -69,8 +69,8 @@ def _gcc_versions():
 def _msvc_versions():
     versions = [v for v in COMPILERS['msvc']
                 ['versions'].keys() if v != 'default']
-    versions.sort()
-    versions.reverse()
+    # sorted high to low by int value
+    versions.sort(key=lambda x: int(x), reverse=True)
     return versions
 
 
@@ -187,27 +187,20 @@ class Toolchain(object):
                     return _find_msvc(version, False)
                 return None, None
 
-            compiler = None
-            vc_version = None
 
-            # Grab installed version
-            result = util.run_command('vswhere', '-legacy', '-version', version,
-                                      '-property', 'installationVersion', quiet=True)
-            text = result.output
-            m = re.match('(\d+)\.?', text)
-            if m:
-                vc_version = m.group(1)
-
-            if not vc_version or vc_version != version:
-                return None, None
-
-            # Grab installation path
+            # A Visual Studio installation might have toolsets available for compiling
+            # earlier versions. vswhere doesn't know about these toolsets, so
+            # we'll just assume that any installation >= version can do the job.
+            # 
+            # vswhere's -version flag expects a range, and if you just pass
+            # a single int you'll get told about anything >= version.
+            # Perfect, exactly what we want.
             result = util.run_command('vswhere', '-legacy', '-version', version,
                                       '-property', 'installationPath', quiet=True)
-            text = result.output
-            compiler = text.strip()
-
-            return compiler, vc_version
+            installations = result.output.splitlines()
+            if installations:
+                return installations[0], version
+            return None, None
 
         versions = [version] if version else _msvc_versions()
         for version in versions:
