@@ -187,11 +187,10 @@ class Toolchain(object):
                     return _find_msvc(version, False)
                 return None, None
 
-
             # A Visual Studio installation might have toolsets available for compiling
             # earlier versions. vswhere doesn't know about these toolsets, so
             # we'll just assume that any installation >= version can do the job.
-            # 
+            #
             # vswhere's -version flag expects a range, and if you just pass
             # a single int you'll get told about anything >= version.
             # Perfect, exactly what we want.
