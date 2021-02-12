@@ -452,29 +452,37 @@ COMPILERS = {
 
         'imports': ['msvc'],
 
-        'cmake_args': ["-G", "Visual Studio {generator_version}{generator_postfix}"],
-
         'versions': {
-            '2015': {
-                'variables': {
-                    'generator_version': "14 2015",
-                },
+            # 2015
+            '14': {
+                'cmake_args': [
+                    '-T', 'v140',
+                ],
             },
-            '2017': {
-                'variables': {
-                    'generator_version': "15 2017",
-                },
+            # 2017
+            '15': {
+                'cmake_args': [
+                    '-T', 'v141',
+                ],
             },
-            '2019': {
-                '!cmake_args': ["-G", "Visual Studio 16 2019", '-A', 'x64'],
+            # 2019
+            '16': {
+                'cmake_args': [
+                    '-T', 'v142',
+                ],
             }
         },
 
         'architectures': {
+            'x86': {
+                'cmake_args': [
+                    '-A', 'Win32',
+                ],
+            },
             'x64': {
-                'variables': {
-                    'generator_postfix': " Win64",
-                },
+                'cmake_args': [
+                    '-A', 'x64',
+                ],
             },
         },
     },
@@ -491,10 +499,6 @@ COMPILERS = {
         }
     }
 }
-
-COMPILERS['msvc']['versions']['14'] = COMPILERS['msvc']['versions']['2015']
-COMPILERS['msvc']['versions']['15'] = COMPILERS['msvc']['versions']['2017']
-COMPILERS['msvc']['versions']['16'] = COMPILERS['msvc']['versions']['2019']
 
 for arch in ARCHS.keys():
     for alias in ARCHS[arch].get('aliases', []):
