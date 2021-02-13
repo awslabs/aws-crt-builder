@@ -45,7 +45,6 @@ def _apply_value(obj, key, new_value, apply_before=True):
     if key_type == list:
         # apply the config's value before the existing list
         val = obj[key]
-        new_value = list(new_value)
         if apply_before:
             obj[key] = new_value + val
         else:
