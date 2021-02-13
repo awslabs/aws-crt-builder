@@ -137,7 +137,6 @@ def parse_args():
     parser.add_argument('--build-dir', type=str,
                         help='Directory to work in', default='.')
     parser.add_argument('-b', '--branch', help='Branch to build from')
-    parser.add_argument('--cli_config', action='append', type=list)
     parser.add_argument('--compiler', type=str,
                         help="The compiler to use for this build")
     parser.add_argument('--target', type=str, help="The target to cross-compile for (e.g. android-armv7, linux-x86, linux-aarch64)",
@@ -165,14 +164,29 @@ def parse_args():
 
     # pull out any k=v pairs
     config_vars = []
-    for arg in argv:
-        m = re.match(r'^([A-Za-z_0-9]+)=(.+)', arg)
+    for arg in argv.copy():
+        m = re.match(r'(\+?)([A-Za-z_0-9]+)=(.+)', arg)
         if m:
-            config_vars.append((m.group(1), m.group(2)))
-    cli_config = {}
-    for var in config_vars:
-        cli_config[var[0]] = coerce_arg(var[1])
-        argv.remove('{}={}'.format(var[0], var[1]))
+            config_vars.append((m.group(1), m.group(2), m.group(3)))
+            argv.remove(arg)
+
+    cli_config = {'variables': {}}
+    for plus, key, val in config_vars:
+        if key in data.KEYS:
+            val = coerce_arg(val)
+            if isinstance(data.KEYS[key], list):
+                # Treat list entries from CLI as '!' overrides, unless first entry starts with '+'
+                if key not in cli_config and not plus:
+                    key = '!' + key
+
+                prev = cli_config.get(key, [])
+                cli_config[key] = prev + [val]
+            else:
+                # not a list
+                cli_config[key] = val
+        else:
+            # unknown keys are treated as variables
+            cli_config['variables'][key] = val
 
     # parse the args we know, put the rest in args.args for others to parse
     args, extras = parser.parse_known_args(argv)
