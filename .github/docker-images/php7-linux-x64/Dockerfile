@@ -17,11 +17,16 @@ RUN yum -y update \
     cmake3 \
     gcc \
     gcc-c++ \
+    which \
     openssl-devel \
     libcurl-devel \
     libffi-devel \
     libxml2-devel \
     sqlite-devel \
+    zlib-devel \
+    autoconf \
+    automake \
+    libtool \
     && yum clean all \
     && rm -rf /var/cache/yum \
     && ln -s /usr/bin/cmake3 /usr/bin/cmake \
@@ -62,9 +67,17 @@ WORKDIR /tmp
 RUN curl -sSL https://www.php.net/distributions/php-7.4.15.tar.gz -o php.tar.gz \
     && tar xzf php.tar.gz \
     && cd php-7.4.15 \
-    && ./configure --prefix=/usr/local --disable-cgi --with-openssl --with-ffi --with-curl \
+    && ./configure --prefix=/usr/local --disable-cgi --with-openssl --with-ffi --with-curl --with-zlib \
     && make -j \
     && make install
+
+###############################################################################
+# Install composer
+###############################################################################
+WORKDIR /tmp
+RUN curl -sSL https://getcomposer.org/composer-stable.phar -o /usr/local/bin/composer \
+    && chmod a+x /usr/local/bin/composer \
+    && composer --version
 
 ###############################################################################
 # Install entrypoint

@@ -18,6 +18,7 @@ RUN yum -y update \
     cmake3 \
     gcc \
     gcc-c++ \
+    which \
     && yum clean all \
     && rm -rf /var/cache/yum \
     && ln -s /usr/bin/cmake3 /usr/bin/cmake \
