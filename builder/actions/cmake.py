@@ -50,7 +50,7 @@ def _build_project(env, project, build_tests=False):
 
     # Set compiler flags
     compiler_flags = []
-    if toolchain.compiler != 'default' and not toolchain.cross_compile:
+    if toolchain.compiler != 'default' and toolchain.compiler != 'msvc' and not toolchain.cross_compile:
         c_path = toolchain.compiler_path()
         cxx_path = toolchain.cxx_compiler_path()
         for opt, value in [('c', c_path), ('cxx', cxx_path)]:
