@@ -85,13 +85,6 @@ def _is_cross_compile(target_os, target_arch):
         return True
     return False
 
-def _set_arch(target_arch):
-    if current_os() == "linux":
-        arch = current_arch()
-        if arch != target_arch:
-            if arch == 'x64':
-                return ['setarch', 'i386']
-    return []
 
 class Toolchain(object):
     """ Represents a compiler toolchain """
@@ -123,7 +116,7 @@ class Toolchain(object):
         self.cross_compile = _is_cross_compile(self.target, self.arch)
         self.platform = normalize_target(
             '{}-{}'.format(self.target, self.arch))
-        self.shell_env = _set_arch(self.arch)
+        self.shell_env = []
 
         if self.cross_compile:
             print('Setting compiler to gcc for cross compile')
