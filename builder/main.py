@@ -142,6 +142,8 @@ def parse_args():
     parser.add_argument('--target', type=str, help="The target to cross-compile for (e.g. android-armv7, linux-x86, linux-aarch64)",
                         default='{}-{}'.format(current_os(), current_arch()),
                         choices=data.PLATFORMS.keys())
+    parser.add_argument('--cmake-extra', action='append', help='Extra cmake config arg applied to all projects.' +
+                        ' May be specified multiple times. (e.g "--cmake-extra=-DBUILD_SHARED_LIBS=ON"')
     parser.add_argument('args', nargs=argparse.REMAINDER)
 
     # hand parse command and spec from within the args given
@@ -162,41 +164,40 @@ def parse_args():
             print('No command provided, should be [build|inspect|<action-name>]')
         sys.exit(1)
 
-    # pull out any k=v pairs
-    config_vars = []
-    for arg in argv.copy():
-        m = re.match(r'(\+?)([A-Za-z_0-9]+)=(.+)', arg)
-        if m:
-            config_vars.append((m.group(1), m.group(2), m.group(3)))
-            argv.remove(arg)
-
-    cli_config = {'variables': {}}
-    for plus, key, val in config_vars:
-        if key in data.KEYS:
-            val = coerce_arg(val)
-            if isinstance(data.KEYS[key], list):
-                # Treat list entries from CLI as '!' overrides, unless first entry starts with '+'
-                if key not in cli_config and not plus:
-                    key = '!' + key
-
-                prev = cli_config.get(key, [])
-                cli_config[key] = prev + [val]
-            else:
-                # not a list
-                cli_config[key] = val
-        else:
-            # unknown keys are treated as variables
-            cli_config['variables'][key] = val
-
-    # parse the args we know, put the rest in args.args for others to parse
-    args, extras = parser.parse_known_args(argv)
+    # parse the args we know, the rest end up in args.args for others to parse
+    args = parser.parse_args(argv)
     args.command = command
-    args.cli_config = cli_config
     args.spec = args.spec if args.spec else spec
     # Backwards compat for `builder run $action`
     if args.command == 'run':
         args.command = args.spec
         args.spec = None
+
+    # pull out any k=v pairs
+    config_vars = []
+    for arg in args.args.copy():
+        m = re.match(r'(\+?)([A-Za-z_0-9]+)=(.+)', arg)
+        if m:
+            config_vars.append((m.group(1), m.group(2), m.group(3)))
+            args.args.remove(arg)
+
+    args.cli_config = {'variables': {}}
+    for plus, key, val in config_vars:
+        if key in data.KEYS:
+            val = coerce_arg(val)
+            if isinstance(data.KEYS[key], list):
+                # Treat list entries from CLI as '!' overrides, unless first entry starts with '+'
+                if key not in args.cli_config and not plus:
+                    key = '!' + key
+
+                prev = args.cli_config.get(key, [])
+                args.cli_config[key] = prev + [val]
+            else:
+                # not a list
+                args.cli_config[key] = val
+        else:
+            # unknown keys are treated as variables
+            args.cli_config['variables'][key] = val
 
     # normalize target
     if args.target:
@@ -215,8 +216,6 @@ def parse_args():
 
     if not spec:
         spec = default_spec()
-    # Save unknown args for actions to parse later
-    args.args += extras
 
     return args, spec
 

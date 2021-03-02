@@ -69,7 +69,9 @@ def _build_project(env, project, build_tests=False):
         "-DCMAKE_BUILD_TYPE=" + build_config,
         "-DBUILD_TESTING=" + ("ON" if build_tests else "OFF"),
         *compiler_flags,
-    ] + project.cmake_args(env)
+    ]
+    cmake_args += project.cmake_args(env)
+    cmake_args += env.args.cmake_extra
 
     # When cross compiling, we must inject the build_env into the cross compile container
     build_env = []
