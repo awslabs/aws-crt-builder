@@ -15,7 +15,7 @@ class S2NImport(Import):
     def __init__(self, **kwargs):
         super().__init__(
             library=True,
-            imports=['libcrypto'],
+            upstreams=['aws-lc'],
             config=config,
             **kwargs)
 
@@ -24,6 +24,6 @@ class S2NProject(Project):
     def __init__(self, **kwargs):
         super().__init__(
             account='awslabs',
-            imports=['libcrypto'],
+            upstreams=['aws-lc'],
             config=config,
             **kwargs)
