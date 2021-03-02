@@ -28,6 +28,7 @@ Usage: ```builder.pyz [build|inspect|<action-name>] [spec] [OPTIONS]```
   * Valid values are anything that you could get from `uname`.lower() - `uname -m`, e.g. linux-x86_64, linux-x64. See targets below.
 * ```--build-dir DIR``` - Make a new directory to do all the build work in, instead of using the current directory
 * ```--dump-config``` - Dumps the resultant config after merging all available options. Useful for debugging your project configuration.
+* ```--cmake-extra``` - Extra cmake config arg applied to all projects. e.g ```--cmake-extra=-DBUILD_SHARED_LIBS=ON```. May be specified multiple times.
 
 
 ### Supported Targets:

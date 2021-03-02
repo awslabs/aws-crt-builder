@@ -142,10 +142,6 @@ def parse_args():
     parser.add_argument('--target', type=str, help="The target to cross-compile for (e.g. android-armv7, linux-x86, linux-aarch64)",
                         default='{}-{}'.format(current_os(), current_arch()),
                         choices=data.PLATFORMS.keys())
-    parser.add_argument('--cmake-extra', action='append', default=[],
-                        help='Extra cmake config arg applied to all projects. May be specified multiple times. ' +
-                        '(e.g "--cmake-extra=-DBUILD_SHARED_LIBS=ON"')
-    parser.add_argument('args', nargs=argparse.REMAINDER)
 
     # hand parse command and spec from within the args given
     command = None
@@ -165,8 +161,9 @@ def parse_args():
             print('No command provided, should be [build|inspect|<action-name>]')
         sys.exit(1)
 
-    # parse the args we know, the rest end up in args.args for others to parse
-    args = parser.parse_args(argv)
+    # parse the args we know, put the rest in args.args for others to parse
+    args, extra = parser.parse_known_args(argv)
+    args.args = extra
     args.command = command
     args.spec = args.spec if args.spec else spec
     # Backwards compat for `builder run $action`

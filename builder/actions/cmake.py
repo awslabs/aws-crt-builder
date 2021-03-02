@@ -1,6 +1,7 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0.
 
+import argparse
 import os
 from pathlib import Path
 
@@ -27,13 +28,13 @@ def _project_dirs(env, project):
     return source_dir, build_dir, install_dir
 
 
-def _build_project(env, project, build_tests=False):
+def _build_project(env, project, cmake_extra, build_tests=False):
     sh = env.shell
     config = project.get_config(env.spec)
     toolchain = env.toolchain
     # build dependencies first, let cmake decide what needs doing
     for dep in project.get_dependencies(env.spec):
-        _build_project(env, dep)
+        _build_project(env, dep, cmake_extra)
 
     project_source_dir, project_build_dir, project_install_dir = _project_dirs(
         env, project)
@@ -71,7 +72,7 @@ def _build_project(env, project, build_tests=False):
         *compiler_flags,
     ]
     cmake_args += project.cmake_args(env)
-    cmake_args += env.args.cmake_extra
+    cmake_args += cmake_extra
 
     # When cross compiling, we must inject the build_env into the cross compile container
     build_env = []
@@ -106,12 +107,16 @@ class CMakeBuild(Action):
         toolchain = env.toolchain
         sh = env.shell
 
+        parser = argparse.ArgumentParser()
+        parser.add_argument('--cmake-extra', action='append', default=[])
+        args = parser.parse_known_args(env.args.args)[0]
+
         for d in (env.build_dir, env.deps_dir, env.install_dir):
             sh.mkdir(d)
 
         # BUILD
         build_tests = self.project.needs_tests(env)
-        _build_project(env, self.project, build_tests)
+        _build_project(env, self.project, args.cmake_extra, build_tests)
 
     def __str__(self):
         return 'cmake build {} @ {}'.format(self.project.name, self.project.path)
