@@ -142,8 +142,9 @@ def parse_args():
     parser.add_argument('--target', type=str, help="The target to cross-compile for (e.g. android-armv7, linux-x86, linux-aarch64)",
                         default='{}-{}'.format(current_os(), current_arch()),
                         choices=data.PLATFORMS.keys())
-    parser.add_argument('--cmake-extra', action='append', help='Extra cmake config arg applied to all projects.' +
-                        ' May be specified multiple times. (e.g "--cmake-extra=-DBUILD_SHARED_LIBS=ON"')
+    parser.add_argument('--cmake-extra', action='append', default=[],
+                        help='Extra cmake config arg applied to all projects. May be specified multiple times. ' +
+                        '(e.g "--cmake-extra=-DBUILD_SHARED_LIBS=ON"')
     parser.add_argument('args', nargs=argparse.REMAINDER)
 
     # hand parse command and spec from within the args given
