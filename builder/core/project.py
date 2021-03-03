@@ -633,7 +633,6 @@ class Project(object):
         Project._projects[project.name.lower()] = project
         if getattr(project, 'path', None):
             Scripts.load(project.path)
-
         return project
 
     @staticmethod
@@ -641,7 +640,6 @@ class Project(object):
         Project._imports[imp.name.lower()] = imp
         if getattr(imp, 'path', None):
             Scripts.load(imp.path)
-
         return imp
 
     @staticmethod
