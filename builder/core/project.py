@@ -604,6 +604,7 @@ class Project(object):
 
     # project cache
     _projects = {}
+    _imports = {}
 
     @staticmethod
     def _publish_variable(var, value):
@@ -632,8 +633,14 @@ class Project(object):
         Project._projects[project.name.lower()] = project
         if getattr(project, 'path', None):
             Scripts.load(project.path)
-
         return project
+
+    @staticmethod
+    def _cache_import(imp):
+        Project._imports[imp.name.lower()] = imp
+        if getattr(imp, 'path', None):
+            Scripts.load(imp.path)
+        return imp
 
     @staticmethod
     def default_project():
@@ -716,7 +723,7 @@ class Project(object):
     def find_import(name, hints=None):
         if hints is None:
             hints = []
-        imp = Project._projects.get(name.lower(), None)
+        imp = Project._imports.get(name.lower(), None)
         if imp and imp.resolved():
             return imp
 
@@ -724,5 +731,5 @@ class Project(object):
             Scripts.load(h)
         imp_cls = Project._find_import_class(name)
         if imp_cls:
-            return Project._cache_project(imp_cls())
+            return Project._cache_import(imp_cls())
         return Import(name=name, resolved=False)

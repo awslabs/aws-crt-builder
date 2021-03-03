@@ -15,8 +15,9 @@ class S2NImport(Import):
     def __init__(self, **kwargs):
         super().__init__(
             library=True,
-            upstreams=['aws-lc'],
+            imports=['aws-lc'],
             config=config,
+            url='https://github.com/aws/s2n-tls.git',
             **kwargs)
 
 
@@ -24,6 +25,7 @@ class S2NProject(Project):
     def __init__(self, **kwargs):
         super().__init__(
             account='awslabs',
-            upstreams=['aws-lc'],
+            imports=['aws-lc'],
             config=config,
+            url='https://github.com/aws/s2n-tls.git',
             **kwargs)
