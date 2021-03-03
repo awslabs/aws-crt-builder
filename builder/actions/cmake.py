@@ -7,6 +7,7 @@ from pathlib import Path
 
 from builder.core.action import Action
 from builder.core.toolchain import Toolchain
+from builder.core.util import UniqueList
 
 
 def _project_dirs(env, project):
@@ -59,7 +60,7 @@ def _build_project(env, project, cmake_extra, build_tests=False):
                 compiler_flags.append(
                     '-DCMAKE_{}_COMPILER={}'.format(opt.upper(), value))
 
-    cmake_args = [
+    cmake_args = UniqueList([
         "-B{}".format(project_build_dir),
         "-H{}".format(project_source_dir),
         # "-Werror=dev",
@@ -70,7 +71,9 @@ def _build_project(env, project, cmake_extra, build_tests=False):
         "-DCMAKE_BUILD_TYPE=" + build_config,
         "-DBUILD_TESTING=" + ("ON" if build_tests else "OFF"),
         *compiler_flags,
-    ]
+    ])
+    # Merging in cmake_args from all upstream projects inevitably leads to duplicate arguments.
+    # Using a UniqueList seems to solve the problem well enough for now.
     cmake_args += project.cmake_args(env)
     cmake_args += cmake_extra
 
