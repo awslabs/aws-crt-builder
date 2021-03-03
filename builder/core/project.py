@@ -639,7 +639,7 @@ class Project(object):
     @staticmethod
     def _cache_import(imp):
         Project._imports[imp.name.lower()] = imp
-        if hasattr(imp, 'path'):
+        if getattr(imp, 'path', None):
             Scripts.load(imp.path)
 
         return imp
