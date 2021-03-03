@@ -12,7 +12,7 @@ from builder.core.util import UniqueList
 
 def _project_dirs(env, project):
     if not project.resolved():
-        print('Project is not resolved: {}'.format(project.name))
+        raise Exception('Project is not resolved: {}'.format(project.name))
 
     source_dir = str(Path(project.path).relative_to(env.root_dir))
     build_dir = str(Path(os.path.join(env.build_dir, project.name)).relative_to(env.root_dir))
