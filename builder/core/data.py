@@ -456,19 +456,19 @@ COMPILERS = {
             # 2015
             '14': {
                 'cmake_args': [
-                    '-T', 'v140',
+                    '-Tv140',
                 ],
             },
             # 2017
             '15': {
                 'cmake_args': [
-                    '-T', 'v141',
+                    '-Tv141',
                 ],
             },
             # 2019
             '16': {
                 'cmake_args': [
-                    '-T', 'v142',
+                    '-Tv142',
                 ],
             }
         },
@@ -476,12 +476,12 @@ COMPILERS = {
         'architectures': {
             'x86': {
                 'cmake_args': [
-                    '-A', 'Win32',
+                    '-AWin32',
                 ],
             },
             'x64': {
                 'cmake_args': [
-                    '-A', 'x64',
+                    '-Ax64',
                 ],
             },
         },

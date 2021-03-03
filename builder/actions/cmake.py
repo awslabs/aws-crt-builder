@@ -1,11 +1,13 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0.
 
+import argparse
 import os
 from pathlib import Path
 
 from builder.core.action import Action
 from builder.core.toolchain import Toolchain
+from builder.core.util import UniqueList
 
 
 def _project_dirs(env, project):
@@ -27,13 +29,13 @@ def _project_dirs(env, project):
     return source_dir, build_dir, install_dir
 
 
-def _build_project(env, project, build_tests=False):
+def _build_project(env, project, cmake_extra, build_tests=False):
     sh = env.shell
     config = project.get_config(env.spec)
     toolchain = env.toolchain
     # build dependencies first, let cmake decide what needs doing
     for dep in project.get_dependencies(env.spec):
-        _build_project(env, dep)
+        _build_project(env, dep, cmake_extra)
 
     project_source_dir, project_build_dir, project_install_dir = _project_dirs(
         env, project)
@@ -58,7 +60,7 @@ def _build_project(env, project, build_tests=False):
                 compiler_flags.append(
                     '-DCMAKE_{}_COMPILER={}'.format(opt.upper(), value))
 
-    cmake_args = [
+    cmake_args = UniqueList([
         "-B{}".format(project_build_dir),
         "-H{}".format(project_source_dir),
         # "-Werror=dev",
@@ -69,7 +71,11 @@ def _build_project(env, project, build_tests=False):
         "-DCMAKE_BUILD_TYPE=" + build_config,
         "-DBUILD_TESTING=" + ("ON" if build_tests else "OFF"),
         *compiler_flags,
-    ] + project.cmake_args(env)
+    ])
+    # Merging in cmake_args from all upstream projects inevitably leads to duplicate arguments.
+    # Using a UniqueList seems to solve the problem well enough for now.
+    cmake_args += project.cmake_args(env)
+    cmake_args += cmake_extra
 
     # When cross compiling, we must inject the build_env into the cross compile container
     build_env = []
@@ -104,12 +110,16 @@ class CMakeBuild(Action):
         toolchain = env.toolchain
         sh = env.shell
 
+        parser = argparse.ArgumentParser()
+        parser.add_argument('--cmake-extra', action='append', default=[])
+        args = parser.parse_known_args(env.args.args)[0]
+
         for d in (env.build_dir, env.deps_dir, env.install_dir):
             sh.mkdir(d)
 
         # BUILD
         build_tests = self.project.needs_tests(env)
-        _build_project(env, self.project, build_tests)
+        _build_project(env, self.project, args.cmake_extra, build_tests)
 
     def __str__(self):
         return 'cmake build {} @ {}'.format(self.project.name, self.project.path)

@@ -102,6 +102,10 @@ class Env(object):
         self.install_dir = os.path.abspath(install_dir)
         self.variables['install_dir'] = self.install_dir
 
+        # Add install/bin to $PATH, so that downstream tests can find any shared libs we've built
+        install_bin_dir = os.path.abspath(os.path.join(self.install_dir, 'bin'))
+        self.shell.setenv('PATH', self.shell.getenv('PATH') + os.pathsep + install_bin_dir)
+
         print('Root directory: {}'.format(self.root_dir))
         print('Build directory: {}'.format(self.build_dir))
 
