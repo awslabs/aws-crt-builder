@@ -50,6 +50,3 @@ class AWSLCProject(Project):
             name='aws-lc',
             config=config,
             **kwargs)
-
-    def build(self, env):
-        return Project.build(self, env)
