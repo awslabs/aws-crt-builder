@@ -13,12 +13,19 @@ from builder.core.util import UniqueList
 
 
 @lru_cache(1)
-def _find_cmake(sh):
+def _find_cmake():
     for cmake_alias in ['cmake3', 'cmake']:
         cmake = shutil.which(cmake_alias)
         if cmake:
-            # show version
-            sh.exec(cmake, '--version', check=True)
+            return cmake
+    raise Exception("cmake not found")
+
+
+@lru_cache(1)
+def _find_ctest():
+    for cmake_alias in ['ctest3', 'ctest']:
+        cmake = shutil.which(cmake_alias)
+        if cmake:
             return cmake
     raise Exception("cmake not found")
 
@@ -57,6 +64,9 @@ def _build_project(env, project, cmake_extra, build_tests=False):
     # If cmake has already run, assume we're good
     if os.path.isfile(os.path.join(project_build_dir, 'CMakeCache.txt')):
         return
+
+    cmake = _find_cmake()
+    sh.exec(cmake, '--version', check=True)
 
     # TODO These platforms don't succeed when doing a RelWithDebInfo build
     build_config = env.args.config
@@ -99,7 +109,6 @@ def _build_project(env, project, cmake_extra, build_tests=False):
             f.writelines(build_env)
 
     # configure
-    cmake = _find_cmake(sh)
     sh.exec(*toolchain.shell_env, cmake, cmake_args, check=True)
 
     # set parallism via env var (cmake's --parallel CLI option doesn't exist until 3.12)
@@ -161,8 +170,9 @@ class CTestRun(Action):
             print("No build dir found, skipping CTest")
             return
 
+        ctest = _find_ctest()
         sh.pushd(project_build_dir)
-        sh.exec(*toolchain.shell_env, "ctest",
+        sh.exec(*toolchain.shell_env, ctest,
                 "--output-on-failure", check=True)
         sh.popd()
 
