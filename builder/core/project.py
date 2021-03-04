@@ -5,7 +5,7 @@ import glob
 import os
 import sys
 from collections import namedtuple
-from functools import partial
+from functools import partial, lru_cache
 
 from builder.core.data import *
 from builder.core.host import current_os, package_tool
@@ -564,6 +564,9 @@ class Project(object):
         # Are tests disabled in this project?
         if not self.config.get('run_tests', True) or not self.config.get('build_tests', True):
             return False
+        # Don't build test for upstream projects
+        if self != env.project and self in env.project.get_flattened_dependencies(env.spec):
+            return False
         # Are test steps available?
         if not self.config.get('test_steps', []):
             return False
@@ -578,7 +581,7 @@ class Project(object):
         return imports
 
     def get_dependencies(self, spec):
-        """ Gets dependencies for a given BuildSpec, filters by target """
+        """ Gets immediate dependencies for a given BuildSpec, filters by target """
         dependencies = _resolve_projects(self, self.config.get('upstream', []))
         target = spec.target
         filtered = []
@@ -586,6 +589,27 @@ class Project(object):
             if not hasattr(p, 'targets') or target in getattr(p, 'targets', []):
                 filtered.append(p)
         return filtered
+
+    @lru_cache()
+    def get_flattened_dependencies(self, spec, *, include_self=False):
+        """
+        Gets full tree of dependencies as flat list with duplicates removed.
+        Items are ordered such that building Projects in the order given should just work.
+        """
+        # first, gather flat list of deps, in breadth-first order, with duplicates included
+        def _gather_all(project, spec):
+            deps = project.get_dependencies(spec)
+            for dep in deps.copy():
+                deps += _gather_all(dep, spec)
+            return deps
+
+        all_deps = _gather_all(self, spec)
+        if include_self:
+            all_deps.insert(0, self)
+
+        # remove duplicates and put everything in proper build-order
+        unique_deps = UniqueList(reversed(all_deps))
+        return unique_deps
 
     def get_consumers(self, spec):
         """ Gets consumers for a given BuildSpec, filters by target """
