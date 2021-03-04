@@ -88,12 +88,13 @@ def _build_project(env, project, cmake_extra, build_tests=False):
     # configure
     sh.exec(*toolchain.shell_env, "cmake", cmake_args, check=True)
 
-    parallel = ["--", "-j"]
-    if toolchain.compiler == 'msvc':
-        parallel = ['--', '-maxcpucount']
+    # set parallism via env var (cmake's --parallel CLI option doesn't exist until 3.12)
+    if os.environ.get('CMAKE_BUILD_PARALLEL_LEVEL') is None:
+        sh.setenv('CMAKE_BUILD_PARALLEL_LEVEL', str(os.cpu_count()))
+
     # build
     sh.exec(*toolchain.shell_env, "cmake", "--build", project_build_dir, "--config",
-            build_config, *parallel, check=True)
+            build_config, check=True)
 
     # install
     sh.exec(*toolchain.shell_env, "cmake", "--build", project_build_dir, "--config",
