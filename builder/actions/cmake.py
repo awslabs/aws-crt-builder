@@ -2,12 +2,25 @@
 # SPDX-License-Identifier: Apache-2.0.
 
 import argparse
+from functools import lru_cache
 import os
 from pathlib import Path
+import shutil
 
 from builder.core.action import Action
 from builder.core.toolchain import Toolchain
 from builder.core.util import UniqueList
+
+
+@lru_cache(1)
+def _find_cmake(sh):
+    for cmake_alias in ['cmake3', 'cmake']:
+        cmake = shutil.which(cmake_alias)
+        if cmake:
+            # show version
+            sh.exec(cmake, '--version', check=True)
+            return cmake
+    raise Exception("cmake not found")
 
 
 def _project_dirs(env, project):
@@ -86,18 +99,19 @@ def _build_project(env, project, cmake_extra, build_tests=False):
             f.writelines(build_env)
 
     # configure
-    sh.exec(*toolchain.shell_env, "cmake", cmake_args, check=True)
+    cmake = _find_cmake(sh)
+    sh.exec(*toolchain.shell_env, cmake, cmake_args, check=True)
 
     # set parallism via env var (cmake's --parallel CLI option doesn't exist until 3.12)
     if os.environ.get('CMAKE_BUILD_PARALLEL_LEVEL') is None:
         sh.setenv('CMAKE_BUILD_PARALLEL_LEVEL', str(os.cpu_count()))
 
     # build
-    sh.exec(*toolchain.shell_env, "cmake", "--build", project_build_dir, "--config",
+    sh.exec(*toolchain.shell_env, cmake, "--build", project_build_dir, "--config",
             build_config, check=True)
 
     # install
-    sh.exec(*toolchain.shell_env, "cmake", "--build", project_build_dir, "--config",
+    sh.exec(*toolchain.shell_env, cmake, "--build", project_build_dir, "--config",
             build_config, "--target", "install", check=True)
 
 
