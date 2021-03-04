@@ -19,9 +19,9 @@ def _find_cmake(sh):
         if cmake:
             # show version
             sh.exec(cmake, '--version', check=True)
-
             return cmake
     raise Exception("cmake not found")
+
 
 def _project_dirs(env, project):
     if not project.resolved():
