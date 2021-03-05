@@ -596,19 +596,16 @@ class Project(object):
         Gets full tree of dependencies as flat list with duplicates removed.
         Items are ordered such that building Projects in the order given should just work.
         """
-        # first, gather flat list of deps, in breadth-first order, with duplicates included
-        deps = [self]
-        i = 0
-        while i < len(deps):
-            deps.extend(deps[i].get_dependencies(spec))
-            i += 1
 
-        if not include_self:
-            deps.pop(0)
+        # each project inserts dependencies before self
+        def _post_order(project, spec, deps):
+            for dep in project.get_dependencies(spec):
+                _post_order(dep, spec, deps)
+            deps.append(project)
 
-        # remove duplicates and put everything in proper build-order
-        unique_deps = UniqueList(reversed(deps))
-        return unique_deps
+        deps = UniqueList()
+        _post_order(self, spec, deps)
+        return deps
 
     def get_consumers(self, spec):
         """ Gets consumers for a given BuildSpec, filters by target """
