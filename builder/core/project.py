@@ -597,18 +597,17 @@ class Project(object):
         Items are ordered such that building Projects in the order given should just work.
         """
         # first, gather flat list of deps, in breadth-first order, with duplicates included
-        def _gather_all(project, spec):
-            deps = project.get_dependencies(spec)
-            for dep in deps.copy():
-                deps += _gather_all(dep, spec)
-            return deps
+        deps = [self]
+        i = 0
+        while i < len(deps):
+            deps.extend(deps[i].get_dependencies(spec))
+            i += 1
 
-        all_deps = _gather_all(self, spec)
-        if include_self:
-            all_deps.insert(0, self)
+        if not include_self:
+            deps.pop(0)
 
         # remove duplicates and put everything in proper build-order
-        unique_deps = UniqueList(reversed(all_deps))
+        unique_deps = UniqueList(reversed(deps))
         return unique_deps
 
     def get_consumers(self, spec):
