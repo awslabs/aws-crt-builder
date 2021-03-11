@@ -30,7 +30,7 @@ LLVM_SH = """\
 set -eux
 
 # read optional command line argument
-LLVM_VERSION=9
+LLVM_VERSION=12
 if [ "$#" -eq 1 ]; then
     LLVM_VERSION=$1
 fi
@@ -50,7 +50,10 @@ LLVM_VERSION_PATTERNS[6]="-6.0"
 LLVM_VERSION_PATTERNS[7]="-7"
 LLVM_VERSION_PATTERNS[8]="-8"
 LLVM_VERSION_PATTERNS[9]="-9"
-LLVM_VERSION_PATTERNS[10]=""
+LLVM_VERSION_PATTERNS[10]="-10"
+LLVM_VERSION_PATTERNS[11]="-11"
+LLVM_VERSION_PATTERNS[12]="-12"
+LLVM_VERSION_PATTERNS[13]=""
 
 if [ ! ${LLVM_VERSION_PATTERNS[$LLVM_VERSION]+_} ]; then
     echo "This script does not support LLVM version $LLVM_VERSION"
