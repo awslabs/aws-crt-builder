@@ -25,13 +25,14 @@ RUN apt-get update -qq \
 ###############################################################################
 # Python/AWS CLI
 ###############################################################################
-RUN python3 -m pip install setuptools
-RUN python3 -m pip install --upgrade pip
 WORKDIR /tmp
-RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o awscliv2.zip
-RUN unzip awscliv2.zip
-RUN sudo aws/install
-RUN aws --version
+
+RUN python3 -m pip install setuptools \
+    && python3 -m pip install --upgrade pip \
+    && curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o awscliv2.zip \
+    && unzip awscliv2.zip \
+    && sudo aws/install \
+    && aws --version
 
 ###############################################################################
 # Install pre-built CMake
