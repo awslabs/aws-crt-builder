@@ -80,9 +80,11 @@ esac
 
 
 # install everything
-curl -sSL https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -
-add-apt-repository "${REPO_NAME}"
-apt-get update
+if [[ $LLVM_VERSION -ne 3 ]]; then
+    curl -sSL https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -
+    add-apt-repository "${REPO_NAME}"
+    apt-get update
+fi
 apt-get install -y clang$LLVM_VERSION_STRING
 """
 
