@@ -1,4 +1,4 @@
-FROM ubuntu:16.04
+FROM ubuntu:18.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -10,6 +10,7 @@ RUN apt-get update -qq \
     git \
     curl \
     sudo \
+    unzip \
     # Python
     python3 \
     python3-dev \
@@ -24,14 +25,18 @@ RUN apt-get update -qq \
 ###############################################################################
 # Python/AWS CLI
 ###############################################################################
+WORKDIR /tmp
+
 RUN python3 -m pip install setuptools \
-    && python3 -m pip install --upgrade awscli \
+    && python3 -m pip install --upgrade pip \
+    && curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o awscliv2.zip \
+    && unzip awscliv2.zip \
+    && sudo aws/install \
     && aws --version
 
 ###############################################################################
 # Install pre-built CMake
 ###############################################################################
-WORKDIR /tmp
 RUN curl -sSL https://d19elf31gohf1l.cloudfront.net/_binaries/cmake/cmake-3.13-manylinux1-x64.tar.gz -o cmake.tar.gz \
     && tar xvzf cmake.tar.gz -C /usr/local \
     && cmake --version \
