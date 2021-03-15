@@ -108,12 +108,12 @@ def _build_project(env, project, cmake_extra, build_tests=False):
         with open(toolchain.env_file, 'a') as f:
             f.writelines(build_env)
 
-    # configure
-    sh.exec(*toolchain.shell_env, cmake, cmake_args, check=True)
-
     # set parallism via env var (cmake's --parallel CLI option doesn't exist until 3.12)
     if os.environ.get('CMAKE_BUILD_PARALLEL_LEVEL') is None:
         sh.setenv('CMAKE_BUILD_PARALLEL_LEVEL', str(os.cpu_count()))
+
+    # configure
+    sh.exec(*toolchain.shell_env, cmake, cmake_args, check=True)
 
     # build
     sh.exec(*toolchain.shell_env, cmake, "--build", project_build_dir, "--config",
