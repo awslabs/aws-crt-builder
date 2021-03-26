@@ -15,6 +15,8 @@ RUN apt-get update -qq \
     python3-pip \
     build-essential \
     # For PPAs
+    openssl \
+    libssl-dev \
     software-properties-common \
     apt-transport-https \
     ca-certificates \

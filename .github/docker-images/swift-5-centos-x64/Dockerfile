@@ -15,6 +15,7 @@ RUN yum -y update \
     make \
     cmake \
     cmake3 \
+    openssl-devel \
     gcc-c++ \
     && yum clean all \
     && rm -rf /var/cache/yum 
