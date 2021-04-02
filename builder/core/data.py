@@ -301,7 +301,8 @@ TARGETS = {
     'android': {
         'cmake_args': [
             "-DTARGET_ARCH=ANDROID",
-            "-DANDROID_NATIVE_API_LEVEL=19"
+            "-DANDROID_NATIVE_API_LEVEL=19",
+            "-DDISABLE_GO=ON"
         ],
         'run_tests': False,
 
