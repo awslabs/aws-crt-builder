@@ -309,11 +309,13 @@ TARGETS = {
             'armv7': {
                 'cmake_args': [
                     "-DANDROID_ABI=armeabi-v7a",
+                    "-DCMAKE_SYSTEM_PROCESSOR=armv7-a"
                 ]
             },
             'arm64v8a': {
                 'cmake_args': [
                     "-DANDROID_ABI=arm64-v8a",
+                    "-DCMAKE_SYSTEM_PROCESSOR=aarch64"
                 ],
             },
         },

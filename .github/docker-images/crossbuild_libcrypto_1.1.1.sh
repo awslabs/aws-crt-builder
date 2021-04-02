@@ -99,7 +99,6 @@ function build_android {
 set -ex
 
 export ANDROID_NDK_HOME=/work/android-ndk-r${android_ndk_version}
-export CMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_HOME/build/cmake/android.toolchain.cmake
 export PACKAGE_NAME=libcrypto-${libcrypto_version}-${os}-${arch}.tar.gz
 export LIBCRYPTO_PLATFORM=${openssl_target}
 export COMPILE_FLAGS=${compile_flags}
