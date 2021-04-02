@@ -74,6 +74,7 @@ compile_flags="-fPIC -g"
 libcrypto_version=1.1.1
 android_ndk_version=16b
 android_api_version=19
+go_version=1.16.3
 
 # Create a .dockcross bootstrap file for the dockcross container, which is its init script
 # Note that commands going into dockcross need to be quoted based on which shell you want the expansion done by. If the
@@ -92,6 +93,8 @@ function build_android {
     if [ ! -e android-ndk-r${android_ndk_version} ]; then
         cp -r /tmp/openssl-${os}-${arch}/android-ndk-r${android_ndk_version} android-ndk-r${android_ndk_version}
     fi
+    curl -sSL -o go.tar.gz  https://golang.org/dl/go${go_version}.linux-amd64.tar.gz
+    tar -C /work -xzf go${go_version}.linux-amd64.tar.gz
     # configure the android SDK via .dockcross config
     # No interpolation, expand in the dockcross shell
     (cat <<- BOOT
@@ -102,6 +105,7 @@ export ANDROID_NDK_HOME=/work/android-ndk-r${android_ndk_version}
 export PACKAGE_NAME=libcrypto-${libcrypto_version}-${os}-${arch}.tar.gz
 export LIBCRYPTO_PLATFORM=${openssl_target}
 export COMPILE_FLAGS=${compile_flags}
+export PATH=/work/go/bin:$PATH
 BOOT
     )>> .dockcross
     # No interpolation, eval in dockcross shell
