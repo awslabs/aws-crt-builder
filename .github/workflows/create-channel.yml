@@ -70,6 +70,8 @@ jobs:
         - al2012-x64
         - al2-x64
         - ubuntu-16-x64
+        - debian-stretch-arm32v5
+        - debian-stretch-arm32v7
         - node-10-linux-x64
         - swift-5-al2-x64
         - swift-5-centos-x64
@@ -91,7 +93,7 @@ jobs:
     - name: Import latest aws-crt-${{ matrix.variant }} image to channels
       run: |
         export IMAGE_TAG=${{ steps.tag.outputs.release_tag }}
-        docker pull docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:latest
+        docker pull docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:latest || exit 0
         docker tag docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:latest docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:$IMAGE_TAG
         docker push docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:$IMAGE_TAG
         docker save docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:$IMAGE_TAG | gzip > /tmp/aws-crt-${{ matrix.variant }}-$IMAGE_TAG.tar.gz

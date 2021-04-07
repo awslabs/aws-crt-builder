@@ -1,6 +1,6 @@
 # See: https://github.com/pypa/manylinux
 # and: https://github.com/pypa/python-manylinux-demo
-FROM quay.io/pypa/manylinux2014_aarch64
+FROM quay.io/pypa/manylinux2014_armv7l
 
 ###############################################################################
 # Basics
