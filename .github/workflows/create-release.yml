@@ -62,7 +62,8 @@ jobs:
         - al2012-x64
         - al2-x64
         - ubuntu-16-x64
-        - debian-stretch-armv7hf
+        - debian-stretch-arm32v5
+        - debian-stretch-arm32v7
         - node-10-linux-x64
         - swift-5-al2-x64
         - swift-5-centos-x64
