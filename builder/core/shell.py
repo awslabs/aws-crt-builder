@@ -8,8 +8,8 @@ import subprocess
 import sys
 import tempfile
 
-from host import current_os
-import util
+from builder.core.host import current_os
+from builder.core import util
 
 
 class Shell(object):
@@ -81,6 +81,15 @@ class Shell(object):
             util.log_command(["export", "{}={}".format(var, value)])
         if not self.dryrun:
             os.environ[var] = value
+
+    def addpathenv(self, var, path, **kwargs):
+        """Add a path to an environment variable"""
+        prev = os.getenv(var)
+        if prev:
+            value = prev + os.pathsep + path
+        else:
+            value = path
+        self.setenv(var, value, **kwargs)
 
     def getenv(self, var):
         """ Get an environment variable """

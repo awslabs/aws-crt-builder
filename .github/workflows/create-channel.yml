@@ -8,6 +8,7 @@ on:
     branches:
       - '*'
       - '!master'
+      - '!main'
     paths:
       - '.github/workflows/create-channel.yml'
   create:
@@ -19,71 +20,44 @@ env:
   AWS_REGION: 'us-east-1'
 
 jobs:
-  tag:
-    name: Artifact release tag
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout Sources
-      uses: actions/checkout@v1
-    - name: Get release tag
-      uses: ./.github/actions/release-tag
-      id: release
-      with:
-        output: tag
-
-    - run: echo TAG ${{ steps.release.outputs.release_tag }}
-
-    - name: Store release_tag
-      uses: actions/upload-artifact@v1
-      with:
-        name: release_tag
-        path: tag
-
   package:
     name: Package builder app
     runs-on: ubuntu-latest
-    needs: tag
 
     steps:
-      - name: Checkout Source
-        uses: actions/checkout@v1
+    - name: Checkout Source
+      uses: actions/checkout@v1
 
-      - name: Get release tag
-        uses: ./.github/actions/release-tag
-        id: release
-        with:
-          output: tag
+    - name: Get release tag
+      uses: ./.github/actions/release-tag
+      id: tag
 
-      - run: echo TAG ${{ steps.release.outputs.release_tag }}
+    - run: echo TAG ${{ steps.tag.outputs.release_tag }}
 
-      - name: Store release_tag
-        uses: actions/upload-artifact@v1
-        with:
-          name: release_tag
-          path: tag
+    # re-enable this when requirements.txt has actual dependencies
+    # - name: Bundle dependencies
+    #   run: |
+    #     python3 -m pip install -r requirements.txt --target builder
+    #     rm -rf builder/*.dist-info
 
-      # re-enable this when requirements.txt has actual dependencies
-      # - name: Bundle dependencies
-      #   run: |
-      #     python3 -m pip install -r requirements.txt --target builder
-      #     rm -rf builder/*.dist-info
+    - name: Package builder to S3
+      run: |
+        export CHANNEL=${{ steps.tag.outputs.release_tag }}
+        mkdir -p build
+        mkdir -p staging
+        cp -r builder staging/.
+        python3 -m zipapp --python="/usr/bin/env python3" -m "builder.main:main" --output=build/builder staging
+        aws s3 cp build/builder s3://$AWS_S3_BUCKET/channels/$CHANNEL/builder.pyz
 
-      - name: Package builder to S3
-        run: |
-          mkdir -p build
-          python3 -m zipapp --python="/usr/bin/env python3" --output=build/builder builder
-          aws s3 cp build/builder s3://$AWS_S3_BUCKET/channels/${{ steps.release.outputs.release_tag }}/builder.pyz
-
-      - name: Artifact builder
-        uses: actions/upload-artifact@v1
-        with:
-          name: builder
-          path: build/builder
+    - name: Artifact builder
+      uses: actions/upload-artifact@v1
+      with:
+        name: builder
+        path: build/builder
 
   import-latest:
     name: ${{ matrix.variant }}
     runs-on: ubuntu-latest
-    needs: [tag]
     strategy:
       fail-fast: false
       matrix:
@@ -100,27 +74,25 @@ jobs:
         - swift-5-al2-x64
         - swift-5-centos-x64
         - swift-5-ubuntu-16-x64
+        - php5-linux-x64
+        - php7-linux-x64
 
     steps:
     - name: Checkout Sources
       uses: actions/checkout@v1
 
-    - name: Fetch release_tag
-      uses: actions/download-artifact@v1
-      with:
-        name: release_tag
-        path: release_tag
-
-    - name: Export IMAGE_TAG
-      run: echo "::set-env name=IMAGE_TAG::$(cat release_tag/tag)"
+    - name: Get release tag
+      uses: ./.github/actions/release-tag
+      id: tag
 
     - name: Login to docker repo
       run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login docker.pkg.github.com -u awslabs --password-stdin
 
-    - name: Import latest aws-crt-${{ matrix.variant }} image to channels/${{ env.IMAGE_TAG }}
+    - name: Import latest aws-crt-${{ matrix.variant }} image to channels
       run: |
+        export IMAGE_TAG=${{ steps.tag.outputs.release_tag }}
         docker pull docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:latest
-        docker tag docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:latest docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:${{ env.IMAGE_TAG }}
-        docker push docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:${{ env.IMAGE_TAG }}
-        docker save docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:${{ env.IMAGE_TAG }} | gzip > /tmp/aws-crt-${{ matrix.variant }}-${{ env.IMAGE_TAG }}.tar.gz
-        aws s3 cp --no-progress /tmp/aws-crt-${{ matrix.variant }}-${{ env.IMAGE_TAG }}.tar.gz s3://${{env.AWS_S3_BUCKET}}/channels/${{ env.IMAGE_TAG }}/aws-crt-${{ matrix.variant }}.tar.gz
+        docker tag docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:latest docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:$IMAGE_TAG
+        docker push docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:$IMAGE_TAG
+        docker save docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:$IMAGE_TAG | gzip > /tmp/aws-crt-${{ matrix.variant }}-$IMAGE_TAG.tar.gz
+        aws s3 cp --no-progress /tmp/aws-crt-${{ matrix.variant }}-$IMAGE_TAG.tar.gz s3://${{env.AWS_S3_BUCKET}}/channels/$IMAGE_TAG/aws-crt-${{ matrix.variant }}.tar.gz

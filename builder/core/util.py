@@ -5,6 +5,7 @@
 import copy
 from collections import namedtuple, UserList
 from collections.abc import Iterable
+from functools import reduce
 import os
 import stat
 from string import Formatter
@@ -67,6 +68,36 @@ def dict_alias(tree, key, alias):
             dict_alias(val, key, alias)
     if key in tree:
         tree[alias] = tree[key]
+
+
+def _dict_deep_get(dictionary, keys, default=None):
+    """
+    Get the value associated with the composite key if it exists, otherwiser returns the default
+    e.g. _dict_deep_get(d, 'foo.bar.baz') == d['foo']['bar']['baz']
+    """
+    return reduce(lambda d, key: d.get(key, default) if isinstance(d, dict) else default, keys.split("."), dictionary)
+
+
+def _attr_deep_get(obj, keys, default=None):
+    """
+    Access the nested attribute value associated with the composite key if it exists, otherwiser returns the default
+    e.g. _attr_deep_get(obj, 'foo.bar.baz') == obj.foo.bar.baz
+    """
+    try:
+        return reduce(getattr, keys.split("."), obj)
+    except AttributeError:
+        return default
+
+
+def deep_get(target, keys, default=None):
+    """
+    Access the value associated with the composite key if it exists, otherwise return the default.
+    This works on both dictionaries or objec attributes
+    """
+    if isinstance(target, dict):
+        return _dict_deep_get(target, keys, default)
+    else:
+        return _attr_deep_get(target, keys, default)
 
 
 def tree_transform(tree, key, fn):
@@ -190,29 +221,30 @@ def run_command(*command, **kwargs):
                 stderr=subprocess.STDOUT,
                 shell=True,
                 bufsize=0)  # do not buffer output
+            with proc:
 
-            # Convert all output to strings, which makes it much easier to both print
-            # and process, since all known uses of parsing output want strings anyway
-            output = ""
-            line = proc.stdout.readline()
-            while (line):
-                # ignore weird characters coming back from the shell (colors, etc)
-                if not isinstance(line, str):
-                    line = line.decode('ascii', 'ignore')
-                # We're reading in binary mode, so no automatic newline translation
-                if sys.platform == 'win32':
-                    line = line.replace('\r\n', '\n')
-                output += line
-                if not kwargs.get('quiet', False):
-                    print(line, end='', flush=True)
+                # Convert all output to strings, which makes it much easier to both print
+                # and process, since all known uses of parsing output want strings anyway
+                output = ""
                 line = proc.stdout.readline()
-            proc.wait()
+                while (line):
+                    # ignore weird characters coming back from the shell (colors, etc)
+                    if not isinstance(line, str):
+                        line = line.decode('ascii', 'ignore')
+                    # We're reading in binary mode, so no automatic newline translation
+                    if sys.platform == 'win32':
+                        line = line.replace('\r\n', '\n')
+                    output += line
+                    if not kwargs.get('quiet', False):
+                        print(line, end='', flush=True)
+                    line = proc.stdout.readline()
+                proc.wait()
 
-            if proc.returncode != 0:
-                raise Exception(
-                    'Command exited with code {}'.format(proc.returncode))
+                if proc.returncode != 0:
+                    raise Exception(
+                        'Command exited with code {}'.format(proc.returncode))
 
-            return ExecResult(proc.returncode, proc.pid, output)
+                return ExecResult(proc.returncode, proc.pid, output)
 
         except Exception as ex:
             print('Failed to run {}: {}'.format(
@@ -244,8 +276,8 @@ def content_hash(o):
         except:
             return hash(str(o))
 
-    hashes = copy.deepcopy(o)
-    for k, v in hashes.items():
+    hashes = {}
+    for k, v in o.items():
         hashes[k] = content_hash(v)
 
     return hash(tuple(frozenset(sorted(hashes.items()))))
@@ -254,8 +286,10 @@ def content_hash(o):
 class UniqueList(UserList):
     """ A list that only allows unique items to be appended. Items are id'ed by hash via content_hash """
 
-    def __init__(self, items=[]):
+    def __init__(self, items=None):
         super().__init__()
+        if items is None:
+            items = []
         self._hashes = set()
         for item in items:
             self.append(item)
@@ -267,7 +301,7 @@ class UniqueList(UserList):
 
     def __setitem__(self, idx, value):
         hash = content_hash(value)
-        if not hash in self._hashes:
+        if hash not in self._hashes:
             self._hashes.add(hash)
             self.data.__setitem__(idx, value)
 
@@ -279,6 +313,6 @@ class UniqueList(UserList):
 
     def append(self, value):
         hash = content_hash(value)
-        if not hash in self._hashes:
+        if hash not in self._hashes:
             self._hashes.add(hash)
             self.data.append(value)

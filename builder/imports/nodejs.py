@@ -2,11 +2,12 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0.
 
-from fetch import fetch_script
-from host import current_os
-from project import Import
-from actions.install import InstallPackages
-from actions.script import Script
+from builder.core.fetch import fetch_script
+from builder.core.host import current_os
+from builder.core.project import Import
+import builder.core.util as util
+from builder.actions.install import InstallPackages
+from builder.actions.script import Script
 
 import stat
 import os
@@ -29,12 +30,17 @@ class NodeJS(Import):
             },
             **kwargs)
         self.url = 'https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.3/install.sh'
-        self.version = '10'
+
+        # windows nvm has stopped installing the latest version, so ask for our minspec
+        if current_os() == 'windows':
+            self.version = '10.16.0'
+        else:
+            self.version = '10'
         self.nvm = 'nvm'
         self.installed = False
 
     def install(self, env):
-        if self.installed:
+        if self.installed or (util.where('node') and current_os() == 'windows'):
             return
 
         sh = env.shell
@@ -62,6 +68,10 @@ class NodeJS(Import):
             node_path = os.path.dirname(result.output)
             sh.setenv('PATH', '{}{}{}'.format(
                 node_path, os.pathsep, sh.getenv('PATH')))
+        else:
+            sh.exec('nvm', 'use', '10.16', check=True)
+            sh.exec('refreshenv', check=True)
+
         sh.exec('node', '--version', check=True)
 
     def install_nvm_choco(self, env):

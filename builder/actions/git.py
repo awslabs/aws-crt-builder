@@ -2,8 +2,8 @@
 # SPDX-License-Identifier: Apache-2.0.
 
 import os
-from action import Action
-from project import Project
+from builder.core.action import Action
+from builder.core.project import Project
 
 
 class DownloadSource(Action):
@@ -11,13 +11,13 @@ class DownloadSource(Action):
 
     def __init__(self, **kwargs):
         self.project = kwargs['project']
-        self.branch = kwargs.get('branch', 'master')
+        self.branch = kwargs.get('branch', 'main')
         self.path = os.path.abspath(os.path.join(
             kwargs.get('path', '.'), self.project.name))
 
     def run(self, env):
         if self.project.path:
-            print('Project {} already exists on disk'.format(project.name))
+            print('Project {} already exists on disk'.format(self.project.name))
             return
 
         sh = env.shell
@@ -29,10 +29,11 @@ class DownloadSource(Action):
                 self.path, always=True, retries=3)
         sh.pushd(self.path)
         try:
-            sh.exec("git", "checkout", self.branch, always=True, quiet=True)
+            sh.exec("git", "checkout", self.branch,
+                    always=True, quiet=True, check=True)
             print('Switched to branch {}'.format(self.branch))
         except:
-            print("Project {} does not have a branch named {}, using master".format(
+            print("Project {} does not have a branch named {}, using main".format(
                 self.project.name, self.branch))
 
         sh.exec('git', 'submodule', 'update',
@@ -67,9 +68,8 @@ class DownloadDependencies(Action):
                 if dep_proj.path:
                     continue
 
-                dep_branch = getattr(dep, 'revision', branch)
-                DownloadSource(
-                    project=dep_proj, branch=dep_branch, path=env.deps_dir).run(env)
+                dep_branch = branch if dep.revision is None else dep.revision
+                DownloadSource(project=dep_proj, branch=dep_branch, path=env.deps_dir).run(env)
 
                 # grab updated project, collect transitive dependencies/consumers
                 dep_proj = Project.find_project(dep.name)

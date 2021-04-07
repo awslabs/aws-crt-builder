@@ -8,7 +8,7 @@ version=LATEST
 if [[ "${args[0]}" == "--version="* ]]; then
     version=${args[0]}
     version=$(echo $version | cut -f2 -d=)
-    args=${args[@]:1}
+    args=(${args[@]:1})
 fi
 
 if [ $(echo $version | grep -E '^v[0-9\.]+$') ]; then
@@ -32,6 +32,8 @@ if [ -d "$GITHUB_WORKSPACE" ]; then
     cd $GITHUB_WORKSPACE
 elif [ -d "$CODEBUILD_SRC_DIR" ]; then
     cd $CODEBUILD_SRC_DIR
+else
+    cd ~
 fi
 
 # Launch the builder with whatever args were passed to this script

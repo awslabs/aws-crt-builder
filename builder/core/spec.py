@@ -4,8 +4,8 @@
 import os
 import sys
 
-from data import *
-from host import current_host, current_os, current_arch, normalize_arch
+from builder.core.data import *
+from builder.core.host import current_host, current_os, current_arch, normalize_arch
 
 
 def validate_spec(build_spec):

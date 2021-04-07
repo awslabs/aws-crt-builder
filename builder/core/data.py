@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0.
 
 from enum import Enum
-from util import dict_alias
+from builder.core.util import dict_alias
 
 ########################################################################################################################
 # DATA DEFINITIONS
@@ -29,6 +29,7 @@ KEYS = {
     'build_dir': 'build',
     'deps_dir': '{build_dir}/deps',
     'install_dir': '{build_dir}/install',
+    'env': {},  # environment variables global for all steps
     'build_env': {},  # environment variables to set before starting build
     'pre_build_env': {},
     'pre_build_steps': [],  # steps to run before build
@@ -83,16 +84,13 @@ ARCHS = {
     },
     'armv6': {
         'arch': 'armv6',
-        'cross_compile_platform': 'linux-armv6',
     },
     'armv7': {
         'arch': 'armv7',
-        'cross_compile_platform': 'linux-armv7',
         'aliases': ['armv7a']
     },
     'armv8': {
         'arch': 'armv8',
-        'cross_compile_platform': 'linux-arm64',
         'aliases': ['arm64', 'arm64v8', 'arm64v8a', 'aarch64'],
     },
     'mips': {
@@ -127,7 +125,7 @@ HOSTS = {
         # need ld and make and such
         'packages': ['build-essential'],
         'pkg_setup': [
-            'apt-add-repository ppa:ubuntu-toolchain-r/test',
+            'apt-add-repository -y ppa:ubuntu-toolchain-r/test',
         ],
         'pkg_update': 'apt-get -qq update -y',
         'pkg_install': 'apt-get -qq install -y',
@@ -281,13 +279,14 @@ TARGETS = {
     },
     'ios': {
         'cmake_args': [
+            '-GXcode',
             '-DCMAKE_SYSTEM_NAME=iOS',
             '-DCMAKE_OSX_ARCHITECTURES="{osx_architectures}"',
             '-DCMAKE_OSX_DEPLOYMENT_TARGET={osx_deployment_target}'
         ],
         'run_tests': False,
         'architectures': {
-            'arm64': {
+            'armv8': {
                 'variables': {
                     'osx_architectures': 'arm64'
                 }
@@ -338,6 +337,7 @@ TARGETS = {
 }
 
 TARGETS['darwin'] = TARGETS['macos']
+TARGETS['osx'] = TARGETS['macos']
 
 for arch in ARCHS.keys():
     for alias in ARCHS[arch].get('aliases', []):
@@ -349,7 +349,7 @@ for arch in ARCHS.keys():
 COMPILERS = {
     'default': {
         'hosts': ['macos', 'linux', 'windows', 'freebsd'],
-        'targets': ['macos', 'linux', 'windows', 'freebsd', 'android'],
+        'targets': ['macos', 'linux', 'windows', 'freebsd', 'android', 'ios'],
 
         'versions': {
             'default': {}
@@ -400,6 +400,9 @@ COMPILERS = {
             '11': {
                 '!cmake_args': [],
             },
+            '12': {
+
+            }
         },
         'architectures': {
             # No fuzz tests on ARM
@@ -449,29 +452,37 @@ COMPILERS = {
 
         'imports': ['msvc'],
 
-        'cmake_args': ["-G", "Visual Studio {generator_version}{generator_postfix}"],
-
         'versions': {
-            '2015': {
-                'variables': {
-                    'generator_version': "14 2015",
-                },
+            # 2015
+            '14': {
+                'cmake_args': [
+                    '-Tv140',
+                ],
             },
-            '2017': {
-                'variables': {
-                    'generator_version': "15 2017",
-                },
+            # 2017
+            '15': {
+                'cmake_args': [
+                    '-Tv141',
+                ],
             },
-            '2019': {
-                '!cmake_args': ["-G", "Visual Studio 16 2019", '-A', 'x64'],
+            # 2019
+            '16': {
+                'cmake_args': [
+                    '-Tv142',
+                ],
             }
         },
 
         'architectures': {
+            'x86': {
+                'cmake_args': [
+                    '-AWin32',
+                ],
+            },
             'x64': {
-                'variables': {
-                    'generator_postfix': " Win64",
-                },
+                'cmake_args': [
+                    '-Ax64',
+                ],
             },
         },
     },
@@ -489,10 +500,6 @@ COMPILERS = {
     }
 }
 
-COMPILERS['msvc']['versions']['14'] = COMPILERS['msvc']['versions']['2015']
-COMPILERS['msvc']['versions']['15'] = COMPILERS['msvc']['versions']['2017']
-COMPILERS['msvc']['versions']['16'] = COMPILERS['msvc']['versions']['2019']
-
 for arch in ARCHS.keys():
     for alias in ARCHS[arch].get('aliases', []):
         dict_alias(COMPILERS, arch, alias)
@@ -508,6 +515,9 @@ PLATFORMS = {
     'android-armv6': {},
     'android-armv7': {},
     'android-armv8': {},
+    'ios-armv8': {
+        'cross_compile_platform': None
+    },
     # Linux is done procedurally, below
 }
 
@@ -519,12 +529,17 @@ for arch in ['x86', 'x64']:
         PLATFORMS[alias_windows] = PLATFORMS[canonical_windows]
 
 # MacOS
-for mac in ['macos', 'darwin']:
+for mac in ['macos', 'darwin', 'osx']:
     canonical_mac = 'macos-x64'
     for alias in ARCHS['x64'].get('aliases', []):
         alias_mac = '{}-{}'.format(mac, alias)
         if alias_mac != canonical_mac:
             PLATFORMS[alias_mac] = PLATFORMS[canonical_mac]
+
+# iOS
+for alias in ARCHS['armv8'].get('aliases', []):
+    alias_ios = 'ios-{}'.format(alias)
+    PLATFORMS[alias_ios] = PLATFORMS['ios-armv8']
 
 # FreeBSD
 for alias in ARCHS['x64'].get('aliases', []):
@@ -537,7 +552,7 @@ for alias in ARCHS['x64'].get('aliases', []):
 # Linux works on every arch we support
 for arch in ARCHS.keys():
     canonical_linux = 'linux-{}'.format(arch)
-    PLATFORMS[canonical_linux] = {}
+    PLATFORMS[canonical_linux] = PLATFORMS.get(canonical_linux, {})
     for alias in ARCHS[arch].get('aliases', []):
         alias_linux = 'linux-{}'.format(alias)
         PLATFORMS[alias_linux] = PLATFORMS[canonical_linux]
@@ -552,6 +567,7 @@ PLATFORMS['android-armv8']['cross_compile_platform'] = 'android-arm64'
 for cc_arch in ['armv6', 'armv7', 'armv8']:
     for cc_os in ['linux', 'android']:
         canonical_platform = '{}-{}'.format(cc_os, cc_arch)
+        # link aliases to canonical config
         for alias in ARCHS[cc_arch].get('aliases', []):
             alias_platform = '{}-{}'.format(cc_os, alias)
             PLATFORMS[alias_platform] = PLATFORMS[canonical_platform]

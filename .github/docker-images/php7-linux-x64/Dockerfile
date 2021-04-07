@@ -1,12 +1,12 @@
-#https://github.com/apple/swift-docker/blob/d3a19f47844d7d4d0dab0b59153da1f1596543b6/5.3/amazonlinux/2/Dockerfile
-FROM swift:5.3-amazonlinux2
+FROM amazonlinux:latest
 
 ###############################################################################
 # Install prereqs
-# any prereqs that appear to be missing are installed on base swift image i.e. tar, git
 ###############################################################################
 RUN yum -y update \
     && yum -y install \
+    tar \
+    git \
     curl \
     sudo \
     # Python
@@ -15,8 +15,18 @@ RUN yum -y update \
     python3-pip \
     make \
     cmake3 \
+    gcc \
     gcc-c++ \
+    which \
     openssl-devel \
+    libcurl-devel \
+    libffi-devel \
+    libxml2-devel \
+    sqlite-devel \
+    zlib-devel \
+    autoconf \
+    automake \
+    libtool \
     && yum clean all \
     && rm -rf /var/cache/yum \
     && ln -s /usr/bin/cmake3 /usr/bin/cmake \
@@ -46,9 +56,28 @@ RUN curl -sSL https://d19elf31gohf1l.cloudfront.net/_binaries/libcrypto/libcrypt
 ###############################################################################
 WORKDIR /tmp
 RUN curl -sSL https://d19elf31gohf1l.cloudfront.net/_binaries/cmake/cmake-3.13-manylinux1-x64.tar.gz -o cmake.tar.gz \
-    && tar xvzf cmake.tar.gz -C /usr/local \
+    && tar xzf cmake.tar.gz -C /usr/local \
     && cmake --version \
     && rm -f /tmp/cmake.tar.gz
+
+###############################################################################
+# Build/Install PHP 7.4
+###############################################################################
+WORKDIR /tmp
+RUN curl -sSL https://www.php.net/distributions/php-7.4.15.tar.gz -o php.tar.gz \
+    && tar xzf php.tar.gz \
+    && cd php-7.4.15 \
+    && ./configure --prefix=/usr/local --disable-cgi --with-openssl --with-ffi --with-curl --with-zlib \
+    && make -j \
+    && make install
+
+###############################################################################
+# Install composer
+###############################################################################
+WORKDIR /tmp
+RUN curl -sSL https://getcomposer.org/composer-stable.phar -o /usr/local/bin/composer \
+    && chmod a+x /usr/local/bin/composer \
+    && composer --version
 
 ###############################################################################
 # Install entrypoint

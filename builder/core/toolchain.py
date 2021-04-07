@@ -3,9 +3,9 @@
 
 import os
 import re
-from data import COMPILERS
-from host import current_os, current_arch, normalize_target, normalize_arch
-import util
+from builder.core.data import COMPILERS
+from builder.core.host import current_os, current_arch, normalize_target, normalize_arch
+from builder.core import util
 
 # helpful list of XCode clang output: https://gist.github.com/yamaya/2924292
 
@@ -13,23 +13,24 @@ import util
 def _compiler_version(cc):
     if current_os() != 'windows':
         result = util.run_command(cc, '--version', quiet=True, stderr=False)
-        text = result.output
-        # Apple clang
-        m = re.match('Apple (LLVM|clang) version (\d+)', text)
-        if m:
-            return 'clang', m.group(2)
-        # LLVM clang
-        m = re.match('.*clang version (\d+)', text)
-        if m:
-            return 'clang', m.group(1)
-        # GCC 4.x
-        m = re.match('gcc .+ (4\.\d+)', text)
-        if m:
-            return 'gcc', m.group(1)
-        # GCC 5+
-        m = re.match('gcc .+ (\d+)\.', text)
-        if m:
-            return 'gcc', m.group(1)
+        lines = result.output.split('\n')
+        for text in lines:
+            # Apple clang
+            m = re.match('Apple (LLVM|clang) version (\d+)', text)
+            if m:
+                return 'clang', m.group(2)
+            # LLVM clang
+            m = re.match('.*(LLVM|clang) version (\d+)', text)
+            if m:
+                return 'clang', m.group(2)
+            # GCC 4.x
+            m = re.match('gcc .+ (4\.\d+)', text)
+            if m:
+                return 'gcc', m.group(1)
+            # GCC 5+
+            m = re.match('gcc .+ (\d+)\.', text)
+            if m:
+                return 'gcc', m.group(1)
     return None, None
 
 
@@ -68,13 +69,21 @@ def _gcc_versions():
 def _msvc_versions():
     versions = [v for v in COMPILERS['msvc']
                 ['versions'].keys() if v != 'default']
-    versions.sort()
-    versions.reverse()
+    # sorted high to low by int value
+    versions.sort(key=lambda x: int(x), reverse=True)
     return versions
 
 
-def _is_cross_compile(os, arch):
-    return os != current_os() or normalize_arch(arch) != current_arch()
+def _is_cross_compile(target_os, target_arch):
+    # Mac compiling for anything that isn't iOS or itself
+    if current_os() == 'macos' and target_os in ["macos", "ios"]:
+        return False
+    # Windows is never a cross compile, just toolset swap
+    if current_os() == 'windows' and target_os == 'windows':
+        return False
+    if target_os != current_os() or normalize_arch(target_arch) != current_arch():
+        return True
+    return False
 
 
 class Toolchain(object):
@@ -91,12 +100,17 @@ class Toolchain(object):
             self.compiler = spec.compiler
             self.compiler_version = spec.compiler_version
             self.target = spec.target
-            self.arch = spec.arch
+            self.arch = normalize_arch(spec.arch)
 
         # Pull out individual fields. Note this is not in an else to support overriding at construction time
         for slot in ('host', 'target', 'arch', 'compiler', 'compiler_version'):
             if slot in kwargs:
                 setattr(self, slot, kwargs[slot])
+
+        if self.target == 'default':
+            self.target = current_os()
+        if self.arch == 'default':
+            self.arch = current_arch()
 
         # detect cross-compile
         self.cross_compile = _is_cross_compile(self.target, self.arch)
@@ -105,6 +119,7 @@ class Toolchain(object):
         self.shell_env = []
 
         if self.cross_compile:
+            print('Setting compiler to gcc for cross compile')
             self.compiler = 'gcc'
             # it's really 4.9, but don't need a separate entry for that
             self.compiler_version = '4.8'
@@ -172,27 +187,19 @@ class Toolchain(object):
                     return _find_msvc(version, False)
                 return None, None
 
-            compiler = None
-            vc_version = None
-
-            # Grab installed version
+            # A Visual Studio installation might have toolsets available for compiling
+            # earlier versions. vswhere doesn't know about these toolsets, so
+            # we'll just assume that any installation >= version can do the job.
+            #
+            # vswhere's -version flag expects a range, and if you just pass
+            # a single int you'll get told about anything >= version.
+            # Perfect, exactly what we want.
             result = util.run_command('vswhere', '-legacy', '-version', version,
-                                      '-property', 'installationVersion', quiet=True)
-            text = result.output
-            m = re.match('(\d+)\.?', text)
-            if m:
-                vc_version = m.group(1)
-
-            if not vc_version or vc_version != version:
-                return None, None
-
-            # Grab installation path
-            result = util.run_command('vswhere', '-legacy', '-version', version,
-                                      '-property', 'installationPath', quiet=True)
-            text = result.output
-            compiler = text.strip()
-
-            return compiler, vc_version
+                                      '-property', 'installationPath', '-sort', quiet=True)
+            installations = result.output.splitlines()
+            if installations:
+                return installations[0], version
+            return None, None
 
         versions = [version] if version else _msvc_versions()
         for version in versions:

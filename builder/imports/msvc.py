@@ -1,12 +1,12 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0.
 
-from host import current_os
-from project import Import
-from toolchain import Toolchain
-from util import UniqueList
-from actions.install import InstallPackages
-from actions.script import Script
+from builder.core.host import current_os
+from builder.core.project import Import
+from builder.core.toolchain import Toolchain
+from builder.core.util import UniqueList
+from builder.actions.install import InstallPackages
+from builder.actions.script import Script
 
 
 class MSVC(Import):

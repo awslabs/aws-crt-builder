@@ -7,9 +7,9 @@ from pathlib import Path
 import tarfile
 import zipfile
 
-from fetch import fetch_and_extract, mirror_package
-from project import Import
-import util
+from builder.core.fetch import fetch_and_extract, mirror_package
+from builder.core.project import Import
+import builder.core.util as util
 
 URLs = {
     'linux-armv6': 'https://github.com/AdoptOpenJDK/openjdk8-binaries/releases/download/jdk8u232-b09/OpenJDK8U-jdk_arm_linux_hotspot_8u232b09.tar.gz',
@@ -41,8 +41,10 @@ class JDK8(Import):
 
         target = '{}-{}'.format(env.spec.target, env.spec.arch)
 
+        cross_compile = util.deep_get(env, 'toolchain.cross_compile', False)
+
         # If this is a local build, check the local machine
-        if not env.toolchain.cross_compile or target not in URLs:
+        if not cross_compile or target not in URLs:
             javac_path = util.where('javac')
             if javac_path:
                 javac_path = javac_path.replace('/bin/javac', '')
@@ -81,7 +83,7 @@ class JDK8(Import):
 
         install_dir = os.path.join(env.deps_dir, self.name.lower())
         # If path is going to be relative, it has to be relative to the source directory
-        self.path = str(Path(install_dir).relative_to(env.source_dir))
+        self.path = str(Path(install_dir).relative_to(env.root_dir))
         print('Installing pre-built JDK binaries for {} to {}'.format(
             target, install_dir))
 
@@ -91,13 +93,6 @@ class JDK8(Import):
         filename = '{}/jdk8{}'.format(install_dir, ext)
         print('Downloading {}'.format(url))
         fetch_and_extract(url, filename, install_dir)
-        print('Extracting {} to {}'.format(filename, install_dir))
-        if ext == '.tar.gz':
-            with tarfile.open(filename) as tar:
-                tar.extractall(install_dir, numeric_owner=True)
-        else:
-            with zipfile.ZipFile(filename) as zip:
-                zip.extractall(install_dir)
         os.remove(filename)
 
         jdk_home = glob.glob(os.path.join(install_dir, 'jdk*'))[0]
@@ -109,9 +104,9 @@ class JDK8(Import):
 
         # Use absolute path for local, relative for cross-compile
         self.path = jdk_home
-        if env.toolchain.cross_compile:
+        if cross_compile:
             self.path = str(Path(os.path.join(install_dir, jdk_home)
-                                 ).relative_to(env.source_dir))
+                                 ).relative_to(env.root_dir))
 
         env.variables['java_home'] = self.path
         self.installed = True

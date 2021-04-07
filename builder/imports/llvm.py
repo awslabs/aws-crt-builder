@@ -2,12 +2,12 @@
 # SPDX-License-Identifier: Apache-2.0.
 
 
-from host import current_os
-from project import Import
-from toolchain import Toolchain
-from util import UniqueList
-from actions.install import InstallPackages
-from actions.script import Script
+from builder.core.host import current_os
+from builder.core.project import Import
+from builder.core.toolchain import Toolchain
+from builder.core.util import UniqueList
+from builder.actions.install import InstallPackages
+from builder.actions.script import Script
 
 import os
 import stat
@@ -24,13 +24,13 @@ LLVM_SH = """\
 # SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 ################################################################################
 #
-# This script will install the llvm toolchain on the different 
+# This script will install the llvm toolchain on the different
 # Debian and Ubuntu versions
 
 set -eux
 
 # read optional command line argument
-LLVM_VERSION=9
+LLVM_VERSION=12
 if [ "$#" -eq 1 ]; then
     LLVM_VERSION=$1
 fi
@@ -40,7 +40,7 @@ VERSION=$(lsb_release -sr)
 DIST_VERSION="${DISTRO}_${VERSION}"
 
 if [[ $EUID -ne 0 ]]; then
-   echo "This script must be run as root!" 
+   echo "This script must be run as root!"
    exit 1
 fi
 
@@ -50,7 +50,10 @@ LLVM_VERSION_PATTERNS[6]="-6.0"
 LLVM_VERSION_PATTERNS[7]="-7"
 LLVM_VERSION_PATTERNS[8]="-8"
 LLVM_VERSION_PATTERNS[9]="-9"
-LLVM_VERSION_PATTERNS[10]=""
+LLVM_VERSION_PATTERNS[10]="-10"
+LLVM_VERSION_PATTERNS[11]="-11"
+LLVM_VERSION_PATTERNS[12]="-12"
+LLVM_VERSION_PATTERNS[13]=""
 
 if [ ! ${LLVM_VERSION_PATTERNS[$LLVM_VERSION]+_} ]; then
     echo "This script does not support LLVM version $LLVM_VERSION"
@@ -77,9 +80,11 @@ esac
 
 
 # install everything
-curl -sSL https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -
-add-apt-repository "${REPO_NAME}"
-apt-get update 
+if [[ $LLVM_VERSION -ne 3 ]]; then
+    curl -sSL https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -
+    add-apt-repository "${REPO_NAME}"
+    apt-get update
+fi
 apt-get install -y clang$LLVM_VERSION_STRING
 """
 

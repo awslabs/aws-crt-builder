@@ -1,7 +1,7 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0.
 
-from data import ARCHS, HOSTS, PKG_TOOLS
+from builder.core.data import ARCHS, HOSTS, PKG_TOOLS
 
 import os
 import re
@@ -50,11 +50,11 @@ def normalize_target(target):
 
 def _file_contains(path, search):
     if os.path.isfile(path):
-        print('Probing {}'.format(path))
+        #print('Probing {}'.format(path))
         with open(path) as f:
             line = f.readline()
             while line:
-                print('  {}'.format(line), end='')
+                #print('  {}'.format(line), end='')
                 if search in line:
                     return True
                 line = f.readline()

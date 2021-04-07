@@ -1,7 +1,7 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0.
 
-from project import Project, Import
+from builder.core.project import Project, Import
 
 
 config = {
@@ -15,8 +15,9 @@ class S2NImport(Import):
     def __init__(self, **kwargs):
         super().__init__(
             library=True,
-            imports=['libcrypto'],
+            imports=['aws-lc'],
             config=config,
+            url='https://github.com/aws/s2n-tls.git',
             **kwargs)
 
 
@@ -24,6 +25,7 @@ class S2NProject(Project):
     def __init__(self, **kwargs):
         super().__init__(
             account='awslabs',
-            imports=['libcrypto'],
+            imports=['aws-lc'],
             config=config,
+            url='https://github.com/aws/s2n-tls.git',
             **kwargs)

@@ -2,9 +2,9 @@
 # SPDX-License-Identifier: Apache-2.0.
 
 import sys
-from action import Action
-from scripts import Scripts
-from util import replace_variables, to_list
+from builder.core.action import Action
+from builder.core.scripts import Scripts
+from builder.core.util import replace_variables, to_list
 
 
 class Script(Action):
@@ -22,8 +22,7 @@ class Script(Action):
             if cmd_type == str:
                 cmd = replace_variables(cmd, env.config['variables'])
             elif cmd_type == list:
-                cmd = [replace_variables(
-                    sub, env.config['variables']) for sub in cmd]
+                cmd = [replace_variables(sub, env.config['variables']) for sub in cmd]
             return cmd
 
         # Interpolate any variables

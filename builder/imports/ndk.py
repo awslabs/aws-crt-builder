@@ -7,9 +7,9 @@ from pathlib import Path
 from urllib.parse import urlparse
 import zipfile
 
-from fetch import fetch_and_extract, mirror_package
-from project import Import
-from util import chmod_exec
+from builder.core.fetch import fetch_and_extract, mirror_package
+from builder.core.project import Import
+from builder.core.util import chmod_exec
 
 
 ANDROID_NDK_VERSION = '16b'
@@ -44,7 +44,7 @@ class NDK(Import):
             env.deps_dir, 'android-ndk-r{}'.format(ANDROID_NDK_VERSION))
         # If path to NDK is going to be relative, it has to be relative to the
         # source directory
-        self.prefix = str(Path(install_dir).relative_to(env.source_dir))
+        self.prefix = str(Path(install_dir).relative_to(env.root_dir))
         # Export ndk_path
         env.variables['ndk_path'] = os.path.join('/work', self.prefix)
         print('Installing NDK r{} to {}'.format(
