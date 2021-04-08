@@ -130,6 +130,14 @@ HOSTS = {
         'pkg_update': 'apt-get -qq update -y',
         'pkg_install': 'apt-get -qq install -y',
     },
+    'debian': {
+        'os': 'linux',
+        'pkg_tool': PKG_TOOLS.APT,
+        # need ld and make and such
+        'packages': ['build-essential'],
+        'pkg_update': 'apt-get -qq update -y',
+        'pkg_install': 'apt-get -qq install -y',
+    },
     'alpine': {
         'os': 'linux',
         'pkg_tool': PKG_TOOLS.APK,
@@ -223,7 +231,6 @@ HOSTS = {
 }
 
 HOSTS['darwin'] = HOSTS['macos']
-HOSTS['debian'] = HOSTS['ubuntu']
 
 for arch in ARCHS.keys():
     for alias in ARCHS[arch].get('aliases', []):

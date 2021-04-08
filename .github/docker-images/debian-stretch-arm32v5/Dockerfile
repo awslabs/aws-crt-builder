@@ -9,8 +9,22 @@ RUN apt-get update -y \
         curl \
         cmake \
         git \
+        python3-dev \
+        python3-pip \
+        unzip \
+        tar \
     && cmake --version \
     && ctest --version
+
+###############################################################################
+# Python/AWS CLI
+###############################################################################
+WORKDIR /tmp
+
+RUN python3 -m pip install setuptools \
+    && python3 -m pip install --upgrade pip \
+    && python3 -m pip install awscli \
+    && aws --version
 
 ###############################################################################
 # Install entrypoint
