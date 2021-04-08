@@ -11,6 +11,8 @@ RUN apt-get update -y \
         git \
         python3-dev \
         python3-pip \
+        unzip \
+        tar \
     && cmake --version \
     && ctest --version
 
