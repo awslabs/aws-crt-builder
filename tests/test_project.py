@@ -6,7 +6,7 @@ from builder.core.project import Project
 from builder.core.spec import BuildSpec
 from builder.actions.script import Script
 
-
+import builder.core.api  # force API to load and expose the virtual module
 here = os.path.dirname(os.path.abspath(__file__))
 
 test_data_dir = os.path.join(here, 'data')

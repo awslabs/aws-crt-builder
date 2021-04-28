@@ -1,6 +1,7 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0.
 
+import copy
 import glob
 import os
 import sys
@@ -186,16 +187,30 @@ def produce_config(build_spec, project, overrides=None, **additional_variables):
 
     new_version = _coalesce_pkg_options(build_spec, new_version)
 
-    if overrides:
+    def apply_overrides(config, overrides):
+        if not overrides:
+            return
         for key, val in overrides.items():
             if key.startswith('!'):
                 # re-init and replace current value, obeying type coercion rules
                 key = key[1:]
-                if key in new_version:
-                    new_version[key] = new_version[key].__class__()
-                _apply_value(new_version, key, val)
+                if key in config:
+                    config[key] = config[key].__class__()
+                _apply_value(config, key, val)
             else:
-                _apply_value(new_version, key, val)
+                _apply_value(config, key, val)
+
+    apply_overrides(new_version, overrides)
+
+    # resolve build variants
+    variants = new_version.get('variants', {})
+    resolved_variants = {}
+    for name, overrides in variants.items():
+        variant = copy.deepcopy(new_version)
+        del variant['variants']
+        apply_overrides(variant, overrides)
+        resolved_variants[name] = variant
+    new_version['variants'] = resolved_variants
 
     # Default variables
     replacements = {
