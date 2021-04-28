@@ -58,7 +58,7 @@ KEYS = {
     'upstream': [],
     'downstream': [],
 
-    'variants': {}, # additional build variants
+    'variants': {},  # additional build variants
 
     # Linux
     'sudo': False  # whether or not sudo is necessary for installs
