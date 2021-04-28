@@ -8,6 +8,7 @@ import unittest.mock as mock
 from builder.core.env import Env
 from builder.core.project import Project
 from builder.core.spec import BuildSpec
+from builder.core.host import current_os
 
 # base config -- copy for tests
 here = os.path.dirname(os.path.abspath(__file__))
@@ -31,7 +32,13 @@ class TestEnv(unittest.TestCase):
         config = _test_proj_config.copy()
         config['variants'] = {
             'test': {
-                'name': 'TEST'
+                'targets': {
+                    current_os(): {
+                        'upstream': [
+                            {'name': 'TEST'}
+                        ]
+                    }
+                }
             }
         }
 
@@ -46,4 +53,4 @@ class TestEnv(unittest.TestCase):
         })
         # env.config should be the variant, not the defaults
         variant = env.config
-        self.assertEquals(variant['name'], 'TEST')
+        self.assertTrue(u for u in variant['upstream'] if u['name'] == 'TEST')

@@ -87,7 +87,7 @@ def _arch_aliases(spec):
     return aliases
 
 
-def produce_config(build_spec, project, overrides=None, **additional_variables):
+def produce_config(build_spec, project, overrides=None, variant_config=None, **additional_variables):
     """ Traverse the configurations to produce one for the given spec """
     host_os = current_os()
 
@@ -128,7 +128,7 @@ def produce_config(build_spec, project, overrides=None, **additional_variables):
         if depth == 0:
             defaults = {}
             for key, value in config.items():
-                if key not in ('hosts', 'targets', 'compilers', 'architectures'):
+                if key not in ('hosts', 'targets', 'compilers', 'architectures', 'variants'):
                     defaults[key] = value
             if len(defaults) > 0:
                 configs.append(defaults)
@@ -163,6 +163,10 @@ def produce_config(build_spec, project, overrides=None, **additional_variables):
     # then override with config file
     project_config = project.config
     process_config(project_config)
+
+    # then add variant
+    if variant_config:
+        process_config(variant_config)
 
     new_version = {
         'spec': build_spec,
@@ -202,16 +206,6 @@ def produce_config(build_spec, project, overrides=None, **additional_variables):
 
     apply_overrides(new_version, overrides)
 
-    # resolve build variants
-    variants = new_version.get('variants', {})
-    resolved_variants = {}
-    for name, overrides in variants.items():
-        variant = copy.deepcopy(new_version)
-        del variant['variants']
-        apply_overrides(variant, overrides)
-        resolved_variants[name] = variant
-    new_version['variants'] = resolved_variants
-
     # Default variables
     replacements = {
         'host': build_spec.host,
@@ -233,6 +227,16 @@ def produce_config(build_spec, project, overrides=None, **additional_variables):
     # Post process
     new_version = replace_variables(new_version, replacements)
     new_version['variables'] = replacements
+
+    # resolve build variants for the top level config
+    if not variant_config:
+        variants = project_config.get('variants', {})
+        resolved_variants = {}
+        for name, variant_config in variants.items():
+            variant = produce_config(build_spec, project, None, variant_config, **additional_variables)
+            resolved_variants[name] = variant
+        new_version['variants'] = resolved_variants
+
     new_version['__processed'] = True
 
     return new_version
