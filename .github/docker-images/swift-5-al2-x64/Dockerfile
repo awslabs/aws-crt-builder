@@ -1,5 +1,5 @@
 #https://github.com/apple/swift-docker/blob/d3a19f47844d7d4d0dab0b59153da1f1596543b6/5.3/amazonlinux/2/Dockerfile
-FROM swift:5.3-amazonlinux2
+FROM swift:5.4-amazonlinux2
 
 ###############################################################################
 # Install prereqs
