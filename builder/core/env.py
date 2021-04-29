@@ -33,8 +33,7 @@ class Env(object):
             setattr(self, key, val)
 
         # default the branch to whatever the current dir+git says it is
-        if not hasattr(self, 'branch'):
-            self.branch = self._get_git_branch()
+        self.branch = getattr(self, 'branch', self._get_git_branch())
 
         # make sure the shell is initialized
         if not hasattr(self, 'shell'):
