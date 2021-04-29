@@ -111,7 +111,6 @@ def export_compiler(compiler, env):
         print('WARNING: CXX compiler {} could not be found for export'.format(compiler))
 
 
-
 class InstallCompiler(Action):
     def run(self, env):
         config = env.config
