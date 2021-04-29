@@ -208,7 +208,10 @@ def parse_args():
     if args.compiler or args.target:
         compiler, version = ('default', 'default')
         if args.compiler:
-            compiler, version = args.compiler.split('-')
+            if '-' in args.compiler:
+                compiler, version = args.compiler.split('-')
+            else:
+                compiler = args.compiler
         spec = str(spec) if spec else None
         spec = BuildSpec(compiler=compiler,
                          compiler_version=version, target=args.target, spec=spec)
