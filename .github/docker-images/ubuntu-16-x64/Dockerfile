@@ -20,7 +20,6 @@ RUN apt-get update -qq \
     software-properties-common \
     apt-transport-https \
     ca-certificates \
-    && apt-get remove -y gcc g++ \
     && apt-get clean
 
 ###############################################################################
