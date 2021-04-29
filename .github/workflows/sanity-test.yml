@@ -264,7 +264,7 @@ jobs:
         path: .
 
     - name: Build ${{ matrix.project }}
-      run: python3 builder.pyz build --project ${{ matrix.project }}
+      run: python3 builder.pyz build --project ${{ matrix.project }} --compiler=clang
 
   # This mostly tests that libcrypto and s2n resolve correctly on manylinux vs ubuntu
   aws-c-io:

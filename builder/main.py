@@ -142,6 +142,7 @@ def parse_args():
     parser.add_argument('--target', type=str, help="The target to cross-compile for (e.g. android-armv7, linux-x86, linux-aarch64)",
                         default='{}-{}'.format(current_os(), current_arch()),
                         choices=data.PLATFORMS.keys())
+    parser.add_argument('--variant', type=str, help="Build variant to use instead of default")
 
     # hand parse command and spec from within the args given
     command = None
@@ -207,7 +208,10 @@ def parse_args():
     if args.compiler or args.target:
         compiler, version = ('default', 'default')
         if args.compiler:
-            compiler, version = args.compiler.split('-')
+            if '-' in args.compiler:
+                compiler, version = args.compiler.split('-')
+            else:
+                compiler = args.compiler
         spec = str(spec) if spec else None
         spec = BuildSpec(compiler=compiler,
                          compiler_version=version, target=args.target, spec=spec)
@@ -240,6 +244,7 @@ def main():
         'project': args.project,
         'branch': args.branch,
         'spec': spec,
+        'variant': args.variant,
     })
 
     Scripts.load()
