@@ -1,7 +1,6 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0.
 
-import copy
 import glob
 import os
 import sys
@@ -358,12 +357,21 @@ class ProjectReference(object):
 
 
 def _make_project_refs(refs):
-    return [r if isnamedtuple(r) else ProjectReference(r) for r in refs]
+    return [r if isinstance(r, ProjectReference) else ProjectReference(r) for r in refs]
 
 
 def _make_import_refs(refs):
     return [i if isnamedtuple(i) else namedtuple('ImportReference', ['name', 'resolved'])(
         i, _not_resolved) for i in refs]
+
+
+def _transform_refs(config):
+    # Convert project json references to ProjectReferences
+    tree_transform(config, 'upstream', _make_project_refs)
+    for p in config.get('upstream', []):
+        p.config['run_tests'] = False
+    tree_transform(config, 'downstream', _make_project_refs)
+    tree_transform(config, 'imports', _make_import_refs)
 
 
 def _transform_steps(steps, env, project):
@@ -453,12 +461,9 @@ class Project(object):
         # explicit override (e.g. for upstream dependencies)
         self.revision = kwargs.get('revision', None)
 
-        # Convert project json references to ProjectReferences
-        tree_transform(kwargs, 'upstream', _make_project_refs)
-        for p in kwargs.get('upstream', []):
-            p.config['run_tests'] = False
-        tree_transform(kwargs, 'downstream', _make_project_refs)
-        tree_transform(kwargs, 'imports', _make_import_refs)
+        self.variant = None
+
+        _transform_refs(kwargs)
 
         # Store args as the initial config, will be merged via get_config() later
         self.config = kwargs
@@ -636,9 +641,24 @@ class Project(object):
                 filtered.append(c)
         return filtered
 
+    def use_variant(self, variant):
+        self.variant = variant
+        # force recomputation of the config if it's been compiled already
+        if self.config:
+            self.config['__processed'] = False
+
+    def get_variant(self):
+        return self.variant
+
     def get_config(self, spec, overrides=None, **additional_vars):
         if not self.config or not self.config.get('__processed', False):
             self.config = produce_config(spec, self, overrides, **additional_vars, project_dir=self.path)
+            if self.variant:
+                if self.variant in self.config.get('variants', {}):
+                    self.config = self.config['variants'][self.variant]
+                else:
+                    raise Exception("Requested variant {} does not exist".format(self.variant))
+            _transform_refs(self.config)
         return self.config
 
     # project cache

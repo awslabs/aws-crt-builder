@@ -81,13 +81,8 @@ class Env(object):
             return
 
         # Build the config object
+        self.project.use_variant(self.variant)
         self.config = self.project.get_config(self.spec, self.args.cli_config)
-        if self.variant:
-            variant = self.config['variants'].get(self.variant, None)
-            if variant:
-                self.config = variant
-            else:
-                raise Exception("Project does not contain requested variant: " + self.variant)
 
         # Once initialized, switch to the source dir before running actions
         self.root_dir = os.path.abspath(self.project.path)
