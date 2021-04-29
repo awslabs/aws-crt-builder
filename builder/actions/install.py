@@ -98,16 +98,18 @@ def export_compiler(compiler, env):
     if current_os() == 'windows':
         return
 
-    #if compiler != 'default':
-    for cvar, evar in {'c': 'CC', 'cxx': 'CXX'}.items():
-        exe = env.config.get(cvar)
-        if exe:
-            compiler_path = env.shell.where(exe, resolve_symlinks=False)
-            if compiler_path:
-                env.shell.setenv(evar, compiler_path)
-            else:
-                print(
-                    'WARNING: Compiler {} could not be found'.format(exe))
+    toolchain = env.toolchain
+    cc_path = toolchain.compiler_path()
+    cxx_path = toolchain.cxx_compiler_path()
+    if cc_path:
+        env.shell.setenv('CC', cc_path)
+    else:
+        print('WARNING: C compiler {} could not be found for export'.format(compiler))
+    if cxx_path:
+        env.shell.setenv('CXX', cc_path)
+    else:
+        print('WARNING: CXX compiler {} could not be found for export'.format(compiler))
+
 
 
 class InstallCompiler(Action):
