@@ -86,7 +86,7 @@ def _arch_aliases(spec):
     return aliases
 
 
-def produce_config(build_spec, project, overrides=None, **additional_variables):
+def produce_config(build_spec, project, overrides=None, variant_config=None, **additional_variables):
     """ Traverse the configurations to produce one for the given spec """
     host_os = current_os()
 
@@ -127,7 +127,7 @@ def produce_config(build_spec, project, overrides=None, **additional_variables):
         if depth == 0:
             defaults = {}
             for key, value in config.items():
-                if key not in ('hosts', 'targets', 'compilers', 'architectures'):
+                if key not in ('hosts', 'targets', 'compilers', 'architectures', 'variants'):
                     defaults[key] = value
             if len(defaults) > 0:
                 configs.append(defaults)
@@ -163,6 +163,10 @@ def produce_config(build_spec, project, overrides=None, **additional_variables):
     project_config = project.config
     process_config(project_config)
 
+    # then add variant
+    if variant_config:
+        process_config(variant_config)
+
     new_version = {
         'spec': build_spec,
     }
@@ -186,16 +190,20 @@ def produce_config(build_spec, project, overrides=None, **additional_variables):
 
     new_version = _coalesce_pkg_options(build_spec, new_version)
 
-    if overrides:
+    def apply_overrides(config, overrides):
+        if not overrides:
+            return
         for key, val in overrides.items():
             if key.startswith('!'):
                 # re-init and replace current value, obeying type coercion rules
                 key = key[1:]
-                if key in new_version:
-                    new_version[key] = new_version[key].__class__()
-                _apply_value(new_version, key, val)
+                if key in config:
+                    config[key] = config[key].__class__()
+                _apply_value(config, key, val)
             else:
-                _apply_value(new_version, key, val)
+                _apply_value(config, key, val)
+
+    apply_overrides(new_version, overrides)
 
     # Default variables
     replacements = {
@@ -218,6 +226,16 @@ def produce_config(build_spec, project, overrides=None, **additional_variables):
     # Post process
     new_version = replace_variables(new_version, replacements)
     new_version['variables'] = replacements
+
+    # resolve build variants for the top level config
+    if not variant_config:
+        variants = project_config.get('variants', {})
+        resolved_variants = {}
+        for name, variant_config in variants.items():
+            variant = produce_config(build_spec, project, None, variant_config, **additional_variables)
+            resolved_variants[name] = variant
+        new_version['variants'] = resolved_variants
+
     new_version['__processed'] = True
 
     return new_version
@@ -339,12 +357,21 @@ class ProjectReference(object):
 
 
 def _make_project_refs(refs):
-    return [r if isnamedtuple(r) else ProjectReference(r) for r in refs]
+    return [r if isinstance(r, ProjectReference) else ProjectReference(r) for r in refs]
 
 
 def _make_import_refs(refs):
     return [i if isnamedtuple(i) else namedtuple('ImportReference', ['name', 'resolved'])(
         i, _not_resolved) for i in refs]
+
+
+def _transform_refs(config):
+    # Convert project json references to ProjectReferences
+    tree_transform(config, 'upstream', _make_project_refs)
+    for p in config.get('upstream', []):
+        p.config['run_tests'] = False
+    tree_transform(config, 'downstream', _make_project_refs)
+    tree_transform(config, 'imports', _make_import_refs)
 
 
 def _transform_steps(steps, env, project):
@@ -434,12 +461,9 @@ class Project(object):
         # explicit override (e.g. for upstream dependencies)
         self.revision = kwargs.get('revision', None)
 
-        # Convert project json references to ProjectReferences
-        tree_transform(kwargs, 'upstream', _make_project_refs)
-        for p in kwargs.get('upstream', []):
-            p.config['run_tests'] = False
-        tree_transform(kwargs, 'downstream', _make_project_refs)
-        tree_transform(kwargs, 'imports', _make_import_refs)
+        self.variant = None
+
+        _transform_refs(kwargs)
 
         # Store args as the initial config, will be merged via get_config() later
         self.config = kwargs
@@ -617,9 +641,24 @@ class Project(object):
                 filtered.append(c)
         return filtered
 
+    def use_variant(self, variant):
+        self.variant = variant
+        # force recomputation of the config if it's been compiled already
+        if self.config:
+            self.config['__processed'] = False
+
+    def get_variant(self):
+        return self.variant
+
     def get_config(self, spec, overrides=None, **additional_vars):
         if not self.config or not self.config.get('__processed', False):
             self.config = produce_config(spec, self, overrides, **additional_vars, project_dir=self.path)
+            if self.variant:
+                if self.variant in self.config.get('variants', {}):
+                    self.config = self.config['variants'][self.variant]
+                else:
+                    raise Exception("Requested variant {} does not exist".format(self.variant))
+            _transform_refs(self.config)
         return self.config
 
     # project cache

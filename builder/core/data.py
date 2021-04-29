@@ -58,6 +58,8 @@ KEYS = {
     'upstream': [],
     'downstream': [],
 
+    'variants': {},  # additional build variants
+
     # Linux
     'sudo': False  # whether or not sudo is necessary for installs
 }
@@ -444,6 +446,9 @@ COMPILERS = {
             '6': {},
             '7': {},
             '8': {},
+            '9': {},
+            '10': {},
+            '11': {},
         },
 
         'architectures': {

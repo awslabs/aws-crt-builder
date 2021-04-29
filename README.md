@@ -226,6 +226,23 @@ See builder/data.py for more info/defaults/possible values.
             }
         }
     },
+    // Build variants, accessible via --variant=<myvariant>
+    // Variants can override any setting, they will be overlaid on the default config
+    "variants" : {
+        "no-tests": {
+            "!test_steps": []
+        },
+        "tsan": {
+            "compilers": {
+                "clang": {
+                    "cmake_args": [
+                        "-DENABLE_SANITIZERS=ON",
+                        "-DSANTIZERS=,thread"
+                    ]
+                }
+            }
+        }
+    }
 }
 ```
 

@@ -33,8 +33,7 @@ class Env(object):
             setattr(self, key, val)
 
         # default the branch to whatever the current dir+git says it is
-        if not self.branch:
-            self.branch = self._get_git_branch()
+        self.branch = getattr(self, 'branch', None) or self._get_git_branch()
 
         # make sure the shell is initialized
         if not hasattr(self, 'shell'):
@@ -52,36 +51,36 @@ class Env(object):
         if not getattr(self, 'project', None):
             self.project = Project.default_project()
 
-        if not self.args.project:
-            return
+        # Project provided via args, locate it
+        if self.args.project:
+            project_name = self.args.project
 
-        project_name = self.args.project
+            # see if the project is a path, if so, split it and give the path as a hint
+            hints = []
+            parts = project_name.split(os.path.sep)
+            if len(parts) > 1:
+                project_path = os.path.abspath(os.path.join(*parts))
+                hints += [project_path]
+            project_name = parts[-1]
 
-        # see if the project is a path, if so, split it and give the path as a hint
-        hints = []
-        parts = project_name.split(os.path.sep)
-        if len(parts) > 1:
-            project_path = os.path.abspath(os.path.join(*parts))
-            hints += [project_path]
-        project_name = parts[-1]
+            # Ensure that the specified project exists, this may return a ref or the project if
+            # it is present on disk
+            project = Project.find_project(project_name, hints=hints)
+            if not project.path:  # got a ref
+                print('Project {} could not be found locally, downloading'.format(project.name))
+                DownloadSource(project=project, branch=self.branch, path='.').run(self)
 
-        # Ensure that the specified project exists, this may return a ref or the project if
-        # it is present on disk
-        project = Project.find_project(project_name, hints=hints)
-        if not project.path:  # got a ref
-            print('Project {} could not be found locally, downloading'.format(project.name))
-            DownloadSource(project=project, branch=self.branch, path='.').run(self)
+                # Now that the project is downloaded, look it up again
+                project = Project.find_project(project.name, hints=[os.path.abspath('.')])
+                assert project.resolved()
 
-            # Now that the project is downloaded, look it up again
-            project = Project.find_project(project.name, hints=[os.path.abspath('.')])
-            assert project.resolved()
-
-        self.project = project
+            self.project = project
 
         if not self.project or not self.project.resolved():
             return
 
         # Build the config object
+        self.project.use_variant(self.variant)
         self.config = self.project.get_config(self.spec, self.args.cli_config)
 
         # Once initialized, switch to the source dir before running actions
