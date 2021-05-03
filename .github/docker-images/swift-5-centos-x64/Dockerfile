@@ -5,8 +5,7 @@ FROM swift:5.4-centos7
 # Install prereqs
 # any prereqs that appear to be missing are installed on base swift image i.e. tar, git
 ###############################################################################
-RUN yum -y update \
-    && yum -y install \
+RUN yum -y install \
     sudo \
     # Python
     python3 \
