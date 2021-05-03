@@ -7,6 +7,8 @@ import os
 import re
 import sys
 
+from functools import lru_cache
+
 
 def current_os():
     if sys.platform == 'win32':
@@ -61,15 +63,9 @@ def _file_contains(path, search):
     return False
 
 
-# cache the result of this, since it involves a bunch of file I/O
-_current_host = None
-
-
+@lru_cache(1)
 def current_host():
     """ Between sys.platform or linux distro identifiers, determine the specific os """
-    global _current_host
-    if _current_host:
-        return _current_host
 
     def _discover_host():
         platform = current_os()
@@ -79,9 +75,13 @@ def current_host():
             if _file_contains('/etc/system-release', 'Bare Metal') or _file_contains('/etc/system-release', 'Amazon Linux AMI'):
                 return 'al2012'
             if _file_contains('/etc/redhat-release', 'CentOS release 5.'):
-                return 'manylinux'
+                if os.path.exists('/opt/python/cp27-cp27m'):
+                    return 'manylinux'
+                return 'centos'
             if _file_contains('/etc/redhat-release', 'CentOS Linux release 7.'):
-                return 'manylinux'
+                if os.path.exists('/opt/python/cp39-cp39'):
+                    return 'manylinux'
+                return 'centos'
             if _file_contains('/etc/lsb-release', 'Ubuntu'):
                 return 'ubuntu'
             if _file_contains('/etc/os-release', 'Debian'):
@@ -93,8 +93,7 @@ def current_host():
             return 'linux'
         else:
             return platform
-    _current_host = _discover_host()
-    return _current_host
+    return _discover_host()
 
 
 def package_tool(host=current_host()):
