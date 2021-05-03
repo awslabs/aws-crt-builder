@@ -84,7 +84,10 @@ class Shell(object):
 
     def getenv(self, var, default=None):
         """ Get an environment variable """
-        return os.environ.get(var, default)
+        try:
+            return os.environ[var]
+        except:
+            return default
 
     def addpathenv(self, var, path, **kwargs):
         """Add a path to an environment variable"""
