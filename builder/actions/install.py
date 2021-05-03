@@ -99,16 +99,19 @@ def export_compiler(compiler, env):
         return
 
     toolchain = env.toolchain
-    cc_path = toolchain.compiler_path()
-    cxx_path = toolchain.cxx_compiler_path()
-    if cc_path:
-        env.shell.setenv('CC', cc_path)
-    else:
-        print('WARNING: C compiler {} could not be found for export'.format(compiler))
-    if cxx_path:
-        env.shell.setenv('CXX', cc_path)
-    else:
-        print('WARNING: CXX compiler {} could not be found for export'.format(compiler))
+    if not env.shell.getenv('CC'):
+        cc_path = toolchain.compiler_path()
+        if cc_path:
+            env.shell.setenv('CC', cc_path)
+        else:
+            print('WARNING: C compiler {} could not be found for export'.format(compiler))
+
+    if not env.shell.getenv('CXX'):
+        cxx_path = toolchain.cxx_compiler_path()
+        if cxx_path:
+            env.shell.setenv('CXX', cc_path)
+        else:
+            print('WARNING: CXX compiler {} could not be found for export'.format(compiler))
 
 
 class InstallCompiler(Action):

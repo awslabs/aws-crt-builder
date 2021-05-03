@@ -82,6 +82,10 @@ class Shell(object):
         if not self.dryrun:
             os.environ[var] = value
 
+    def getenv(self, var, default=None):
+        """ Get an environment variable """
+        return os.environ.get(var, default)
+
     def addpathenv(self, var, path, **kwargs):
         """Add a path to an environment variable"""
         prev = os.getenv(var)
