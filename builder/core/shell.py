@@ -98,10 +98,6 @@ class Shell(object):
             value = path
         self.setenv(var, value, **kwargs)
 
-    def getenv(self, var):
-        """ Get an environment variable """
-        return os.environ[var]
-
     def pushenv(self, **kwargs):
         """ Store the current environment on a stack, for restoration later """
         if not kwargs.get('quiet', False):
