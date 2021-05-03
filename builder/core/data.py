@@ -197,6 +197,17 @@ HOSTS = {
             'python': "/opt/python/cp39-cp39/bin/python",
         },
     },
+    'centos': {
+        'os': 'linux',
+        'pkg_tool': PKG_TOOLS.YUM,
+        'pkg_update': 'yum update -y',
+        'pkg_install': 'yum install -y',
+        'sudo': False,
+
+        'variables': {
+            'python': 'python3'
+        }
+    },
     'windows': {
         'os': 'windows',
         'variables': {
