@@ -88,7 +88,7 @@ def _build_project(env, project, cmake_extra, build_tests=False):
         "-H{}".format(project_source_dir),
         # "-Werror=dev",
         # "-Werror=deprecated",
-        "-DAWS_WARNINGS_ARE_ERRORS=ON",
+        "-DAWS_WARNINGS_ARE_ERRORS=OFF",
         "-DCMAKE_INSTALL_PREFIX=" + project_install_dir,
         "-DCMAKE_PREFIX_PATH=" + project_install_dir,
         "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
