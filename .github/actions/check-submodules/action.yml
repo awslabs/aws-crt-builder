@@ -1,0 +1,5 @@
+name: 'Check Submodules'
+description: 'Check submodule commits (ex: avoid accidental rollback)'
+runs:
+  using: 'node12'
+  main: 'index.js'
