@@ -66,11 +66,11 @@ const getSubmodules = async function () {
     return Object.values(map).sort((a, b) => a.name.localeCompare(b.name));
 }
 
-// Diff the submodule's current commit against a target branch
+// Diff the submodule against its state on origin/main.
 // Returns null if they're the same.
-// Otherwise returns something like {sourceCommit: 'c74534c', targetCommit: 'b6656aa'}
-const diffSubmodule = async function (submodule, targetBranch) {
-    const gitResult = await run(['git', 'diff', `origin/${targetBranch}`, '--', submodule.path]);
+// Otherwise returns something like {thisCommit: 'c74534c', mainCommit: 'b6656aa'}
+const diffSubmodule = async function (submodule) {
+    const gitResult = await run(['git', 'diff', `origin/main`, '--', submodule.path]);
     const stdout = gitResult.stdout;
 
     // output looks like this:
@@ -86,8 +86,8 @@ const diffSubmodule = async function (submodule, targetBranch) {
         // let's just be naive and only look at the last 2 lines
         // if this fails in any way, report no difference
         var result = {}
-        result.targetCommit = stdout.match('\\-Subproject commit ([a-f0-9]{40})')[1];
-        result.sourceCommit = stdout.match('\\+Subproject commit ([a-f0-9]{40})')[1];
+        result.mainCommit = stdout.match('\\-Subproject commit ([a-f0-9]{40})')[1];
+        result.thisCommit = stdout.match('\\+Subproject commit ([a-f0-9]{40})')[1];
         return result;
     } catch (error) {
         return null;
@@ -124,17 +124,13 @@ const getReleaseTag = async function (commit, cwd) {
 
 
 const checkSubmodules = async function () {
-    // TODO: figure out how to access target branch
-    // instead of hardcoding 'main'
-    const targetBranch = 'main';
-
     const submodules = await getSubmodules();
     for (var i = 0; i < submodules.length; i++) {
         const submodule = submodules[i];
 
-        // diff submodule against target branch
-        // if there's no difference, there's no need to analyze further
-        const diff = await diffSubmodule(submodule, targetBranch);
+        // Diff the submodule against its state on origin/main.
+        // If there's no difference, then there's no need to analyze further
+        const diff = await diffSubmodule(submodule);
         if (diff == null) {
             continue;
         }
@@ -142,11 +138,11 @@ const checkSubmodules = async function () {
         // Ensure submodule is at an acceptable commit:
         // For repos the Common Runtime team controls, it must be at a tagged release.
         // For other repos, where we can't just cut a release ourselves, it needs to at least be on the main branch.
-        const sourceTag = await getReleaseTag(diff.sourceCommit, submodule.path);
-        if (!sourceTag) {
+        const thisTag = await getReleaseTag(diff.thisCommit, submodule.path);
+        if (!thisTag) {
             const nonCrtRepo = /^(aws-lc|s2n|s2n-tls)$/
             if (nonCrtRepo.test(submodule.name)) {
-                const isOnMain = await isAncestor(diff.sourceCommit, 'origin/main', submodule.path);
+                const isOnMain = await isAncestor(diff.thisCommit, 'origin/main', submodule.path);
                 if (!isOnMain) {
                     core.setFailed(`Submodule ${submodule.name} is using a branch`);
                     return;
@@ -158,14 +154,14 @@ const checkSubmodules = async function () {
         }
 
         // prefer to use tags for further operations since they're easier to grok than commit hashes
-        const targetTag = await getReleaseTag(diff.targetCommit, submodule.path);
-        const sourceCommit = sourceTag || diff.sourceCommit;
-        const targetCommit = targetTag || diff.targetCommit;
+        const mainTag = await getReleaseTag(diff.mainCommit, submodule.path);
+        const thisCommit = thisTag || diff.thisCommit;
+        const mainCommit = mainTag || diff.mainCommit;
 
         // freak out if our branch's submodule is older than where we're merging
-        if (await isAncestor(sourceCommit, targetCommit, submodule.path)) {
-            core.setFailed(`Submodule ${submodule.name} is newer on ${targetBranch}:`
-                + ` ${targetCommit} vs ${sourceCommit} on this branch`);
+        if (await isAncestor(thisCommit, mainCommit, submodule.path)) {
+            core.setFailed(`Submodule ${submodule.name} is newer on origin/main:`
+                + ` ${mainCommit} vs ${thisCommit} on this branch`);
             return;
         }
 
