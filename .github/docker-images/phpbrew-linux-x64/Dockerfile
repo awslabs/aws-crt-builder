@@ -51,7 +51,7 @@ RUN curl -sSL https://d19elf31gohf1l.cloudfront.net/_binaries/cmake/cmake-3.13-m
     && rm -f /tmp/cmake.tar.gz
 
 ###############################################################################
-# Build/Install PHP 7.4
+# Build/Install PHP 7.4 as system PHP
 ###############################################################################
 WORKDIR /tmp
 RUN curl -sSL https://www.php.net/distributions/php-7.4.15.tar.gz -o php.tar.gz \
@@ -60,6 +60,23 @@ RUN curl -sSL https://www.php.net/distributions/php-7.4.15.tar.gz -o php.tar.gz 
     && ./configure --prefix=/usr/local --disable-cgi --with-openssl --with-ffi --with-curl --with-zlib \
     && make -j \
     && make install
+
+###############################################################################
+# Install phpbrew
+###############################################################################
+WORKDIR /tmp
+RUN curl -L -O https://github.com/phpbrew/phpbrew/releases/latest/download/phpbrew.phar \
+    && chmod +x phpbrew.phar \
+    && mv phpbrew.phar /usr/local/bin/phpbrew \
+    && cat ~/.phpbrew/bashrc >> /etc/profile \
+    && phpbrew init \
+    && phpbrew update \
+    && phpbrew install --old 5.6 as 5.6 \
+    && phpbrew install 7.1 as 7.1 \
+    && phpbrew install 7.2 as 7.2 \
+    && phpbrew install 7.3 as 7.3 \
+    && phpbrew install 7.4 as 7.4 \
+    && phpbrew install 8.0 as 8.0
 
 ###############################################################################
 # Install composer
