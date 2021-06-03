@@ -85,6 +85,7 @@ RUN curl -L -O https://github.com/phpbrew/phpbrew/releases/latest/download/phpbr
     && phpbrew update --old \
     && cat ~/.phpbrew/bashrc >> /etc/environment
 
+RUN phpbrew install --stdout -j 4 5.5 +small -openssl as 5.5
 RUN phpbrew install --stdout -j 4 5.6 +small -openssl as 5.6
 RUN phpbrew install --stdout -j 4 7.0 +small -openssl as 7.0
 RUN phpbrew install --stdout -j 4 7.1 +small -openssl as 7.1
