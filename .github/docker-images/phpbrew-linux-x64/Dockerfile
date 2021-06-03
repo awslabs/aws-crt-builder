@@ -71,13 +71,14 @@ RUN curl -L -O https://github.com/phpbrew/phpbrew/releases/latest/download/phpbr
     && mv phpbrew.phar /usr/local/bin/phpbrew \
     && phpbrew init \
     && phpbrew update --old \
-    && cat ~/.phpbrew/bashrc >> /etc/environment \
-    && phpbrew install -j 4 5.6 as 5.6 \
-    && phpbrew install -j 4 7.1 as 7.1 \
-    && phpbrew install -j 4 7.2 as 7.2 \
-    && phpbrew install -j 4 7.3 as 7.3 \
-    && phpbrew install -j 4 7.4 as 7.4 \
-    && phpbrew install -j 4 8.0 as 8.0
+    && cat ~/.phpbrew/bashrc >> /etc/environment
+
+RUN phpbrew install -j 4 5.6 as 5.6
+RUN phpbrew install -j 4 7.1 as 7.1
+RUN phpbrew install -j 4 7.2 as 7.2
+RUN phpbrew install -j 4 7.3 as 7.3
+RUN phpbrew install -j 4 7.4 as 7.4
+RUN phpbrew install -j 4 8.0 as 8.0
 
 ###############################################################################
 # Install composer
