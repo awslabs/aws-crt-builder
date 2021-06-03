@@ -64,6 +64,14 @@ RUN curl -sSL https://www.php.net/distributions/php-7.4.15.tar.gz -o php.tar.gz 
     && make install
 
 ###############################################################################
+# Install composer
+###############################################################################
+WORKDIR /tmp
+RUN curl -sSL https://getcomposer.org/composer-stable.phar -o /usr/local/bin/composer \
+    && chmod a+x /usr/local/bin/composer \
+    && composer --version
+
+###############################################################################
 # Install phpbrew
 ###############################################################################
 WORKDIR /tmp
@@ -74,20 +82,12 @@ RUN curl -L -O https://github.com/phpbrew/phpbrew/releases/latest/download/phpbr
     && phpbrew update --old \
     && cat ~/.phpbrew/bashrc >> /etc/environment
 
-# RUN phpbrew install -j 4 5.6 +default -openssl as 5.6
+RUN phpbrew install -j 4 5.6 +default -openssl as 5.6
 # RUN phpbrew install -j 4 7.1 as 7.1
 # RUN phpbrew install -j 4 7.2 as 7.2
 # RUN phpbrew install -j 4 7.3 as 7.3
 # RUN phpbrew install -j 4 7.4 as 7.4
 # RUN phpbrew install -j 4 8.0 as 8.0
-
-###############################################################################
-# Install composer
-###############################################################################
-WORKDIR /tmp
-RUN curl -sSL https://getcomposer.org/composer-stable.phar -o /usr/local/bin/composer \
-    && chmod a+x /usr/local/bin/composer \
-    && composer --version
 
 ###############################################################################
 # Install entrypoint
