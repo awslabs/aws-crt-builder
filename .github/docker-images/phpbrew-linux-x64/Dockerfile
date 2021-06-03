@@ -30,6 +30,7 @@ RUN yum -y update \
     automake \
     libtool \
     readline-devel \
+    libxslt-devel \
     && yum clean all \
     && rm -rf /var/cache/yum \
     && ln -s /usr/bin/cmake3 /usr/bin/cmake \
