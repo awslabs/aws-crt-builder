@@ -68,9 +68,9 @@ WORKDIR /tmp
 RUN curl -L -O https://github.com/phpbrew/phpbrew/releases/latest/download/phpbrew.phar \
     && chmod +x phpbrew.phar \
     && mv phpbrew.phar /usr/local/bin/phpbrew \
-    && cat ~/.phpbrew/bashrc >> /etc/profile \
     && phpbrew init \
     && phpbrew update \
+    && cat ~/.phpbrew/bashrc >> /etc/environment \
     && phpbrew install --old 5.6 as 5.6 \
     && phpbrew install 7.1 as 7.1 \
     && phpbrew install 7.2 as 7.2 \
