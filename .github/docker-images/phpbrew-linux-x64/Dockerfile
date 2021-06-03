@@ -24,7 +24,7 @@ RUN yum -y update \
     libxml2-devel \
     sqlite-devel \
     zlib-devel \
-    bzip2-devel \
+    bzip2 \
     autoconf \
     automake \
     libtool \
