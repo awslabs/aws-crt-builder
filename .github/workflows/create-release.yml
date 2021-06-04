@@ -118,8 +118,8 @@ jobs:
         export IMAGE_TAG=${{ steps.tag.outputs.release_tag }}
         docker save docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:$IMAGE_TAG \
         | gzip \
-        | aws s3 cp --no-progress - s3://${{env.AWS_S3_BUCKET}}/releases/$IMAGE_TAG/aws-crt-${{ matrix.variant }}.tar.gz
-        aws s3 cp --no-progress s3://${{env.AWS_S3_BUCKET}}/releases/$IMAGE_TAG/aws-crt-${{ matrix.variant }}.tar.gz s3://${{env.AWS_S3_BUCKET}}/LATEST/aws-crt-${{ matrix.variant }}.tar.gz
+        | aws s3 cp - s3://${{env.AWS_S3_BUCKET}}/releases/$IMAGE_TAG/aws-crt-${{ matrix.variant }}.tar.gz
+        aws s3 cp s3://${{env.AWS_S3_BUCKET}}/releases/$IMAGE_TAG/aws-crt-${{ matrix.variant }}.tar.gz s3://${{env.AWS_S3_BUCKET}}/LATEST/aws-crt-${{ matrix.variant }}.tar.gz
 
   export-php-images:
     name: Release aws-crt-php${{ matrix.version }}-linux-x64
@@ -183,5 +183,5 @@ jobs:
         export IMAGE_TAG=${{ steps.tag.outputs.release_tag }}
         docker save docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-php${{ matrix.version }}-linux-x64:$IMAGE_TAG \
         | gzip \
-        | aws s3 cp --no-progress - s3://${{env.AWS_S3_BUCKET}}/releases/$IMAGE_TAG/aws-crt-php${{ matrix.version }}-linux-x64.tar.gz
-        aws s3 cp --no-progress s3://${{env.AWS_S3_BUCKET}}/releases/$IMAGE_TAG/aws-crt-php${{ matrix.version }}-linux-x64.tar.gz s3://${{env.AWS_S3_BUCKET}}/LATEST/aws-crt-php${{ matrix.version }}-linux-x64.tar.gz
+        | aws s3 cp - s3://${{env.AWS_S3_BUCKET}}/releases/$IMAGE_TAG/aws-crt-php${{ matrix.version }}-linux-x64.tar.gz
+        aws s3 cp s3://${{env.AWS_S3_BUCKET}}/releases/$IMAGE_TAG/aws-crt-php${{ matrix.version }}-linux-x64.tar.gz s3://${{env.AWS_S3_BUCKET}}/LATEST/aws-crt-php${{ matrix.version }}-linux-x64.tar.gz
