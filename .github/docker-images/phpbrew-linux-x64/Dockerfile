@@ -76,12 +76,12 @@ RUN curl -L -O https://github.com/phpbrew/phpbrew/releases/latest/download/phpbr
     && phpbrew init \
     && phpbrew update --old \
     && phpbrew install --stdout -j 4 $PHP_VERSION +small -openssl as $PHP_VERSION \
-    && phpbrew switch $PHP_VERSION
+    && phpbrew switch $PHP_VERSION \
+    && echo "source /root/.phpbrew/bashrc" >> /root/.bashrc
 
 ###############################################################################
 # Install entrypoint
 ###############################################################################
 ADD entrypoint.sh /usr/local/bin/builder
 RUN chmod a+x /usr/local/bin/builder
-ENTRYPOINT source /root/.phpbrew/bashrc \
-    && /usr/local/bin/builder
+ENTRYPOINT ["/bin/bash", "-c" "source /root/.bashrc; /usr/local/bin/builder"]
