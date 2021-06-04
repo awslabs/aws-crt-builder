@@ -76,7 +76,14 @@ jobs:
         - swift-5-al2-x64
         - swift-5-centos-x64
         - swift-5-ubuntu-16-x64
-        - phpbrew-linux-x64
+        - php5.5-linux-x64
+        - php5.6-linux-x64
+        - php7.0-linux-x64
+        - php7.1-linux-x64
+        - php7.2-linux-x64
+        - php7.3-linux-x64
+        - php7.4-linux-x64
+        - php8.0-linux-x64
 
     steps:
     - name: Checkout Sources
@@ -95,5 +102,6 @@ jobs:
         docker pull docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:latest || exit 0
         docker tag docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:latest docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:$IMAGE_TAG
         docker push docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:$IMAGE_TAG
-        docker save docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:$IMAGE_TAG | gzip > /tmp/aws-crt-${{ matrix.variant }}-$IMAGE_TAG.tar.gz
-        aws s3 cp --no-progress /tmp/aws-crt-${{ matrix.variant }}-$IMAGE_TAG.tar.gz s3://${{env.AWS_S3_BUCKET}}/channels/$IMAGE_TAG/aws-crt-${{ matrix.variant }}.tar.gz
+        docker save docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:$IMAGE_TAG \
+        | gzip \
+        | aws s3 cp --no-progress - s3://${{env.AWS_S3_BUCKET}}/channels/$IMAGE_TAG/aws-crt-${{ matrix.variant }}.tar.gz
