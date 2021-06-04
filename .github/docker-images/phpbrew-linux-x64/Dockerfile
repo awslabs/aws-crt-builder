@@ -77,8 +77,9 @@ RUN curl -L -O https://github.com/phpbrew/phpbrew/releases/latest/download/phpbr
     && echo "source /root/.phpbrew/bashrc" >> /root/.bashrc \
     && source /root/.phpbrew/bashrc \
     && phpbrew update --old \
-    && phpbrew install --stdout -j 4 $PHP_VERSION +small -openssl as $PHP_VERSION \
+    && phpbrew install --stdout -j 4 $PHP_VERSION +small as $PHP_VERSION -- --with-openssl=shared \
     && phpbrew switch $PHP_VERSION \
+    && phpbrew -d ext install openssl \
     && php --version
 
 
