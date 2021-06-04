@@ -87,4 +87,4 @@ RUN curl -L -O https://github.com/phpbrew/phpbrew/releases/latest/download/phpbr
 ###############################################################################
 ADD entrypoint.sh /usr/local/bin/builder
 RUN chmod a+x /usr/local/bin/builder
-ENTRYPOINT ["/bin/bash", "-c" "source /root/.bashrc; /usr/local/bin/builder"]
+ENTRYPOINT ["/usr/local/bin/builder"]
