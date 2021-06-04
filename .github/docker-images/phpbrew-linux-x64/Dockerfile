@@ -1,5 +1,7 @@
 FROM amazonlinux:latest
 
+ARG PHP_VERSION=5.5
+
 ###############################################################################
 # Install prereqs
 ###############################################################################
@@ -8,7 +10,6 @@ RUN yum -y update \
     tar \
     git \
     curl \
-    wget \
     sudo \
     # Python
     python3 \
@@ -24,9 +25,16 @@ RUN yum -y update \
     libffi-devel \
     libxml2-devel \
     sqlite-devel \
+    zlib-devel \
+    bzip2 \
+    bzip2-devel \
     autoconf \
     automake \
     libtool \
+    readline-devel \
+    libxslt-devel \
+    oniguruma-devel \
+    php \
     && yum clean all \
     && rm -rf /var/cache/yum \
     && ln -s /usr/bin/cmake3 /usr/bin/cmake \
@@ -51,24 +59,32 @@ RUN curl -sSL https://d19elf31gohf1l.cloudfront.net/_binaries/cmake/cmake-3.13-m
     && rm -f /tmp/cmake.tar.gz
 
 ###############################################################################
-# Build/Install PHP 5.6
-###############################################################################
-WORKDIR /tmp
-RUN curl -sSL http://php.net/distributions/php-5.6.40.tar.gz -o php.tar.gz \
-    && tar xzf php.tar.gz \
-    && cd php-5.6.40 \
-    && ./configure --prefix=/usr/local --disable-cgi --with-openssl --with-curl --with-zlib \
-    && make -j \
-    && make install \
-    && php --version
-
-###############################################################################
 # Install composer
 ###############################################################################
 WORKDIR /tmp
 RUN curl -sSL https://getcomposer.org/composer-stable.phar -o /usr/local/bin/composer \
     && chmod a+x /usr/local/bin/composer \
     && composer --version
+
+###############################################################################
+# Install phpbrew
+###############################################################################
+WORKDIR /tmp
+RUN curl -L -O https://github.com/phpbrew/phpbrew/releases/latest/download/phpbrew.phar \
+    && chmod +x phpbrew.phar \
+    && mv phpbrew.phar /usr/local/bin/phpbrew \
+    && phpbrew init \
+    && phpbrew update --old \
+    && cat ~/.phpbrew/bashrc >> /etc/environment
+
+RUN phpbrew install -j 4 $PHP_VERSION +small -openssl as $PHP_VERSION
+RUN phpbrew install -j 4 5.6 +small -openssl as 5.6
+RUN phpbrew install -j 4 7.0 +small -openssl as 7.0
+RUN phpbrew install -j 4 7.1 +small -openssl as 7.1
+RUN phpbrew install -j 4 7.2 +small -openssl as 7.2
+RUN phpbrew install -j 4 7.3 +small -openssl as 7.3
+RUN phpbrew install -j 4 7.4 +small -openssl as 7.4
+RUN phpbrew install -j 4 8.0 +small -openssl as 8.0
 
 ###############################################################################
 # Install entrypoint

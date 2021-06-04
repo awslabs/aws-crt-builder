@@ -41,8 +41,6 @@ jobs:
         - swift-5-al2-x64
         - swift-5-centos-x64
         - swift-5-ubuntu-16-x64
-        - php5-linux-x64
-        - php7-linux-x64
 
     steps:
     - name: Checkout Sources
@@ -72,8 +70,52 @@ jobs:
     - name: Export ${{ matrix.variant }} image to S3/channels/${{ steps.tag.outputs.release_tag }}
       run: |
         export IMAGE_TAG=${{ steps.tag.outputs.release_tag }}
-        docker save docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:$IMAGE_TAG > /tmp/aws-crt-${{ matrix.variant }}-$IMAGE_TAG.tar.gz
-        aws s3 cp --no-progress /tmp/aws-crt-${{ matrix.variant }}-$IMAGE_TAG.tar.gz s3://${{env.AWS_S3_BUCKET}}/channels/$IMAGE_TAG/aws-crt-${{ matrix.variant }}.tar.gz
+        docker save docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:$IMAGE_TAG |\
+          aws s3 cp --no-progress - s3://${{env.AWS_S3_BUCKET}}/channels/$IMAGE_TAG/aws-crt-${{ matrix.variant }}.tar.gz
+
+  php-images:
+    name: PHP ${{ matrix.version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        version:
+        - "5.5"
+        - "5.6"
+        - "7.0"
+        - "7.1"
+        - "7.2"
+        - "7.3"
+        - "7.4"
+        - "8.0"
+
+    steps:
+    - name: Checkout Sources
+      uses: actions/checkout@v1
+
+    - name: Get release_tag
+      uses: ./.github/actions/release-tag
+      id: tag
+
+    - name: Install entrypoint
+      run: cat .github/docker-images/entrypoint.sh | sed s/version=LATEST/version=${{ steps.tag.outputs.release_tag }}/ > .github/docker-images/phpbrew-linux-x64/entrypoint.sh
+
+    - name: Build ${{ matrix.version }} image
+      uses: whoan/docker-build-with-cache-action@v4
+      with:
+        registry: docker.pkg.github.com
+        username: awslabs
+        password: ${{ secrets.DOCKER_TOKEN }}
+        image_name: awslabs/aws-crt-builder/aws-crt-php${{ matrix.version }}-linux-x64
+        image_tag: ${{ steps.tag.outputs.release_tag }}
+        context: .github/docker-images/phpbrew-linux-x64
+        build_extra_args: --compress=true --build-arg PHP_VERSION=${{matrix.version}}
+
+    - name: Export PHP ${{ matrix.version }} image to S3/channels/${{ steps.tag.outputs.release_tag }}
+      run: |
+        export IMAGE_TAG=${{ steps.tag.outputs.release_tag }}
+        docker save docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-php${{ matrix.version }}-linux-x64:$IMAGE_TAG |\
+          aws s3 cp --no-progress - s3://${{env.AWS_S3_BUCKET}}/channels/$IMAGE_TAG/aws-crt-php${{ matrix.version }}-linux-x64.tar.gz
 
   ###############################################################################
   # DOWNSTREAM TESTS
