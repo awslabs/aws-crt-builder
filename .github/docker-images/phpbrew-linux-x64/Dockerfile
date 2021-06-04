@@ -78,7 +78,7 @@ RUN curl -L -O https://github.com/phpbrew/phpbrew/releases/latest/download/phpbr
     && cat ~/.phpbrew/bashrc >> /etc/environment \
     && echo "phpbrew use $PHP_VERSION" >> /etc/environment
 
-RUN phpbrew --stdout install -j 4 $PHP_VERSION +small -openssl as $PHP_VERSION
+RUN phpbrew install --stdout -j 4 $PHP_VERSION +small -openssl as $PHP_VERSION
 
 ###############################################################################
 # Install entrypoint
