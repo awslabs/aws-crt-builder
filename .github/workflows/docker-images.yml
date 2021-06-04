@@ -41,7 +41,6 @@ jobs:
         - swift-5-al2-x64
         - swift-5-centos-x64
         - swift-5-ubuntu-16-x64
-        - phpbrew-linux-x64
 
     steps:
     - name: Checkout Sources
@@ -81,14 +80,14 @@ jobs:
       fail-fast: false
       matrix:
         version:
-        - 5.5
-        - 5.6
-        - 7.0
-        - 7.1
-        - 7.2
-        - 7.3
-        - 7.4
-        - 8.0
+        - "5.5"
+        - "5.6"
+        - "7.0"
+        - "7.1"
+        - "7.2"
+        - "7.3"
+        - "7.4"
+        - "8.0"
 
     steps:
     - name: Checkout Sources
