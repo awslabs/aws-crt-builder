@@ -75,14 +75,13 @@ RUN curl -L -O https://github.com/phpbrew/phpbrew/releases/latest/download/phpbr
     && mv phpbrew.phar /usr/local/bin/phpbrew \
     && phpbrew init \
     && phpbrew update --old \
-    && cat ~/.phpbrew/bashrc >> /etc/environment \
-    && echo "phpbrew use $PHP_VERSION" >> /etc/environment
-
-RUN phpbrew install --stdout -j 4 $PHP_VERSION +small -openssl as $PHP_VERSION
+    && phpbrew install --stdout -j 4 $PHP_VERSION +small -openssl as $PHP_VERSION
 
 ###############################################################################
 # Install entrypoint
 ###############################################################################
 ADD entrypoint.sh /usr/local/bin/builder
 RUN chmod a+x /usr/local/bin/builder
-ENTRYPOINT ["/usr/local/bin/builder"]
+ENTRYPOINT source /root/.phpbrew/bashrc \
+    && phpbrew use $PHP_VERSION \
+    && /usr/local/bin/builder
