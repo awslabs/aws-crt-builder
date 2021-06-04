@@ -1,5 +1,7 @@
 FROM amazonlinux:latest
 
+ARG PHP_VERSION=5.5
+
 ###############################################################################
 # Install prereqs
 ###############################################################################
@@ -32,6 +34,7 @@ RUN yum -y update \
     readline-devel \
     libxslt-devel \
     oniguruma-devel \
+    php \
     && yum clean all \
     && rm -rf /var/cache/yum \
     && ln -s /usr/bin/cmake3 /usr/bin/cmake \
@@ -56,17 +59,6 @@ RUN curl -sSL https://d19elf31gohf1l.cloudfront.net/_binaries/cmake/cmake-3.13-m
     && rm -f /tmp/cmake.tar.gz
 
 ###############################################################################
-# Build/Install PHP 7.4 as system PHP
-###############################################################################
-WORKDIR /tmp
-RUN curl -sSL https://www.php.net/distributions/php-7.4.15.tar.gz -o php.tar.gz \
-    && tar xzf php.tar.gz \
-    && cd php-7.4.15 \
-    && ./configure --prefix=/usr/local --disable-cgi --with-openssl --with-ffi --with-curl --with-zlib \
-    && make -j \
-    && make install
-
-###############################################################################
 # Install composer
 ###############################################################################
 WORKDIR /tmp
@@ -85,7 +77,7 @@ RUN curl -L -O https://github.com/phpbrew/phpbrew/releases/latest/download/phpbr
     && phpbrew update --old \
     && cat ~/.phpbrew/bashrc >> /etc/environment
 
-RUN phpbrew install -j 4 5.5 +small -openssl as 5.5
+RUN phpbrew install -j 4 $PHP_VERSION +small -openssl as $PHP_VERSION
 RUN phpbrew install -j 4 5.6 +small -openssl as 5.6
 RUN phpbrew install -j 4 7.0 +small -openssl as 7.0
 RUN phpbrew install -j 4 7.1 +small -openssl as 7.1
