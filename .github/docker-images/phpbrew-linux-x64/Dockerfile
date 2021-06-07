@@ -1,6 +1,6 @@
 FROM amazonlinux:latest
 
-ARG PHP_VERSION=5.5
+ARG PHP_VERSION
 
 ###############################################################################
 # Install prereqs

@@ -109,7 +109,7 @@ jobs:
         image_name: awslabs/aws-crt-builder/aws-crt-php${{ matrix.version }}-linux-x64
         image_tag: ${{ steps.tag.outputs.release_tag }}
         context: .github/docker-images/phpbrew-linux-x64
-        build_extra_args: --compress=true --build-arg PHP_VERSION=${{matrix.version}}
+        build_extra_args: --compress=true --build-arg=PHP_VERSION=${{matrix.version}}
 
     - name: Export PHP ${{ matrix.version }} image to S3/channels/${{ steps.tag.outputs.release_tag }}
       run: |
