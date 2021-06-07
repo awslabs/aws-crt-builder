@@ -4,6 +4,11 @@ set -ex
 
 args=("$@")
 
+# allow a bashrc to be filled out in the docker image and then run by this script as the entrypoint
+if [ -e $HOME/.bashrc ]; then
+    source $HOME/.bashrc
+fi
+
 version=LATEST
 if [[ "${args[0]}" == "--version="* ]]; then
     version=${args[0]}

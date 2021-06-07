@@ -74,11 +74,14 @@ RUN curl -L -O https://github.com/phpbrew/phpbrew/releases/latest/download/phpbr
     && chmod +x phpbrew.phar \
     && mv phpbrew.phar /usr/local/bin/phpbrew \
     && phpbrew init \
+    && echo "source /root/.phpbrew/bashrc" >> /root/.bashrc \
+    && source /root/.phpbrew/bashrc \
     && phpbrew update --old \
-    && cat ~/.phpbrew/bashrc >> /etc/environment \
-    && echo "phpbrew use $PHP_VERSION" >> /etc/environment
+    && phpbrew install --stdout -j 4 $PHP_VERSION +small as $PHP_VERSION -- --with-openssl=shared \
+    && phpbrew switch $PHP_VERSION \
+    && phpbrew -d ext install openssl \
+    && php --version
 
-RUN phpbrew install --stdout -j 4 $PHP_VERSION +small -openssl as $PHP_VERSION
 
 ###############################################################################
 # Install entrypoint
