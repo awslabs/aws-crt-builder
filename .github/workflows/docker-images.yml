@@ -120,7 +120,7 @@ jobs:
 
   windows-images:
     name: ${{ matrix.variant }}
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     strategy:
       fail-fast: false
       matrix:
