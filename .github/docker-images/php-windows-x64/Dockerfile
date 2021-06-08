@@ -6,9 +6,9 @@ SHELL ["cmd", "/S", "/C"]
 
 # Download the Build Tools bootstrapper.
 ADD https://aka.ms/vs/16/release/vs_buildtools.exe C:\TEMP\vs_buildtools.exe
-
+ADD https://chocolatey.org/install.ps1 C:\TEMP\install_choco.ps1
 # Install chocolatey
-RUN "%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -InputFormat None -ExecutionPolicy Bypass -Command "iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))" && SET "PATH=%PATH%;%ALLUSERSPROFILE%\chocolatey\bin" && `
+RUN powershell.exe -NoProfile -InputFormat None -ExecutionPolicy Bypass -Command "C:\TEMP\install_choco.ps1" && SET "PATH=%PATH%;%ALLUSERSPROFILE%\chocolatey\bin" && `
     choco install -y git 7zip && `
     # install cmake
     choco install cmake --installargs 'ADD_CMAKE_TO_PATH=""System""' -y && `
