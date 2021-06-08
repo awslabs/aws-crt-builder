@@ -140,9 +140,9 @@ jobs:
         docker build --compress=true -t awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:${{ steps.tag.outputs.release_tag }} .github/docker-images/${{ matrix.variant }}
 
     - name: Export ${{ matrix.variant }} image to S3/channels/${{ steps.tag.outputs.release_tag }}
-      run: |
-        docker save docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:${{ steps.tag.outputs.release_tag }} |\
-          aws s3 cp - s3://${{env.AWS_S3_BUCKET}}/channels/${{ steps.tag.outputs.release_tag }}/aws-crt-${{ matrix.variant }}.tar.gz
+      run: >
+        docker save docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:${{ steps.tag.outputs.release_tag }}
+          | aws s3 cp - s3://${{env.AWS_S3_BUCKET}}/channels/${{ steps.tag.outputs.release_tag }}/aws-crt-${{ matrix.variant }}.tar.gz
 
   ###############################################################################
   # DOWNSTREAM TESTS
