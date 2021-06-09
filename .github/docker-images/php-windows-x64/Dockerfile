@@ -38,11 +38,11 @@ RUN C:\TEMP\vs_buildtools.exe --quiet --wait --norestart --nocache `
 # Install PHP SDK from Microsoft
 RUN git clone https://github.com/Microsoft/php-sdk-binary-tools C:\php-sdk && `
     cd C:\php-sdk && `
-    git checkout $PHP_SDK_VER && `
-    phpsdk-$VC_VER-$ARCH.bat && `
+    git checkout %PHP_SDK_VER% && `
+    phpsdk-%VC_VER%-%ARCH%.bat && `
     phpsdk_buildtree phpdev && `
-    git clone https://github.com/php/php-src.git $VC_VER\$ARCH\php-src && cd $VC_VER\$ARCH\php-src && `
-    phpsdk_deps --update --branch master && `
+    git clone https://github.com/php/php-src.git %VC_VER%\%ARCH%\php-src && cd %VC_VER%\%ARCH%\php-src && `
+    phpsdk_deps --update --branch %PHP_VER% && `
     buildconf && configure --enable-cli && nmake
 
 ENTRYPOINT ["powershell.exe", "-NoLogo", "-ExecutionPolicy", "Bypass"]
