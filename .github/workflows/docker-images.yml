@@ -129,6 +129,9 @@ jobs:
         - php7.2-windows-x86
         - vc16-windows-x64
 
+    env:
+      CONTEXT: vc16-windows-x64
+
     steps:
     # note: For some reason, the PHP SDK on windows uses vc14, vc15, but vs16 as the moniker for
     # the VC build tools
@@ -136,6 +139,7 @@ jobs:
       if: ${{matrix.variant == 'php7.2-windows-x64'}}
       shell: bash
       run: |
+        echo "CONTEXT=php-windows-x64" >> $GITHUB_ENV
         echo "PHP_VER=7.2" >> $GITHUB_ENV
         echo "PHP_SDK_VER=php-sdk-2.2.0" >> $GITHUB_ENV
         echo "ARCH=x64" >> $GITHUB_ENV
@@ -145,6 +149,7 @@ jobs:
       if: ${{matrix.variant == 'php7.2-windows-x86'}}
       shell: bash
       run: |
+        echo "CONTEXT=php-windows-x64" >> $GITHUB_ENV
         echo "PHP_VER=7.2" >> $GITHUB_ENV
         echo "PHP_SDK_VER=php-sdk-2.2.0" >> $GITHUB_ENV
         echo "ARCH=x86" >> $GITHUB_ENV
@@ -154,6 +159,7 @@ jobs:
       if: ${{matrix.variant == 'php5.5-windows-x64'}}
       shell: bash
       run: |
+        echo "CONTEXT=php-windows-x64" >> $GITHUB_ENV
         echo "PHP_VER=5.5" >> $GITHUB_ENV
         echo "PHP_SDK_VER=legacy" >> $GITHUB_ENV
         echo "ARCH=x64" >> $GITHUB_ENV
@@ -163,6 +169,7 @@ jobs:
       if: ${{matrix.variant == 'php5.5-windows-x86'}}
       shell: bash
       run: |
+        echo "CONTEXT=php-windows-x64" >> $GITHUB_ENV
         echo "PHP_VER=5.5" >> $GITHUB_ENV
         echo "PHP_SDK_VER=legacy" >> $GITHUB_ENV
         echo "ARCH=x86" >> $GITHUB_ENV
