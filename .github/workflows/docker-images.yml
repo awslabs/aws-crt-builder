@@ -125,9 +125,42 @@ jobs:
       fail-fast: false
       matrix:
         variant:
-        - php-windows-x64
+        - php7.2-windows-x64
+        - php7.2-windows-x86
 
     steps:
+    - name: Configure for php7.2-windows-x64
+      if: ${{matrix.variant == 'php7.2-windows-x64'}}
+      env:
+        PHP_VER=7.2
+        PHP_SDK_VER=php-sdk-2.2.0
+        ARCH=x64
+        VC_VER=vc16
+
+    - name: Configure for php7.2-windows-x86
+      if: ${{matrix.variant == 'php7.2-windows-x86'}}
+      env:
+        PHP_VER=7.2
+        PHP_SDK_VER=php-sdk-2.2.0
+        ARCH=x86
+        VC_VER=vc16
+
+    - name: Configure for php5.5-windows-x64
+      if: ${{matrix.variant == 'php5.5-windows-x64'}}
+      env:
+        PHP_VER=5.5
+        PHP_SDK_VER=legacy
+        ARCH=x64
+        VC_VER=vc14
+
+    - name: Configure for php5.5-windows-x86
+      if: ${{matrix.variant == 'php5.5-windows-x86'}}
+      env:
+        PHP_VER=5.5
+        PHP_SDK_VER=legacy
+        ARCH=x86
+        VC_VER=vc14
+
     - name: Checkout Sources
       uses: actions/checkout@v1
 
@@ -136,8 +169,14 @@ jobs:
       id: tag
 
     - name: Build ${{ matrix.variant }} image
-      run: |
-        docker build --compress=true -t awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:${{ steps.tag.outputs.release_tag }} .github/docker-images/${{ matrix.variant }}
+      run: >
+        docker build
+          --compress=true
+          --build-arg PHP_VER=${{ env.PHP_VER }}
+          --build-arg PHP_SDK_VER=${{ env.PHP_SDK_VER }}
+          --build-arg ARCH=${{ env.ARCH }}
+          --build-arg VC_VER=${{ env.VC_VER }}
+          --tag awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:${{ steps.tag.outputs.release_tag }} .github/docker-images/${{ matrix.variant }}
 
     - name: Export ${{ matrix.variant }} image to S3/channels/${{ steps.tag.outputs.release_tag }}
       run: >
