@@ -39,6 +39,7 @@ RUN C:\TEMP\vs_buildtools.exe --quiet --wait --norestart --nocache `
 RUN git clone https://github.com/Microsoft/php-sdk-binary-tools C:\php-sdk && `
     cd C:\php-sdk && `
     git checkout %PHP_SDK_VER% && `
+    "C:\\BuildTools\\Common7\\Tools\\VsDevCmd.bat" && `
     phpsdk-%VC_MONIKER%-%PHP_ARCH%.bat && `
     phpsdk_buildtree phpdev && `
     git clone https://github.com/php/php-src.git %VC_MONIKER%\%PHP_ARCH%\php-src && cd %VC_MONIKER%\%PHP_ARCH%\php-src && `
