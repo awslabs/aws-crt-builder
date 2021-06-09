@@ -4,9 +4,9 @@ FROM mcr.microsoft.com/windows/servercore:ltsc2019
 
 SHELL ["cmd", "/S", "/C"]
 
-ARG VC_VER=vc14
+ARG VC_MONIKER=vc14
 ARG PHP_VER=7.2
-ARG ARCH=x64
+ARG PHP_ARCH=x64
 ARG PHP_SDK_VER=php-sdk-2.2.0
 
 # Install chocolatey
@@ -39,9 +39,9 @@ RUN C:\TEMP\vs_buildtools.exe --quiet --wait --norestart --nocache `
 RUN git clone https://github.com/Microsoft/php-sdk-binary-tools C:\php-sdk && `
     cd C:\php-sdk && `
     git checkout %PHP_SDK_VER% && `
-    phpsdk-%VC_VER%-%ARCH%.bat && `
+    phpsdk-%VC_MONIKER%-%PHP_ARCH%.bat && `
     phpsdk_buildtree phpdev && `
-    git clone https://github.com/php/php-src.git %VC_VER%\%ARCH%\php-src && cd %VC_VER%\%ARCH%\php-src && `
+    git clone https://github.com/php/php-src.git %VC_MONIKER%\%PHP_ARCH%\php-src && cd %VC_MONIKER%\%PHP_ARCH%\php-src && `
     phpsdk_deps --update --branch %PHP_VER% && `
     buildconf && configure --enable-cli && nmake
 

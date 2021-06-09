@@ -129,6 +129,8 @@ jobs:
         - php7.2-windows-x86
 
     steps:
+    # note: For some reason, the PHP SDK on windows uses vc14, vc15, but vs16 as the moniker for
+    # the VC build tools
     - name: Configure for php7.2-windows-x64
       if: ${{matrix.variant == 'php7.2-windows-x64'}}
       shell: bash
@@ -136,7 +138,7 @@ jobs:
         echo "PHP_VER=7.2" >> $GITHUB_ENV
         echo "PHP_SDK_VER=php-sdk-2.2.0" >> $GITHUB_ENV
         echo "ARCH=x64" >> $GITHUB_ENV
-        echo "VC_VER=vc16" >> $GITHUB_ENV
+        echo "VC_MONIKER=vs16" >> $GITHUB_ENV
 
     - name: Configure for php7.2-windows-x86
       if: ${{matrix.variant == 'php7.2-windows-x86'}}
@@ -145,7 +147,7 @@ jobs:
         echo "PHP_VER=7.2" >> $GITHUB_ENV
         echo "PHP_SDK_VER=php-sdk-2.2.0" >> $GITHUB_ENV
         echo "ARCH=x86" >> $GITHUB_ENV
-        echo "VC_VER=vc16" >> $GITHUB_ENV
+        echo "VC_MONIKER=vs16" >> $GITHUB_ENV
 
     - name: Configure for php5.5-windows-x64
       if: ${{matrix.variant == 'php5.5-windows-x64'}}
@@ -154,7 +156,7 @@ jobs:
         echo "PHP_VER=5.5" >> $GITHUB_ENV
         echo "PHP_SDK_VER=legacy" >> $GITHUB_ENV
         echo "ARCH=x64" >> $GITHUB_ENV
-        echo "VC_VER=vc14" >> $GITHUB_ENV
+        echo "VC_MONIKER=vc14" >> $GITHUB_ENV
 
     - name: Configure for php5.5-windows-x86
       if: ${{matrix.variant == 'php5.5-windows-x86'}}
@@ -163,7 +165,7 @@ jobs:
         echo "PHP_VER=5.5" >> $GITHUB_ENV
         echo "PHP_SDK_VER=legacy" >> $GITHUB_ENV
         echo "ARCH=x86" >> $GITHUB_ENV
-        echo "VC_VER=vc14" >> $GITHUB_ENV
+        echo "VC_MONIKER=vc14" >> $GITHUB_ENV
 
     - name: Checkout Sources
       uses: actions/checkout@v1
@@ -180,7 +182,7 @@ jobs:
         --build-arg PHP_VER=${{ env.PHP_VER }}
         --build-arg PHP_SDK_VER=${{ env.PHP_SDK_VER }}
         --build-arg ARCH=${{ env.ARCH }}
-        --build-arg VC_VER=${{ env.VC_VER }}
+        --build-arg VC_MONIKER=${{ env.VC_MONIKER }}
         --tag awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:${{ steps.tag.outputs.release_tag }} .github/docker-images/php-windows-x64
 
     - name: Export ${{ matrix.variant }} image to S3/channels/${{ steps.tag.outputs.release_tag }}
