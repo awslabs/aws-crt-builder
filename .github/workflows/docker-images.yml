@@ -127,6 +127,7 @@ jobs:
         variant:
         - php7.2-windows-x64
         - php7.2-windows-x86
+        - vc16-windows-x64
 
     steps:
     # note: For some reason, the PHP SDK on windows uses vc14, vc15, but vs16 as the moniker for
