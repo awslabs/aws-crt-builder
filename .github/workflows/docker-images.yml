@@ -173,14 +173,15 @@ jobs:
       id: tag
 
     - name: Build ${{ matrix.variant }} image
+      shell: bash
       run: >
         docker build
-          --compress=true
-          --build-arg PHP_VER=${{ env.PHP_VER }}
-          --build-arg PHP_SDK_VER=${{ env.PHP_SDK_VER }}
-          --build-arg ARCH=${{ env.ARCH }}
-          --build-arg VC_VER=${{ env.VC_VER }}
-          --tag awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:${{ steps.tag.outputs.release_tag }} .github/docker-images/${{ matrix.variant }}
+        --compress=true
+        --build-arg PHP_VER=${{ env.PHP_VER }}
+        --build-arg PHP_SDK_VER=${{ env.PHP_SDK_VER }}
+        --build-arg ARCH=${{ env.ARCH }}
+        --build-arg VC_VER=${{ env.VC_VER }}
+        --tag awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:${{ steps.tag.outputs.release_tag }} .github/docker-images/${{ matrix.variant }}
 
     - name: Export ${{ matrix.variant }} image to S3/channels/${{ steps.tag.outputs.release_tag }}
       run: >
