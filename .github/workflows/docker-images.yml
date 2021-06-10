@@ -192,13 +192,29 @@ jobs:
         --build-arg PHP_SDK_VER=${{ env.PHP_SDK_VER }}
         --build-arg ARCH=${{ env.ARCH }}
         --build-arg VC_MONIKER=${{ env.VC_MONIKER }}
-        --tag docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:${{ steps.tag.outputs.release_tag }} .github/docker-images/${{ env.CONTEXT }}
+        --tag
+          docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:${{ steps.tag.outputs.release_tag }}
+          ${{ secrets.AWS_ECR_REPO }}/aws-crt/aws-crt-${{ matrix.variant }}:${{ steps.tag.outputs.release_tag }}
+        .github/docker-images/${{ env.CONTEXT }}
 
-    - name: Export ${{ matrix.variant }} image to S3/channels/${{ steps.tag.outputs.release_tag }}
-      run: >
-        docker save docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:${{ steps.tag.outputs.release_tag }}
-          | gzip
-          | aws s3 cp - s3://${{env.AWS_S3_BUCKET}}/channels/${{ steps.tag.outputs.release_tag }}/aws-crt-${{ matrix.variant }}.tar.gz
+    - name: Push ${{ matrix.variant }} image to GitHub docker
+      shell: bash
+      run: |
+        echo "${{ secrets.GITHUB_TOKEN }}" | docker login docker.pkg.github.com -u awslabs --password-stdin
+        docker push docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:${{ steps.tag.outputs.release_tag }}
+
+    - name: Create ECR repo if necessary
+      shell: bash
+      run: |
+        if ! aws --region us-east-1 ecr describe-repositories --repository-names aws-crt/aws-crt-${{ matrix.variant }} > /dev/null 2>&1; then \
+          aws --region us-east-1 ecr create-repository --repository-name aws-crt/aws-crt-${{ matrix.variant }}; \
+        fi
+
+    - name: Push ${{ matrix.variant }} image to ECR
+      shell: bash
+      run: |
+        aws ecr get-login-password --region us-east-1 | docker login ${{ secrets.AWS_ECR_REPO }} -u AWS --password-stdin
+        docker push ${{ secrets.AWS_ECR_REPO }}/aws-crt/aws-crt-${{ matrix.variant }}:${{ steps.tag.outputs.release_tag }}
 
   ###############################################################################
   # DOWNSTREAM TESTS
