@@ -202,8 +202,7 @@ jobs:
         --build-arg PHP_SDK_VER=${{ env.PHP_SDK_VER }}
         --build-arg ARCH=${{ env.ARCH }}
         --build-arg VC_MONIKER=${{ env.VC_MONIKER }}
-        --tag
-          docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:${{ steps.tag.outputs.release_tag }}
+        --tag docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:${{ steps.tag.outputs.release_tag }}
         .github/docker-images/${{ env.CONTEXT }}
 
     - name: Login to docker repos
