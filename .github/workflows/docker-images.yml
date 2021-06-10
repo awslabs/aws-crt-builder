@@ -191,7 +191,7 @@ jobs:
         --build-arg PHP_SDK_VER=${{ env.PHP_SDK_VER }}
         --build-arg ARCH=${{ env.ARCH }}
         --build-arg VC_MONIKER=${{ env.VC_MONIKER }}
-        --tag awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:${{ steps.tag.outputs.release_tag }} .github/docker-images/${{ env.CONTEXT }}
+        --tag docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:${{ steps.tag.outputs.release_tag }} .github/docker-images/${{ env.CONTEXT }}
 
     - name: Export ${{ matrix.variant }} image to S3/channels/${{ steps.tag.outputs.release_tag }}
       run: >
