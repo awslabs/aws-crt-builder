@@ -222,6 +222,7 @@ jobs:
       shell: bash
       run: |
         export IMAGE_TAG=${{ steps.tag.outputs.release_tag }}
+        docker image ls
         docker tag docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:$IMAGE_TAG ${{ secrets.AWS_ECR_REPO }}/aws-crt/${{ matrix.variant }}:$IMAGE_TAG
         docker push docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:$IMAGE_TAG
         docker push ${{ secrets.AWS_ECR_REPO }}/aws-crt/${{ matrix.variant }}:$IMAGE_TAG
