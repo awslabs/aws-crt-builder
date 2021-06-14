@@ -215,7 +215,7 @@ jobs:
       shell: bash
       run: |
         if ! aws --region us-east-1 ecr describe-repositories --repository-names aws-crt-${{ matrix.variant }} > /dev/null 2>&1; then \
-          aws --region us-east-1 ecr create-repository --repository-name aws-crt-${{ matrix.variant }}; \
+          aws --region us-east-1 ecr create-repository --repository-name aws-crt/${{ matrix.variant }}; \
         fi
 
     - name: Tag/push docker images
