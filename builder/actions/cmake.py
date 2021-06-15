@@ -36,15 +36,16 @@ def _project_dirs(env, project):
 
     source_dir = str(Path(project.path).relative_to(env.root_dir))
     build_dir = str(Path(os.path.join(env.build_dir, project.name)).relative_to(env.root_dir))
+    install_dir = env.install_dir
 
     # cross compiles are effectively chrooted to the source_dir, normal builds need absolute paths
     # or cmake gets lost because it wants directories relative to source
     if env.toolchain.cross_compile:
         # all dirs used should be relative to env.source_dir, as this is where the cross
         # compilation will be mounting to do its work
-        install_dir = str(Path(env.install_dir).relative_to(env.root_dir))
-    else:
-        install_dir = env.install_dir
+        source_dir = str(Path(source_dir).relative_to(env.root_dir))
+        build_dir = str(Path(build_dir).relative_to(env.root_dir))
+        install_dir = str(Path(install_dir).relative_to(env.root_dir))
 
     return source_dir, build_dir, install_dir
 
