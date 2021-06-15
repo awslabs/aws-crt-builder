@@ -513,7 +513,13 @@ class Project(object):
         all_steps = build_imports + build_deps + self.config.get('pre_build_steps', [])
         if len(all_steps) == 0:
             return None
-        all_steps = [partial(_pushenv, self, 'pre_build_env'), *all_steps, _popenv]
+        all_steps = [
+            partial(_pushd, self.path),
+            partial(_pushenv, self, 'pre_build_env'),
+            *all_steps,
+            _popenv,
+            _popd
+        ]
         return Script(all_steps, name='pre_build {}'.format(self.name))
 
     def build(self, env):
@@ -527,7 +533,13 @@ class Project(object):
 
         if len(build_project) == 0:
             return None
-        build_project = [partial(_pushenv, self, 'build_env'), *build_project, _popenv]
+        build_project = [
+            partial(_pushd, self.path),
+            partial(_pushenv, self, 'build_env'),
+            *build_project,
+            _popenv,
+            _popd
+        ]
         return Script(build_project, name='build project {}'.format(self.name))
 
     def build_consumers(self, env):
@@ -547,7 +559,13 @@ class Project(object):
         steps = self.config.get('post_build_steps', [])
         if len(steps) == 0:
             return None
-        steps = [partial(_pushenv, self, 'post_build_env'), *steps, _popenv]
+        steps = [
+            partial(_pushd, self.path),
+            partial(_pushenv, self, 'post_build_env'),
+            *steps,
+            _popenv,
+            _popd
+        ]
         return Script(steps, name='post_build {}'.format(self.name))
 
     def test(self, env):
@@ -562,7 +580,13 @@ class Project(object):
             steps = _transform_steps(steps, env, self)
         if len(steps) == 0:
             return None
-        steps = [partial(_pushenv, self, 'test_env'), *steps, _popenv]
+        steps = [
+            partial(_pushd, self.path),
+            partial(_pushenv, self, 'test_env'),
+            *steps,
+            _popenv,
+            _popd
+        ]
         return Script(steps, name='test {}'.format(self.name))
 
     def install(self, env):
