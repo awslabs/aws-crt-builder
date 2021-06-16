@@ -34,8 +34,8 @@ def _project_dirs(env, project):
     if not project.resolved():
         raise Exception('Project is not resolved: {}'.format(project.name))
 
-    source_dir = str(Path(project.path).relative_to(env.root_dir))
-    build_dir = str(Path(os.path.join(env.build_dir, project.name)).relative_to(env.root_dir))
+    source_dir = project.path
+    build_dir = os.path.join(env.build_dir, project.name)
     install_dir = env.install_dir
 
     # cross compiles are effectively chrooted to the source_dir, normal builds need absolute paths
