@@ -183,8 +183,8 @@ class Toolchain(object):
     def cmake_version(self):
         if self.cross_compile:
             return '3.17.1'
-        output = util.run_command([self.cmake_path(), '--version'], quiet=True, stderr=False)
-        m = re.match(r'cmake(3?) version ([\d\.])')
+        output = util.run_command([self.cmake_path(), '--version'], quiet=True, stderr=False).output
+        m = re.match(r'cmake(3?) version ([\d\.])', output)
         if m:
             return m.group(2)
         return None
