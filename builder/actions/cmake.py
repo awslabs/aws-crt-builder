@@ -159,10 +159,8 @@ class CTestRun(Action):
             return
 
         ctest = toolchain.ctest_binary()
-        sh.pushd(project_build_dir)
         sh.exec(*toolchain.shell_env, ctest,
-                "--output-on-failure", check=True)
-        sh.popd()
+                "--output-on-failure", working_dir=project_build_dir, check=True)
 
     def __str__(self):
         return 'ctest {} @ {}'.format(self.project.name, self.project.path)
