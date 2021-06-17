@@ -95,10 +95,11 @@ class InstallPackages(Action):
 
 # Expose compiler via environment
 def export_compiler(compiler, env):
-    if current_os() == 'windows':
+    toolchain = env.toolchain
+
+    if current_os() == 'windows' or toolchain.cross_compile:
         return
 
-    toolchain = env.toolchain
     if not env.shell.getenv('CC'):
         cc_path = toolchain.compiler_path()
         if cc_path:

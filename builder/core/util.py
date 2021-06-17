@@ -205,6 +205,7 @@ def run_command(*command, **kwargs):
     if dryrun:
         return None
     tries = kwargs.get('retries', 1)
+    working_dir = kwargs.get('working_dir', os.getcwd())
 
     output = None
     while tries > 0:
@@ -215,6 +216,11 @@ def run_command(*command, **kwargs):
                 cmds = [cmd.encode('ascii', 'ignore').decode()
                         for cmd in cmds]
             cmd = subprocess.list2cmdline(cmds)
+
+            # force the working directory
+            cwd = os.getcwd()
+            os.chdir(working_dir)
+
             proc = subprocess.Popen(
                 cmd,
                 stdout=subprocess.PIPE,
@@ -240,9 +246,12 @@ def run_command(*command, **kwargs):
                     line = proc.stdout.readline()
                 proc.wait()
 
+                # restore working directory before exiting the function
+                os.chdir(cwd)
+
                 if proc.returncode != 0:
                     raise Exception(
-                        'Command exited with code {}'.format(proc.returncode))
+                        'Command exited with code {}:\n{}'.format(proc.returncode, output))
 
                 return ExecResult(proc.returncode, proc.pid, output)
 

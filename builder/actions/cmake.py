@@ -2,32 +2,12 @@
 # SPDX-License-Identifier: Apache-2.0.
 
 import argparse
-from functools import lru_cache
 import os
 from pathlib import Path
-import shutil
 
 from builder.core.action import Action
 from builder.core.toolchain import Toolchain
 from builder.core.util import UniqueList
-
-
-@lru_cache(1)
-def _find_cmake():
-    for cmake_alias in ['cmake3', 'cmake']:
-        cmake = shutil.which(cmake_alias)
-        if cmake:
-            return cmake
-    raise Exception("cmake not found")
-
-
-@lru_cache(1)
-def _find_ctest():
-    for cmake_alias in ['ctest3', 'ctest']:
-        cmake = shutil.which(cmake_alias)
-        if cmake:
-            return cmake
-    raise Exception("cmake not found")
 
 
 def _project_dirs(env, project):
@@ -60,14 +40,18 @@ def _build_project(env, project, cmake_extra, build_tests=False):
 
     project_source_dir, project_build_dir, project_install_dir = _project_dirs(
         env, project)
-    sh.mkdir(os.path.abspath(project_build_dir))
+    abs_project_build_dir = project_build_dir
+    if not os.path.isabs(project_build_dir):
+        abs_project_build_dir = os.path.join(env.root_dir, project_build_dir)
+    sh.mkdir(abs_project_build_dir)
 
     # If cmake has already run, assume we're good
-    if os.path.isfile(os.path.join(project_build_dir, 'CMakeCache.txt')):
+    if os.path.isfile(os.path.join(abs_project_build_dir, 'CMakeCache.txt')):
         return
 
-    cmake = _find_cmake()
-    sh.exec(cmake, '--version', check=True)
+    cmake = toolchain.cmake_binary()
+    cmake_version = toolchain.cmake_version()
+    assert cmake_version != None
 
     # TODO These platforms don't succeed when doing a RelWithDebInfo build
     build_config = env.args.config
@@ -114,16 +98,18 @@ def _build_project(env, project, cmake_extra, build_tests=False):
     if os.environ.get('CMAKE_BUILD_PARALLEL_LEVEL') is None:
         sh.setenv('CMAKE_BUILD_PARALLEL_LEVEL', str(os.cpu_count()))
 
+    working_dir = env.root_dir if toolchain.cross_compile else os.getcwd()
+
     # configure
-    sh.exec(*toolchain.shell_env, cmake, cmake_args, check=True)
+    sh.exec(*toolchain.shell_env, cmake, cmake_args, working_dir=working_dir, check=True)
 
     # build
     sh.exec(*toolchain.shell_env, cmake, "--build", project_build_dir, "--config",
-            build_config, check=True)
+            build_config, working_dir=working_dir, check=True)
 
     # install
     sh.exec(*toolchain.shell_env, cmake, "--build", project_build_dir, "--config",
-            build_config, "--target", "install", check=True)
+            build_config, "--target", "install", working_dir=working_dir, check=True)
 
 
 class CMakeBuild(Action):
@@ -172,7 +158,7 @@ class CTestRun(Action):
             print("No build dir found, skipping CTest")
             return
 
-        ctest = _find_ctest()
+        ctest = toolchain.ctest_binary()
         sh.pushd(project_build_dir)
         sh.exec(*toolchain.shell_env, ctest,
                 "--output-on-failure", check=True)

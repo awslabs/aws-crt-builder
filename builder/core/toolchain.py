@@ -3,6 +3,8 @@
 
 import os
 import re
+import shutil
+from functools import lru_cache
 from builder.core.data import COMPILERS
 from builder.core.host import current_os, current_arch, normalize_target, normalize_arch
 from builder.core import util
@@ -86,6 +88,23 @@ def _is_cross_compile(target_os, target_arch):
     return False
 
 
+@lru_cache(1)
+def _find_cmake():
+    for cmake_alias in ['cmake3', 'cmake']:
+        cmake = shutil.which(cmake_alias)
+        if cmake:
+            return cmake
+    raise Exception("cmake not found")
+
+
+@lru_cache(1)
+def _find_ctest():
+    for ctest_alias in ['ctest3', 'ctest']:
+        ctest = shutil.which(ctest_alias)
+        if ctest:
+            return ctest
+    raise Exception("cmake not found")
+
 class Toolchain(object):
     """ Represents a compiler toolchain """
 
@@ -155,6 +174,30 @@ class Toolchain(object):
             return Toolchain.find_compiler_tool(compiler, 'g++', self.compiler_version)[0]
         # msvc can compile with cl.exe regardless of language
         return self.compiler_path()
+
+    def cmake_path(self):
+        if self.cross_compile:
+            return 'cmake'
+        return _find_cmake();
+
+    def cmake_version(self):
+        if self.cross_compile:
+            return '3.17.1'
+        output = util.run_command([self.cmake_path(), '--version'], quiet=True, stderr=False)
+        m = re.match(r'cmake(3?) version ([\d\.])')
+        if m:
+            return m.group(2)
+        return None
+
+    def cmake_binary(self):
+        if self.cross_compile:
+            return 'cmake'
+        return os.path.basename(_find_cmake())
+
+    def ctest_binary(self):
+        if self.cross_compile:
+            return 'ctest'
+        return os.path.basename(_find_ctest())
 
     def __str__(self):
         return self.name
