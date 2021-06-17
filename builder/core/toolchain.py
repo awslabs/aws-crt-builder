@@ -105,6 +105,7 @@ def _find_ctest():
             return ctest
     raise Exception("cmake not found")
 
+
 class Toolchain(object):
     """ Represents a compiler toolchain """
 
@@ -178,7 +179,7 @@ class Toolchain(object):
     def cmake_path(self):
         if self.cross_compile:
             return 'cmake'
-        return _find_cmake();
+        return _find_cmake()
 
     def cmake_version(self):
         if self.cross_compile:
