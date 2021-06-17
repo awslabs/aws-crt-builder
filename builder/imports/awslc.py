@@ -22,7 +22,7 @@ class AWSLCImport(Import):
         super().__init__(
             library=True,
             name='aws-lc',
-            **config,
+            config=config,
             **kwargs)
 
     def pre_build(self, env):

@@ -394,7 +394,8 @@ class Import(object):
         self.name = kwargs.get(
             'name', self.__class__.__name__.lower().replace('import', ''))
         self._resolved = True
-        self.config = {}
+        self.config = kwargs.get('config', {})
+        del kwargs['config']
         if 'resolved' in kwargs:
             self._resolved = kwargs['resolved']
             del kwargs['resolved']
@@ -435,6 +436,7 @@ class Import(object):
         args = []
         for imp in imports:
             args += imp.cmake_args(env)
+        args += self.config.get('cmake_args', [])
         return args
 
     def get_imports(self, spec):
