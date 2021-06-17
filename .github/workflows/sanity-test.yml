@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - '*'
-      - '!master'
       - '!main'
     paths:
       - '.github/workflows/sanity-test.yml'
@@ -138,9 +137,8 @@ jobs:
 
   # Make sure cross compiling works
   cross_compile:
-    runs-on: ubuntu-16.04
-    if: github.event_name != 'release'
-    needs: [package, sanity_test]
+    runs-on: ubuntu-latest
+    needs: [package]
     strategy:
       matrix:
         arch: [linux-armv6, linux-armv7, linux-armv8]
@@ -173,7 +171,7 @@ jobs:
           - gcc-6
           - gcc-7
           - gcc-8
-    needs: [package, sanity_test]
+    needs: [package]
     runs-on: ubuntu-16.04
     steps:
     - name: Checkout Source
@@ -217,12 +215,6 @@ jobs:
       fail-fast: false
       matrix:
         project:
-          - aws-crt-cpp
-          - aws-iot-device-sdk-cpp-v2
-          - aws-crt-java
-          - aws-iot-device-sdk-java-v2
-          - aws-crt-nodejs
-          - aws-iot-device-sdk-js-v2
           - aws-crt-python
           - aws-iot-device-sdk-python-v2
 
@@ -267,7 +259,7 @@ jobs:
       run: python3 builder.pyz build --project ${{ matrix.project }} --compiler=clang
 
   # This mostly tests that libcrypto and s2n resolve correctly on manylinux vs ubuntu
-  aws-c-io:
+  aws-c-cal:
     strategy:
       fail-fast: false
       matrix:
@@ -300,7 +292,7 @@ jobs:
         echo "${{ secrets.GITHUB_TOKEN }}" | docker login docker.pkg.github.com -u awslabs --password-stdin
         export DOCKER_IMAGE=docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.linux }}:${{ steps.tag.outputs.release_tag }}
         docker pull $DOCKER_IMAGE
-        docker run --env GITHUB_REF $DOCKER_IMAGE --version=${{ steps.tag.outputs.release_tag }} build -p aws-c-io --spec=downstream run_tests=false
+        docker run --env GITHUB_REF $DOCKER_IMAGE --version=${{ steps.tag.outputs.release_tag }} build -p aws-c-cal --spec=downstream run_tests=false
 
   # This tests for swift version
   swift:
