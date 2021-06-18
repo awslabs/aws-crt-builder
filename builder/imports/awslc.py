@@ -11,6 +11,7 @@ config = {
     'targets': ['linux', 'android'],
     'test_steps': [],
     'build_tests': False,
+    'cmake_args': ['-DDISABLE_GO=ON', '-DDISABLE_PERL=ON', '-DBUILD_LIBSSL=OFF']
 }
 
 
@@ -48,5 +49,5 @@ class AWSLCProject(Project):
         super().__init__(
             account='awslabs',
             name='aws-lc',
-            config=config,
+            **config,
             **kwargs)

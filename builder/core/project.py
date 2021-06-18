@@ -394,7 +394,8 @@ class Import(object):
         self.name = kwargs.get(
             'name', self.__class__.__name__.lower().replace('import', ''))
         self._resolved = True
-        self.config = {}
+        self.config = kwargs.get('config', {})
+        del kwargs['config']
         if 'resolved' in kwargs:
             self._resolved = kwargs['resolved']
             del kwargs['resolved']
@@ -435,6 +436,7 @@ class Import(object):
         args = []
         for imp in imports:
             args += imp.cmake_args(env)
+        args += self.config.get('cmake_args', [])
         return args
 
     def get_imports(self, spec):
@@ -467,17 +469,8 @@ class Project(object):
 
         # Store args as the initial config, will be merged via get_config() later
         self.config = kwargs
-        if self.resolved():
-            # replace project specific variables now that we can
-            replacements = {
-                "source_dir": self.path,
-            }
-            # FIXME - this shouldn't have to happen here, ideally it happens in Script but
-            # script doesn't have access to per/project data, only env.variables which only come
-            # from the root project
-            project_vars = replace_variables(self.config.get("variables", {}), replacements)
-            replacements.update(project_vars)
-            self.config = replace_variables(self.config, replacements)
+        if self.path:
+            self.resolve(self.path)
 
         # Allow projects to augment search dirs
         for search_dir in self.config.get('search_dirs', []):
@@ -488,6 +481,18 @@ class Project(object):
 
     def resolved(self):
         return self.path is not None
+
+    def resolve(self, path):
+        self.path = path
+
+        # replace project specific variables now that we can
+        replacements = {
+            "source_dir": self.path,
+        }
+
+        project_vars = replace_variables(self.config.get("variables", {}), replacements)
+        replacements.update(project_vars)
+        self.config = replace_variables(self.config, replacements)
 
     def pre_build(self, env):
         imports = self.get_imports(env.spec)
@@ -793,7 +798,10 @@ class Project(object):
                 # might be a project without a config
                 if dir_matches_name and looks_like_code(search_dir):
                     print('    Found source code only project at {}'.format(search_dir))
-                    project = Project._create_project(name=name, path=search_dir)
+                    project = Project._projects.get(name.lower(), None)
+                    if not project:
+                        project = Project._create_project(name=name)
+                    project.resolve(search_dir)
                     return Project._cache_project(project)
 
         if Project._find_project_class(name):

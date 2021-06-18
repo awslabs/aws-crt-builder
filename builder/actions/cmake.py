@@ -2,14 +2,15 @@
 # SPDX-License-Identifier: Apache-2.0.
 
 import argparse
-from functools import lru_cache
 import os
-from pathlib import Path
+import re
 import shutil
+from functools import lru_cache, partial
+from pathlib import Path
 
 from builder.core.action import Action
 from builder.core.toolchain import Toolchain
-from builder.core.util import UniqueList
+from builder.core.util import UniqueList, run_command
 
 
 @lru_cache(1)
@@ -23,11 +24,61 @@ def _find_cmake():
 
 @lru_cache(1)
 def _find_ctest():
-    for cmake_alias in ['ctest3', 'ctest']:
-        cmake = shutil.which(cmake_alias)
-        if cmake:
-            return cmake
+    for ctest_alias in ['ctest3', 'ctest']:
+        ctest = shutil.which(ctest_alias)
+        if ctest:
+            return ctest
     raise Exception("cmake not found")
+
+
+def cmake_path(cross_compile=False):
+    if cross_compile:
+        return 'cmake'
+    return _find_cmake()
+
+
+def cmake_version(cross_compile=False):
+    if cross_compile:
+        return '3.17.1'
+    output = run_command([cmake_path(), '--version'], quiet=True, stderr=False).output
+    m = re.match(r'cmake(3?) version ([\d\.])', output)
+    if m:
+        return m.group(2)
+    return None
+
+
+def cmake_binary(cross_compile=False):
+    if cross_compile:
+        return 'cmake'
+    return os.path.basename(_find_cmake())
+
+
+def ctest_binary(cross_compile):
+    if cross_compile:
+        return 'ctest'
+    return os.path.basename(_find_ctest())
+
+
+def _cmake_path(self):
+    return cmake_path(self.cross_compile)
+
+
+def _cmake_version(self):
+    return cmake_version(self.cross_compile)
+
+
+def _cmake_binary(self):
+    return cmake_binary(self.cross_compile)
+
+
+def _ctest_binary(self):
+    return ctest_binary(self.cross_compile)
+
+
+Toolchain.cmake_path = _cmake_path
+Toolchain.cmake_version = _cmake_version
+Toolchain.cmake_binary = _cmake_binary
+Toolchain.ctest_binary = _ctest_binary
 
 
 def _project_dirs(env, project):
@@ -60,14 +111,18 @@ def _build_project(env, project, cmake_extra, build_tests=False):
 
     project_source_dir, project_build_dir, project_install_dir = _project_dirs(
         env, project)
-    sh.mkdir(os.path.abspath(project_build_dir))
+    abs_project_build_dir = project_build_dir
+    if not os.path.isabs(project_build_dir):
+        abs_project_build_dir = os.path.join(env.root_dir, project_build_dir)
+    sh.mkdir(abs_project_build_dir)
 
     # If cmake has already run, assume we're good
-    if os.path.isfile(os.path.join(project_build_dir, 'CMakeCache.txt')):
+    if os.path.isfile(os.path.join(abs_project_build_dir, 'CMakeCache.txt')):
         return
 
-    cmake = _find_cmake()
-    sh.exec(cmake, '--version', check=True)
+    cmake = toolchain.cmake_binary()
+    cmake_version = toolchain.cmake_version()
+    assert cmake_version != None
 
     # TODO These platforms don't succeed when doing a RelWithDebInfo build
     build_config = env.args.config
@@ -114,16 +169,18 @@ def _build_project(env, project, cmake_extra, build_tests=False):
     if os.environ.get('CMAKE_BUILD_PARALLEL_LEVEL') is None:
         sh.setenv('CMAKE_BUILD_PARALLEL_LEVEL', str(os.cpu_count()))
 
+    working_dir = env.root_dir if toolchain.cross_compile else os.getcwd()
+
     # configure
-    sh.exec(*toolchain.shell_env, cmake, cmake_args, check=True)
+    sh.exec(*toolchain.shell_env, cmake, cmake_args, working_dir=working_dir, check=True)
 
     # build
     sh.exec(*toolchain.shell_env, cmake, "--build", project_build_dir, "--config",
-            build_config, check=True)
+            build_config, working_dir=working_dir, check=True)
 
     # install
     sh.exec(*toolchain.shell_env, cmake, "--build", project_build_dir, "--config",
-            build_config, "--target", "install", check=True)
+            build_config, "--target", "install", working_dir=working_dir, check=True)
 
 
 class CMakeBuild(Action):
@@ -172,11 +229,9 @@ class CTestRun(Action):
             print("No build dir found, skipping CTest")
             return
 
-        ctest = _find_ctest()
-        sh.pushd(project_build_dir)
+        ctest = toolchain.ctest_binary()
         sh.exec(*toolchain.shell_env, ctest,
-                "--output-on-failure", check=True)
-        sh.popd()
+                "--output-on-failure", working_dir=project_build_dir, check=True)
 
     def __str__(self):
         return 'ctest {} @ {}'.format(self.project.name, self.project.path)
