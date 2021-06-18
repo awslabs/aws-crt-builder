@@ -3,12 +3,74 @@
 
 import argparse
 import os
+import re
+import shutil
+from functools import lru_cache, partial
 from pathlib import Path
 
 from builder.core.action import Action
 from builder.core.toolchain import Toolchain
-from builder.core.util import UniqueList
+from builder.core.util import UniqueList, run_command
 
+
+@lru_cache(1)
+def _find_cmake():
+    for cmake_alias in ['cmake3', 'cmake']:
+        cmake = shutil.which(cmake_alias)
+        if cmake:
+            return cmake
+    raise Exception("cmake not found")
+
+
+@lru_cache(1)
+def _find_ctest():
+    for ctest_alias in ['ctest3', 'ctest']:
+        ctest = shutil.which(ctest_alias)
+        if ctest:
+            return ctest
+    raise Exception("cmake not found")
+
+
+def cmake_path(cross_compile=False):
+    if cross_compile:
+        return 'cmake'
+    return _find_cmake()
+
+def cmake_version(cross_compile=False):
+    if cross_compile:
+        return '3.17.1'
+    output = run_command([cmake_path(), '--version'], quiet=True, stderr=False).output
+    m = re.match(r'cmake(3?) version ([\d\.])', output)
+    if m:
+        return m.group(2)
+    return None
+
+def cmake_binary(cross_compile=False):
+    if cross_compile:
+        return 'cmake'
+    return os.path.basename(_find_cmake())
+
+def ctest_binary(cross_compile):
+    if cross_compile:
+        return 'ctest'
+    return os.path.basename(_find_ctest())
+
+def _cmake_path(self):
+    return cmake_path(self.cross_compile)
+
+def _cmake_version(self):
+    return cmake_version(self.cross_compile)
+
+def _cmake_binary(self):
+    return cmake_binary(self.cross_compile)
+
+def _ctest_binary(self):
+    return ctest_binary(self.cross_compile)
+
+Toolchain.cmake_path = _cmake_path
+Toolchain.cmake_version = _cmake_version
+Toolchain.cmake_binary = _cmake_binary
+Toolchain.ctest_binary = _ctest_binary
 
 def _project_dirs(env, project):
     if not project.resolved():
