@@ -36,6 +36,7 @@ def cmake_path(cross_compile=False):
         return 'cmake'
     return _find_cmake()
 
+
 def cmake_version(cross_compile=False):
     if cross_compile:
         return '3.17.1'
@@ -45,32 +46,40 @@ def cmake_version(cross_compile=False):
         return m.group(2)
     return None
 
+
 def cmake_binary(cross_compile=False):
     if cross_compile:
         return 'cmake'
     return os.path.basename(_find_cmake())
+
 
 def ctest_binary(cross_compile):
     if cross_compile:
         return 'ctest'
     return os.path.basename(_find_ctest())
 
+
 def _cmake_path(self):
     return cmake_path(self.cross_compile)
+
 
 def _cmake_version(self):
     return cmake_version(self.cross_compile)
 
+
 def _cmake_binary(self):
     return cmake_binary(self.cross_compile)
 
+
 def _ctest_binary(self):
     return ctest_binary(self.cross_compile)
+
 
 Toolchain.cmake_path = _cmake_path
 Toolchain.cmake_version = _cmake_version
 Toolchain.cmake_binary = _cmake_binary
 Toolchain.ctest_binary = _ctest_binary
+
 
 def _project_dirs(env, project):
     if not project.resolved():
