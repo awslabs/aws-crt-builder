@@ -20,10 +20,10 @@ RUN git clone https://github.com/Microsoft/php-sdk-binary-tools C:\php-sdk && `
     git checkout %PHP_SDK_VER% && `
     "C:\\BuildTools\\Common7\\Tools\\VsDevCmd.bat" && `
     phpsdk-%VC_MONIKER%-%PHP_ARCH%.bat && `
-    C:\php-sdk\bin\phpsdk_buildtree php-%PHP_VER% && `
+    call phpsdk_buildtree php-%PHP_VER% && `
     git clone https://github.com/php/php-src.git %VC_MONIKER%\%PHP_ARCH%\php-src && cd %VC_MONIKER%\%PHP_ARCH%\php-src && `
-    C:\php-sdk\bin\phpsdk_deps --update --branch %PHP_VER% && `
-    buildconf && `
-    configure --enable-cli --with-openssl && `
+    call phpsdk_deps --update --branch %PHP_VER% && `
+    call buildconf && `
+    call configure --enable-cli --with-openssl && `
     nmake && `
     nmake install
