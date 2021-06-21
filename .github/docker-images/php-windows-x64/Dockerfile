@@ -17,12 +17,12 @@ RUN choco install -y --no-progress composer && `
 # Install PHP SDK from Microsoft and build PHP to C:\php
 RUN git clone https://github.com/Microsoft/php-sdk-binary-tools C:\php-sdk && `
     cd C:\php-sdk && `
-    git checkout ${PHP_SDK_VER} && `
+    git checkout %PHP_SDK_VER% && `
     "C:\\BuildTools\\Common7\\Tools\\VsDevCmd.bat" && `
-    phpsdk-${VC_MONIKER}-${PHP_ARCH}.bat && `
-    phpsdk_buildtree php-${PHP_VER} && `
-    git clone https://github.com/php/php-src.git ${VC_MONIKER}\${PHP_ARCH}\php-src && cd ${VC_MONIKER}\${PHP_ARCH}\php-src && `
-    phpsdk_deps --update --branch ${PHP_VER} && `
+    phpsdk-%VC_MONIKER%-%PHP_ARCH%.bat && `
+    phpsdk_buildtree php-%PHP_VER% && `
+    git clone https://github.com/php/php-src.git %VC_MONIKER%\%PHP_ARCH%\php-src && cd %VC_MONIKER%\%PHP_ARCH%\php-src && `
+    phpsdk_deps --update --branch %PHP_VER% && `
     buildconf && `
     configure --enable-cli --with-openssl && `
     nmake && `
