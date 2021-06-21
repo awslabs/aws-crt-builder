@@ -166,32 +166,18 @@ jobs:
         echo "ARCH=x86" >> $GITHUB_ENV
         echo "VC_MONIKER=vs16" >> $GITHUB_ENV
 
-    - name: Configure for php5.5-windows-x64
-      if: ${{matrix.variant == 'php5.5-windows-x64'}}
-      shell: bash
-      run: |
-        echo "CONTEXT=php-windows-x64" >> $GITHUB_ENV
-        echo "PHP_VER=5.5" >> $GITHUB_ENV
-        echo "PHP_SDK_VER=legacy" >> $GITHUB_ENV
-        echo "ARCH=x64" >> $GITHUB_ENV
-        echo "VC_MONIKER=vc14" >> $GITHUB_ENV
-
-    - name: Configure for php5.5-windows-x86
-      if: ${{matrix.variant == 'php5.5-windows-x86'}}
-      shell: bash
-      run: |
-        echo "CONTEXT=php-windows-x64" >> $GITHUB_ENV
-        echo "PHP_VER=5.5" >> $GITHUB_ENV
-        echo "PHP_SDK_VER=legacy" >> $GITHUB_ENV
-        echo "ARCH=x86" >> $GITHUB_ENV
-        echo "VC_MONIKER=vc14" >> $GITHUB_ENV
-
     - name: Checkout Sources
       uses: actions/checkout@v1
 
     - name: Get release_tag
       uses: ./.github/actions/release-tag
       id: tag
+
+    - name: Login to docker repos
+      shell: bash
+      run: |
+        aws ecr get-login-password --region us-east-1 | docker login ${{ secrets.AWS_ECR_REPO }} -u AWS --password-stdin
+        echo "${{ secrets.GITHUB_TOKEN }}" | docker login docker.pkg.github.com -u awslabs --password-stdin
 
     - name: Build ${{ matrix.variant }} image
       shell: bash
@@ -204,12 +190,6 @@ jobs:
         --build-arg VC_MONIKER=${{ env.VC_MONIKER }}
         --tag docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:${{ steps.tag.outputs.release_tag }}
         .github/docker-images/${{ env.CONTEXT }}
-
-    - name: Login to docker repos
-      shell: bash
-      run: |
-        aws ecr get-login-password --region us-east-1 | docker login ${{ secrets.AWS_ECR_REPO }} -u AWS --password-stdin
-        echo "${{ secrets.GITHUB_TOKEN }}" | docker login docker.pkg.github.com -u awslabs --password-stdin
 
     - name: Create ECR repo if necessary
       shell: bash

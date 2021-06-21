@@ -4,11 +4,6 @@ FROM mcr.microsoft.com/windows/servercore:ltsc2019
 
 SHELL ["cmd", "/S", "/C"]
 
-ARG VC_MONIKER=vc14
-ARG PHP_VER=7.2
-ARG PHP_ARCH=x64
-ARG PHP_SDK_VER=php-sdk-2.2.0
-
 # Install chocolatey
 ADD https://chocolatey.org/install.ps1 C:\TEMP\install_choco.ps1
 RUN powershell.exe -NoProfile -InputFormat None -ExecutionPolicy Bypass -Command "C:\TEMP\install_choco.ps1" && SET "PATH=%PATH%;%ALLUSERSPROFILE%\chocolatey\bin" && `
