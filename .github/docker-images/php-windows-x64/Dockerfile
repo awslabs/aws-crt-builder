@@ -22,6 +22,7 @@ RUN git clone https://github.com/Microsoft/php-sdk-binary-tools C:\php-sdk && `
     phpsdk-%VC_MONIKER%-%PHP_ARCH%.bat && `
     call phpsdk_buildtree php-%PHP_VER% && `
     git clone https://github.com/php/php-src.git %VC_MONIKER%\%PHP_ARCH%\php-src && cd %VC_MONIKER%\%PHP_ARCH%\php-src && `
+    git checkout %PHP_VER% && `
     call phpsdk_deps --update --branch %PHP_VER% && `
     call buildconf && `
     call configure --enable-cli --with-openssl && `
