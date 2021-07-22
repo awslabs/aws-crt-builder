@@ -41,8 +41,8 @@ jobs:
         - swift-5-al2-x64
         - swift-5-centos-x64
         - swift-5-ubuntu-16-x64
-	- rhel8-x64
-	- opensuse-leap
+        - rhel8-x64
+        - opensuse-leap
 
     steps:
     - name: Checkout Sources
