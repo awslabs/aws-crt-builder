@@ -20,6 +20,12 @@ RUN /opt/python/cp39-cp39/bin/python -m pip install --upgrade pip setuptools vir
     && aws --version
 
 ###############################################################################
+# nodejs/npm
+###############################################################################
+RUN curl -sL https://rpm.nodesource.com/setup_12.x | sudo bash -
+RUN sudo yum -y install nodejs && node --version
+
+###############################################################################
 # Install entrypoint
 ###############################################################################
 ADD entrypoint.sh /usr/local/bin/builder
