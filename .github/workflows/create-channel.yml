@@ -76,6 +76,8 @@ jobs:
         - swift-5-al2-x64
         - swift-5-centos-x64
         - swift-5-ubuntu-16-x64
+	- rhel8-x64
+	- opensuse-leap
         - php5.5-linux-x64
         - php5.6-linux-x64
         - php7.0-linux-x64
