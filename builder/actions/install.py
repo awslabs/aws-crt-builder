@@ -110,7 +110,7 @@ def export_compiler(compiler, env):
     if not env.shell.getenv('CXX'):
         cxx_path = toolchain.cxx_compiler_path()
         if cxx_path:
-            env.shell.setenv('CXX', cc_path)
+            env.shell.setenv('CXX', cxx_path)
         else:
             print('WARNING: CXX compiler {} could not be found for export'.format(compiler))
 
