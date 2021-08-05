@@ -98,7 +98,7 @@ jobs:
       id: tag
 
     - name: Login to docker repo
-      run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login docker.pkg.github.com -u awslabs --password-stdin
+      run: echo "${{ secrets.DOCKER_TOKEN }}" | docker login docker.pkg.github.com -u awslabs --password-stdin
 
     - name: Import latest aws-crt-${{ matrix.variant }} image to channels
       run: |
