@@ -71,6 +71,7 @@ jobs:
         - rhel8-x64
         - opensuse-leap
         - fedora-34-x64
+        - android-30-ubuntu-20-x64
 
     steps:
     - name: Checkout Sources

@@ -88,6 +88,7 @@ jobs:
         - php7.3-linux-x64
         - php7.4-linux-x64
         - php8.0-linux-x64
+        - android-30-ubuntu-20-x64
 
     steps:
     - name: Checkout Sources
