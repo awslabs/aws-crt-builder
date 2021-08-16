@@ -17,7 +17,6 @@ env:
   AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
   AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
   AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-  AWS_ECR_REPO: ${{ secrets.AWS_ECR_REPO }}
   AWS_REGION: 'us-east-1'
 
 jobs:
@@ -64,7 +63,7 @@ jobs:
     - name: Build ${{ matrix.variant }} image
       uses: whoan/docker-build-with-cache-action@v5
       with:
-        registry: 123124136734.dkr.ecr.us-east-1.amazonaws.com
+        registry: ${{ secrets.AWS_ECR_REPO }}
         username: ${{ secrets.AWS_ACCESS_KEY_ID }}
         password: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         image_name: ${{ secrets.AWS_ECR_REPO }}/aws-crt-${{ matrix.variant }}
