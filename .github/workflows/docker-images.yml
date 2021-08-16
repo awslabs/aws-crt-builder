@@ -66,7 +66,7 @@ jobs:
         registry: ${{ secrets.AWS_ECR_REPO }}
         username: ${{ secrets.AWS_ACCESS_KEY_ID }}
         password: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        image_name: ${{ secrets.AWS_ECR_REPO }}/aws-crt-${{ matrix.variant }}
+        image_name: aws-crt-${{ matrix.variant }}
         image_tag: ${{ steps.tag.outputs.release_tag }}
         context: .github/docker-images/${{ matrix.variant }}
         build_extra_args: --compress=true
@@ -110,7 +110,7 @@ jobs:
         registry: ${{ secrets.AWS_ECR_REPO }}
         username: ${{ secrets.AWS_ACCESS_KEY_ID }}
         password: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        image_name: ${{ secrets.AWS_ECR_REPO }}/aws-crt-php${{ matrix.version }}-linux-x64
+        image_name: aws-crt-php${{ matrix.version }}-linux-x64
         image_tag: ${{ steps.tag.outputs.release_tag }}
         context: .github/docker-images/phpbrew-linux-x64
         build_extra_args: --compress=true --build-arg PHP_VERSION=${{matrix.version}}
@@ -145,6 +145,6 @@ jobs:
     - name: Build aws-c-common + consumers
       run: |
         aws ecr get-login-password --region us-east-1 | docker login ${{ secrets.AWS_ECR_REPO }} -u AWS --password-stdin
-        export DOCKER_IMAGE=${{ secrets.AWS_ECR_REPO }}/aws-crt-ubuntu-16-x64:${{ steps.tag.outputs.release_tag }}
+        export DOCKER_IMAGE=${{ secrets.AWS_ECR_REPO }}/aws-crt/ubuntu-16-x64:${{ steps.tag.outputs.release_tag }}
         docker pull $DOCKER_IMAGE
         docker run --env GITHUB_REF $DOCKER_IMAGE --version=${{ steps.tag.outputs.release_tag }} build -p aws-c-common --target=${{ matrix.target }}
