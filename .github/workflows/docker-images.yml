@@ -59,6 +59,9 @@ jobs:
 
     - name: Install qemu/docker
       run: docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+
+    - name: login test
+      run: aws ecr get-login-password | docker login ${{ secrets.AWS_ECR_REPO }} -u AWS --password-stdin
       
     - name: Build ${{ matrix.variant }} image
       uses: whoan/docker-build-with-cache-action@v4
