@@ -68,9 +68,9 @@ jobs:
     - name: Build ${{ matrix.variant }} image
       uses: whoan/docker-build-with-cache-action@v4
       with:
-        registry: ${{ secrets.AWS_ECR }}
-        # username: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        # password: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        registry: 123124136734.dkr.ecr.us-west-1.amazonaws.com
+        username: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        password: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         image_name: ${{ secrets.AWS_ECR_REPO }}/aws-crt-${{ matrix.variant }}
         image_tag: ${{ steps.tag.outputs.release_tag }}
         context: .github/docker-images/${{ matrix.variant }}
