@@ -61,12 +61,8 @@ jobs:
     - name: Install qemu/docker
       run: docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
 
-    - name: login test
-      run: |
-        aws ecr get-login-password | docker login ${{ secrets.AWS_ECR}} -u AWS --password-stdin
-
     - name: Build ${{ matrix.variant }} image
-      uses: whoan/docker-build-with-cache-action@v4
+      uses: whoan/docker-build-with-cache-action@v6
       with:
         registry: 123124136734.dkr.ecr.us-east-1.amazonaws.com
         username: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -110,7 +106,7 @@ jobs:
       run: cat .github/docker-images/entrypoint.sh | sed s/version=LATEST/version=${{ steps.tag.outputs.release_tag }}/ > .github/docker-images/phpbrew-linux-x64/entrypoint.sh
 
     - name: Build ${{ matrix.version }} image
-      uses: whoan/docker-build-with-cache-action@v4
+      uses: whoan/docker-build-with-cache-action@v5
       with:
         registry: ${{ secrets.AWS_ECR_REPO }}
         username: ${{ secrets.AWS_ACCESS_KEY_ID }}
