@@ -63,10 +63,10 @@ jobs:
     - name: Build ${{ matrix.variant }} image
       uses: whoan/docker-build-with-cache-action@v4
       with:
-        registry: docker.pkg.github.com
-        username: awslabs
-        password: ${{ secrets.DOCKER_TOKEN }}
-        image_name: awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}
+        registry: ${{ secrets.AWS_ECR_REPO }}
+        username: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        password: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        image_name: ${{ secrets.AWS_ECR_REPO }}/aws-crt-${{ matrix.variant }}
         image_tag: ${{ steps.tag.outputs.release_tag }}
         context: .github/docker-images/${{ matrix.variant }}
         build_extra_args: --compress=true
@@ -74,7 +74,7 @@ jobs:
     - name: Export ${{ matrix.variant }} image to S3/channels/${{ steps.tag.outputs.release_tag }}
       run: |
         export IMAGE_TAG=${{ steps.tag.outputs.release_tag }}
-        docker save docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:$IMAGE_TAG |\
+        docker save ${{ secrets.AWS_ECR_REPO }}/aws-crt-${{ matrix.variant }}:$IMAGE_TAG |\
           aws s3 cp - s3://${{env.AWS_S3_BUCKET}}/channels/$IMAGE_TAG/aws-crt-${{ matrix.variant }}.tar.gz
 
   php-images:
@@ -107,10 +107,10 @@ jobs:
     - name: Build ${{ matrix.version }} image
       uses: whoan/docker-build-with-cache-action@v4
       with:
-        registry: docker.pkg.github.com
-        username: awslabs
-        password: ${{ secrets.DOCKER_TOKEN }}
-        image_name: awslabs/aws-crt-builder/aws-crt-php${{ matrix.version }}-linux-x64
+        registry: ${{ secrets.AWS_ECR_REPO }}
+        username: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        password: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        image_name: ${{ secrets.AWS_ECR_REPO }}/aws-crt-php${{ matrix.version }}-linux-x64
         image_tag: ${{ steps.tag.outputs.release_tag }}
         context: .github/docker-images/phpbrew-linux-x64
         build_extra_args: --compress=true --build-arg PHP_VERSION=${{matrix.version}}
@@ -118,7 +118,7 @@ jobs:
     - name: Export PHP ${{ matrix.version }} image to S3/channels/${{ steps.tag.outputs.release_tag }}
       run: |
         export IMAGE_TAG=${{ steps.tag.outputs.release_tag }}
-        docker save docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-php${{ matrix.version }}-linux-x64:$IMAGE_TAG \
+        docker save ${{ secrets.AWS_ECR_REPO }}/aws-crt-php${{ matrix.version }}-linux-x64:$IMAGE_TAG \
           | gzip \
           | aws s3 cp - s3://${{env.AWS_S3_BUCKET}}/channels/$IMAGE_TAG/aws-crt-php${{ matrix.version }}-linux-x64.tar.gz
 
@@ -144,7 +144,7 @@ jobs:
     # We can't use the `uses: docker://image` version yet, GitHub lacks authentication for actions -> packages
     - name: Build aws-c-common + consumers
       run: |
-        echo "${{ secrets.GITHUB_TOKEN }}" | docker login docker.pkg.github.com -u awslabs --password-stdin
-        export DOCKER_IMAGE=docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-ubuntu-16-x64:${{ steps.tag.outputs.release_tag }}
+        aws ecr get-login-password --region us-east-1 | docker login ${{ secrets.AWS_ECR_REPO }} -u AWS --password-stdin
+        export DOCKER_IMAGE=${{ secrets.AWS_ECR_REPO }}/aws-crt-ubuntu-16-x64:${{ steps.tag.outputs.release_tag }}
         docker pull $DOCKER_IMAGE
         docker run --env GITHUB_REF $DOCKER_IMAGE --version=${{ steps.tag.outputs.release_tag }} build -p aws-c-common --target=${{ matrix.target }}

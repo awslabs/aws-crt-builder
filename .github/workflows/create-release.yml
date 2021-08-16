@@ -89,10 +89,10 @@ jobs:
     - name: Build aws-crt-${{ matrix.variant }} image
       uses: whoan/docker-build-with-cache-action@v4
       with:
-        registry: docker.pkg.github.com
-        username: awslabs
-        password: ${{ secrets.DOCKER_TOKEN }}
-        image_name: awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}
+        registry: ${{ secrets.AWS_ECR_REPO }}
+        username: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        password: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        image_name: ${{ secrets.AWS_ECR_REPO }}/aws-crt-${{ matrix.variant }}
         image_tag: ${{ steps.tag.outputs.release_tag }}
         context: .github/docker-images/${{ matrix.variant }}
         build_extra_args: --compress=true
@@ -100,7 +100,7 @@ jobs:
     - name: Login to docker repos
       run: |
         aws ecr get-login-password --region us-east-1 | docker login ${{ secrets.AWS_ECR_REPO }} -u AWS --password-stdin
-        echo "${{ secrets.GITHUB_TOKEN }}" | docker login docker.pkg.github.com -u awslabs --password-stdin
+        # echo "${{ secrets.GITHUB_TOKEN }}" | docker login docker.pkg.github.com -u awslabs --password-stdin
 
     - name: Create ECR repo if necessary
       run: |
@@ -111,16 +111,14 @@ jobs:
     - name: Tag/push release images as latest
       run: |
         export IMAGE_TAG=${{ steps.tag.outputs.release_tag }}
-        docker tag docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:$IMAGE_TAG ${{ secrets.AWS_ECR_REPO }}/aws-crt/${{ matrix.variant }}:latest
-        docker tag docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:$IMAGE_TAG docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:latest
-        docker push docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:$IMAGE_TAG
-        docker push docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:latest
+        docker tag ${{ secrets.AWS_ECR_REPO }}/aws-crt-${{ matrix.variant }}:$IMAGE_TAG ${{ secrets.AWS_ECR_REPO }}/aws-crt/${{ matrix.variant }}:latest
+        docker push ${{ secrets.AWS_ECR_REPO }}/aws-crt-${{ matrix.variant }}:$IMAGE_TAG
         docker push ${{ secrets.AWS_ECR_REPO }}/aws-crt/${{ matrix.variant }}:latest
 
     - name: Export aws-crt-${{ matrix.variant }} image to S3/releases
       run: |
         export IMAGE_TAG=${{ steps.tag.outputs.release_tag }}
-        docker save docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-${{ matrix.variant }}:$IMAGE_TAG \
+        docker save ${{ secrets.AWS_ECR_REPO }}/aws-crt-${{ matrix.variant }}:$IMAGE_TAG \
         | gzip \
         | aws s3 cp - s3://${{env.AWS_S3_BUCKET}}/releases/$IMAGE_TAG/aws-crt-${{ matrix.variant }}.tar.gz
         aws s3 cp s3://${{env.AWS_S3_BUCKET}}/releases/$IMAGE_TAG/aws-crt-${{ matrix.variant }}.tar.gz s3://${{env.AWS_S3_BUCKET}}/LATEST/aws-crt-${{ matrix.variant }}.tar.gz
@@ -155,10 +153,10 @@ jobs:
     - name: Build ${{ matrix.version }} image
       uses: whoan/docker-build-with-cache-action@v4
       with:
-        registry: docker.pkg.github.com
-        username: awslabs
-        password: ${{ secrets.DOCKER_TOKEN }}
-        image_name: awslabs/aws-crt-builder/aws-crt-php${{ matrix.version }}-linux-x64
+        registry: ${{ secrets.AWS_ECR_REPO }}
+        username: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        password: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        image_name: ${{ secrets.AWS_ECR_REPO }}/aws-crt-php${{ matrix.version }}-linux-x64
         image_tag: ${{ steps.tag.outputs.release_tag }}
         context: .github/docker-images/phpbrew-linux-x64
         build_extra_args: --compress=true --build-arg PHP_VERSION=${{matrix.version}}
@@ -166,7 +164,7 @@ jobs:
     - name: Login to docker repos
       run: |
         aws ecr get-login-password --region us-east-1 | docker login ${{ secrets.AWS_ECR_REPO }} -u AWS --password-stdin
-        echo "${{ secrets.GITHUB_TOKEN }}" | docker login docker.pkg.github.com -u awslabs --password-stdin
+        # echo "${{ secrets.GITHUB_TOKEN }}" | docker login docker.pkg.github.com -u awslabs --password-stdin
 
     - name: Create ECR repo if necessary
       run: |
@@ -177,16 +175,14 @@ jobs:
     - name: Tag/push release images as latest
       run: |
         export IMAGE_TAG=${{ steps.tag.outputs.release_tag }}
-        docker tag docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-php${{ matrix.version }}-linux-x64:$IMAGE_TAG ${{ secrets.AWS_ECR_REPO }}/aws-crt/php${{ matrix.version }}-linux-x64:latest
-        docker tag docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-php${{ matrix.version }}-linux-x64:$IMAGE_TAG docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-php${{ matrix.version }}-linux-x64:latest
-        docker push docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-php${{ matrix.version }}-linux-x64:$IMAGE_TAG
-        docker push docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-php${{ matrix.version }}-linux-x64:latest
-        docker push ${{ secrets.AWS_ECR_REPO }}/aws-crt/php${{ matrix.version }}-linux-x64:latest
+        docker tag ${{ secrets.AWS_ECR_REPO }}/aws-crt-php${{ matrix.version }}-linux-x64:$IMAGE_TAG ${{ secrets.AWS_ECR_REPO }}/aws-crt/php${{ matrix.version }}-linux-x64:latest
+        docker push ${{ secrets.AWS_ECR_REPO }}/aws-crt-builder/aws-crt-php${{ matrix.version }}-linux-x64:$IMAGE_TAG
+        docker push ${{ secrets.AWS_ECR_REPO }}/aws-crt-builder/aws-crt-php${{ matrix.version }}-linux-x64:latest
 
     - name: Export aws-crt-php${{ matrix.version }}-linux-x64 image to S3/releases
       run: |
         export IMAGE_TAG=${{ steps.tag.outputs.release_tag }}
-        docker save docker.pkg.github.com/awslabs/aws-crt-builder/aws-crt-php${{ matrix.version }}-linux-x64:$IMAGE_TAG \
+        docker save ${{ secrets.AWS_ECR_REPO }}/aws-crt-builder/aws-crt-php${{ matrix.version }}-linux-x64:$IMAGE_TAG \
         | gzip \
         | aws s3 cp - s3://${{env.AWS_S3_BUCKET}}/releases/$IMAGE_TAG/aws-crt-php${{ matrix.version }}-linux-x64.tar.gz
         aws s3 cp s3://${{env.AWS_S3_BUCKET}}/releases/$IMAGE_TAG/aws-crt-php${{ matrix.version }}-linux-x64.tar.gz s3://${{env.AWS_S3_BUCKET}}/LATEST/aws-crt-php${{ matrix.version }}-linux-x64.tar.gz
