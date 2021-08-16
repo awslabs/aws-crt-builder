@@ -17,6 +17,7 @@ env:
   AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
   AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
   AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  AWS_ECR_REPO: ${{ secrets.AWS_ECR_REPO }}
   AWS_REGION: 'us-east-1'
 
 jobs:
@@ -61,8 +62,10 @@ jobs:
       run: docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
 
     - name: login test
-      run: aws ecr get-login-password | docker login ${{ secrets.AWS_ECR_REPO }} -u AWS --password-stdin
-      
+      run: |
+        aws ecr get-login-password | docker login ${{ secrets.AWS_ECR_REPO }} -u AWS --password-stdin
+        echo "ecr repo (this isn't secret): $AWS_ECR_REPO"
+	
     - name: Build ${{ matrix.variant }} image
       uses: whoan/docker-build-with-cache-action@v4
       with:
