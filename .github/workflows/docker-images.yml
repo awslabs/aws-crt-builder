@@ -64,7 +64,7 @@ jobs:
     - name: login test
       run: |
         aws ecr get-login-password | docker login ${{ secrets.AWS_ECR_REPO }} -u AWS --password-stdin
-        echo "ecr repo (this isn't secret): $AWS_ECR_REPO"
+        echo "ecr repo (this isn't secret): ${AWS_ECR_REPO}"
 	
     - name: Build ${{ matrix.variant }} image
       uses: whoan/docker-build-with-cache-action@v4
