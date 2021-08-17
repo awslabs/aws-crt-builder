@@ -87,7 +87,7 @@ jobs:
       run: docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
 
     - name: Build aws-crt-${{ matrix.variant }} image
-      uses: whoan/docker-build-with-cache-action@v4
+      uses: whoan/docker-build-with-cache-action@v5
       with:
         registry: ${{ secrets.AWS_ECR_REPO }}
         username: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -150,7 +150,7 @@ jobs:
       run: cat .github/docker-images/entrypoint.sh | sed s/version=LATEST/version=${{ steps.tag.outputs.release_tag }}/ > .github/docker-images/phpbrew-linux-x64/entrypoint.sh
 
     - name: Build ${{ matrix.version }} image
-      uses: whoan/docker-build-with-cache-action@v4
+      uses: whoan/docker-build-with-cache-action@v5
       with:
         registry: ${{ secrets.AWS_ECR_REPO }}
         username: ${{ secrets.AWS_ACCESS_KEY_ID }}
