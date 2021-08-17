@@ -166,21 +166,21 @@ jobs:
 
     - name: Create ECR repo if necessary
       run: |
-        if ! aws --region us-east-1 ecr describe-repositories --repository-names aws-crt/php${{ matrix.version }}-linux-x64 > /dev/null 2>&1; then \
-          aws --region us-east-1 ecr create-repository --repository-name aws-crt/php${{ matrix.version }}-linux-x64; \
+        if ! aws --region us-east-1 ecr describe-repositories --repository-names aws-crt-php${{ matrix.version }}-linux-x64 > /dev/null 2>&1; then \
+          aws --region us-east-1 ecr create-repository --repository-name aws-crt-php${{ matrix.version }}-linux-x64; \
         fi
 
     - name: Tag/push release images as latest
       run: |
         export IMAGE_TAG=${{ steps.tag.outputs.release_tag }}
         docker tag ${{ secrets.AWS_ECR_REPO }}/aws-crt-php${{ matrix.version }}-linux-x64:$IMAGE_TAG ${{ secrets.AWS_ECR_REPO }}/aws-crt/php${{ matrix.version }}-linux-x64:latest
-        docker push ${{ secrets.AWS_ECR_REPO }}/aws-crt-builder/aws-crt-php${{ matrix.version }}-linux-x64:$IMAGE_TAG
-        docker push ${{ secrets.AWS_ECR_REPO }}/aws-crt-builder/aws-crt-php${{ matrix.version }}-linux-x64:latest
+        docker push ${{ secrets.AWS_ECR_REPO }}/aws-crt-php${{ matrix.version }}-linux-x64:$IMAGE_TAG
+        docker push ${{ secrets.AWS_ECR_REPO }}/aws-crt-php${{ matrix.version }}-linux-x64:latest
 
     - name: Export aws-crt-php${{ matrix.version }}-linux-x64 image to S3/releases
       run: |
         export IMAGE_TAG=${{ steps.tag.outputs.release_tag }}
-        docker save ${{ secrets.AWS_ECR_REPO }}/aws-crt-builder/aws-crt-php${{ matrix.version }}-linux-x64:$IMAGE_TAG \
+        docker save ${{ secrets.AWS_ECR_REPO }}/aws-crt-php${{ matrix.version }}-linux-x64:$IMAGE_TAG \
         | gzip \
         | aws s3 cp - s3://${{env.AWS_S3_BUCKET}}/releases/$IMAGE_TAG/aws-crt-php${{ matrix.version }}-linux-x64.tar.gz
         aws s3 cp s3://${{env.AWS_S3_BUCKET}}/releases/$IMAGE_TAG/aws-crt-php${{ matrix.version }}-linux-x64.tar.gz s3://${{env.AWS_S3_BUCKET}}/LATEST/aws-crt-php${{ matrix.version }}-linux-x64.tar.gz
