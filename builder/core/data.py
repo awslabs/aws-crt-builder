@@ -16,6 +16,8 @@ class PKG_TOOLS(Enum):
     APK = 'apk'
     CHOCO = 'choco'
     PKG = 'freebsd_pkg'
+    ZYPPER = 'zypper'
+    DNF = 'dnf'
 
 
 KEYS = {
@@ -155,6 +157,24 @@ HOSTS = {
         'packages': ['build-essential'],
         'pkg_update': 'apt-get -qq update -y',
         'pkg_install': 'apt-get -qq install -y',
+    },
+    'fedora': {
+        'os': 'linux',
+        'pkg_tool': PKG_TOOLS.DNF,
+        'pkg_update': 'dnf update -y',
+        'pkg_install': 'dnf install -y',
+    },
+    'opensuse': {
+        'os': 'linux',
+        'pkg_tool': PKG_TOOLS.ZYPPER,
+        'pkg_update': 'zypper refresh && zypper --non-interactive patch',
+        'pkg_install': 'zypper install -y',
+    },
+    'rhel': {
+        'os': 'linux',
+        'pkg_tool': PKG_TOOLS.DNF,
+        'pkg_update': 'dnf update -y',
+        'pkg_install': 'dnf install -y',
     },
     'al2012': {
         'os': 'linux',
