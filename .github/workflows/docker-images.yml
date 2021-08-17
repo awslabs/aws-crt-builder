@@ -145,6 +145,6 @@ jobs:
     - name: Build aws-c-common + consumers
       run: |
         aws ecr get-login-password --region us-east-1 | docker login ${{ secrets.AWS_ECR_REPO }} -u AWS --password-stdin
-        export DOCKER_IMAGE=${{ secrets.AWS_ECR_REPO }}/aws-crt/ubuntu-16-x64:${{ steps.tag.outputs.release_tag }}
+        export DOCKER_IMAGE=${{ secrets.AWS_ECR_REPO }}/aws-crt-ubuntu-16-x64:${{ steps.tag.outputs.release_tag }}
         docker pull $DOCKER_IMAGE
         docker run --env GITHUB_REF $DOCKER_IMAGE --version=${{ steps.tag.outputs.release_tag }} build -p aws-c-common --target=${{ matrix.target }}
