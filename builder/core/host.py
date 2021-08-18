@@ -90,6 +90,12 @@ def current_host():
                 return 'alpine'
             if _file_contains('/etc/os-release', 'Raspbian'):
                 return 'raspbian'
+            if _file_contains('/etc/system-release', 'Fedora'):
+                return 'fedora'
+            if _file_contains('/etc/os-release', 'openSUSE'):
+                return 'opensuse'
+            if _file_contains('/etc/os-release', 'Red Hat Enterprise Linux'):
+                return 'rhel'
             return 'linux'
         else:
             return platform
