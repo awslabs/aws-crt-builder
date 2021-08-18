@@ -8,6 +8,7 @@ config = {
     'targets': ['linux', 'android'],
     'test_steps': [],
     'build_tests': False,
+    'cmake_args': ['-DUNSAFE_TREAT_WARNINGS_AS_ERRORS=OFF']
 }
 
 
