@@ -8,6 +8,10 @@ config = {
     'targets': ['linux', 'android'],
     'test_steps': [],
     'build_tests': False,
+    # s2n imports pq crypto code written by people who don't bother to match the function
+    # signatures between the declaration and implementation, leading to mismatched bound warnings that
+    # turn into errors.  While s2n should fix these as they come in, their existence shouldn't be a blocker
+    # for us.
     'cmake_args': ['-DUNSAFE_TREAT_WARNINGS_AS_ERRORS=OFF']
 }
 
