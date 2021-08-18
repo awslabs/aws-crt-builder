@@ -30,6 +30,6 @@ class S2NProject(Project):
         super().__init__(
             account='awslabs',
             imports=['aws-lc'],
-            config=config,
             url='https://github.com/aws/s2n-tls.git',
+            **config,
             **kwargs)
