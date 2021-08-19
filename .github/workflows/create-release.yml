@@ -184,3 +184,18 @@ jobs:
         | gzip \
         | aws s3 cp - s3://${{env.AWS_S3_BUCKET}}/releases/$IMAGE_TAG/aws-crt-php${{ matrix.version }}-linux-x64.tar.gz
         aws s3 cp s3://${{env.AWS_S3_BUCKET}}/releases/$IMAGE_TAG/aws-crt-php${{ matrix.version }}-linux-x64.tar.gz s3://${{env.AWS_S3_BUCKET}}/LATEST/aws-crt-php${{ matrix.version }}-linux-x64.tar.gz
+
+  upload-ci-script:
+    name: Upload container ci script
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Source
+      uses: actions/checkout@v1
+
+    - name: Get release tag
+      uses: ./.github/actions/release-tag
+      id: tag
+
+    - name: Upload script
+      run: aws s3 cp ./.github/workflows/linux-container-ci.sh s3://aws-crt-test-stuff/ci/${{ steps.tag.outputs.release_tag }}/linux-container-ci.sh
