@@ -55,6 +55,9 @@ jobs:
         name: builder
         path: build/builder
 
+    - name: Upload container CI script
+      run: aws s3 cp ./.github/workflows/linux-container-ci.sh s3://aws-crt-test-stuff/ci/${{ steps.tag.outputs.release_tag }}/linux-container-ci.sh
+
   import-latest:
     name: ${{ matrix.variant }}
     runs-on: ubuntu-latest
@@ -117,6 +120,3 @@ jobs:
         docker save ${{ secrets.AWS_ECR_REPO }}/aws-crt-${{ matrix.variant }}:$IMAGE_TAG \
         | gzip \
         | aws s3 cp - s3://${{env.AWS_S3_BUCKET}}/channels/$IMAGE_TAG/aws-crt-${{ matrix.variant }}.tar.gz
-
-    - name: Upload container CI script
-      run: aws s3 cp ./.github/workflows/linux-container-ci.sh s3://aws-crt-test-stuff/ci/${{ steps.tag.outputs.release_tag }}/linux-container-ci.sh
