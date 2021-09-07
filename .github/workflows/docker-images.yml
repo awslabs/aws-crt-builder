@@ -12,6 +12,13 @@ on:
       - '.github/docker-images/entrypoint.sh'
       - '.github/workflows/docker-images.yml'
       - '.github/workflows/*.sh'
+  workflow_run:
+    workflows: ["Create Channel"]
+    branches:
+      - '*'
+      - '!main'
+    types:
+      - completed
 
 env:
   AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
