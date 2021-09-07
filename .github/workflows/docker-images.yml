@@ -81,8 +81,7 @@ jobs:
     - name: Export ${{ matrix.variant }} image to S3/channels/${{ steps.tag.outputs.release_tag }}
       run: |
         export IMAGE_TAG=${{ steps.tag.outputs.release_tag }}
-        docker save ${{ secrets.AWS_ECR_REPO }}/aws-crt-${{ matrix.variant }}:$IMAGE_TAG |\
-          aws s3 cp - s3://${{env.AWS_S3_BUCKET}}/channels/$IMAGE_TAG/aws-crt-${{ matrix.variant }}.tar.gz
+        docker push ${{ secrets.AWS_ECR_REPO }}/aws-crt-${{ matrix.variant }}:$IMAGE_TAG
 
   php-images:
     name: PHP ${{ matrix.version }}
@@ -125,9 +124,7 @@ jobs:
     - name: Export PHP ${{ matrix.version }} image to S3/channels/${{ steps.tag.outputs.release_tag }}
       run: |
         export IMAGE_TAG=${{ steps.tag.outputs.release_tag }}
-        docker save ${{ secrets.AWS_ECR_REPO }}/aws-crt-php${{ matrix.version }}-linux-x64:$IMAGE_TAG \
-          | gzip \
-          | aws s3 cp - s3://${{env.AWS_S3_BUCKET}}/channels/$IMAGE_TAG/aws-crt-php${{ matrix.version }}-linux-x64.tar.gz
+        docker push ${{ secrets.AWS_ECR_REPO }}/aws-crt-php${{ matrix.version }}-linux-x64:$IMAGE_TAG
 
   ###############################################################################
   # DOWNSTREAM TESTS
