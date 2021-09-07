@@ -113,17 +113,21 @@ class NodeJS(Import):
         os.chmod(run_nvm, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
         self.nvm = run_nvm
 
+
 class Node12(NodeJS):
     def __init__(self, **kwargs):
         super.__init__(self, version=12)
+
 
 class Node14(NodeJS):
     def __init__(self, **kawargs):
         super.__init__(self, version=14)
 
+
 class Node16(NodeJS):
     def __init__(self, **kawargs):
         super.__init__(self, version=16)
+
 
 class Node18(NodeJS):
     def __init__(self, **kawargs):
