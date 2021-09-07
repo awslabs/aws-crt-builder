@@ -61,6 +61,9 @@ jobs:
       uses: ./.github/actions/release-tag
       id: tag
 
+    - name: Login to docker repo
+      run: aws ecr get-login-password --region us-east-1 | docker login ${{ secrets.AWS_ECR_REPO }} -u AWS --password-stdin
+
     - name: Install entrypoint
       run: cat .github/docker-images/entrypoint.sh | sed s/version=LATEST/version=${{ steps.tag.outputs.release_tag }}/ > .github/docker-images/${{ matrix.variant }}/entrypoint.sh
 
@@ -106,6 +109,9 @@ jobs:
     - name: Get release_tag
       uses: ./.github/actions/release-tag
       id: tag
+
+    - name: Login to docker repo
+      run: aws ecr get-login-password --region us-east-1 | docker login ${{ secrets.AWS_ECR_REPO }} -u AWS --password-stdin
 
     - name: Install entrypoint
       run: cat .github/docker-images/entrypoint.sh | sed s/version=LATEST/version=${{ steps.tag.outputs.release_tag }}/ > .github/docker-images/phpbrew-linux-x64/entrypoint.sh
