@@ -55,6 +55,9 @@ jobs:
         name: builder
         path: build/builder
 
+    - name: Upload container CI script
+      run: aws s3 cp ./.github/workflows/linux-container-ci.sh s3://aws-crt-test-stuff/ci/${{ steps.tag.outputs.release_tag }}/linux-container-ci.sh
+
   import-latest:
     name: ${{ matrix.variant }}
     runs-on: ubuntu-latest
@@ -97,12 +100,20 @@ jobs:
       uses: ./.github/actions/release-tag
       id: tag
 
+    - name: Publish image tag to env
+      run: echo "IMAGE_TAG=${{ steps.tag.outputs.release_tag }}" >> $GITHUB_ENV
+
     - name: Login to docker repo
       run: aws ecr get-login-password --region us-east-1 | docker login ${{ secrets.AWS_ECR_REPO }} -u AWS --password-stdin
 
+    - name: Create ECR repo if necessary
+      run: |
+        if ! aws --region us-east-1 ecr describe-repositories --repository-names aws-crt-${{ matrix.variant }} > /dev/null 2>&1; then \
+          aws --region us-east-1 ecr create-repository --repository-name aws-crt-${{ matrix.variant }}; \
+        fi
+
     - name: Import latest aws-crt-${{ matrix.variant }} image to channels
       run: |
-        export IMAGE_TAG=${{ steps.tag.outputs.release_tag }}
         docker pull ${{ secrets.AWS_ECR_REPO }}/aws-crt-${{ matrix.variant }}:latest || exit 0
         docker tag ${{ secrets.AWS_ECR_REPO }}/aws-crt-${{ matrix.variant }}:latest ${{ secrets.AWS_ECR_REPO }}/aws-crt-${{ matrix.variant }}:$IMAGE_TAG
         docker push ${{ secrets.AWS_ECR_REPO }}/aws-crt-${{ matrix.variant }}:$IMAGE_TAG

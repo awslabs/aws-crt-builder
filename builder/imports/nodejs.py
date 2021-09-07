@@ -29,13 +29,9 @@ class NodeJS(Import):
                 'targets': ['linux'],
             },
             **kwargs)
-        self.url = 'https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.3/install.sh'
+        self.url = 'https://raw.githubusercontent.com/nvm-sh/nvm/v0.38.0/install.sh'
+        self.version = kwargs.get('version', '12')
 
-        # windows nvm has stopped installing the latest version, so ask for our minspec
-        if current_os() == 'windows':
-            self.version = '10.16.0'
-        else:
-            self.version = '10'
         self.nvm = 'nvm'
         self.installed = False
 
@@ -116,3 +112,23 @@ class NodeJS(Import):
             nvm_sh.write(NVM)
         os.chmod(run_nvm, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
         self.nvm = run_nvm
+
+
+class Node12(NodeJS):
+    def __init__(self, **kwargs):
+        super().__init__(version='12', **kwargs)
+
+
+class Node14(NodeJS):
+    def __init__(self, **kwargs):
+        super().__init__(version='14', **kwargs)
+
+
+class Node16(NodeJS):
+    def __init__(self, **kwargs):
+        super().__init__(version='16', **kwargs)
+
+
+class Node18(NodeJS):
+    def __init__(self, **kwargs):
+        super().__init__(version='18', **kwargs)

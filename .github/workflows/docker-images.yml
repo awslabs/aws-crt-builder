@@ -12,6 +12,13 @@ on:
       - '.github/docker-images/entrypoint.sh'
       - '.github/workflows/docker-images.yml'
       - '.github/workflows/*.sh'
+  workflow_run:
+    workflows: ["Create Channel"]
+    branches:
+      - '*'
+      - '!main'
+    types:
+      - completed
 
 env:
   AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
@@ -54,6 +61,9 @@ jobs:
       uses: ./.github/actions/release-tag
       id: tag
 
+    - name: Login to docker repo
+      run: aws ecr get-login-password --region us-east-1 | docker login ${{ secrets.AWS_ECR_REPO }} -u AWS --password-stdin
+
     - name: Install entrypoint
       run: cat .github/docker-images/entrypoint.sh | sed s/version=LATEST/version=${{ steps.tag.outputs.release_tag }}/ > .github/docker-images/${{ matrix.variant }}/entrypoint.sh
 
@@ -74,8 +84,7 @@ jobs:
     - name: Export ${{ matrix.variant }} image to S3/channels/${{ steps.tag.outputs.release_tag }}
       run: |
         export IMAGE_TAG=${{ steps.tag.outputs.release_tag }}
-        docker save ${{ secrets.AWS_ECR_REPO }}/aws-crt-${{ matrix.variant }}:$IMAGE_TAG |\
-          aws s3 cp - s3://${{env.AWS_S3_BUCKET}}/channels/$IMAGE_TAG/aws-crt-${{ matrix.variant }}.tar.gz
+        docker push ${{ secrets.AWS_ECR_REPO }}/aws-crt-${{ matrix.variant }}:$IMAGE_TAG
 
   php-images:
     name: PHP ${{ matrix.version }}
@@ -101,6 +110,9 @@ jobs:
       uses: ./.github/actions/release-tag
       id: tag
 
+    - name: Login to docker repo
+      run: aws ecr get-login-password --region us-east-1 | docker login ${{ secrets.AWS_ECR_REPO }} -u AWS --password-stdin
+
     - name: Install entrypoint
       run: cat .github/docker-images/entrypoint.sh | sed s/version=LATEST/version=${{ steps.tag.outputs.release_tag }}/ > .github/docker-images/phpbrew-linux-x64/entrypoint.sh
 
@@ -118,9 +130,7 @@ jobs:
     - name: Export PHP ${{ matrix.version }} image to S3/channels/${{ steps.tag.outputs.release_tag }}
       run: |
         export IMAGE_TAG=${{ steps.tag.outputs.release_tag }}
-        docker save ${{ secrets.AWS_ECR_REPO }}/aws-crt-php${{ matrix.version }}-linux-x64:$IMAGE_TAG \
-          | gzip \
-          | aws s3 cp - s3://${{env.AWS_S3_BUCKET}}/channels/$IMAGE_TAG/aws-crt-php${{ matrix.version }}-linux-x64.tar.gz
+        docker push ${{ secrets.AWS_ECR_REPO }}/aws-crt-php${{ matrix.version }}-linux-x64:$IMAGE_TAG
 
   ###############################################################################
   # DOWNSTREAM TESTS
