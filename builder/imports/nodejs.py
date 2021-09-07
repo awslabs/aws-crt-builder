@@ -116,19 +116,19 @@ class NodeJS(Import):
 
 class Node12(NodeJS):
     def __init__(self, **kwargs):
-        super.__init__(self, version=12)
+        super().__init__(version=12, **kwargs)
 
 
 class Node14(NodeJS):
-    def __init__(self, **kawargs):
-        super.__init__(self, version=14)
+    def __init__(self, **kwargs):
+        super().__init__(version=14, **kwargs)
 
 
 class Node16(NodeJS):
-    def __init__(self, **kawargs):
-        super.__init__(self, version=16)
+    def __init__(self, **kwargs):
+        super().__init__(version=16, **kwargs)
 
 
 class Node18(NodeJS):
-    def __init__(self, **kawargs):
-        super.__init__(self, version=18)
+    def __init__(self, **kwargs):
+        super().__init__(version=18, **kwargs)
