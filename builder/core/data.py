@@ -335,7 +335,49 @@ TARGETS = {
         'variables': {
             'exe': '',
             'osx_deployment_target': '13.0',
-            'osx_architectures': 'arm64;x86_64'
+            'osx_architectures': 'arm64'
+        },
+    },
+    'tvos': {
+        'cmake_args': [
+            '-GXcode',
+            '-DCMAKE_SYSTEM_NAME=tvOS',
+            '-DCMAKE_OSX_ARCHITECTURES="{osx_architectures}"',
+            '-DCMAKE_OSX_DEPLOYMENT_TARGET={osx_deployment_target}'
+        ],
+        'run_tests': False,
+        'architectures': {
+            'armv8': {
+                'variables': {
+                    'osx_architectures': 'arm64'
+                }
+            }
+        },
+        'variables': {
+            'exe': '',
+            'osx_deployment_target': '13.0',
+            'osx_architectures': 'arm64'
+        },
+    },
+    'watchos': {
+        'cmake_args': [
+            '-GXcode',
+            '-DCMAKE_SYSTEM_NAME=watchOS',
+            '-DCMAKE_OSX_ARCHITECTURES="{osx_architectures}"',
+            '-DCMAKE_OSX_DEPLOYMENT_TARGET={osx_deployment_target}'
+        ],
+        'run_tests': False,
+        'architectures': {
+            'armv8': {
+                'variables': {
+                    'osx_architectures': 'arm64'
+                }
+            }
+        },
+        'variables': {
+            'exe': '',
+            'osx_deployment_target': '5.0',
+            'osx_architectures': 'arm64'
         },
     },
     'android': {
@@ -389,7 +431,7 @@ for arch in ARCHS.keys():
 COMPILERS = {
     'default': {
         'hosts': ['macos', 'linux', 'windows', 'freebsd'],
-        'targets': ['macos', 'linux', 'windows', 'freebsd', 'android', 'ios'],
+        'targets': ['macos', 'linux', 'windows', 'freebsd', 'android', 'ios', 'tvos', 'watchos'],
 
         'versions': {
             'default': {}
@@ -397,7 +439,7 @@ COMPILERS = {
     },
     'clang': {
         'hosts': ['linux', 'macos'],
-        'targets': ['linux', 'macos', 'ios'],
+        'targets': ['linux', 'macos', 'ios', 'tvos', 'watchos'],
 
         'imports': ['llvm'],
 
@@ -561,6 +603,12 @@ PLATFORMS = {
     'ios-armv8': {
         'cross_compile_platform': None
     },
+    'tvos-armv8': {
+        'cross_compile_platform': None
+    },
+    'watchos-armv8': {
+        'cross_compile_platform': None
+    }
     # Linux is done procedurally, below
 }
 
