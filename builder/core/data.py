@@ -431,7 +431,7 @@ for arch in ARCHS.keys():
 COMPILERS = {
     'default': {
         'hosts': ['macos', 'linux', 'windows', 'freebsd'],
-        'targets': ['macos', 'linux', 'windows', 'freebsd', 'android', 'ios'],
+        'targets': ['macos', 'linux', 'windows', 'freebsd', 'android', 'ios', 'tvos', 'watchos'],
 
         'versions': {
             'default': {}
@@ -439,7 +439,7 @@ COMPILERS = {
     },
     'clang': {
         'hosts': ['linux', 'macos'],
-        'targets': ['linux', 'macos', 'ios'],
+        'targets': ['linux', 'macos', 'ios', 'tvos', 'watchos'],
 
         'imports': ['llvm'],
 
