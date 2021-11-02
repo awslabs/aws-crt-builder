@@ -603,6 +603,12 @@ PLATFORMS = {
     'ios-armv8': {
         'cross_compile_platform': None
     },
+    'tvos-armv8': {
+        'cross_compile_platform': None
+    },
+    'watchos-armv8': {
+        'cross_compile_platform': None
+    }
     # Linux is done procedurally, below
 }
 
