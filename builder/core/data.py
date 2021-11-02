@@ -335,7 +335,7 @@ TARGETS = {
         'variables': {
             'exe': '',
             'osx_deployment_target': '13.0',
-            'osx_architectures': 'arm64;x86_64'
+            'osx_architectures': 'arm64'
         },
     },
     'tvos': {
@@ -356,7 +356,7 @@ TARGETS = {
         'variables': {
             'exe': '',
             'osx_deployment_target': '13.0',
-            'osx_architectures': 'arm64;x86_64'
+            'osx_architectures': 'arm64'
         },
     },
     'watchos': {
@@ -376,8 +376,8 @@ TARGETS = {
         },
         'variables': {
             'exe': '',
-            'osx_deployment_target': '13.0',
-            'osx_architectures': 'arm64;x86_64'
+            'osx_deployment_target': '5.0',
+            'osx_architectures': 'arm64'
         },
     },
     'android': {
