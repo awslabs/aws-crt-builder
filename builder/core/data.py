@@ -338,6 +338,48 @@ TARGETS = {
             'osx_architectures': 'arm64;x86_64'
         },
     },
+    'tvos': {
+        'cmake_args': [
+            '-GXcode',
+            '-DCMAKE_SYSTEM_NAME=tvOS',
+            '-DCMAKE_OSX_ARCHITECTURES="{osx_architectures}"',
+            '-DCMAKE_OSX_DEPLOYMENT_TARGET={osx_deployment_target}'
+        ],
+        'run_tests': False,
+        'architectures': {
+            'armv8': {
+                'variables': {
+                    'osx_architectures': 'arm64'
+                }
+            }
+        },
+        'variables': {
+            'exe': '',
+            'osx_deployment_target': '13.0',
+            'osx_architectures': 'arm64;x86_64'
+        },
+    },
+    'watchos': {
+        'cmake_args': [
+            '-GXcode',
+            '-DCMAKE_SYSTEM_NAME=watchOS',
+            '-DCMAKE_OSX_ARCHITECTURES="{osx_architectures}"',
+            '-DCMAKE_OSX_DEPLOYMENT_TARGET={osx_deployment_target}'
+        ],
+        'run_tests': False,
+        'architectures': {
+            'armv8': {
+                'variables': {
+                    'osx_architectures': 'arm64'
+                }
+            }
+        },
+        'variables': {
+            'exe': '',
+            'osx_deployment_target': '13.0',
+            'osx_architectures': 'arm64;x86_64'
+        },
+    },
     'android': {
         'cmake_args': [
             "-DTARGET_ARCH=ANDROID",
