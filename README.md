@@ -312,7 +312,7 @@ Installed on these docker images:
 * Linux only: curl, bash
 
 ### Installed Binary packages
-libcrypto, cmake (manylinux1, manylinux2014-x86), and maven (ARM) are built in their target containers by the build_cmake.sh,
+libcrypto, cmake (manylinux2014-x86), and maven (ARM) are built in their target containers by the build_cmake.sh,
 build_libcrypto*.sh and cache_maven.sh scripts. These can be run in GitHub, or on a local machine. They upload the build results
 of each of those packages to S3, for distribution via CloudFront to images as they are being built. Since these don't change much,
 this shouldn't be a common operation, but it is automated.
