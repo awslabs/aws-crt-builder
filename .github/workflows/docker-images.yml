@@ -39,7 +39,7 @@ jobs:
         - manylinux2014-aarch64
         - al2012-x64
         - al2-x64
-        - ubuntu-16-x64
+        - ubuntu-18-x64
         - ubuntu-20-aarch64
         - debian-stretch-arm32v5
         - debian-stretch-arm32v7
@@ -153,6 +153,6 @@ jobs:
     - name: Build aws-c-common + consumers
       run: |
         aws ecr get-login-password --region us-east-1 | docker login ${{ secrets.AWS_ECR_REPO }} -u AWS --password-stdin
-        export DOCKER_IMAGE=${{ secrets.AWS_ECR_REPO }}/aws-crt-ubuntu-16-x64:${{ steps.tag.outputs.release_tag }}
+        export DOCKER_IMAGE=${{ secrets.AWS_ECR_REPO }}/aws-crt-ubuntu-18-x64:${{ steps.tag.outputs.release_tag }}
         docker pull $DOCKER_IMAGE
         docker run --env GITHUB_REF $DOCKER_IMAGE --version=${{ steps.tag.outputs.release_tag }} build -p aws-c-common --target=${{ matrix.target }}
