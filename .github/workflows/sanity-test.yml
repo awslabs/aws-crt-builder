@@ -78,7 +78,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        host: [ubuntu-16.04, ubuntu-18.04, ubuntu-20.04, macos-10.15, macos-11, windows-2019]
+        host: [ubuntu-18.04, ubuntu-20.04, macos-10.15, macos-11, windows-2019]
     needs: package
     runs-on: ${{ matrix.host }}
     steps:
@@ -172,7 +172,7 @@ jobs:
           - gcc-7
           - gcc-8
     needs: [package]
-    runs-on: ubuntu-16.04
+    runs-on: ubuntu-18.04
     steps:
     - name: Checkout Source
       uses: actions/checkout@v1
@@ -189,7 +189,7 @@ jobs:
   # Make sure linux compilers + stdlibs are installing properly
   std-compat:
     needs: [package, sanity_test]
-    runs-on: ubuntu-16.04
+    runs-on: ubuntu-18.04
     strategy:
       fail-fast: false
       matrix:
@@ -264,12 +264,9 @@ jobs:
       fail-fast: false
       matrix:
         linux:
-        - manylinux1-x86
-        - manylinux1-x64
         - manylinux2014-x86
         - manylinux2014-x64
         - manylinux2014-aarch64
-        - ubuntu-16-x64
 
     needs: package
     runs-on: ubuntu-latest
@@ -300,7 +297,7 @@ jobs:
       fail-fast: false
       matrix:
         linux:
-          - swift-5-ubuntu-16-x64
+          - swift-5-ubuntu-x64
           - swift-5-centos-x64
           - swift-5-al2-x64
 
