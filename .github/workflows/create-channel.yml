@@ -7,10 +7,13 @@ on:
   push:
     branches:
       - '*'
-      - '!master'
       - '!main'
     paths:
       - '.github/workflows/create-channel.yml'
+      - '.github/actions/**/*'
+      - '.github/docker-images/**/*'
+      - '.github/docker-images/entrypoint.sh'
+      - '.github/workflows/*.sh'
   create:
 
 env:
