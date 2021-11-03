@@ -105,6 +105,12 @@ jobs:
         context: .github/docker-images/${{ matrix.variant }}
         build_extra_args: --compress=true
 
+    - name: Create ECR repo if necessary
+      run: |
+        if ! aws --region us-east-1 ecr describe-repositories --repository-names aws-crt/${{ matrix.variant }} > /dev/null 2>&1; then \
+          aws --region us-east-1 ecr create-repository --repository-name aws-crt/${{ matrix.variant }}; \
+        fi
+
     - name: Export ${{ matrix.variant }} image to ECR
       run: |
         export IMAGE_TAG=${{ steps.tag.outputs.release_tag }}
@@ -150,6 +156,12 @@ jobs:
         image_tag: ${{ steps.tag.outputs.release_tag }}
         context: .github/docker-images/phpbrew-linux-x64
         build_extra_args: --compress=true --build-arg PHP_VERSION=${{matrix.version}}
+
+    - name: Create ECR repo if necessary
+      run: |
+        if ! aws --region us-east-1 ecr describe-repositories --repository-names aws-crt-php${{ matrix.version }}-linux-x64 > /dev/null 2>&1; then \
+          aws --region us-east-1 ecr create-repository --repository-name aws-crt-php${{ matrix.version }}-linux-x64; \
+        fi
 
     - name: Export PHP ${{ matrix.version }} image to ECR
       run: |
