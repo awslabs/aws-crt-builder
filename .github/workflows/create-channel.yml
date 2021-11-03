@@ -35,14 +35,6 @@ jobs:
       uses: ./.github/actions/release-tag
       id: tag
 
-    - run: echo TAG ${{ steps.tag.outputs.release_tag }}
-
-    # re-enable this when requirements.txt has actual dependencies
-    # - name: Bundle dependencies
-    #   run: |
-    #     python3 -m pip install -r requirements.txt --target builder
-    #     rm -rf builder/*.dist-info
-
     - name: Package builder to S3
       run: |
         export CHANNEL=${{ steps.tag.outputs.release_tag }}
@@ -61,7 +53,7 @@ jobs:
     - name: Upload container CI script
       run: aws s3 cp ./.github/workflows/linux-container-ci.sh s3://aws-crt-test-stuff/ci/${{ steps.tag.outputs.release_tag }}/linux-container-ci.sh
 
-  import-latest:
+  standard-images:
     name: ${{ matrix.variant }}
     runs-on: ubuntu-latest
     strategy:
@@ -84,14 +76,6 @@ jobs:
         - rhel8-x64
         - opensuse-leap
         - fedora-34-x64
-        - php5.5-linux-x64
-        - php5.6-linux-x64
-        - php7.0-linux-x64
-        - php7.1-linux-x64
-        - php7.2-linux-x64
-        - php7.3-linux-x64
-        - php7.4-linux-x64
-        - php8.0-linux-x64
 
     steps:
     - name: Checkout Sources
@@ -101,23 +85,73 @@ jobs:
       uses: ./.github/actions/release-tag
       id: tag
 
-    - name: Publish image tag to env
-      run: echo "IMAGE_TAG=${{ steps.tag.outputs.release_tag }}" >> $GITHUB_ENV
+    - name: Login to docker repo
+      run: aws ecr get-login-password --region us-east-1 | docker login ${{ secrets.AWS_ECR_REPO }} -u AWS --password-stdin
+
+    - name: Install entrypoint
+      run: cat .github/docker-images/entrypoint.sh | sed s/version=LATEST/version=${{ steps.tag.outputs.release_tag }}/ > .github/docker-images/${{ matrix.variant }}/entrypoint.sh
+
+    - name: Install qemu/docker
+      run: docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+
+    - name: Build ${{ matrix.variant }} image
+      uses: whoan/docker-build-with-cache-action@v5
+      with:
+        registry: ${{ secrets.AWS_ECR_REPO }}
+        username: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        password: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        image_name: aws-crt-${{ matrix.variant }}
+        image_tag: ${{ steps.tag.outputs.release_tag }}
+        context: .github/docker-images/${{ matrix.variant }}
+        build_extra_args: --compress=true
+
+    - name: Export ${{ matrix.variant }} image to ECR
+      run: |
+        export IMAGE_TAG=${{ steps.tag.outputs.release_tag }}
+        docker push ${{ secrets.AWS_ECR_REPO }}/aws-crt-${{ matrix.variant }}:$IMAGE_TAG
+
+  php-images:
+    name: PHP ${{ matrix.version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        version:
+        - "5.5"
+        - "5.6"
+        - "7.0"
+        - "7.1"
+        - "7.2"
+        - "7.3"
+        - "7.4"
+        - "8.0"
+
+    steps:
+    - name: Checkout Sources
+      uses: actions/checkout@v1
+
+    - name: Get release_tag
+      uses: ./.github/actions/release-tag
+      id: tag
 
     - name: Login to docker repo
       run: aws ecr get-login-password --region us-east-1 | docker login ${{ secrets.AWS_ECR_REPO }} -u AWS --password-stdin
 
-    - name: Create ECR repo if necessary
-      run: |
-        if ! aws --region us-east-1 ecr describe-repositories --repository-names aws-crt-${{ matrix.variant }} > /dev/null 2>&1; then \
-          aws --region us-east-1 ecr create-repository --repository-name aws-crt-${{ matrix.variant }}; \
-        fi
+    - name: Install entrypoint
+      run: cat .github/docker-images/entrypoint.sh | sed s/version=LATEST/version=${{ steps.tag.outputs.release_tag }}/ > .github/docker-images/phpbrew-linux-x64/entrypoint.sh
 
-    - name: Import latest aws-crt-${{ matrix.variant }} image to channels
+    - name: Build ${{ matrix.version }} image
+      uses: whoan/docker-build-with-cache-action@v5
+      with:
+        registry: ${{ secrets.AWS_ECR_REPO }}
+        username: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        password: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        image_name: aws-crt-php${{ matrix.version }}-linux-x64
+        image_tag: ${{ steps.tag.outputs.release_tag }}
+        context: .github/docker-images/phpbrew-linux-x64
+        build_extra_args: --compress=true --build-arg PHP_VERSION=${{matrix.version}}
+
+    - name: Export PHP ${{ matrix.version }} image to ECR
       run: |
-        docker pull ${{ secrets.AWS_ECR_REPO }}/aws-crt-${{ matrix.variant }}:latest || exit 0
-        docker tag ${{ secrets.AWS_ECR_REPO }}/aws-crt-${{ matrix.variant }}:latest ${{ secrets.AWS_ECR_REPO }}/aws-crt-${{ matrix.variant }}:$IMAGE_TAG
-        docker push ${{ secrets.AWS_ECR_REPO }}/aws-crt-${{ matrix.variant }}:$IMAGE_TAG
-        docker save ${{ secrets.AWS_ECR_REPO }}/aws-crt-${{ matrix.variant }}:$IMAGE_TAG \
-        | gzip \
-        | aws s3 cp - s3://${{env.AWS_S3_BUCKET}}/channels/$IMAGE_TAG/aws-crt-${{ matrix.variant }}.tar.gz
+        export IMAGE_TAG=${{ steps.tag.outputs.release_tag }}
+        docker push ${{ secrets.AWS_ECR_REPO }}/aws-crt-php${{ matrix.version }}-linux-x64:$IMAGE_TAG
