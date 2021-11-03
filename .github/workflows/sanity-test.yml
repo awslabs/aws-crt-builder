@@ -297,7 +297,7 @@ jobs:
       fail-fast: false
       matrix:
         linux:
-          - swift-5-ubuntu-16-x64
+          - swift-5-ubuntu-x64
           - swift-5-centos-x64
           - swift-5-al2-x64
 
