@@ -107,8 +107,8 @@ jobs:
 
     - name: Create ECR repo if necessary
       run: |
-        if ! aws --region us-east-1 ecr describe-repositories --repository-names aws-crt/${{ matrix.variant }} > /dev/null 2>&1; then \
-          aws --region us-east-1 ecr create-repository --repository-name aws-crt/${{ matrix.variant }}; \
+        if ! aws --region us-east-1 ecr describe-repositories --repository-names aws-crt-${{ matrix.variant }} > /dev/null 2>&1; then \
+          aws --region us-east-1 ecr create-repository --repository-name aws-crt-${{ matrix.variant }}; \
         fi
 
     - name: Export ${{ matrix.variant }} image to ECR
