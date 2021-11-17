@@ -11,9 +11,16 @@ RUN yum -y install \
     python3 \
     python3-pip \
     openssl-devel \
+    make \
+    libcurl-devel \
     && yum clean all \
     && rm -rf /var/cache/yum
 
+###############################################################################
+# Fix the old version of git on CentOS which SPM can't work with
+###############################################################################
+RUN git clone https://github.com/git/git -bv2.33.1 --depth 1 && cd git
+RUN make prefix=/usr -j all install NO_OPENSSL=1 NO_EXPAT=1 NO_TCLTK=1 NO_GETTEXT=1 NO_PERL=1
 
 ###############################################################################
 # Python/AWS CLI
