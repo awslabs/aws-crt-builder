@@ -5,6 +5,13 @@ SHELL ["/bin/bash", "-c"]
 RUN dnf install -y gcc gcc-c++ cmake wget python3 python3-pip git make sudo
 
 ###############################################################################
+# Python/AWS CLI
+###############################################################################
+RUN python3 -m pip install --upgrade pip setuptools virtualenv \
+    && python3 -m pip install --upgrade awscli \
+    && aws --version
+
+###############################################################################
 # Install entrypoint
 ###############################################################################
 ADD entrypoint.sh /usr/local/bin/builder
