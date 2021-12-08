@@ -1,8 +1,8 @@
-FROM opensuse/leap:15.2
+FROM opensuse/leap:15.3
 
 SHELL ["/bin/bash", "-c"]
 
-RUN zypper refresh && zypper --non-interactive patch
+RUN zypper refresh 
 RUN zypper install -y git gcc gcc-c++ cmake curl python3 python3-pip wget sudo
 
 # normally we let the builder install this, but the builder does a non-standard install that doesn't play nice
