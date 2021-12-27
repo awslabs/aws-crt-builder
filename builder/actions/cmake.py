@@ -101,7 +101,7 @@ def _project_dirs(env, project):
     return source_dir, build_dir, install_dir
 
 
-def _build_project(env, project, cmake_extra, build_tests=False):
+def _build_project(env, project, cmake_extra, build_tests=False, args_transformer=None):
     sh = env.shell
     config = project.get_config(env.spec)
     toolchain = env.toolchain
@@ -157,6 +157,11 @@ def _build_project(env, project, cmake_extra, build_tests=False):
     cmake_args += project.cmake_args(env)
     cmake_args += cmake_extra
 
+    # Allow caller to programmatically tweak the cmake_args,
+    # as a last resort in case data merging wasn't working out
+    if args_transformer:
+        cmake_args = args_transformer(env, project, cmake_args)
+
     # When cross compiling, we must inject the build_env into the cross compile container
     build_env = []
     if toolchain.cross_compile:
@@ -174,11 +179,7 @@ def _build_project(env, project, cmake_extra, build_tests=False):
     # configure
     sh.exec(*toolchain.shell_env, cmake, cmake_args, working_dir=working_dir, check=True)
 
-    # build
-    sh.exec(*toolchain.shell_env, cmake, "--build", project_build_dir, "--config",
-            build_config, working_dir=working_dir, check=True)
-
-    # install
+    # build & install
     sh.exec(*toolchain.shell_env, cmake, "--build", project_build_dir, "--config",
             build_config, "--target", "install", working_dir=working_dir, check=True)
 
@@ -186,8 +187,9 @@ def _build_project(env, project, cmake_extra, build_tests=False):
 class CMakeBuild(Action):
     """ Runs cmake configure, build """
 
-    def __init__(self, project):
+    def __init__(self, project, *, args_transformer=None):
         self.project = project
+        self.args_transformer = args_transformer
 
     def run(self, env):
         toolchain = env.toolchain
@@ -202,7 +204,7 @@ class CMakeBuild(Action):
 
         # BUILD
         build_tests = self.project.needs_tests(env)
-        _build_project(env, self.project, args.cmake_extra, build_tests)
+        _build_project(env, self.project, args.cmake_extra, build_tests, self.args_transformer)
 
     def __str__(self):
         return 'cmake build {} @ {}'.format(self.project.name, self.project.path)
