@@ -288,6 +288,7 @@ jobs:
       run: |
         aws ecr get-login-password --region us-east-1 | docker login ${{ secrets.AWS_ECR_REPO }} -u AWS --password-stdin
         export DOCKER_IMAGE=${{ secrets.AWS_ECR_REPO }}/aws-crt-${{ matrix.linux }}:${{ steps.tag.outputs.release_tag }}
+        echo ${{ steps.tag.outputs.release_tag }}
         docker pull $DOCKER_IMAGE
         docker run --env GITHUB_REF $DOCKER_IMAGE --version=${{ steps.tag.outputs.release_tag }} build -p aws-c-cal --spec=downstream run_tests=false
 
