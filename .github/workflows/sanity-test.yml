@@ -31,7 +31,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout Source
-      uses: actions/checkout@v1
+      uses: actions/checkout@v2
 
     - name: Run Tests
       run: python3 -m unittest discover tests --verbose
@@ -42,7 +42,7 @@ jobs:
 
     steps:
     - name: Checkout Source
-      uses: actions/checkout@v1
+      uses: actions/checkout@v2
 
     - name: Get release tag
       uses: ./.github/actions/release-tag
@@ -83,7 +83,7 @@ jobs:
     runs-on: ${{ matrix.host }}
     steps:
     - name: Checkout Source
-      uses: actions/checkout@v1
+      uses: actions/checkout@v2
 
     - name: Install builder
       uses: actions/download-artifact@v1
@@ -145,7 +145,7 @@ jobs:
 
     steps:
     - name: Checkout Source
-      uses: actions/checkout@v1
+      uses: actions/checkout@v2
 
     - name: Install builder
       uses: actions/download-artifact@v1
@@ -175,7 +175,7 @@ jobs:
     runs-on: ubuntu-18.04
     steps:
     - name: Checkout Source
-      uses: actions/checkout@v1
+      uses: actions/checkout@v2
 
     - name: Install builder
       uses: actions/download-artifact@v1
@@ -197,7 +197,7 @@ jobs:
         std: [c++11, c++14, c++17, c++2a]
     steps:
     - name: Checkout Source
-      uses: actions/checkout@v1
+      uses: actions/checkout@v2
 
     - name: Install builder
       uses: actions/download-artifact@v1
@@ -247,7 +247,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout Source
-      uses: actions/checkout@v1
+      uses: actions/checkout@v2
 
     - name: Install builder
       uses: actions/download-artifact@v1
@@ -272,7 +272,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout Source
-      uses: actions/checkout@v1
+      uses: actions/checkout@v2
 
     - name: Get release tag
       uses: ./.github/actions/release-tag
@@ -305,7 +305,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout Source
-      uses: actions/checkout@v1
+      uses: actions/checkout@v2
 
     - name: Get release tag
       uses: ./.github/actions/release-tag
