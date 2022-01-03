@@ -9,6 +9,7 @@ RUN apt-get update -qq \
     && apt-get -y install \
     sudo \
     curl \
+    wget \
     # Python
     python3 \
     python3-pip \
@@ -18,6 +19,13 @@ RUN apt-get update -qq \
     apt-transport-https \
     ca-certificates \
     && apt-get clean
+
+###############################################################################
+# Add the corretto repo and public key and install corretto
+###############################################################################
+RUN wget -O- https://apt.corretto.aws/corretto.key | sudo apt-key add - 
+RUN sudo add-apt-repository 'deb https://apt.corretto.aws stable main'
+RUN apt-get -y install java-11-amazon-corretto-jdk
 
 ###############################################################################
 # Python/AWS CLI
