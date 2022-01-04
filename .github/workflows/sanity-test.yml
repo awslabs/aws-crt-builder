@@ -193,7 +193,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        compiler: [gcc-8, clang-9]
+        compiler: [gcc-11, clang-9]
         std: [c++11, c++14, c++17, c++2a]
     steps:
     - name: Checkout Source
