@@ -189,7 +189,7 @@ jobs:
   # Make sure linux compilers + stdlibs are installing properly
   std-compat:
     needs: [package, sanity_test]
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
