@@ -189,11 +189,11 @@ jobs:
   # Make sure linux compilers + stdlibs are installing properly
   std-compat:
     needs: [package, sanity_test]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
     strategy:
       fail-fast: false
       matrix:
-        compiler: [gcc-11, clang-9]
+        compiler: [gcc-8, clang-9]
         std: [c++11, c++14, c++17, c++2a]
     steps:
     - name: Checkout Source
@@ -288,7 +288,6 @@ jobs:
       run: |
         aws ecr get-login-password --region us-east-1 | docker login ${{ secrets.AWS_ECR_REPO }} -u AWS --password-stdin
         export DOCKER_IMAGE=${{ secrets.AWS_ECR_REPO }}/aws-crt-${{ matrix.linux }}:${{ steps.tag.outputs.release_tag }}
-        echo ${{ steps.tag.outputs.release_tag }}
         docker pull $DOCKER_IMAGE
         docker run --env GITHUB_REF $DOCKER_IMAGE --version=${{ steps.tag.outputs.release_tag }} build -p aws-c-cal --spec=downstream run_tests=false
 
