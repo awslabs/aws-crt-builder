@@ -155,9 +155,11 @@ class Env(object):
                 ["git", "branch", "-a", "--contains", "HEAD"]).decode("utf-8")
             star_branch = None
             for branch in branches.split('\n'):
-                if branch and branch.startswith('*') and branch != "(no branch)":
-                    # if git branch says we are on a branch that is not no branch
+                if branch and branch.startswith('*'):
                     star_branch = branch.strip('*').strip()
+                    if star_branch == "(no branch)":
+                        # if git branch says we are no branch, we are not on any branch
+                        star_branch = None
                     break
             branches = [branch.strip('*').strip()
                         for branch in branches.split('\n') if branch]
