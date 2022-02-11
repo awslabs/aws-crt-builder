@@ -1,5 +1,5 @@
 # https://github.com/apple/swift-docker/blob/d3a19f47844d7d4d0dab0b59153da1f1596543b6/5.5/ubuntu/16.04/Dockerfile
-FROM swift:5.5.2-focal
+FROM swift:5.5.3-focal
 
 ###############################################################################
 # Install prereqs
