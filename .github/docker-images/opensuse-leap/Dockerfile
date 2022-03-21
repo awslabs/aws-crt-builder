@@ -10,10 +10,6 @@ RUN zypper install -y git gcc gcc-c++ cmake curl python3 python3-pip wget sudo p
 # and use it for this particular CI check.
 RUN zypper install -y java-11-openjdk-devel
 
-# additional repositories (softhsm)
-RUN rpm --import https://download.opensuse.org/repositories/Apache:/Test/openSUSE_Leap_15.2/repodata/repomd.xml.key
-RUN zypper ar -f https://download.opensuse.org/repositories/Apache:/Test/openSUSE_Leap_15.2/ ApacheTest
-
 ###############################################################################
 # Python/AWS CLI
 ###############################################################################
