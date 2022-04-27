@@ -635,7 +635,7 @@ class Project(object):
 
     def get_dependencies(self, spec):
         """ Gets immediate dependencies for a given BuildSpec, filters by target """
-        dependencies = _resolve_projects(self, self.config.get('upstream', []))
+        dependencies = _resolve_projects(self, self.get_config(spec).get('upstream', []))
         target = spec.target
         filtered = []
         for p in dependencies:
@@ -662,7 +662,7 @@ class Project(object):
 
     def get_consumers(self, spec):
         """ Gets consumers for a given BuildSpec, filters by target """
-        consumers = _resolve_projects(self, self.config.get('downstream', []))
+        consumers = _resolve_projects(self, self.get_config(spec).get('downstream', []))
         target = spec.target
         filtered = []
         for c in consumers:
