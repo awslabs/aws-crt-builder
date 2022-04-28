@@ -63,7 +63,7 @@ class DownloadDependencies(Action):
             sh.pushd(env.deps_dir)
 
             while deps:
-                dep = deps.pop()
+                dep = deps.pop(0)  # pop front
                 dep_proj = Project.find_project(dep.name)
                 if dep_proj.path:
                     continue
@@ -73,8 +73,8 @@ class DownloadDependencies(Action):
 
                 # grab updated project, collect transitive dependencies/consumers
                 dep_proj = Project.find_project(dep.name)
-                deps += dep_proj.get_dependencies(spec)
+                deps = dep_proj.get_dependencies(spec) + deps  # push front
                 if spec and spec.downstream:
-                    deps += dep_proj.get_consumers(spec)
+                    deps += dep_proj.get_consumers(spec)  # push back
 
             sh.popd()

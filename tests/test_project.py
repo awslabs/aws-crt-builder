@@ -123,6 +123,7 @@ class TestProject(unittest.TestCase):
 
         p = Project(**config)
         mock_env = mock.Mock(name='MockEnv', config=config)
+        mock_env.spec = BuildSpec()
         steps = p.pre_build(mock_env)
         self._assert_step_contains_all(steps, ['build dependencies', 'build lib-1'])
 
@@ -148,6 +149,7 @@ class TestProject(unittest.TestCase):
 
         p = Project(**config)
         mock_env = mock.Mock(name='MockEnv', config=config)
+        mock_env.spec = BuildSpec()
         steps = p.build_consumers(mock_env)
         self._assert_step_contains_all(steps, ['test lib-1'])
 
@@ -164,6 +166,7 @@ class TestProject(unittest.TestCase):
 
         p = Project(**config)
         mock_env = mock.Mock(name='MockEnv', config=config)
+        mock_env.spec = BuildSpec()
         steps = p.build_consumers(mock_env)
         self._assert_step_not_contains(steps, 'test lib-1')
 
@@ -178,6 +181,7 @@ class TestProject(unittest.TestCase):
 
         p = Project(**config)
         mock_env = mock.Mock(name='MockEnv', config=config)
+        mock_env.spec = BuildSpec()
         steps = p.build_consumers(mock_env)
         self._assert_step_contains_all(steps, ['post build lib-1', 'test lib-1'])
 
@@ -192,7 +196,7 @@ class TestProject(unittest.TestCase):
         ]
 
         p = Project(**config)
-        spec = mock.Mock(name='MockBuildSpec', spec=BuildSpec, target='linux')
+        spec = BuildSpec(target='linux')
         deps = p.get_dependencies(spec)
         self.assertEqual('explicit-branch', deps[0].revision)
 
@@ -207,7 +211,7 @@ class TestProject(unittest.TestCase):
         ]
 
         p = Project(**config)
-        spec = mock.Mock(name='MockBuildSpec', spec=BuildSpec, target='macos')
+        spec = BuildSpec(target='macos')
         dependencies = p.get_dependencies(spec)
         self.assertEqual(0, len(dependencies), "dependencies should have filtered upstream with specific target")
 
@@ -221,8 +225,8 @@ class TestProject(unittest.TestCase):
         ]
 
         p = Project(**config)
-        m_spec = mock.Mock(name='MockBuildSpec', spec=BuildSpec, target='macos')
-        dependencies = p.get_dependencies(m_spec)
+        spec = BuildSpec(target='macos')
+        dependencies = p.get_dependencies(spec)
         m_env = mock.Mock(name='MockEnv', config=config)
         steps = dependencies[0].post_build(m_env)
         self._assert_step_contains(steps, "{}/gradlew postBuildTask".format(os.path.join(test_data_dir, "lib-1")))
