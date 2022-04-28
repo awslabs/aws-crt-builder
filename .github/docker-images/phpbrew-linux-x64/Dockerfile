@@ -81,6 +81,7 @@ RUN curl -L -O https://github.com/phpbrew/phpbrew/releases/latest/download/phpbr
     && phpbrew switch $PHP_VERSION \
     && phpbrew -d ext install openssl \
     && php --version
+    && composer self-update
 
 
 ###############################################################################
