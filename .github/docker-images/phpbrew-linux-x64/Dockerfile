@@ -59,14 +59,6 @@ RUN curl -sSL https://d19elf31gohf1l.cloudfront.net/_binaries/cmake/cmake-3.13-m
     && rm -f /tmp/cmake.tar.gz
 
 ###############################################################################
-# Install composer
-###############################################################################
-WORKDIR /tmp
-RUN curl -sSL https://getcomposer.org/download/latest-2.2.x/composer.phar -o /usr/local/bin/composer \
-    && chmod a+x /usr/local/bin/composer \
-    && composer --version
-
-###############################################################################
 # Install phpbrew
 ###############################################################################
 WORKDIR /tmp
@@ -80,9 +72,23 @@ RUN curl -L -O https://github.com/phpbrew/phpbrew/releases/latest/download/phpbr
     && phpbrew install --stdout -j 4 $PHP_VERSION +small as $PHP_VERSION -- --with-openssl=shared \
     && phpbrew switch $PHP_VERSION \
     && phpbrew -d ext install openssl \
-    && php --version \
-    && composer self-update
+    && php --version
 
+###############################################################################
+# Install proper composer version
+# source .bashrc first so that we're using the PHP version from previous step
+# Latest stable is only compatible with PHP 7.2+
+# 2.2.x is only compatible with older PHP versions
+###############################################################################
+WORKDIR /tmp
+RUN source $HOME/.bashrc \
+    && function version_gt() { test "$(printf '%s\n' "$@" | sort -V | head -n 1)" != "$1"; } \
+    &&  if version_gt 7.2 $PHP_VERSION ; \
+            then curl -sSL https://getcomposer.org/download/latest-2.2.x/composer.phar -o /usr/local/bin/composer ; \
+            else curl -sSL https://getcomposer.org/composer-stable.phar -o /usr/local/bin/composer ; \
+        fi \
+    && chmod a+x /usr/local/bin/composer \
+    && COMPOSER_ALLOW_SUPERUSER=1 composer --version
 
 ###############################################################################
 # Install entrypoint
