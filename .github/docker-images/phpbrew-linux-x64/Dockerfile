@@ -80,7 +80,7 @@ RUN curl -L -O https://github.com/phpbrew/phpbrew/releases/latest/download/phpbr
     && phpbrew install --stdout -j 4 $PHP_VERSION +small as $PHP_VERSION -- --with-openssl=shared \
     && phpbrew switch $PHP_VERSION \
     && phpbrew -d ext install openssl \
-    && php --version
+    && php --version \
     && composer self-update
 
 
