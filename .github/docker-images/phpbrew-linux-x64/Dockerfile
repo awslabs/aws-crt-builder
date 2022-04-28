@@ -62,7 +62,7 @@ RUN curl -sSL https://d19elf31gohf1l.cloudfront.net/_binaries/cmake/cmake-3.13-m
 # Install composer
 ###############################################################################
 WORKDIR /tmp
-RUN curl -sSL https://getcomposer.org/composer-stable.phar -o /usr/local/bin/composer \
+RUN curl -sSL https://getcomposer.org/download/latest-2.2.x/composer.phar -o /usr/local/bin/composer \
     && chmod a+x /usr/local/bin/composer \
     && composer --version
 
@@ -81,6 +81,7 @@ RUN curl -L -O https://github.com/phpbrew/phpbrew/releases/latest/download/phpbr
     && phpbrew switch $PHP_VERSION \
     && phpbrew -d ext install openssl \
     && php --version
+
 
 ###############################################################################
 # Install entrypoint
