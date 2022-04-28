@@ -59,18 +59,6 @@ RUN curl -sSL https://d19elf31gohf1l.cloudfront.net/_binaries/cmake/cmake-3.13-m
     && rm -f /tmp/cmake.tar.gz
 
 ###############################################################################
-# Install composer
-###############################################################################
-WORKDIR /tmp
-RUN function version_gt() { test "$(printf '%s\n' "$@" | sort -V | head -n 1)" != "$1"; } \
-    &&  if version_gt $PHP_VERSION 7.1 ; \
-            then curl -sSL https://getcomposer.org/composer-stable.phar -o /usr/local/bin/composer ; \
-            else curl -sSL https://getcomposer.org/download/latest-2.2.x/composer.phar -o /usr/local/bin/composer ; \
-        fi \
-    && chmod a+x /usr/local/bin/composer \
-    && composer --version
-
-###############################################################################
 # Install phpbrew
 ###############################################################################
 WORKDIR /tmp
@@ -86,6 +74,17 @@ RUN curl -L -O https://github.com/phpbrew/phpbrew/releases/latest/download/phpbr
     && phpbrew -d ext install openssl \
     && php --version
 
+###############################################################################
+# Install composer
+###############################################################################
+WORKDIR /tmp
+RUN function version_gt() { test "$(printf '%s\n' "$@" | sort -V | head -n 1)" != "$1"; } \
+    &&  if version_gt $PHP_VERSION 7.1 ; \
+            then curl -sSL https://getcomposer.org/composer-stable.phar -o /usr/local/bin/composer ; \
+            else curl -sSL https://getcomposer.org/download/latest-2.2.x/composer.phar -o /usr/local/bin/composer ; \
+        fi \
+    && chmod a+x /usr/local/bin/composer \
+    && composer --version
 
 ###############################################################################
 # Install entrypoint
