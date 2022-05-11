@@ -173,7 +173,7 @@ HOSTS = {
     'rhel': {
         'os': 'linux',
         'pkg_tool': PKG_TOOLS.DNF,
-        'pkg_update': 'dnf update -y',
+        'pkg_update': 'dnf update -y --nobest',
         'pkg_install': 'dnf install -y',
     },
     'al2012': {
