@@ -144,7 +144,7 @@ def parse_args():
                         choices=data.PLATFORMS.keys())
     parser.add_argument('--variant', type=str, help="Build variant to use instead of default")
 
-    # hand parse command and spec from within the args given
+    # hand parse command and spec  DLEETMET DO NOT DOOCMITIT from within the args given
     command = None
     spec = None
     argv = sys.argv[1:]
