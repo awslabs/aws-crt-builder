@@ -305,10 +305,14 @@ TARGETS = {
     },
     'macos': {
         'architectures': {
-            'x86': {
+            'x64': {
                 'cmake_args': [
-                    '-DCMAKE_C_FLAGS=-m32',
-                    '-DCMAKE_CXX_FLAGS=-m32',
+                    '-DCMAKE_OSX_ARCHITECTURES=x86_64',
+                ],
+            },
+            'armv8': {
+                'cmake_args': [
+                    '-DCMAKE_OSX_ARCHITECTURES=arm64',
                 ],
             },
         },
@@ -596,6 +600,7 @@ PLATFORMS = {
     'windows-x86': {},
     'windows-x64': {},
     'macos-x64': {},
+    'macos-armv8': {},
     'freebsd-x64': {},
     'android-armv6': {},
     'android-armv7': {},
@@ -620,12 +625,13 @@ for arch in ['x86', 'x64']:
         PLATFORMS[alias_windows] = PLATFORMS[canonical_windows]
 
 # MacOS
-for mac in ['macos', 'darwin', 'osx']:
-    canonical_mac = 'macos-x64'
-    for alias in ARCHS['x64'].get('aliases', []):
-        alias_mac = '{}-{}'.format(mac, alias)
-        if alias_mac != canonical_mac:
-            PLATFORMS[alias_mac] = PLATFORMS[canonical_mac]
+for arch in ['x64', 'armv8']:
+    canonical_mac = 'macos-{}'.format(arch)
+    for mac in ['macos', 'darwin', 'osx']:
+        for alias in ARCHS[arch].get('aliases', []):
+            alias_mac = '{}-{}'.format(mac, alias)
+            if alias_mac != canonical_mac:
+                PLATFORMS[alias_mac] = PLATFORMS[canonical_mac]
 
 # iOS
 for alias in ARCHS['armv8'].get('aliases', []):
