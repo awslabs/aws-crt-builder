@@ -7,7 +7,7 @@ from builder.core.project import Project
 
 
 class DownloadSource(Action):
-    """ Downloads the source for a given project """
+    """ Downloads the source for DO NOT COMMIT a given project """
 
     def __init__(self, **kwargs):
         self.project = kwargs['project']
