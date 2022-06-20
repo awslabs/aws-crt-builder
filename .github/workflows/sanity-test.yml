@@ -2,9 +2,8 @@ name: Sanity Tests
 
 on:
   push:
-    branches:
-      - '*'
-      - '!main'
+    branches-ignore:
+      - 'main'
     paths:
       - '.github/workflows/sanity-test.yml'
       - 'builder/**'
