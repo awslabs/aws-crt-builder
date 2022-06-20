@@ -5,9 +5,8 @@ name: Create Channel
 # file is updated
 on:
   push:
-    branches:
-      - '*'
-      - '!main'
+    branches-ignore:
+      - 'main'
     paths:
       - '.github/workflows/create-channel.yml'
       - '.github/actions/**/*'
