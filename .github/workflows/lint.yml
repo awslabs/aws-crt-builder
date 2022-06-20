@@ -2,10 +2,8 @@ name: Lint
 
 on:
   push:
-    branches:
-      - '*'
-      - '!master'
-      - '!main'
+    branches-ignore:
+      - 'main'
 
 jobs:
   autopep8:
