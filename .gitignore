@@ -483,7 +483,7 @@ FakesAssemblies/
 
 # Node.js Tools for Visual Studio
 .ntvs_analysis.dat
-node_modules/
+# node_modules/ <-- SHOULD be committed when authoring github actions
 
 # Visual Studio 6 build log
 *.plg
