@@ -4,14 +4,16 @@
   "description": "Check submodule commits (ex: avoid accidental rollback)",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "prepare": "ncc build index.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
     "@actions/core": "^1.9.0",
-    "@actions/exec": "^1.1.1",
-    "@actions/github": "^5.0.3"
+    "@actions/exec": "^1.1.1"
+  },
+  "devDependencies": {
+    "@vercel/ncc": "^0.34.0"
   }
 }

@@ -2,4 +2,9 @@ name: 'Check Submodules'
 description: 'Check submodule commits (ex: avoid accidental rollback)'
 runs:
   using: 'node12'
-  main: 'index.js'
+  # We use ncc to compile EVERYTHING into a single file.
+  # We do this instead of committing node_modules/ to github.
+  # The big downside of committing node_modules/ is that Dependabot
+  # will go crazy scanning 3rdparty package.json files and flagging their
+  # devDependencies for vulnerabilities.
+  main: 'dist/index.js'

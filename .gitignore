@@ -483,7 +483,6 @@ FakesAssemblies/
 
 # Node.js Tools for Visual Studio
 .ntvs_analysis.dat
-# node_modules/ <-- SHOULD be committed when authoring github actions
 
 # Visual Studio 6 build log
 *.plg
@@ -596,7 +595,6 @@ bower_components
 build/Release
 
 # Dependency directories
-node_modules/
 jspm_packages/
 
 # TypeScript v1 declaration files
@@ -665,3 +663,11 @@ temp/
 
 build/
 venv/
+
+# NOTE: Github Actions tutorials tell you to commit the node_modules/ dir but DON'T DO IT.
+# This will lead to Dependabot scanning a million 3rdparty packages' package.json files and
+# flagging vulnerabilities in "devDependencies" that don't really affect us.
+# The workaround is to use @vercel/ncc to compile all dependencies into a
+# single dist/index.js file and commit THAT instead.
+node_modules/
+!.github/actions/check-submodules/dist/
