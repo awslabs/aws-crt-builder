@@ -68,7 +68,7 @@ jobs:
         zipinfo -1 build/builder.pyz
 
     - name: Artifact builder
-      uses: actions/upload-artifact@v1
+      uses: actions/upload-artifact@v3
       with:
         name: builder
         path: build/builder.pyz

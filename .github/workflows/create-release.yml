@@ -41,7 +41,7 @@ jobs:
         aws s3 cp build/builder s3://$AWS_S3_BUCKET/releases/${{ steps.tag.outputs.release_tag }}/builder.pyz
 
     - name: Artifact builder
-      uses: actions/upload-artifact@v1
+      uses: actions/upload-artifact@v3
       with:
         name: builder
         path: build/builder
