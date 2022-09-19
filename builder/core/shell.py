@@ -1,6 +1,7 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0.
 
+import json
 from collections import namedtuple
 import os
 import shutil
@@ -148,3 +149,20 @@ class Shell(object):
         else:
             result = util.run_command(*command, **kwargs, dryrun=self.dryrun)
         return result
+
+    def get_secret(self, secret_id):
+        """get string from secretsmanager"""
+
+        # NOTE: using AWS CLI instead of boto3 because we know CLI is already
+        # installed wherever builder is run. Once upon a time we tried using
+        # boto3 by installing it while the builder was running but this didn't
+        # work in some rare scenarios.
+
+        cmd = ['aws', '--region', 'us-east-1', 'secretsmanager', 'get-secret-value',
+               '--secret-id', secret_id]
+        # NOTE: print command args, but use "quiet" mode so that output isn't printed.
+        # we don't want secrets leaked to the build log
+        print('>', subprocess.list2cmdline(cmd))
+        result = self.exec(*cmd, check=True, quiet=True)
+        secret_value = json.loads(result.output)
+        return secret_value['SecretString']
