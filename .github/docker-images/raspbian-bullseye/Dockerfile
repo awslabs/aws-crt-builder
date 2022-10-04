@@ -46,15 +46,16 @@ RUN update-alternatives --install /usr/bin/python python /usr/bin/python3 10
 ###############################################################################
 # Python/AWS CLI
 ###############################################################################
-RUN python -m pip install setuptools \
-    && python -m pip install --upgrade pip \
-    && python -m pip install awscli \
+RUN python -m pip install --upgrade pip setuptools virtualenv \
+    && python -m pip install --upgrade awscli \
+    && ln -s `find /opt -name aws` /usr/local/bin/aws \
+    && which aws \
     && aws --version
 
 
 ###############################################################################
 # Install entrypoint
 ###############################################################################
-ADD ./2013-09-15/entrypoint.sh /usr/local/bin/builder
+ADD entrypoint.sh /usr/local/bin/builder
 RUN chmod a+x /usr/local/bin/builder
 ENTRYPOINT ["/usr/local/bin/builder"]

@@ -28,7 +28,6 @@ RUN apt-get update -qq \
     sudo \
     unzip \
     clang \
-    cmake \
     # Python
     python3 \
     python3-dev \
@@ -44,17 +43,29 @@ RUN apt-get update -qq \
 RUN update-alternatives --install /usr/bin/python python /usr/bin/python3 10
 
 ###############################################################################
+# Install CMake3.19 to avoid Remove-Item issue with CMake < 3.19
+###############################################################################
+WORKDIR /tmp
+RUN wget https://cmake.org/files/v3.19/cmake-3.19.0.tar.gz \
+    && tar -xvzf cmake-3.19.0.tar.gz \
+    && cd cmake-3.19.0/ \
+    && sudo ./bootstrap \
+    && sudo make \
+    && sudo make install
+
+###############################################################################
 # Python/AWS CLI
 ###############################################################################
-RUN python -m pip install setuptools \
-    && python -m pip install --upgrade pip \
-    && python -m pip install awscli \
+RUN python -m pip install --upgrade pip setuptools virtualenv \
+    && python -m pip install --upgrade awscli \
+    && ln -s `find /opt -name aws` /usr/local/bin/aws \
+    && which aws \
     && aws --version
 
 
 ###############################################################################
 # Install entrypoint
 ###############################################################################
-ADD ./2013-09-15/entrypoint.sh /usr/local/bin/builder
+ADD entrypoint.sh /usr/local/bin/builder
 RUN chmod a+x /usr/local/bin/builder
 ENTRYPOINT ["/usr/local/bin/builder"]
