@@ -1,7 +1,7 @@
 FROM raspbian/stretch as raspbian-bullseye
 
 ###############################################################################
-# Upgrade to buster from stretch
+# Upgrade to Bullseye from stretch
 ###############################################################################
 
 RUN apt-get update \
@@ -9,7 +9,7 @@ RUN apt-get update \
 	&& apt-get full-upgrade -y \
 	&& apt-get autoremove --purge -y \
 	&& apt-get clean -y \
-	# Switch to Buster repository.
+	# Switch to Bullseye repository.
 	&& sed -i 's/stretch/bullseye/g' /etc/apt/sources.list \
 	# Update all packages.
 	&& apt-get update \
