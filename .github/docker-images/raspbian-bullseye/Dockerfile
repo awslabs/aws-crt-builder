@@ -30,7 +30,10 @@ RUN apt-get update -qq \
     clang \
     cmake \
     # Python
-    python3 \
+    python3.6 \
+    python3.8 \
+    python3.9 \
+    python3.10 \
     python3-dev \
     python3-pip \
     build-essential \
@@ -51,6 +54,19 @@ RUN python -m pip install --upgrade pip setuptools virtualenv \
     && ln -s `find /opt -name aws` /usr/local/bin/aws \
     && which aws \
     && aws --version
+
+
+###############################################################################
+# Install Python3.7 for Deployment
+###############################################################################
+WORKDIR /tmp
+RUN wget https://www.python.org/ftp/python/3.7.0/Python-3.7.0.tgz \
+    && tar zxf Python-3.7.0.tgz \
+    && cd Python-3.7.0 \
+    && ./configure \
+    && make -j 4 \
+    && make altinstall \
+    && python3.7 --version
 
 
 ###############################################################################
