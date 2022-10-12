@@ -71,6 +71,7 @@ jobs:
         - rhel8-x64
         - opensuse-leap
         - fedora-34-x64
+        - raspbian-bullseye
 
     steps:
     - name: Checkout Sources
