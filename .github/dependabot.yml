@@ -10,7 +10,12 @@ updates:
       interval: "daily"
 
   - package-ecosystem: "npm"
-    directory: "/"
+    directory: ".github/actions/check-submodules"
+    schedule:
+      interval: "daily"
+      
+  - package-ecosystem: "npm"
+    directory: ".github/actions/release-tag"
     schedule:
       interval: "daily"
       
