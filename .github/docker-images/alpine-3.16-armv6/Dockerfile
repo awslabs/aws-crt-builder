@@ -18,6 +18,7 @@ RUN apk add \
     linux-headers \
     ca-certificates \
     cmake \
+    bash \
     aws-cli
 
 WORKDIR /tmp
