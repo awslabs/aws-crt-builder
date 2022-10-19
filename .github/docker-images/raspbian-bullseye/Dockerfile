@@ -37,11 +37,6 @@ RUN apt-get update -qq \
     python3-dev \
     python3-pip \
     build-essential \
-    # Java Maven
-    maven \
-    default-jdk \
-    # Nodejs
-    nodejs \
     # For PPAs
     software-properties-common \
     apt-transport-https \
