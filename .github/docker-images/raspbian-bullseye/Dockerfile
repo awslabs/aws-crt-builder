@@ -42,7 +42,6 @@ RUN apt-get update -qq \
     default-jdk \
     # Nodejs
     nodejs \
-    npm \
     # For PPAs
     software-properties-common \
     apt-transport-https \
