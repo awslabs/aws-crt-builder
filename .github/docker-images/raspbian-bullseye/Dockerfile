@@ -39,6 +39,7 @@ RUN apt-get update -qq \
     build-essential \
     # Java Maven
     maven \
+    default-jdk \
     # Nodejs
     nodejs \
     npm \
