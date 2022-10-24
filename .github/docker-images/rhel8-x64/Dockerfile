@@ -2,7 +2,17 @@ FROM registry.access.redhat.com/ubi8/ubi:latest
 
 SHELL ["/bin/bash", "-c"]
 
-RUN dnf install -y gcc gcc-c++ cmake wget python39 git make sudo python39-devel
+RUN dnf install -y \
+    gcc \
+    gcc-c++ \
+    cmake \
+    wget \
+    git \
+    make \
+    sudo \
+    # RHEL8's default python3 is python3.6, which is EOL.
+    # So install python3.9 (latest version on this distro, circa Oct 2022)
+    python39-devel
 
 ###############################################################################
 # Python/AWS CLI
