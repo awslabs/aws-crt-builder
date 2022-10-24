@@ -12,9 +12,9 @@ RUN apt-get update -qq \
     sudo \
     unzip \
     # Python
-    python3 \
-    python3-dev \
-    python3-pip \
+    python3.8 \
+    python3.8-dev \
+    python3.8-pip \
     build-essential \
     # For PPAs
     software-properties-common \
@@ -27,8 +27,8 @@ RUN apt-get update -qq \
 ###############################################################################
 WORKDIR /tmp
 
-RUN python3 -m pip install setuptools \
-    && python3 -m pip install --upgrade pip \
+RUN python3.8 -m pip install setuptools \
+    && python3.8 -m pip install --upgrade pip \
     && curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o awscliv2.zip \
     && unzip awscliv2.zip \
     && sudo aws/install \
