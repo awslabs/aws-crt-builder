@@ -172,6 +172,9 @@ HOSTS = {
         'pkg_tool': PKG_TOOLS.ZYPPER,
         'pkg_update': 'zypper refresh && zypper --non-interactive patch',
         'pkg_install': 'zypper install -y',
+        'variables': {
+            'python': "python3.9",
+        },
     },
     'rhel': {
         'os': 'linux',
