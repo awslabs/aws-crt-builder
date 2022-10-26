@@ -11,9 +11,11 @@ RUN apt-get update -qq \
     curl \
     sudo \
     unzip \
-    # Python
-    python3 \
-    python3-dev \
+    # Ubuntu18's default python3 is python3.6, which is EOL.
+    # So install python3.8 (latest version on this distro, circa Oct 2022)
+    python3.8-dev \
+    # This installs pip for all python versions on the system
+    # (there is no "python3.8-pip")
     python3-pip \
     build-essential \
     # For PPAs
@@ -27,8 +29,8 @@ RUN apt-get update -qq \
 ###############################################################################
 WORKDIR /tmp
 
-RUN python3 -m pip install setuptools \
-    && python3 -m pip install --upgrade pip \
+RUN python3.8 -m pip install setuptools \
+    && python3.8 -m pip install --upgrade pip \
     && curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o awscliv2.zip \
     && unzip awscliv2.zip \
     && sudo aws/install \
