@@ -78,6 +78,7 @@ jobs:
         - rhel8-x64
         - opensuse-leap
         - fedora-34-x64
+        - raspbian-bullseye
         - alpine-3.16-x64
         - alpine-3.16-x86
         - alpine-3.16-arm64
