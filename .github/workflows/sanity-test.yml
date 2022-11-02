@@ -86,7 +86,7 @@ jobs:
       uses: actions/checkout@v2
 
     - name: Install builder
-      uses: actions/download-artifact@v1
+      uses: actions/download-artifact@v3
       with:
         name: builder
         path: .
@@ -148,7 +148,7 @@ jobs:
       uses: actions/checkout@v2
 
     - name: Install builder
-      uses: actions/download-artifact@v1
+      uses: actions/download-artifact@v3
       with:
         name: builder
         path: .
@@ -178,7 +178,7 @@ jobs:
       uses: actions/checkout@v2
 
     - name: Install builder
-      uses: actions/download-artifact@v1
+      uses: actions/download-artifact@v3
       with:
         name: builder
         path: .
@@ -200,7 +200,7 @@ jobs:
       uses: actions/checkout@v2
 
     - name: Install builder
-      uses: actions/download-artifact@v1
+      uses: actions/download-artifact@v3
       with:
         name: builder
         path: .
@@ -222,7 +222,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Install builder
-      uses: actions/download-artifact@v1
+      uses: actions/download-artifact@v3
       with:
         name: builder
         path: .
@@ -250,7 +250,7 @@ jobs:
       uses: actions/checkout@v2
 
     - name: Install builder
-      uses: actions/download-artifact@v1
+      uses: actions/download-artifact@v3
       with:
         name: builder
         path: .
