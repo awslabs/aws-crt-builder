@@ -133,6 +133,9 @@ HOSTS = {
         ],
         'pkg_update': 'apt-get -qq update -y',
         'pkg_install': 'apt-get -qq install -y',
+        'variables': {
+            'python': "python3.8",
+        },
     },
     'debian': {
         'os': 'linux',
@@ -169,6 +172,9 @@ HOSTS = {
         'pkg_tool': PKG_TOOLS.ZYPPER,
         'pkg_update': 'zypper refresh && zypper --non-interactive patch',
         'pkg_install': 'zypper install -y',
+        'variables': {
+            'python': "python3.9",
+        },
     },
     'rhel': {
         'os': 'linux',
