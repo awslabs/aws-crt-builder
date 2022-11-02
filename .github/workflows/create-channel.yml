@@ -68,6 +68,7 @@ jobs:
         - al2012-x64
         - al2-x64
         - ubuntu-18-x64
+        - ubuntu-20-x64
         - ubuntu-20-aarch64
         - debian-stretch-arm32v5
         - debian-stretch-arm32v7
