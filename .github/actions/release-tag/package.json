@@ -13,6 +13,6 @@
     "@actions/core": "^1.2.2"
   },
   "devDependencies": {
-    "@zeit/ncc": "^0.21.0"
+    "@zeit/ncc": "^0.22.3"
   }
 }
