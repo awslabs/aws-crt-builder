@@ -1,5 +1,5 @@
-#https://github.com/apple/swift-docker/blob/d3a19f47844d7d4d0dab0b59153da1f1596543b6/5.5/centos/7/Dockerfile
-FROM swift:5.5.3-centos7
+# https://hub.docker.com/_/swift
+FROM swift:5.7.0-centos7
 
 ###############################################################################
 # Install prereqs

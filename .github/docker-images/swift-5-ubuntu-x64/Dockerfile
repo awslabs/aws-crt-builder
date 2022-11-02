@@ -1,5 +1,5 @@
-# https://github.com/apple/swift-docker/blob/d3a19f47844d7d4d0dab0b59153da1f1596543b6/5.5/ubuntu/16.04/Dockerfile
-FROM swift:5.5.3-focal
+# https://hub.docker.com/_/swift
+FROM swift:5.7.0-focal
 
 ###############################################################################
 # Install prereqs
@@ -23,7 +23,7 @@ RUN apt-get update -qq \
 ###############################################################################
 # Add the corretto repo and public key and install corretto
 ###############################################################################
-RUN wget -O- https://apt.corretto.aws/corretto.key | sudo apt-key add - 
+RUN wget -O- https://apt.corretto.aws/corretto.key | sudo apt-key add -
 RUN sudo add-apt-repository 'deb https://apt.corretto.aws stable main'
 RUN apt-get -y install java-11-amazon-corretto-jdk
 
