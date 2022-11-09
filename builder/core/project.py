@@ -549,7 +549,7 @@ class Project(object):
 
     def build_consumers(self, env):
         build_consumers = []
-        consumers = self.get_consumers_flattened(env.spec)
+        consumers = self.get_flattened_consumers(env.spec)
         for c in consumers:
             build_consumers += _build_project(c, env)
             # build consumer tests
@@ -641,7 +641,6 @@ class Project(object):
                 filtered.append(p)
         return filtered
 
-    @lru_cache()
     def get_flattened_dependencies(self, spec, *, include_self=False):
         """
         Gets full tree of dependencies as flat list with duplicates removed.
@@ -669,13 +668,13 @@ class Project(object):
                 filtered.append(c)
         return filtered
 
-    def get_consumers_flattened(self, spec, *, include_self=False):
-        """q
+    def get_flattened_consumers(self, spec, *, include_self=False):
+        """
         Gets full tree of consumers as flat list with duplicates removed.
         Items are ordered such that building Projects in the order given should just work.
         """
 
-        # each project inserts dependencies before self
+        # each project inserts consumers after self
         def _pre_order(project, spec, deps):
             if project != self or include_self:
                 deps.append(project)
