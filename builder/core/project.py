@@ -549,13 +549,11 @@ class Project(object):
 
     def build_consumers(self, env):
         build_consumers = []
-        consumers = self.get_consumers(env.spec)
+        consumers = self.get_consumers_flattened(env.spec)
         for c in consumers:
             build_consumers += _build_project(c, env)
-            # build consumer tests by default, can be turned off by the root project though
-            downstream_ref = next((d for d in self.config.get('downstream', []) if d.name == c.name), {})
-            if downstream_ref.config.get('run_tests', True):
-                build_consumers += to_list(c.test(env))
+            # build consumer tests
+            build_consumers += to_list(c.test(env))
         if len(build_consumers) == 0:
             return None
         return Script(build_consumers, name='build consumers of {}'.format(self.name))
@@ -654,7 +652,8 @@ class Project(object):
         def _post_order(project, spec, deps):
             for dep in project.get_dependencies(spec):
                 _post_order(dep, spec, deps)
-            deps.append(project)
+            if project != self or include_self:
+                deps.append(project)
 
         deps = UniqueList()
         _post_order(self, spec, deps)
@@ -669,6 +668,23 @@ class Project(object):
             if not hasattr(c, 'targets') or target in getattr(c, 'targets', []):
                 filtered.append(c)
         return filtered
+
+    def get_consumers_flattened(self, spec, *, include_self=False):
+        """q
+        Gets full tree of consumers as flat list with duplicates removed.
+        Items are ordered such that building Projects in the order given should just work.
+        """
+
+        # each project inserts dependencies before self
+        def _pre_order(project, spec, deps):
+            if project != self or include_self:
+                deps.append(project)
+            for dep in project.get_consumers(spec):
+                _pre_order(dep, spec, deps)
+
+        deps = UniqueList()
+        _pre_order(self, spec, deps)
+        return deps
 
     def use_variant(self, variant):
         self.variant = variant
