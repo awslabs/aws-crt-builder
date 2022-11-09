@@ -153,23 +153,6 @@ class TestProject(unittest.TestCase):
         steps = p.build_consumers(mock_env)
         self._assert_step_contains_all(steps, ['test lib-1'])
 
-    def test_downstream_tests_do_not_build(self):
-        """downstream tests should not be built if requested"""
-
-        config = _test_proj_config.copy()
-        config['downstream'] = [
-            {
-                'name': 'lib-1',
-                'run_tests': False
-            }
-        ]
-
-        p = Project(**config)
-        mock_env = mock.Mock(name='MockEnv', config=config)
-        mock_env.spec = BuildSpec()
-        steps = p.build_consumers(mock_env)
-        self._assert_step_not_contains(steps, 'test lib-1')
-
     def test_downstream_post_build_runs_before_tests(self):
         """downstream post_build_steps should run before tests"""
         config = _test_proj_config.copy()
