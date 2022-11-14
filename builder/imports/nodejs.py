@@ -11,6 +11,7 @@ from builder.actions.script import Script
 
 import stat
 import os
+import re
 
 
 NVM = """\
@@ -44,15 +45,22 @@ class NodeJS(Import):
         self.install_dir = os.path.join(env.deps_dir, self.name)
         sh.mkdir(self.install_dir)
 
-        if current_os() == 'windows':
-            self.install_nvm_choco(env)
-        elif current_arch() == "x86":
-            self.url= "https://unofficial-builds.nodejs.org/download/release/v{}.0.0/node-v{}.0.0-{}-{}.tar.gz".format(self.version, self.version, current_os(), current_arch())
+
+        if current_arch() == "x86":
+            def normalize_version(v):
+                if re.match('^[0-9]+\.{2}[0-9]+$', v) == None:
+                    v += ".0"
+            version = normalize_version(self.version)
+            self.url = "https://unofficial-builds.nodejs.org/download/release/v{}/node-v{}-{}-{}.tar.gz".format(
+                version, version, current_os(), current_arch())
             self.install_node_build(env)
         else:
-            self.install_nvm_sh(env)
+            if current_os() == 'windows':
+                self.install_nvm_choco(env)
+            else:
+                self.install_nvm_sh(env)
 
-        self.install_node_via_nvm(env)
+            self.install_node_via_nvm(env)
 
         self.installed = True
 
@@ -123,10 +131,10 @@ class NodeJS(Import):
         # Download nvm
         extra_path = '{}/node_install'.format(self.install_dir)
         package_path = '{}/node_package'.format(self.install_dir)
-        fetch_and_extract(self.url,package_path ,extra_path)
+        fetch_and_extract(self.url, package_path, extra_path)
         node_path = os.path.dirname('{}/bin'.format(extra_path))
         sh.setenv('PATH', '{}{}{}'.format(
-                node_path, os.pathsep, sh.getenv('PATH')))
+            node_path, os.pathsep, sh.getenv('PATH')))
 
 
 class Node12(NodeJS):
