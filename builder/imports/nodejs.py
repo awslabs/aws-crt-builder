@@ -141,7 +141,7 @@ class NodeJS(Import):
         node_path = '{}/bin'.format(extra_path)
         sh.setenv('PATH', '{}{}{}'.format(
             node_path, os.pathsep, sh.getenv('PATH')))
-
+        sh.exec('ls', '-l', extra_path, check=True)
 
 class Node12(NodeJS):
     def __init__(self, **kwargs):
