@@ -47,7 +47,7 @@ class NodeJS(Import):
 
         if current_arch() == "x86":
             def normalize_version(v):
-                if re.match('^[0-9]+\.{2}[0-9]+$', v) == None:
+                while re.match('^[0-9]+\.{2}[0-9]+$', v) == None:
                     v += ".0"
                 return v
             version = normalize_version(self.version)
