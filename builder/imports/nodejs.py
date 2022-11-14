@@ -47,8 +47,14 @@ class NodeJS(Import):
 
         if current_arch() == "x86":
             def normalize_version(v):
-                while re.match('^[0-9]+\.{2}[0-9]+$', v) == None:
-                    v += ".0"
+                append_times = 0
+                while re.match('^([0-9]+\.){2}[0-9]+$', v) == None:
+                    # Only try append sub version twice
+                    if append_times < 2 :
+                        v += ".0"
+                        append_times += 1
+                    else: # DEFAULT TO 12.0.0
+                        return "12.0.0"
                 return v
             version = normalize_version(self.version)
             self.url = "https://unofficial-builds.nodejs.org/download/release/v{}/node-v{}-{}-{}.tar.gz".format(
