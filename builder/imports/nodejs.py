@@ -121,6 +121,7 @@ class NodeJS(Import):
         sh = env.shell
         print('Installing node build directly'.format(self.version))
 
+        # Normaliz version format
         def normalize_version(v):
             append_times = 0
             while re.match('^([0-9]+\.){2}[0-9]+$', v) == None:
@@ -131,18 +132,21 @@ class NodeJS(Import):
                 else:  # DEFAULT TO 12.0.0
                     return "12.0.0"
             return v
+
         version = normalize_version(self.version)
         url = "https://unofficial-builds.nodejs.org/download/release/v{}/node-v{}-{}-{}.tar.gz".format(
             version, version, current_os(), current_arch())
-        filename = "node-v{}-{}-{}".format(version, current_os(), current_arch())
+        package_name = "node-v{}-{}-{}".format(version, current_os(), current_arch())
 
-        # Download nvm
+        # Fetch the node build
         extra_path = '{}/node_install'.format(self.install_dir)
         package_path = '{}/node_package'.format(self.install_dir)
         fetch_and_extract(url, package_path, extra_path)
-        node_path = '{}/{}/bin'.format(extra_path, filename)
+
+        # Set PATH
+        node_path = '{}/{}/bin'.format(extra_path, package_name)
         sh.setenv('PATH', '{}{}{}'.format(node_path, os.pathsep, sh.getenv('PATH')))
-        sh.exec('ls', '-l', node_path, check=True)
+
 
 class Node12(NodeJS):
     def __init__(self, **kwargs):
