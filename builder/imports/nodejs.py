@@ -2,8 +2,8 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0.
 
-from builder.core.fetch import fetch_script
-from builder.core.host import current_os
+from builder.core.fetch import fetch_script, fetch_and_extract
+from builder.core.host import current_os, current_arch
 from builder.core.project import Import
 import builder.core.util as util
 from builder.actions.install import InstallPackages
@@ -46,6 +46,9 @@ class NodeJS(Import):
 
         if current_os() == 'windows':
             self.install_nvm_choco(env)
+        elif current_arch() == "x86":
+            self.url= "https://unofficial-builds.nodejs.org/download/release/v{}.0.0/node-v{}.0.0-{}-{}.tar.gz".format(self.version, self.version, current_os(), current_arch())
+            self.install_node_build(env)
         else:
             self.install_nvm_sh(env)
 
@@ -112,6 +115,18 @@ class NodeJS(Import):
             nvm_sh.write(NVM)
         os.chmod(run_nvm, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
         self.nvm = run_nvm
+
+    def install_node_build(self, env):
+        sh = env.shell
+        print('Installing node binary'.format(self.version))
+
+        # Download nvm
+        extra_path = '{}/node_install'.format(self.install_dir)
+        package_path = '{}/node_package'.format(self.install_dir)
+        fetch_and_extract(self.url,package_path ,extra_path)
+        node_path = os.path.dirname('{}/bin'.format(extra_path))
+        sh.setenv('PATH', '{}{}{}'.format(
+                node_path, os.pathsep, sh.getenv('PATH')))
 
 
 class Node12(NodeJS):
