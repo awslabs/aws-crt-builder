@@ -50,10 +50,10 @@ class NodeJS(Import):
                 append_times = 0
                 while re.match('^([0-9]+\.){2}[0-9]+$', v) == None:
                     # Only try append sub version twice
-                    if append_times < 2 :
+                    if append_times < 2:
                         v += ".0"
                         append_times += 1
-                    else: # DEFAULT TO 12.0.0
+                    else:  # DEFAULT TO 12.0.0
                         return "12.0.0"
                 return v
             version = normalize_version(self.version)
@@ -138,7 +138,7 @@ class NodeJS(Import):
         extra_path = '{}/node_install'.format(self.install_dir)
         package_path = '{}/node_package'.format(self.install_dir)
         fetch_and_extract(self.url, package_path, extra_path)
-        node_path = os.path.dirname('{}/bin'.format(extra_path))
+        node_path = '{}/bin'.format(extra_path)
         sh.setenv('PATH', '{}{}{}'.format(
             node_path, os.pathsep, sh.getenv('PATH')))
 
