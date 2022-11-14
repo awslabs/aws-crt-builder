@@ -45,11 +45,11 @@ class NodeJS(Import):
         self.install_dir = os.path.join(env.deps_dir, self.name)
         sh.mkdir(self.install_dir)
 
-
         if current_arch() == "x86":
             def normalize_version(v):
                 if re.match('^[0-9]+\.{2}[0-9]+$', v) == None:
                     v += ".0"
+                return v
             version = normalize_version(self.version)
             self.url = "https://unofficial-builds.nodejs.org/download/release/v{}/node-v{}-{}-{}.tar.gz".format(
                 version, version, current_os(), current_arch())
