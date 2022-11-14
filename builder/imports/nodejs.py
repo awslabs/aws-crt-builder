@@ -3,7 +3,6 @@
 # SPDX-License-Identifier: Apache-2.0.
 
 from builder.core.fetch import fetch_script, fetch_and_extract
-from builder.core.host import current_os, current_arch
 from builder.core.project import Import
 import builder.core.util as util
 from builder.actions.install import InstallPackages
@@ -39,7 +38,7 @@ class NodeJS(Import):
         self.installed = False
 
     def install(self, env):
-        if self.installed or (util.where('node') and current_os() == 'windows'):
+        if self.installed or (util.where('node') and env.spec.target == 'windows'):
             return
 
         sh = env.shell
@@ -47,10 +46,10 @@ class NodeJS(Import):
         self.install_dir = os.path.join(env.deps_dir, self.name)
         sh.mkdir(self.install_dir)
 
-        if current_arch() == "x86":
+        if env.spec.arch == "x86" or env.spec.arch == "armv6":
             self.install_node_build(env)
         else:
-            if current_os() == 'windows':
+            if env.spec.target == 'windows':
                 self.install_nvm_choco(env)
             else:
                 self.install_nvm_sh(env)
@@ -65,7 +64,7 @@ class NodeJS(Import):
         sh.exec(self.nvm, 'install', self.version, check=True)
 
         # Fetch path to installed node, add to PATH
-        if current_os() != 'windows':
+        if env.spec.target != 'windows':
             result = sh.exec(self.nvm, 'which', self.version, check=True)
             node_path = os.path.dirname(result.output)
             sh.setenv('PATH', '{}{}{}'.format(
@@ -135,10 +134,13 @@ class NodeJS(Import):
                     return (DEFAULT_VERSION + ".0.0")
             return v
 
+        arch = env.spec.arch
+        if env.spec.arch == "armv6":
+            arch = "armv6l"
         version = normalize_version(self.version)
         url = "https://unofficial-builds.nodejs.org/download/release/v{}/node-v{}-{}-{}.tar.gz".format(
-            version, version, current_os(), current_arch())
-        package_name = "node-v{}-{}-{}".format(version, current_os(), current_arch())
+            version, version, env.spec.target, arch)
+        package_name = "node-v{}-{}-{}".format(version, env.spec.target, arch)
 
         # Fetch the node build
         extra_path = '{}/node_install'.format(self.install_dir)
