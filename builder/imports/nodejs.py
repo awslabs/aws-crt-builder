@@ -23,6 +23,7 @@ nvm $*
 
 DEFAULT_VERSION = '12'
 
+
 class NodeJS(Import):
     def __init__(self, **kwargs):
         super().__init__(
