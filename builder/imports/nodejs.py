@@ -21,6 +21,7 @@ export NVM_DIR="$HOME/.nvm"
 nvm $*
 """
 
+DEFAULT_VERSION = '12'
 
 class NodeJS(Import):
     def __init__(self, **kwargs):
@@ -31,7 +32,7 @@ class NodeJS(Import):
             },
             **kwargs)
         self.url = 'https://raw.githubusercontent.com/nvm-sh/nvm/v0.38.0/install.sh'
-        self.version = kwargs.get('version', '12')
+        self.version = kwargs.get('version', DEFAULT_VERSION)
 
         self.nvm = 'nvm'
         self.installed = False
@@ -130,7 +131,7 @@ class NodeJS(Import):
                     v += ".0"
                     append_times += 1
                 else:  # DEFAULT TO 12.0.0
-                    return "12.0.0"
+                    return (DEFAULT_VERSION + ".0.0")
             return v
 
         version = normalize_version(self.version)
