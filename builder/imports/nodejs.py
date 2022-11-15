@@ -151,6 +151,9 @@ class NodeJS(Import):
         # Set PATH
         node_path = '{}/{}/bin'.format(extra_path, package_name)
         sh.setenv('PATH', '{}{}{}'.format(node_path, os.pathsep, sh.getenv('PATH')))
+        if env.spec.target == 'linux':
+            sh.exec('alias', 'node=\'{}/node\''.format(node_path), check=True)
+            sh.exec('alias', 'npm=\'{}/npm\''.format(node_path), check=True)
 
 
 class Node12(NodeJS):
