@@ -38,7 +38,7 @@ class NodeJS(Import):
         self.installed = False
 
     def install(self, env):
-        if self.installed or (util.where('node') and env.spec.target == 'windows' and env.spec.arch != 'x86'):
+        if self.installed or (util.where('node') and env.spec.target == 'windows'):
             return
 
         sh = env.shell
@@ -151,8 +151,6 @@ class NodeJS(Import):
         # Set PATH
         node_path = '{}/{}/bin'.format(extra_path, package_name)
         sh.setenv('PATH', '{}{}{}'.format(node_path, os.pathsep, sh.getenv('PATH')))
-        if env.spec.target == 'linux':
-            sh.exec('alias', 'npm=\'{}/npm\''.format(node_path), check=True)
 
 
 class Node12(NodeJS):
