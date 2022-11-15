@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0.
 
 from builder.core.fetch import fetch_script, fetch_and_extract
+from builder.core.host import current_os, current_arch
 from builder.core.project import Import
 import builder.core.util as util
 from builder.actions.install import InstallPackages
@@ -38,7 +39,7 @@ class NodeJS(Import):
         self.installed = False
 
     def install(self, env):
-        if self.installed or (util.where('node') and env.spec.target == 'windows'):
+        if self.installed or (util.where('node') and current_os() == 'windows'):
             return
 
         sh = env.shell
@@ -46,10 +47,10 @@ class NodeJS(Import):
         self.install_dir = os.path.join(env.deps_dir, self.name)
         sh.mkdir(self.install_dir)
 
-        if env.spec.arch == "x86" or env.spec.arch == "armv6":
+        if current_arch() == "x86":
             self.install_node_via_unofficial_build(env)
         else:
-            if env.spec.target == 'windows':
+            if current_os() == 'windows':
                 self.install_nvm_choco(env)
             else:
                 self.install_nvm_sh(env)
@@ -122,7 +123,7 @@ class NodeJS(Import):
         sh = env.shell
         print('Installing node build directly'.format(self.version))
 
-        # Normaliz version format 12.16.3 is the last version has x86 support
+        # Normaliz version format, please note 12.16.3 is the last version has x86 support
         def normalize_version(v):
             append_times = 0
             while re.match('^([0-9]+\.){2}[0-9]+$', v) == None:
@@ -134,14 +135,10 @@ class NodeJS(Import):
                     return (DEFAULT_VERSION + ".0.0")
             return v
 
-        arch = env.spec.arch
-        if env.spec.arch == "armv6":
-            arch = "armv6l"
-
         version = normalize_version(self.version)
         url = "https://unofficial-builds.nodejs.org/download/release/v{}/node-v{}-{}-{}.tar.gz".format(
-            version, version, env.spec.target, arch)
-        package_name = "node-v{}-{}-{}".format(version, env.spec.target, arch)
+            version, version, current_os(), current_arch())
+        package_name = "node-v{}-{}-{}".format(version, current_os(), current_arch())
 
         # Fetch the node build
         extra_path = '{}/node_install'.format(self.install_dir)
@@ -151,9 +148,6 @@ class NodeJS(Import):
         # Set PATH
         node_path = '{}/{}/bin'.format(extra_path, package_name)
         sh.setenv('PATH', '{}{}{}'.format(node_path, os.pathsep, sh.getenv('PATH')))
-        if env.spec.target == 'linux':
-            sh.exec('alias', 'node=\'{}/node\''.format(node_path), check=True)
-            sh.exec('alias', 'npm=\'{}/npm\''.format(node_path), check=True)
 
 
 class Node12(NodeJS):
