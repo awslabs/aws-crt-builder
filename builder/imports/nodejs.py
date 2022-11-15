@@ -65,7 +65,7 @@ class NodeJS(Import):
         sh.exec(self.nvm, 'install', self.version, check=True)
 
         # Fetch path to installed node, add to PATH
-        if env.spec.target != 'windows':
+        if current_os() != 'windows':
             result = sh.exec(self.nvm, 'which', self.version, check=True)
             node_path = os.path.dirname(result.output)
             sh.setenv('PATH', '{}{}{}'.format(
