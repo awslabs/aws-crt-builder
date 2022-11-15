@@ -38,7 +38,7 @@ class NodeJS(Import):
         self.installed = False
 
     def install(self, env):
-        if self.installed or (util.where('node') and env.spec.target == 'windows'):
+        if self.installed or (util.where('node') and env.spec.target == 'windows' and env.spec.arch != 'x86'):
             return
 
         sh = env.shell
