@@ -85,6 +85,7 @@ jobs:
         - alpine-3.16-arm64
         - alpine-3.16-armv7
         - alpine-3.16-armv6
+        - openwrt-x64-openjdk8
 
     steps:
     - name: Checkout Sources
