@@ -96,6 +96,8 @@ def current_host():
                 return 'opensuse'
             if _file_contains('/etc/os-release', 'Red Hat Enterprise Linux'):
                 return 'rhel'
+            if _file_contains('/etc/os-release', 'OpenWrt'):
+                return 'openwrt'
             return 'linux'
         else:
             return platform
