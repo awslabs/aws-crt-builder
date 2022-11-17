@@ -33,4 +33,9 @@ RUN ar -rc /usr/lib/libdl.a
 RUN ar -rc /usr/lib/librt.a
 RUN ar -rc /usr/lib/libm.a
 
-
+###############################################################################
+# Install entrypoint
+###############################################################################
+ADD entrypoint.sh /usr/local/bin/builder
+RUN chmod a+x /usr/local/bin/builder
+ENTRYPOINT ["/usr/local/bin/builder"]
