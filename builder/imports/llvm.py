@@ -30,7 +30,7 @@ LLVM_SH = """\
 set -eux
 
 # read optional command line argument
-LLVM_VERSION=13
+LLVM_VERSION=12
 if [ "$#" -eq 1 ]; then
     LLVM_VERSION=$1
 fi
@@ -53,7 +53,7 @@ LLVM_VERSION_PATTERNS[9]="-9"
 LLVM_VERSION_PATTERNS[10]="-10"
 LLVM_VERSION_PATTERNS[11]="-11"
 LLVM_VERSION_PATTERNS[12]="-12"
-LLVM_VERSION_PATTERNS[13]="-13"
+LLVM_VERSION_PATTERNS[13]=""
 
 if [ ! ${LLVM_VERSION_PATTERNS[$LLVM_VERSION]+_} ]; then
     echo "This script does not support LLVM version $LLVM_VERSION"
@@ -77,7 +77,6 @@ case "$DIST_VERSION" in
     Ubuntu_20.04 )   REPO_NAME="deb http://apt.llvm.org/focal/     llvm-toolchain-focal$LLVM_VERSION_STRING   main" ;;
     Ubuntu_20.10 )   REPO_NAME="deb http://apt.llvm.org/groovy/    llvm-toolchain-groovy$LLVM_VERSION_STRING  main" ;;
     Ubuntu_21.04 )   REPO_NAME="deb http://apt.llvm.org/hirsute/   llvm-toolchain-hirsute$LLVM_VERSION_STRING main" ;;
-    Ubuntu_22.04 )   REPO_NAME="deb http://apt.llvm.org/jammy/     llvm-toolchain-jammy$LLVM_VERSION_STRING main" ;;
     * )
         echo "Distribution '$DISTRO' in version '$VERSION' is not supported by this script (${DIST_VERSION})."
         exit 2
