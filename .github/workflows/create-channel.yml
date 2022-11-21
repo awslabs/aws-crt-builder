@@ -29,7 +29,7 @@ jobs:
 
     steps:
     - name: Checkout Source
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
 
     - name: Get release tag
       uses: ./.github/actions/release-tag
@@ -45,7 +45,7 @@ jobs:
         aws s3 cp build/builder s3://$AWS_S3_BUCKET/channels/$CHANNEL/builder.pyz
 
     - name: Artifact builder
-      uses: actions/upload-artifact@v1
+      uses: actions/upload-artifact@v3
       with:
         name: builder
         path: build/builder
@@ -88,7 +88,7 @@ jobs:
 
     steps:
     - name: Checkout Sources
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
 
     - name: Get release tag
       uses: ./.github/actions/release-tag
