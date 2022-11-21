@@ -31,7 +31,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout Source
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
 
     - name: Run Tests
       run: python3 -m unittest discover tests --verbose
@@ -42,7 +42,7 @@ jobs:
 
     steps:
     - name: Checkout Source
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
 
     - name: Get release tag
       uses: ./.github/actions/release-tag
@@ -68,7 +68,7 @@ jobs:
         zipinfo -1 build/builder.pyz
 
     - name: Artifact builder
-      uses: actions/upload-artifact@v1
+      uses: actions/upload-artifact@v3
       with:
         name: builder
         path: build/builder.pyz
@@ -83,10 +83,10 @@ jobs:
     runs-on: ${{ matrix.host }}
     steps:
     - name: Checkout Source
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
 
     - name: Install builder
-      uses: actions/download-artifact@v1
+      uses: actions/download-artifact@v3
       with:
         name: builder
         path: .
@@ -145,10 +145,10 @@ jobs:
 
     steps:
     - name: Checkout Source
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
 
     - name: Install builder
-      uses: actions/download-artifact@v1
+      uses: actions/download-artifact@v3
       with:
         name: builder
         path: .
@@ -175,10 +175,10 @@ jobs:
     runs-on: ubuntu-18.04
     steps:
     - name: Checkout Source
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
 
     - name: Install builder
-      uses: actions/download-artifact@v1
+      uses: actions/download-artifact@v3
       with:
         name: builder
         path: .
@@ -197,10 +197,10 @@ jobs:
         std: [c++11, c++14, c++17, c++2a]
     steps:
     - name: Checkout Source
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
 
     - name: Install builder
-      uses: actions/download-artifact@v1
+      uses: actions/download-artifact@v3
       with:
         name: builder
         path: .
@@ -222,7 +222,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Install builder
-      uses: actions/download-artifact@v1
+      uses: actions/download-artifact@v3
       with:
         name: builder
         path: .
@@ -247,10 +247,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout Source
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
 
     - name: Install builder
-      uses: actions/download-artifact@v1
+      uses: actions/download-artifact@v3
       with:
         name: builder
         path: .
@@ -274,7 +274,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout Source
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
 
     - name: Get release tag
       uses: ./.github/actions/release-tag
@@ -307,7 +307,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout Source
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
 
     - name: Get release tag
       uses: ./.github/actions/release-tag
