@@ -8,7 +8,7 @@ try {
     var release_tag = branch;
     // GITHUB_REF can be refs/pull/<pr#>/merge for PR openings
     const branches = ['main', 'master', 'merge']
-    if (branches.contains(branch)) {
+    if (branches.includes(branch)) {
         const spawnSync = require('child_process').spawnSync;
         const result = spawnSync('git', ['describe', '--abbrev=0'], {
             timeout: 2000
