@@ -1,6 +1,7 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0.
 
+import sys
 from enum import Enum
 from builder.core.util import dict_alias
 
@@ -22,7 +23,7 @@ class PKG_TOOLS(Enum):
 
 KEYS = {
     # Build
-    'python': "",  # where to find python on the machine
+    'python': sys.executable,  # where to find python on the machine
     'c': None,  # c compiler
     'cxx': None,  # c++ compiler
     'cmake_args': [],  # additional cmake arguments
@@ -114,9 +115,6 @@ for arch in list(ARCHS.keys()):
 HOSTS = {
     'linux': {
         'os': 'linux',
-        'variables': {
-            'python': "python3",
-        },
 
         'cmake_args': [
             "-DPERFORM_HEADER_CHECK=ON",
@@ -133,9 +131,6 @@ HOSTS = {
         ],
         'pkg_update': 'apt-get -qq update -y',
         'pkg_install': 'apt-get -qq install -y',
-        'variables': {
-            'python': "python3.8",
-        },
     },
     'debian': {
         'os': 'linux',
@@ -172,9 +167,6 @@ HOSTS = {
         'pkg_tool': PKG_TOOLS.ZYPPER,
         'pkg_update': 'zypper refresh && zypper --non-interactive patch',
         'pkg_install': 'zypper install -y',
-        'variables': {
-            'python': "python3.9",
-        },
     },
     'rhel': {
         'os': 'linux',
@@ -192,10 +184,6 @@ HOSTS = {
         'pkg_tool': PKG_TOOLS.YUM,
         'pkg_update': 'yum update -y',
         'pkg_install': 'yum install -y',
-
-        'variables': {
-            'python': "python3",
-        },
     },
     'al2': {
         'os': 'linux',
@@ -207,10 +195,6 @@ HOSTS = {
         'pkg_tool': PKG_TOOLS.YUM,
         'pkg_update': 'yum update -y',
         'pkg_install': 'yum install -y',
-
-        'variables': {
-            'python': "python3",
-        },
     },
     'manylinux': {
         'os': 'linux',
@@ -218,10 +202,6 @@ HOSTS = {
         'pkg_update': 'yum update -y',
         'pkg_install': 'yum install -y',
         'sudo': False,
-
-        'variables': {
-            'python': "/opt/python/cp39-cp39/bin/python",
-        },
     },
     'centos': {
         'os': 'linux',
@@ -229,17 +209,9 @@ HOSTS = {
         'pkg_update': 'yum update -y',
         'pkg_install': 'yum install -y',
         'sudo': False,
-
-        'variables': {
-            'python': 'python3'
-        }
     },
     'windows': {
         'os': 'windows',
-        'variables': {
-            'python': "python.exe",
-        },
-
         'pkg_tool': PKG_TOOLS.CHOCO,
         'pkg_install': 'choco install --no-progress',
 
@@ -249,18 +221,12 @@ HOSTS = {
     },
     'macos': {
         'os': 'macos',
-        'variables': {
-            'python': "python3",
-        },
 
         'pkg_tool': PKG_TOOLS.BREW,
         'pkg_install': 'brew install',
     },
     'freebsd': {
         'os': 'freebsd',
-        'variables': {
-            'python': "python3",
-        },
         'sudo': True,
 
         'pkg_tool': PKG_TOOLS.PKG,
