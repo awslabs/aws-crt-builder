@@ -11,11 +11,7 @@ RUN apt-get update -qq \
     curl \
     sudo \
     unzip \
-    # Ubuntu18's default python3 is python3.6, which is EOL.
-    # So install python3.8 (latest version on this distro, circa Oct 2022)
-    python3.8-dev \
-    # This installs pip for all python versions on the system
-    # (there is no "python3.8-pip")
+    python3-dev \
     python3-pip \
     build-essential \
     # For PPAs

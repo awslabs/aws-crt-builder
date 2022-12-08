@@ -133,9 +133,6 @@ HOSTS = {
         ],
         'pkg_update': 'apt-get -qq update -y',
         'pkg_install': 'apt-get -qq install -y',
-        'variables': {
-            'python': "python3.8",
-        },
     },
     'debian': {
         'os': 'linux',
