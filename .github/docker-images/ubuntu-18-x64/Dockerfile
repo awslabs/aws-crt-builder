@@ -11,6 +11,8 @@ RUN apt-get update -qq \
     curl \
     sudo \
     unzip \
+    # Don't bother installing a specific python version. "python3" will always
+    # refer to the default for this ubuntu release (i.e. python3.6 on ubuntu-18)
     python3-dev \
     python3-pip \
     build-essential \
@@ -25,8 +27,8 @@ RUN apt-get update -qq \
 ###############################################################################
 WORKDIR /tmp
 
-RUN python3.8 -m pip install setuptools \
-    && python3.8 -m pip install --upgrade pip \
+RUN python3 -m pip install setuptools \
+    && python3 -m pip install --upgrade pip \
     && curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o awscliv2.zip \
     && unzip awscliv2.zip \
     && sudo aws/install \
