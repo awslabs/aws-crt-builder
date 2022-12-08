@@ -159,10 +159,10 @@ def _build_project(env, project, cmake_extra, gcc_coverage=False, build_tests=Fa
     if gcc_coverage:
         if c_path and "gcc" in c_path:
             # Tell cmake to add coverage related configuration. And make sure GCC is used to compile the project.
-            cmake_args + UniqueList([
-                "-DCMAKE_C_FLAGS=\"-fprofile-arcs -ftest-coverage\"",
-                "-DCOVERAGE_EXTRA_FLAGS=\"--preserve-paths --source-prefix `pwd`\""
-            ])
+            cmake_args += [
+                "-DCMAKE_C_FLAGS=-fprofile-arcs -ftest-coverage",
+                "-DCOVERAGE_EXTRA_FLAGS=--preserve-paths --source-prefix `pwd`"
+            ]
         else:
             raise Exception('--gcc-coverage only support GCC as compiler. Current compiler is: {}'.format(c_path))
 
