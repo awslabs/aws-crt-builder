@@ -101,7 +101,7 @@ def _project_dirs(env, project):
     return source_dir, build_dir, install_dir
 
 
-def _build_project(env, project, cmake_extra, gcc_coverage=False, build_tests=False, args_transformer=None):
+def _build_project(env, project, cmake_extra, build_tests=False, args_transformer=None, gcc_coverage=False):
     sh = env.shell
     config = project.get_config(env.spec)
     toolchain = env.toolchain
@@ -214,7 +214,7 @@ class CMakeBuild(Action):
 
         # BUILD
         build_tests = self.project.needs_tests(env)
-        _build_project(env, self.project, args.cmake_extra, args.gcc_coverage, build_tests, self.args_transformer)
+        _build_project(env, self.project, args.cmake_extra, build_tests, self.args_transformer, args.gcc_coverage)
 
     def __str__(self):
         return 'cmake build {} @ {}'.format(self.project.name, self.project.path)
