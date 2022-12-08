@@ -244,9 +244,9 @@ class CTestRun(Action):
         ctest = toolchain.ctest_binary()
         sh.exec(*toolchain.shell_env, ctest,
                 "--output-on-failure", working_dir=project_build_dir, check=True)
-        # Try to generate the coverage report. It's okay to fail.
+        # Try to generate the coverage report. Will be ignored by ctest if no coverage data available.
         sh.exec(*toolchain.shell_env, ctest,
-                "-T coverage", working_dir=project_build_dir)
+                "-T coverage", working_dir=project_build_dir, check=True)
 
     def __str__(self):
         return 'ctest {} @ {}'.format(self.project.name, self.project.path)
