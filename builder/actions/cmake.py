@@ -101,7 +101,7 @@ def _project_dirs(env, project):
     return source_dir, build_dir, install_dir
 
 
-def _build_project(env, project, cmake_extra, build_tests=False, args_transformer=None):
+def _build_project(env, project, cmake_extra, gcc_coverage=False, build_tests=False, args_transformer=None):
     sh = env.shell
     config = project.get_config(env.spec)
     toolchain = env.toolchain
@@ -156,6 +156,15 @@ def _build_project(env, project, cmake_extra, build_tests=False, args_transforme
     # Using a UniqueList seems to solve the problem well enough for now.
     cmake_args += project.cmake_args(env)
     cmake_args += cmake_extra
+    if gcc_coverage:
+        if c_path and "gcc" in c_path:
+            # Tell cmake to add coverage related configuration. And make sure GCC is used to compile the project.
+            cmake_args + UniqueList([
+                "-DCMAKE_C_FLAGS=\"-fprofile-arcs -ftest-coverage\"",
+                "-DCOVERAGE_EXTRA_FLAGS=\"--preserve-paths --source-prefix `pwd`\""
+            ])
+        else:
+            raise Exception('--gcc-coverage only support GCC as compiler. Current compiler is: {}'.format(c_path))
 
     # Allow caller to programmatically tweak the cmake_args,
     # as a last resort in case data merging wasn't working out
@@ -197,6 +206,7 @@ class CMakeBuild(Action):
 
         parser = argparse.ArgumentParser()
         parser.add_argument('--cmake-extra', action='append', default=[])
+        parser.add_argument('--gcc-coverage', action='store_true', default=False)
         args = parser.parse_known_args(env.args.args)[0]
 
         for d in (env.build_dir, env.deps_dir, env.install_dir):
@@ -204,7 +214,7 @@ class CMakeBuild(Action):
 
         # BUILD
         build_tests = self.project.needs_tests(env)
-        _build_project(env, self.project, args.cmake_extra, build_tests, self.args_transformer)
+        _build_project(env, self.project, args.cmake_extra, args.gcc_coverage, build_tests, self.args_transformer)
 
     def __str__(self):
         return 'cmake build {} @ {}'.format(self.project.name, self.project.path)
@@ -234,6 +244,9 @@ class CTestRun(Action):
         ctest = toolchain.ctest_binary()
         sh.exec(*toolchain.shell_env, ctest,
                 "--output-on-failure", working_dir=project_build_dir, check=True)
+        # Try to generate the coverage report. It's okay to fail.
+        sh.exec(*toolchain.shell_env, ctest,
+                "-T coverage", working_dir=project_build_dir)
 
     def __str__(self):
         return 'ctest {} @ {}'.format(self.project.name, self.project.path)
