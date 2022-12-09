@@ -158,6 +158,10 @@ def _build_project(env, project, cmake_extra, build_tests=False, args_transforme
     if coverage:
         if c_path and "gcc" in c_path:
             # Tell cmake to add coverage related configuration. And make sure GCC is used to compile the project.
+            # CMAKE_C_FLAGS for GCC to enable code coverage information.
+            # COVERAGE_EXTRA_FLAGS="*" is configuration for gcov
+            #   --preserve-paths: to include path information in the report file name
+            #   --source-prefix `pwd`: to exculde the `pwd` from the file name
             cmake_args += [
                 "-DCMAKE_C_FLAGS=-fprofile-arcs -ftest-coverage",
                 "-DCOVERAGE_EXTRA_FLAGS=--preserve-paths --source-prefix `pwd`"
