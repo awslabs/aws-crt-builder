@@ -143,6 +143,9 @@ def parse_args():
                         default='{}-{}'.format(current_os(), current_arch()),
                         choices=data.PLATFORMS.keys())
     parser.add_argument('--variant', type=str, help="Build variant to use instead of default")
+    parser.add_argument('--cmake-extra', action='append', default=[])
+    parser.add_argument('--coverage', action='store_true',
+                        help="Enable test coverage report and upload it the codecov. Only supported when using cmake with gcc as compiler, error out on other cases.")
 
     # hand parse command and spec from within the args given
     command = None
@@ -222,6 +225,19 @@ def parse_args():
     return args, spec
 
 
+def upload_test_coverage(env):
+    try:
+        token = env.shell.get_secret("codecov-token", env.project.name)
+    except:
+        print(f"No token found for {env.project.name}, check https://app.codecov.io/github/awslabs/{env.project.name}/settings for token and add it to codecov-token in secret-manager.", file=sys.stderr)
+        exit()
+    # only works for linux for now
+    env.shell.exec('curl', '-Os', 'https://uploader.codecov.io/latest/linux/codecov', check=True)
+    env.shell.exec('chmod', '+x', 'codecov', check=True)
+    # based on the way generated report, we only upload the report started with `source/`
+    env.shell.exec('./codecov', '-t', token, '-f', 'source#*', check=True)
+
+
 def main():
     args, spec = parse_args()
 
@@ -277,6 +293,9 @@ def main():
     # run a single action, usually local to a project
     else:
         run_action(args.command, env)
+
+    if args.coverage:
+        upload_test_coverage(env)
 
 
 if __name__ == '__main__':
