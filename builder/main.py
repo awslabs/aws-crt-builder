@@ -147,7 +147,7 @@ def parse_args():
     parser.add_argument('--cmake-extra', action='append', default=[])
     parser.add_argument('--coverage', action='store_true',
                         help="Enable test coverage report and upload it the codecov. Only supported when using cmake with gcc as compiler, error out on other cases.\n"
-                        + "Use --coverage-inlucde and --coverage-exclude to report the needed coverage file. The default code coverage report will include everything in the `source/` directory")
+                        + "Use --coverage-include and --coverage-exclude to report the needed coverage file. The default code coverage report will include everything in the `source/` directory")
     parser.add_argument('--coverage-include', action='append', default=[],
                         help="The relative (based on the project directory) path of files and folders to include in the test coverage report.\n"
                         + "The default code coverage report will include everything in the `source/` directory")
