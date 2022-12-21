@@ -17,6 +17,7 @@ from builder.core.project import Project
 from builder.core.scripts import Scripts
 from builder.core.toolchain import Toolchain
 from builder.core.host import current_os, current_host, current_arch, current_platform, normalize_target
+from builder.core.util import UniqueList
 import builder.core.data as data
 
 import builder.core.api  # force API to load and expose the virtual module
@@ -143,6 +144,16 @@ def parse_args():
                         default='{}-{}'.format(current_os(), current_arch()),
                         choices=data.PLATFORMS.keys())
     parser.add_argument('--variant', type=str, help="Build variant to use instead of default")
+    parser.add_argument('--cmake-extra', action='append', default=[])
+    parser.add_argument('--coverage', action='store_true',
+                        help="Enable test coverage report and upload it the codecov. Only supported when using cmake with gcc as compiler, error out on other cases.\n"
+                        + "Use --coverage-include and --coverage-exclude to report the needed coverage file. The default code coverage report will include everything in the `source/` directory")
+    parser.add_argument('--coverage-include', action='append', default=[],
+                        help="The relative (based on the project directory) path of files and folders to include in the test coverage report.\n"
+                        + "The default code coverage report will include everything in the `source/` directory")
+    parser.add_argument('--coverage-exclude', action='append', default=[],
+                        help="The relative (based on the project directory) path of files and folders (ends with `/`) to exlude from the test coverage report.\n"
+                        + "The default code coverage report will include everything in the `source/` directory")
 
     # hand parse command and spec from within the args given
     command = None
@@ -222,6 +233,32 @@ def parse_args():
     return args, spec
 
 
+def upload_test_coverage(env):
+    try:
+        token = env.shell.get_secret("codecov-token", env.project.name)
+    except:
+        print(f"No token found for {env.project.name}, check https://app.codecov.io/github/awslabs/{env.project.name}/settings for token and add it to codecov-token in secret-manager.", file=sys.stderr)
+        exit()
+    # only works for linux for now
+    env.shell.exec('curl', '-Os', 'https://uploader.codecov.io/latest/linux/codecov', check=True)
+    env.shell.exec('chmod', '+x', 'codecov', check=True)
+    include_args = UniqueList(['source/'])
+    include_args += env.args.coverage_include
+    exclude_args = UniqueList(env.args.coverage_exclude)
+    uploader_args = []
+    for include in include_args:
+        include += '*'
+        uploader_args.append('-f')
+        uploader_args.append(include.replace("/", "#"))
+    for exclude in exclude_args:
+        exclude += '*'
+        exclude = "!" + exclude
+        uploader_args.append('-f')
+        uploader_args.append(exclude.replace("/", "#"))
+    # based on the way generated report, we only upload the report started with `source/`
+    env.shell.exec('./codecov', '-t', token, uploader_args, check=True)
+
+
 def main():
     args, spec = parse_args()
 
@@ -277,6 +314,9 @@ def main():
     # run a single action, usually local to a project
     else:
         run_action(args.command, env)
+
+    if args.coverage:
+        upload_test_coverage(env)
 
 
 if __name__ == '__main__':

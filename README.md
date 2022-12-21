@@ -29,7 +29,9 @@ Usage: ```builder.pyz [build|inspect|<action-name>] [spec] [OPTIONS]```
 * ```--build-dir DIR``` - Make a new directory to do all the build work in, instead of using the current directory
 * ```--dump-config``` - Dumps the resultant config after merging all available options. Useful for debugging your project configuration.
 * ```--cmake-extra``` - Extra cmake config arg applied to all projects. e.g ```--cmake-extra=-DBUILD_SHARED_LIBS=ON```. May be specified multiple times.
-
+* ```--coverage``` - Generate the test coverage report and upload it to codecov. Only supported when using cmake and gcc as compiler, error out on other cases. Use `--coverage-include` and `--coverage-exclude` to report the needed coverage file. The default code coverage report will include everything in the `source/` directory
+    * ```--coverage-include``` - The relative (based on the project directory) path of files and folders to include in the test coverage report. May be specified multiple times.
+    * ```--coverage-exclude``` - The relative (based on the project directory) path of files and folders to exclude in the test coverage report. May be specified multiple times. Note: the include can override the exlucde path.
 
 ### Supported Targets:
 * linux: x86|i686, x64|x86_64, armv6, armv7, arm64|armv8|aarch64|arm64v8
