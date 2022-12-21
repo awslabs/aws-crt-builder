@@ -141,7 +141,7 @@ class NodeJS(Import):
         version = normalize_version(self.version)
         url = "https://unofficial-builds.nodejs.org/download/release/v{}/node-v{}-{}-{}.tar.gz".format(
             version, version, current_os(), arch)
-        package_name = "node-v{}-{}-{}".format(version, current_os(), current_arch())
+        package_name = "node-v{}-{}-{}".format(version, current_os(), arch)
 
         # Fetch the node build
         extra_path = '{}/node_install'.format(self.install_dir)
