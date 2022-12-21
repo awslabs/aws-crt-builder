@@ -47,7 +47,7 @@ class NodeJS(Import):
         self.install_dir = os.path.join(env.deps_dir, self.name)
         sh.mkdir(self.install_dir)
 
-        if current_arch() == "x86":
+        if env.spec.arch == "x86" or env.spec.arch == "armv6":
             self.install_node_via_unofficial_build(env)
         else:
             if current_os() == 'windows':
@@ -135,9 +135,12 @@ class NodeJS(Import):
                     return (DEFAULT_VERSION + ".0.0")
             return v
 
+        arch = current_arch()
+        if current_arch() == "armv6":
+            arch = "armv6l"
         version = normalize_version(self.version)
         url = "https://unofficial-builds.nodejs.org/download/release/v{}/node-v{}-{}-{}.tar.gz".format(
-            version, version, current_os(), current_arch())
+            version, version, current_os(), arch)
         package_name = "node-v{}-{}-{}".format(version, current_os(), current_arch())
 
         # Fetch the node build
