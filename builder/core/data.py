@@ -605,6 +605,7 @@ for arch in ARCHS.keys():
 PLATFORMS = {
     'windows-x86': {},
     'windows-x64': {},
+    'windows-arm64':{},
     'macos-x64': {},
     'macos-armv8': {},
     'freebsd-x64': {},
@@ -624,7 +625,7 @@ PLATFORMS = {
 }
 
 # Windows
-for arch in ['x86', 'x64']:
+for arch in ['x86', 'x64', 'arm64']:
     canonical_windows = 'windows-{}'.format(arch)
     for alias in ARCHS[arch].get('aliases', []):
         alias_windows = 'windows-{}'.format(alias)
