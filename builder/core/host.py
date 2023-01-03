@@ -52,11 +52,9 @@ def normalize_target(target):
 
 def _file_contains(path, search):
     if os.path.isfile(path):
-        #print('Probing {}'.format(path))
         with open(path) as f:
             line = f.readline()
             while line:
-                #print('  {}'.format(line), end='')
                 if search in line:
                     return True
                 line = f.readline()
