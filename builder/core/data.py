@@ -18,6 +18,7 @@ class PKG_TOOLS(Enum):
     PKG = 'freebsd_pkg'
     ZYPPER = 'zypper'
     DNF = 'dnf'
+    OPKG = 'opkg'
 
 
 KEYS = {
@@ -152,6 +153,13 @@ HOSTS = {
         'pkg_setup': [],
         'pkg_update': '',
         'pkg_install': 'apk add --no-cache',
+    },
+    'openwrt': {
+        'os': 'linux',
+        'pkg_tool': PKG_TOOLS.OPKG,
+        'pkg_setup': [],
+        'pkg_update': 'opkg update',
+        'pkg_install': 'opkg install',
     },
     'raspbian': {
         'os': 'linux',
