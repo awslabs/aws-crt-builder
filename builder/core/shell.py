@@ -150,7 +150,7 @@ class Shell(object):
             result = util.run_command(*command, **kwargs, dryrun=self.dryrun)
         return result
 
-    def get_secret(self, secret_id):
+    def get_secret(self, secret_id, key=None):
         """get string from secretsmanager"""
 
         # NOTE: using AWS CLI instead of boto3 because we know CLI is already
@@ -165,4 +165,8 @@ class Shell(object):
         print('>', subprocess.list2cmdline(cmd))
         result = self.exec(*cmd, check=True, quiet=True)
         secret_value = json.loads(result.output)
-        return secret_value['SecretString']
+        if key is not None:
+            screct_pairs = json.loads(secret_value['SecretString'])
+            return screct_pairs[key]
+        else:
+            return secret_value['SecretString']
