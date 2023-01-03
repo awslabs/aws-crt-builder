@@ -668,7 +668,6 @@ PLATFORMS['linux-armv8']['cross_compile_platform'] = 'linux-arm64'
 PLATFORMS['android-armv6']['cross_compile_platform'] = 'android-arm'
 PLATFORMS['android-armv7']['cross_compile_platform'] = 'android-arm'
 PLATFORMS['android-armv8']['cross_compile_platform'] = 'android-arm64'
-PLATFORMS['windows-armv8']['cross_compile_platform'] = 'windows-arm64'
 for cc_arch in ['armv6', 'armv7', 'armv8']:
     for cc_os in ['linux', 'android']:
         canonical_platform = '{}-{}'.format(cc_os, cc_arch)
