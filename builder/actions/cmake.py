@@ -39,7 +39,7 @@ def cmake_path(cross_compile=False):
 def cmake_version(cross_compile=False):
     if cross_compile:
         return '3.17.1'
-    output = run_command([cmake_path(), '--version'], quiet=True, stderr=False).output
+    output = run_command([cmake_path(), '--version'], quiet=True).output
     m = re.match(r'cmake(3?) version ([\d\.])', output)
     if m:
         return m.group(2)

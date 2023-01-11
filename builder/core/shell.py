@@ -132,22 +132,23 @@ class Shell(object):
         """ Platform agnostic `where executable` command """
         return util.where(exe, path, resolve_symlinks)
 
-    def exec(self, *command, **kwargs):
+    def exec(self, *command, check=False, quiet=False, always=False, retries=0, working_dir=None):
         """
         Executes a shell command, or just logs it for dry runs
         Arguments:
             check: If true, raise an exception when execution fails
-            retries: (default 1) How many times to try the command, useful for network commands
+            retries: (default 0) How many times to retry the command, useful for network commands
             quiet: Do not produce any output
+            always: If true, run for real in a dryrun
+            working_dir: If set, the working directory to run the command in
         """
-        result = None
-        if kwargs.get('always', False):
-            prev_dryrun = self.dryrun
+        prev_dryrun = self.dryrun
+        if always:
             self.dryrun = False
-            result = util.run_command(*command, **kwargs, dryrun=self.dryrun)
-            self.dryrun = prev_dryrun
-        else:
-            result = util.run_command(*command, **kwargs, dryrun=self.dryrun)
+
+        result = util.run_command(*command, check=check, quiet=quiet, dryrun=self.dryrun,
+                                  retries=retries, working_dir=working_dir)
+        self.dryrun = prev_dryrun
         return result
 
     def get_secret(self, secret_id, key=None):
@@ -160,9 +161,9 @@ class Shell(object):
 
         cmd = ['aws', '--region', 'us-east-1', 'secretsmanager', 'get-secret-value',
                '--secret-id', secret_id]
-        # NOTE: print command args, but use "quiet" mode so that output isn't printed.
+        # NOTE: log command args, but use "quiet" mode so that output isn't printed.
         # we don't want secrets leaked to the build log
-        print('>', subprocess.list2cmdline(cmd))
+        util.log_command(cmd)
         result = self.exec(*cmd, check=True, quiet=True)
         secret_value = json.loads(result.output)
         if key is not None:

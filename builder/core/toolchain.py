@@ -12,7 +12,7 @@ from builder.core import util
 
 def _compiler_version(cc):
     if current_os() != 'windows':
-        result = util.run_command(cc, '--version', quiet=True, stderr=False)
+        result = util.run_command(cc, '--version', quiet=True)
         lines = result.output.split('\n')
         for text in lines:
             # Apple clang
