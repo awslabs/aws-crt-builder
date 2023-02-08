@@ -19,6 +19,7 @@ class PKG_TOOLS(Enum):
     ZYPPER = 'zypper'
     DNF = 'dnf'
     OPKG = 'opkg'
+    OBSD_PKG = 'openbsd_pkg'
 
 
 KEYS = {
@@ -274,6 +275,20 @@ HOSTS = {
         'pkg_tool': PKG_TOOLS.PKG,
         'pkg_update': 'pkg update',
         'pkg_install': 'pkg install -y'
+    },
+    'openbsd': {
+        'os': 'openbsd',
+        'variables': {
+            'python': "python3",
+        },
+        'sudo': 'doas',
+
+        'pkg_tool': PKG_TOOLS.OBSD_PKG,
+        'packages': [
+            'cmake',
+            'python%3.10',
+        ],
+        'pkg_install': 'pkg_add -I'
     }
 }
 
@@ -433,6 +448,14 @@ TARGETS = {
         'variables': {
             'exe': ''
         },
+    },
+    'openbsd': {
+        'cmake_args': [
+            "-DENABLE_SANITIZERS=OFF",
+        ],
+        'variables': {
+            'exe': ''
+        },
     }
 }
 
@@ -448,16 +471,16 @@ for arch in ARCHS.keys():
 ###############################################################################
 COMPILERS = {
     'default': {
-        'hosts': ['macos', 'linux', 'windows', 'freebsd'],
-        'targets': ['macos', 'linux', 'windows', 'freebsd', 'android', 'ios', 'tvos', 'watchos'],
+        'hosts': ['macos', 'linux', 'windows', 'freebsd', 'openbsd'],
+        'targets': ['macos', 'linux', 'windows', 'freebsd', 'openbsd', 'android', 'ios', 'tvos', 'watchos'],
 
         'versions': {
             'default': {}
         }
     },
     'clang': {
-        'hosts': ['linux', 'macos'],
-        'targets': ['linux', 'macos', 'ios', 'tvos', 'watchos'],
+        'hosts': ['linux', 'macos', 'openbsd'],
+        'targets': ['linux', 'macos', 'openbsd', 'ios', 'tvos', 'watchos'],
 
         'imports': ['llvm'],
 
@@ -616,6 +639,7 @@ PLATFORMS = {
     'macos-x64': {},
     'macos-armv8': {},
     'freebsd-x64': {},
+    'openbsd-x64': {},
     'android-armv6': {},
     'android-armv7': {},
     'android-armv8': {},
@@ -659,6 +683,14 @@ for alias in ARCHS['x64'].get('aliases', []):
         alias_freebsd = 'freebsd-{}'.format(alias)
         if alias_freebsd != canonical_freebsd:
             PLATFORMS[alias_freebsd] = PLATFORMS[canonical_freebsd]
+
+# OpenBSD
+for alias in ARCHS['x64'].get('aliases', []):
+    canonical_openbsd = 'openbsd-x64'
+    for alias in ARCHS['x64'].get('aliases', []):
+        alias_openbsd = 'openbsd-{}'.format(alias)
+        if alias_openbsd != canonical_openbsd:
+            PLATFORMS[alias_openbsd] = PLATFORMS[canonical_openbsd]
 
 # Linux works on every arch we support
 for arch in ARCHS.keys():

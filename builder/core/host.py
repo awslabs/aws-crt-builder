@@ -19,6 +19,8 @@ def current_os():
         return 'linux'
     elif sys.platform.startswith('freebsd'):
         return 'freebsd'
+    elif sys.platform.startswith('openbsd'):
+        return 'openbsd'
     return 'UNKNOWN'
 
 

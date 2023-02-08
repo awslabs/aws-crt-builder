@@ -37,7 +37,21 @@ class InstallPackages(Action):
         args = parser.parse_known_args(env.args.args)[0]
 
         sudo = config.get('sudo', current_os() == 'linux')
-        sudo = ['sudo'] if sudo else []
+        if sudo is True:
+            # If (a) the 'sudo' config parameter is set to True, or (b) the
+            # config parameter is not set and the current OS is Linux: use
+            # 'sudo'.
+            sudo = ['sudo']
+        elif sudo is False:
+            # If (a) the 'sudo' config parameter is set to False or (b) the
+            # 'sudo' config parameter is not set and the current OS is not
+            # Linux: do not use a privilege elevation command.
+            sudo = []
+        else:
+            # The 'sudo' config parameter is set and its value is something
+            # other than True: consider the value to be a command (e.g.,
+            # 'doas').
+            sudo = [sudo]
 
         packages = self.packages if self.packages else config.get(
             'packages', [])
