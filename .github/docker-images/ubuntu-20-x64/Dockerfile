@@ -11,6 +11,8 @@ RUN apt-get update -qq \
     curl \
     sudo \
     unzip \
+    # Don't bother installing a specific python version. "python3" will always
+    # refer to the default for this ubuntu release (i.e. python3.6 on ubuntu-18)
     python3-dev \
     python3-pip \
     build-essential \
