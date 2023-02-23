@@ -105,7 +105,7 @@ jobs:
       run: docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
 
     - name: Build ${{ matrix.variant }} image
-      uses: whoan/docker-build-with-cache-action@v5
+      uses: whoan/docker-build-with-cache-action@v6
       with:
         registry: ${{ secrets.AWS_ECR_REPO }}
         username: ${{ secrets.AWS_ACCESS_KEY_ID }}
