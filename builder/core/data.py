@@ -286,7 +286,6 @@ HOSTS = {
         'pkg_tool': PKG_TOOLS.OBSD_PKG,
         'packages': [
             'cmake',
-            'python%3.10',
         ],
         'pkg_install': 'pkg_add -I'
     }
