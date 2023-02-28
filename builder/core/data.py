@@ -281,7 +281,7 @@ HOSTS = {
         'variables': {
             'python': "python3",
         },
-        'sudo': 'doas',
+        'sudo': True,
 
         'pkg_tool': PKG_TOOLS.OBSD_PKG,
         'packages': [
