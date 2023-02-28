@@ -286,6 +286,7 @@ HOSTS = {
         'pkg_tool': PKG_TOOLS.OBSD_PKG,
         'packages': [
             'cmake',
+            'git',
         ],
         'pkg_install': 'pkg_add -I'
     }
