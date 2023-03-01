@@ -38,6 +38,7 @@ Usage: ```builder.pyz [build|inspect|<action-name>] [spec] [OPTIONS]```
 * macos|darwin: x64|x86_64
 * windows: x86, x64
 * freebsd: x64
+* openbsd: x64
 
 ### Example build
 ```builder.pyz build --project=aws-c-common downstream```
