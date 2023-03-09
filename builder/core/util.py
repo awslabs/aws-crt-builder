@@ -254,7 +254,7 @@ def run_command(*command, check=False, quiet=False, dryrun=False, retries=0, wor
 
                 if proc.returncode != 0:
                     raise Exception(
-                        f'Command exited with code {proc.returncode}')
+                        'Command exited with code {}'.format(proc.returncode))
 
                 return ExecResult(proc.returncode, proc.pid, output)
 
