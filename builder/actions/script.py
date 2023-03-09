@@ -56,7 +56,7 @@ class Script(Action):
             elif callable(cmd):
                 children += to_list(cmd(env))
             else:
-                print('Unknown script sub command: {}: {}', cmd_type, cmd)
+                print('Unknown script sub command: {}: {}'.format(cmd_type, cmd))
                 sys.exit(4)
         return children
 
