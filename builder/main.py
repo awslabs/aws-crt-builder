@@ -238,7 +238,7 @@ def upload_test_coverage(env):
         token = env.shell.get_secret("codecov-token", env.project.name)
     except:
         print(
-            f"No token found for {name}. Check https://app.codecov.io/github/awslabs/{name}/settings"
+            "No token found for {name}. Check https://app.codecov.io/github/awslabs/{name}/settings"
             " for token and add it to codecov-token in Secrets Manager."
             .format(name=env.project.name),
             file=sys.stderr
