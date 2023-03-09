@@ -240,7 +240,7 @@ def upload_test_coverage(env):
         print(
             f"No token found for {name}. Check https://app.codecov.io/github/awslabs/{name}/settings"
             " for token and add it to codecov-token in Secrets Manager."
-                .format(name=env.project.name),
+            .format(name=env.project.name),
             file=sys.stderr
         )
         exit()
