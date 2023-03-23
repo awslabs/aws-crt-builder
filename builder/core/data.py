@@ -475,9 +475,7 @@ COMPILERS = {
         'targets': ['macos', 'linux', 'windows', 'freebsd', 'openbsd', 'android', 'ios', 'tvos', 'watchos'],
 
         'versions': {
-            'default': {
-                'cmake_args': ['-DBUILD_TESTING=OFF'],
-            }
+            'default': {}
         }
     },
     'clang': {
@@ -557,6 +555,8 @@ COMPILERS = {
 
         'versions': {
             '4.8': {
+                # ASan has been broken on 4.8 GCC version distributed on Ubuntu
+                # and will unlikely to get fixed upstream. so turn it off.
                 'cmake_args': ['-DENABLE_SANITIZERS=OFF'],
             },
             '5': {},
