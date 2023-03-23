@@ -153,6 +153,10 @@ def _build_project(env, project, cmake_extra, build_tests=False, args_transforme
     ])
     # Merging in cmake_args from all upstream projects inevitably leads to duplicate arguments.
     # Using a UniqueList seems to solve the problem well enough for now.
+    # TODO: this can lead to unpredictable results for cases where same flag is
+    # set on and off multiple times. ex. Flag A is added to args with value On,
+    # Off, On. With UniqueList last On will be removed and cmake will treat flag
+    # as off. Without UniqueList cmake will treat it as on. 
     cmake_args += project.cmake_args(env)
     cmake_args += cmake_extra
     if coverage:
@@ -161,7 +165,7 @@ def _build_project(env, project, cmake_extra, build_tests=False, args_transforme
             # CMAKE_C_FLAGS for GCC to enable code coverage information.
             # COVERAGE_EXTRA_FLAGS="*" is configuration for gcov
             #   --preserve-paths: to include path information in the report file name
-            #   --source-prefix `pwd`: to exculde the `pwd` from the file name
+            #   --source-prefix `pwd`: to exclude the `pwd` from the file name
             cmake_args += [
                 "-DCMAKE_C_FLAGS=-fprofile-arcs -ftest-coverage",
                 "-DCOVERAGE_EXTRA_FLAGS=--preserve-paths --source-prefix `pwd`"

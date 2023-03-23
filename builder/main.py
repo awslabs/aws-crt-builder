@@ -108,8 +108,12 @@ def inspect_host(spec):
     compiler_path = toolchain.compiler_path()
     if not compiler_path:
         compiler_path = '(Will Install)'
-    print('  Compiler: {} (version: {}) {}'.format(
-        spec.compiler, toolchain.compiler_version, compiler_path))
+    if spec.compiler == 'default':
+        print('  Default Compiler resolved to: {} (version: {}) {}'.format(
+            spec.compiler, toolchain.compiler_version, compiler_path))
+    else:
+        print('  Compiler: {} (version: {}) {}'.format(
+            spec.compiler, toolchain.compiler_version, compiler_path))
     compilers = ['{} {}'.format(c[0], c[1])
                  for c in Toolchain.all_compilers()]
     print('  Available Compilers: {}'.format(', '.join(compilers)))

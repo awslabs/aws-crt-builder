@@ -345,7 +345,7 @@ TARGETS = {
                 ],
             },
         },
-        '!cmake_args': [],
+        '!cmake_args': ['-DENABLE_SANITIZERS=ON'],
         'variables': {
             'exe': '',
         },
@@ -475,7 +475,9 @@ COMPILERS = {
         'targets': ['macos', 'linux', 'windows', 'freebsd', 'openbsd', 'android', 'ios', 'tvos', 'watchos'],
 
         'versions': {
-            'default': {}
+            'default': {
+                'cmake_args': ['-DBUILD_TESTING=OFF'],
+            }
         }
     },
     'clang': {
@@ -485,9 +487,7 @@ COMPILERS = {
         'imports': ['llvm'],
 
         'versions': {
-            'default': {
-                '!cmake_args': [],
-            },
+            'default': {},
             '3': {
                 'c': "clang-3.9",
                 'cxx': "clang++-3.9",
@@ -523,9 +523,10 @@ COMPILERS = {
             '11': {
                 '!cmake_args': [],
             },
-            '12': {
-
-            }
+            '12': {},
+            '13': {},
+            '14': {},
+            '15': {}
         },
         'architectures': {
             # No fuzz tests on ARM
@@ -555,7 +556,9 @@ COMPILERS = {
         'yum_compiler_packages': ['gcc', 'gcc-c++'],
 
         'versions': {
-            '4.8': {},
+            '4.8': {
+                'cmake_args': ['-DENABLE_SANITIZERS=OFF'],
+            },
             '5': {},
             '6': {},
             '7': {},
@@ -563,6 +566,7 @@ COMPILERS = {
             '9': {},
             '10': {},
             '11': {},
+            '12': {}
         },
 
         'architectures': {
