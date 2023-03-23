@@ -156,7 +156,7 @@ def _build_project(env, project, cmake_extra, build_tests=False, args_transforme
     # TODO: this can lead to unpredictable results for cases where same flag is
     # set on and off multiple times. ex. Flag A is added to args with value On,
     # Off, On. With UniqueList last On will be removed and cmake will treat flag
-    # as off. Without UniqueList cmake will treat it as on. 
+    # as off. Without UniqueList cmake will treat it as on.
     cmake_args += project.cmake_args(env)
     cmake_args += cmake_extra
     if coverage:
