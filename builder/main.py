@@ -113,7 +113,7 @@ def inspect_host(spec):
             toolchain.compiler, toolchain.compiler_version, compiler_path))
     else:
         print('  Compiler: {} (version: {}) {}'.format(
-            spec.compiler, toolchain.compiler_version, compiler_path))
+            toolchain.compiler, toolchain.compiler_version, compiler_path))
     compilers = ['{} {}'.format(c[0], c[1])
                  for c in Toolchain.all_compilers()]
     print('  Available Compilers: {}'.format(', '.join(compilers)))
