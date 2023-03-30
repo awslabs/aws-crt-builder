@@ -9,6 +9,7 @@ from builder.core import util
 
 # helpful list of XCode clang output: https://gist.github.com/yamaya/2924292
 
+
 def _compiler_version(cc):
     if current_os() != 'windows':
         result = util.run_command(cc, '--version', quiet=True)

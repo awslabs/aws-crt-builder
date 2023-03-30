@@ -97,5 +97,5 @@ class BuildSpec(object):
                               self.compiler_version, self.target, self.arch])
         if self.downstream:
             self.name += "-downstream"
-        
+
         validate_spec(self)
