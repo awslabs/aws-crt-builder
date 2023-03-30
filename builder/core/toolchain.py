@@ -297,7 +297,6 @@ class Toolchain(object):
                 compiler = 'msvc'
                 version = Toolchain.find_msvc()[1]
             else:
-                print("here")
                 # resolve CC and /usr/bin/cc
                 for env_cc in (util.where(os.environ.get('CC', None)), util.where('cc')):
                     if env_cc:
@@ -307,7 +306,6 @@ class Toolchain(object):
 
                 # Try to find clang or gcc
                 clang_path, clang_version = Toolchain.find_llvm_tool('clang')
-                print("there")
                 print(clang_path)
                 gcc_path, gcc_version = Toolchain.find_gcc_tool('gcc')
                 if clang_path:
