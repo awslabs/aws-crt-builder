@@ -531,17 +531,13 @@ COMPILERS = {
                 'cmake_args': ['-DENABLE_FUZZ_TESTS=ON'],
                 'apt_compiler_packages': ['libstdc++-9-dev'],
             },
-            # 10 and 11 are XCode Apple clang/LLVM
-            '10': {
-                '!cmake_args': [],
-            },
-            '11': {
-                '!cmake_args': [],
-            },
+            '10': {},
+            '11': {},
             '12': {},
             '13': {},
             '14': {},
-            '15': {}
+            '15': {},
+            '16': {}
         },
         'architectures': {
             # No fuzz tests on ARM
