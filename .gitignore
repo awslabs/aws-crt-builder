@@ -671,3 +671,5 @@ venv/
 # single dist/index.js file and commit THAT instead.
 node_modules/
 !.github/actions/check-submodules/dist/
+
+.DS_Store

@@ -290,6 +290,12 @@ def main():
         print('No project specified and no project found in current directory')
         sys.exit(1)
 
+    if env.config.get('needs_compiler', True):
+        env.toolchain = Toolchain(spec=env.spec)
+        env.spec.update_compiler(env.toolchain.compiler, env.toolchain.compiler_version)
+        if env.spec.compiler == 'default' or env.spec.compiler_version == 'default':
+            raise Exception("Failed to resolve default compiler. None installed?")
+
     print('Using Spec:')
     print('  Host: {} {}'.format(spec.host, current_arch()))
     print('  Target: {} {}'.format(spec.target, spec.arch))
@@ -297,9 +303,6 @@ def main():
 
     if not env.config.get('enabled', True):
         raise Exception("The project is disabled in this configuration")
-
-    if env.config.get('needs_compiler', True):
-        env.toolchain = Toolchain(spec=env.spec)
 
     if args.dump_config:
         from pprint import pprint

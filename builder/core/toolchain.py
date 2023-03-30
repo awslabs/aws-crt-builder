@@ -228,7 +228,7 @@ class Toolchain(object):
         """ Returns path, found_version for the requested compiler if it is installed """
         if compiler == 'clang':
             if current_os() == "macos":
-                return Toolchain.find_apple_llvm_compiler(compiler, version)             
+                return Toolchain.find_apple_llvm_compiler(compiler, version)
             else:
                 return Toolchain.find_llvm_tool(compiler, version)
         elif compiler == 'appleclang':
@@ -261,7 +261,7 @@ class Toolchain(object):
                 compilers.append(('gcc', version))
 
         is_mac = current_os() == "macos"
-        versions =  _appleclang_versions() if is_mac else _clang_versions()
+        versions = _appleclang_versions() if is_mac else _clang_versions()
         for version in versions:
             path, _version = Toolchain.find_llvm_tool('clang', version)
             if path:
@@ -316,7 +316,7 @@ class Toolchain(object):
                 else:
                     print(
                         'Neither GCC or Clang could be found on this system, perhaps not installed yet?')
-                
+
             if not compiler or not version:
                 print('WARNING: Default compiler could not be found')
 
