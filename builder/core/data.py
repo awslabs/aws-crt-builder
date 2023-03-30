@@ -478,9 +478,26 @@ COMPILERS = {
             'default': {}
         }
     },
+    'appleclang': {
+        'hosts': ['macos'],
+        'targets': ['macos', 'ios', 'tvos', 'watchos'],
+
+        'versions': {
+            'default': {
+                'c': "clang",
+                'cxx': "clang++",
+                '!cmake_args': [],
+            },
+
+            '11': {},
+            '12': {},
+            '13': {},
+            '14': {},
+        },
+    },
     'clang': {
-        'hosts': ['linux', 'macos', 'openbsd'],
-        'targets': ['linux', 'macos', 'openbsd', 'ios', 'tvos', 'watchos'],
+        'hosts': ['linux', 'openbsd'],
+        'targets': ['linux', 'openbsd'],
 
         'imports': ['llvm'],
 

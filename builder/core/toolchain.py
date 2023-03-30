@@ -9,7 +9,6 @@ from builder.core import util
 
 # helpful list of XCode clang output: https://gist.github.com/yamaya/2924292
 
-
 def _compiler_version(cc):
     if current_os() != 'windows':
         result = util.run_command(cc, '--version', quiet=True)
@@ -18,7 +17,7 @@ def _compiler_version(cc):
             # Apple clang
             m = re.match('Apple (LLVM|clang) version (\d+)', text)
             if m:
-                return 'clang', m.group(2)
+                return 'appleclang', m.group(2)
             # LLVM clang
             m = re.match('.*(LLVM|clang) version (\d+)', text)
             if m:
@@ -52,6 +51,14 @@ def _find_compiler_tool(name, versions):
 
 def _clang_versions():
     versions = [v for v in COMPILERS['clang']
+                ['versions'].keys() if v != 'default']
+    versions.sort()
+    versions.reverse()
+    return versions
+
+
+def _appleclang_versions():
+    versions = [v for v in COMPILERS['appleclang']
                 ['versions'].keys() if v != 'default']
     versions.sort()
     versions.reverse()
@@ -149,7 +156,7 @@ class Toolchain(object):
         compiler = self.compiler
         if self.compiler == 'default':
             compiler = Toolchain.default_compiler()[0]
-        if compiler == 'clang':
+        if compiler == 'clang' or compiler == 'appleclang':
             return Toolchain.find_compiler_tool(compiler, 'clang++', self.compiler_version)[0]
         elif compiler == 'gcc':
             return Toolchain.find_compiler_tool(compiler, 'g++', self.compiler_version)[0]
@@ -172,6 +179,14 @@ class Toolchain(object):
     def find_llvm_tool(name, version=None):
         """ Finds clang, clang-tidy, lld, etc at a specific version, or the latest one available """
         versions = [version] if version else _clang_versions()
+        return _find_compiler_tool(name, versions)
+
+    @staticmethod
+    def find_apple_llvm_compiler(name, version=None):
+        """ Finds apple versions of clang compilers at a specific version, or the latest one available.
+            Note: apple does not ship tools like clang-tidy, so if installed
+            those will follow regular llvm versioning """
+        versions = [version] if version else _appleclang_versions()
         return _find_compiler_tool(name, versions)
 
     @staticmethod
@@ -212,7 +227,12 @@ class Toolchain(object):
     def find_compiler(compiler, version=None):
         """ Returns path, found_version for the requested compiler if it is installed """
         if compiler == 'clang':
-            return Toolchain.find_llvm_tool(compiler, version)
+            if current_os() == "macos":
+                return Toolchain.find_apple_llvm_compiler(compiler, version)             
+            else:
+                return Toolchain.find_llvm_tool(compiler, version)
+        elif compiler == 'appleclang':
+            return Toolchain.find_apple_llvm_compiler('clang', version)
         elif compiler == 'gcc':
             return Toolchain.find_gcc_tool(compiler, version)
         elif compiler == 'msvc':
@@ -224,19 +244,12 @@ class Toolchain(object):
         """ Returns path, found_version for the requested tool if it is installed """
         if compiler == 'clang':
             return Toolchain.find_llvm_tool(tool, version)
+        elif compiler == 'appleclang':
+            return Toolchain.find_apple_llvm_compiler(tool, version)
         elif compiler == 'gcc':
             return Toolchain.find_gcc_tool(tool, version)
 
         return None, None
-
-    @staticmethod
-    def compiler_packages(compiler, version):
-        """ Returns a list of packages required to use the requested compiler """
-        compiler_config = COMPILERS.get(compiler, {}).get(
-            'versions', {}).get(version, None)
-        if compiler_config:
-            return compiler_config.get('packages', [])
-        return []
 
     @staticmethod
     def all_compilers():
@@ -246,10 +259,13 @@ class Toolchain(object):
             path, _version = Toolchain.find_gcc_tool('gcc', version)
             if path:
                 compilers.append(('gcc', version))
-        for version in _clang_versions():
+
+        is_mac = current_os() == "macos"
+        versions =  _appleclang_versions() if is_mac else _clang_versions()
+        for version in versions:
             path, _version = Toolchain.find_llvm_tool('clang', version)
             if path:
-                compilers.append(('clang', version))
+                compilers.append(('appleclang' if is_mac else 'clang', version))
         if current_os() == 'windows':
             for version in _msvc_versions():
                 path, _version = Toolchain.find_msvc(version)
@@ -273,7 +289,12 @@ class Toolchain(object):
             compiler = None
             version = None
             platform = current_os()
-            if platform != 'windows':
+
+            if platform == 'windows':
+                compiler = 'msvc'
+                version = Toolchain.find_msvc()[1]
+            else:
+                print("here")
                 # resolve CC and /usr/bin/cc
                 for env_cc in (util.where(os.environ.get('CC', None)), util.where('cc')):
                     if env_cc:
@@ -282,8 +303,9 @@ class Toolchain(object):
                             return cc, ccver
 
                 # Try to find clang or gcc
-                clang_path, clang_version = Toolchain.find_llvm_tool(
-                    'clang')
+                clang_path, clang_version = Toolchain.find_llvm_tool('clang')
+                print("there")
+                print(clang_path)
                 gcc_path, gcc_version = Toolchain.find_gcc_tool('gcc')
                 if clang_path:
                     compiler = 'clang'
@@ -294,10 +316,7 @@ class Toolchain(object):
                 else:
                     print(
                         'Neither GCC or Clang could be found on this system, perhaps not installed yet?')
-
-            else:
-                compiler = 'msvc'
-                version = Toolchain.find_msvc()[1]
+                
             if not compiler or not version:
                 print('WARNING: Default compiler could not be found')
 
