@@ -483,11 +483,7 @@ COMPILERS = {
         'targets': ['macos', 'ios', 'tvos', 'watchos'],
 
         'versions': {
-            'default': {
-                'c': "clang",
-                'cxx': "clang++",
-                '!cmake_args': [],
-            },
+            'default': {},
 
             '11': {},
             '12': {},
