@@ -478,9 +478,22 @@ COMPILERS = {
             'default': {}
         }
     },
+    'appleclang': {
+        'hosts': ['macos'],
+        'targets': ['macos', 'ios', 'tvos', 'watchos'],
+
+        'versions': {
+            'default': {},
+
+            '11': {},
+            '12': {},
+            '13': {},
+            '14': {},
+        },
+    },
     'clang': {
-        'hosts': ['linux', 'macos', 'openbsd'],
-        'targets': ['linux', 'macos', 'openbsd', 'ios', 'tvos', 'watchos'],
+        'hosts': ['linux', 'openbsd'],
+        'targets': ['linux', 'openbsd'],
 
         'imports': ['llvm'],
 
@@ -514,17 +527,13 @@ COMPILERS = {
                 'cmake_args': ['-DENABLE_FUZZ_TESTS=ON'],
                 'apt_compiler_packages': ['libstdc++-9-dev'],
             },
-            # 10 and 11 are XCode Apple clang/LLVM
-            '10': {
-                '!cmake_args': [],
-            },
-            '11': {
-                '!cmake_args': [],
-            },
+            '10': {},
+            '11': {},
             '12': {},
             '13': {},
             '14': {},
-            '15': {}
+            '15': {},
+            '16': {}
         },
         'architectures': {
             # No fuzz tests on ARM
