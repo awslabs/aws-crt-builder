@@ -20,8 +20,6 @@ RUN yum -y update \
     which \
     && yum clean all \
     && rm -rf /var/cache/yum \
-    && ln -s /usr/bin/cmake3 /usr/bin/cmake \
-    && ln -s /usr/bin/ctest3 /usr/bin/ctest \
     && cmake --version \
     && ctest --version
 
