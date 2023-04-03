@@ -8,6 +8,7 @@ RUN yum -y update \
     && yum -y install \
     tar \
     git \
+    curl \
     sudo \
     # Python
     python3 \
