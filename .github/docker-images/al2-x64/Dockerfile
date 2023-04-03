@@ -26,7 +26,7 @@ RUN yum -y update \
 ###############################################################################
 # Python/AWS CLI
 ###############################################################################
-RUN python3 -m pip install --upgrade pip setuptools virtualenv \
+RUN python3 -m pip install setuptools virtualenv \
     && python3 -m pip install --upgrade awscli \
     && aws --version
 
