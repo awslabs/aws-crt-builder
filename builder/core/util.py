@@ -193,29 +193,32 @@ def _flatten_command(*command):
     return new_command
 
 
+def command_to_str(*command):
+    cmds = _flatten_command(*command)
+    if sys.platform == 'win32':
+        cmds = [cmd.encode('ascii', 'ignore').decode()
+                for cmd in cmds]
+    return subprocess.list2cmdline(cmds)
+
+
 def log_command(*command):
-    print('>', subprocess.list2cmdline(
-        _flatten_command(*command)), flush=True)
+    print('>', command_to_str(*command), flush=True)
 
 
-def run_command(*command, **kwargs):
-    if not kwargs.get('quiet', False):
+def run_command(*command, check=False, quiet=False, dryrun=False, retries=0, working_dir=None):
+    if not quiet:
         log_command(*command)
-    dryrun = kwargs.get('dryrun', False)
     if dryrun:
         return None
-    tries = kwargs.get('retries', 1)
-    working_dir = kwargs.get('working_dir', os.getcwd())
+    tries = retries + 1
+    if not working_dir:
+        working_dir = os.getcwd()
 
     output = None
     while tries > 0:
         tries -= 1
         try:
-            cmds = _flatten_command(*command)
-            if sys.platform == 'win32':
-                cmds = [cmd.encode('ascii', 'ignore').decode()
-                        for cmd in cmds]
-            cmd = subprocess.list2cmdline(cmds)
+            cmd = command_to_str(*command)
 
             # force the working directory
             cwd = os.getcwd()
@@ -241,7 +244,7 @@ def run_command(*command, **kwargs):
                     if sys.platform == 'win32':
                         line = line.replace('\r\n', '\n')
                     output += line
-                    if not kwargs.get('quiet', False):
+                    if not quiet:
                         print(line, end='', flush=True)
                     line = proc.stdout.readline()
                 proc.wait()
@@ -251,14 +254,14 @@ def run_command(*command, **kwargs):
 
                 if proc.returncode != 0:
                     raise Exception(
-                        'Command exited with code {}:\n{}'.format(proc.returncode, output))
+                        f'Command exited with code {proc.returncode}')
 
                 return ExecResult(proc.returncode, proc.pid, output)
 
         except Exception as ex:
             print('Failed to run {}: {}'.format(
                 ' '.join(_flatten_command(*command)), ex))
-            if kwargs.get('check', False) and tries == 0:
+            if check and tries == 0:
                 raise
             output = ex
             if tries > 0:

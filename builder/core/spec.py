@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: Apache-2.0.
 
 import os
-import sys
 
 from builder.core.data import *
 from builder.core.host import current_host, current_os, current_arch, normalize_arch
@@ -89,3 +88,14 @@ class BuildSpec(object):
 
     def __repr__(self):
         return self.name
+
+    def update_compiler(self, compiler, compiler_version):
+        self.compiler = compiler
+        self.compiler_version = compiler_version
+
+        self.name = '-'.join([self.host, self.compiler,
+                              self.compiler_version, self.target, self.arch])
+        if self.downstream:
+            self.name += "-downstream"
+
+        validate_spec(self)

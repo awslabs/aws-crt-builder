@@ -17,6 +17,7 @@ from builder.core.project import Project
 from builder.core.scripts import Scripts
 from builder.core.toolchain import Toolchain
 from builder.core.host import current_os, current_host, current_arch, current_platform, normalize_target
+from builder.core.util import UniqueList
 import builder.core.data as data
 
 import builder.core.api  # force API to load and expose the virtual module
@@ -107,8 +108,12 @@ def inspect_host(spec):
     compiler_path = toolchain.compiler_path()
     if not compiler_path:
         compiler_path = '(Will Install)'
-    print('  Compiler: {} (version: {}) {}'.format(
-        spec.compiler, toolchain.compiler_version, compiler_path))
+    if spec.compiler == 'default':
+        print('  Default Compiler resolved to: {} (version: {}) {}'.format(
+            toolchain.compiler, toolchain.compiler_version, compiler_path))
+    else:
+        print('  Compiler: {} (version: {}) {}'.format(
+            toolchain.compiler, toolchain.compiler_version, compiler_path))
     compilers = ['{} {}'.format(c[0], c[1])
                  for c in Toolchain.all_compilers()]
     print('  Available Compilers: {}'.format(', '.join(compilers)))
@@ -145,7 +150,14 @@ def parse_args():
     parser.add_argument('--variant', type=str, help="Build variant to use instead of default")
     parser.add_argument('--cmake-extra', action='append', default=[])
     parser.add_argument('--coverage', action='store_true',
-                        help="Enable test coverage report and upload it the codecov. Only supported when using cmake with gcc as compiler, error out on other cases.")
+                        help="Enable test coverage report and upload it the codecov. Only supported when using cmake with gcc as compiler, error out on other cases.\n"
+                        + "Use --coverage-include and --coverage-exclude to report the needed coverage file. The default code coverage report will include everything in the `source/` directory")
+    parser.add_argument('--coverage-include', action='append', default=[],
+                        help="The relative (based on the project directory) path of files and folders to include in the test coverage report.\n"
+                        + "The default code coverage report will include everything in the `source/` directory")
+    parser.add_argument('--coverage-exclude', action='append', default=[],
+                        help="The relative (based on the project directory) path of files and folders (ends with `/`) to exlude from the test coverage report.\n"
+                        + "The default code coverage report will include everything in the `source/` directory")
 
     # hand parse command and spec from within the args given
     command = None
@@ -234,8 +246,21 @@ def upload_test_coverage(env):
     # only works for linux for now
     env.shell.exec('curl', '-Os', 'https://uploader.codecov.io/latest/linux/codecov', check=True)
     env.shell.exec('chmod', '+x', 'codecov', check=True)
+    include_args = UniqueList(['source/'])
+    include_args += env.args.coverage_include
+    exclude_args = UniqueList(env.args.coverage_exclude)
+    uploader_args = []
+    for include in include_args:
+        include += '*'
+        uploader_args.append('-f')
+        uploader_args.append(include.replace("/", "#"))
+    for exclude in exclude_args:
+        exclude += '*'
+        exclude = "!" + exclude
+        uploader_args.append('-f')
+        uploader_args.append(exclude.replace("/", "#"))
     # based on the way generated report, we only upload the report started with `source/`
-    env.shell.exec('./codecov', '-t', token, '-f', 'source#*', check=True)
+    env.shell.exec('./codecov', '-t', token, uploader_args, check=True)
 
 
 def main():
@@ -269,6 +294,12 @@ def main():
         print('No project specified and no project found in current directory')
         sys.exit(1)
 
+    if env.config.get('needs_compiler', True):
+        env.toolchain = Toolchain(spec=env.spec)
+        env.spec.update_compiler(env.toolchain.compiler, env.toolchain.compiler_version)
+        if env.spec.compiler == 'default' or env.spec.compiler_version == 'default':
+            raise Exception("Failed to resolve default compiler. None installed?")
+
     print('Using Spec:')
     print('  Host: {} {}'.format(spec.host, current_arch()))
     print('  Target: {} {}'.format(spec.target, spec.arch))
@@ -276,9 +307,6 @@ def main():
 
     if not env.config.get('enabled', True):
         raise Exception("The project is disabled in this configuration")
-
-    if env.config.get('needs_compiler', True):
-        env.toolchain = Toolchain(spec=env.spec)
 
     if args.dump_config:
         from pprint import pprint

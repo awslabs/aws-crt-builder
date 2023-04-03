@@ -19,6 +19,8 @@ def current_os():
         return 'linux'
     elif sys.platform.startswith('freebsd'):
         return 'freebsd'
+    elif sys.platform.startswith('openbsd'):
+        return 'openbsd'
     return 'UNKNOWN'
 
 
@@ -52,11 +54,9 @@ def normalize_target(target):
 
 def _file_contains(path, search):
     if os.path.isfile(path):
-        #print('Probing {}'.format(path))
         with open(path) as f:
             line = f.readline()
             while line:
-                #print('  {}'.format(line), end='')
                 if search in line:
                     return True
                 line = f.readline()
@@ -96,6 +96,8 @@ def current_host():
                 return 'opensuse'
             if _file_contains('/etc/os-release', 'Red Hat Enterprise Linux'):
                 return 'rhel'
+            if _file_contains('/etc/os-release', 'OpenWrt'):
+                return 'openwrt'
             return 'linux'
         else:
             return platform

@@ -18,6 +18,8 @@ class PKG_TOOLS(Enum):
     PKG = 'freebsd_pkg'
     ZYPPER = 'zypper'
     DNF = 'dnf'
+    OPKG = 'opkg'
+    OBSD_PKG = 'openbsd_pkg'
 
 
 KEYS = {
@@ -153,6 +155,13 @@ HOSTS = {
         'pkg_update': '',
         'pkg_install': 'apk add --no-cache',
     },
+    'openwrt': {
+        'os': 'linux',
+        'pkg_tool': PKG_TOOLS.OPKG,
+        'pkg_setup': [],
+        'pkg_update': 'opkg update',
+        'pkg_install': 'opkg install',
+    },
     'raspbian': {
         'os': 'linux',
         'pkg_tool': PKG_TOOLS.APT,
@@ -266,6 +275,20 @@ HOSTS = {
         'pkg_tool': PKG_TOOLS.PKG,
         'pkg_update': 'pkg update',
         'pkg_install': 'pkg install -y'
+    },
+    'openbsd': {
+        'os': 'openbsd',
+        'variables': {
+            'python': "python3",
+        },
+        'sudo': True,
+
+        'pkg_tool': PKG_TOOLS.OBSD_PKG,
+        'packages': [
+            'cmake',
+            'git',
+        ],
+        'pkg_install': 'pkg_add -I'
     }
 }
 
@@ -322,7 +345,7 @@ TARGETS = {
                 ],
             },
         },
-        '!cmake_args': [],
+        '!cmake_args': ['-DENABLE_SANITIZERS=ON'],
         'variables': {
             'exe': '',
         },
@@ -425,6 +448,14 @@ TARGETS = {
         'variables': {
             'exe': ''
         },
+    },
+    'openbsd': {
+        'cmake_args': [
+            "-DENABLE_SANITIZERS=OFF",
+        ],
+        'variables': {
+            'exe': ''
+        },
     }
 }
 
@@ -440,23 +471,34 @@ for arch in ARCHS.keys():
 ###############################################################################
 COMPILERS = {
     'default': {
-        'hosts': ['macos', 'linux', 'windows', 'freebsd'],
-        'targets': ['macos', 'linux', 'windows', 'freebsd', 'android', 'ios', 'tvos', 'watchos'],
+        'hosts': ['macos', 'linux', 'windows', 'freebsd', 'openbsd'],
+        'targets': ['macos', 'linux', 'windows', 'freebsd', 'openbsd', 'android', 'ios', 'tvos', 'watchos'],
 
         'versions': {
             'default': {}
         }
     },
+    'appleclang': {
+        'hosts': ['macos'],
+        'targets': ['macos', 'ios', 'tvos', 'watchos'],
+
+        'versions': {
+            'default': {},
+
+            '11': {},
+            '12': {},
+            '13': {},
+            '14': {},
+        },
+    },
     'clang': {
-        'hosts': ['linux', 'macos'],
-        'targets': ['linux', 'macos', 'ios', 'tvos', 'watchos'],
+        'hosts': ['linux', 'openbsd'],
+        'targets': ['linux', 'openbsd'],
 
         'imports': ['llvm'],
 
         'versions': {
-            'default': {
-                '!cmake_args': [],
-            },
+            'default': {},
             '3': {
                 'c': "clang-3.9",
                 'cxx': "clang++-3.9",
@@ -485,16 +527,13 @@ COMPILERS = {
                 'cmake_args': ['-DENABLE_FUZZ_TESTS=ON'],
                 'apt_compiler_packages': ['libstdc++-9-dev'],
             },
-            # 10 and 11 are XCode Apple clang/LLVM
-            '10': {
-                '!cmake_args': [],
-            },
-            '11': {
-                '!cmake_args': [],
-            },
-            '12': {
-
-            }
+            '10': {},
+            '11': {},
+            '12': {},
+            '13': {},
+            '14': {},
+            '15': {},
+            '16': {}
         },
         'architectures': {
             # No fuzz tests on ARM
@@ -524,7 +563,11 @@ COMPILERS = {
         'yum_compiler_packages': ['gcc', 'gcc-c++'],
 
         'versions': {
-            '4.8': {},
+            '4.8': {
+                # ASan has been broken on 4.8 GCC version distributed on Ubuntu
+                # and will unlikely to get fixed upstream. so turn it off.
+                'cmake_args': ['-DENABLE_SANITIZERS=OFF'],
+            },
             '5': {},
             '6': {},
             '7': {},
@@ -532,6 +575,7 @@ COMPILERS = {
             '9': {},
             '10': {},
             '11': {},
+            '12': {}
         },
 
         'architectures': {
@@ -608,6 +652,7 @@ PLATFORMS = {
     'macos-x64': {},
     'macos-armv8': {},
     'freebsd-x64': {},
+    'openbsd-x64': {},
     'android-armv6': {},
     'android-armv7': {},
     'android-armv8': {},
@@ -651,6 +696,14 @@ for alias in ARCHS['x64'].get('aliases', []):
         alias_freebsd = 'freebsd-{}'.format(alias)
         if alias_freebsd != canonical_freebsd:
             PLATFORMS[alias_freebsd] = PLATFORMS[canonical_freebsd]
+
+# OpenBSD
+for alias in ARCHS['x64'].get('aliases', []):
+    canonical_openbsd = 'openbsd-x64'
+    for alias in ARCHS['x64'].get('aliases', []):
+        alias_openbsd = 'openbsd-{}'.format(alias)
+        if alias_openbsd != canonical_openbsd:
+            PLATFORMS[alias_openbsd] = PLATFORMS[canonical_openbsd]
 
 # Linux works on every arch we support
 for arch in ARCHS.keys():
