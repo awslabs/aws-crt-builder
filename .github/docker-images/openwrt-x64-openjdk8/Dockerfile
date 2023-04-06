@@ -1,4 +1,4 @@
-FROM openwrtorg/rootfs
+FROM openwrtorg/rootfs:x86-64
 
 # for some reason this directory isn't created by this point and we need it
 RUN mkdir -p /var/lock
