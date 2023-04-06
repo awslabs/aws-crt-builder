@@ -8,5 +8,5 @@ outputs:
     description: 'Either the release tag or branch name'
    
 runs:
-  using: 'node12'
+  using: 'node16'
   main: 'packed/index.js'
