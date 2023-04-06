@@ -7,7 +7,7 @@ RUN mkdir -p /usr/local/bin
 RUN opkg update
 
 # packages in openwrt
-RUN opkg install libopenssl1.1 git-http ca-bundle curl python3 python3-pip gcc make bash sudo
+RUN opkg install libopenssl git-http ca-bundle curl python3 python3-pip gcc make bash sudo
 
 # packages we have to get from alpine
 
