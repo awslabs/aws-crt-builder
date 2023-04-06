@@ -11,7 +11,7 @@ RUN yum -y install sudo \
 ###############################################################################
 # Python/AWS CLI
 ###############################################################################
-RUN /opt/python/cp37-cp37m/bin/python -m pip install --upgrade pip setuptools virtualenv \
+RUN /opt/python/cp37-cp37m/bin/python -m pip install --upgrade setuptools virtualenv \
     && /opt/python/cp37-cp37m/bin/python -m pip install --upgrade awscli \
     && ln -s `find /opt -name aws` /usr/local/bin/aws \
     && which aws \
