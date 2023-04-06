@@ -17,7 +17,8 @@ CLASSES = (
     Builder.DownloadDependencies,
     Builder.DownloadSource,
     Builder.InstallTools,
-    Builder.Script
+    Builder.Script,
+    Builder.SetupCIFromJSON
 )
 
 print('Found API classes available:')

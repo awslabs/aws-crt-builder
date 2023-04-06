@@ -289,6 +289,12 @@ Install the package locally to your virtual environment in development mode:
 pip install -e .
 ```
 
+If you are getting errors about `easy_install` being deprecated:
+
+```sh
+pip install .
+```
+
 The `builder.main` console script will be added to your path automatically and changes are reflected "live".
 
 ### Debugging
