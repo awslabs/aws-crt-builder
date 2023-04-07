@@ -190,7 +190,7 @@ class SetupCIFromJSON(Action):
             except Exception as ex:
                 sys.exit(f"[FAIL] {environment_name}: Something threw an exception! "
                          "This is likely due to an invalid/incorrectly-formatted JSON file. "
-                         "Exception: {ex}")
+                         f"Exception: {ex}")
 
             ############################################################
             # POST-PROCESSING
