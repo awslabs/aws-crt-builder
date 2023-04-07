@@ -84,24 +84,6 @@ class SetupCIFromJSON(Action):
                 #       If you have multiple "file_" options, you will have multiple files.
                 environment_file_path = None
 
-                # Writes whatever is in environment_value to the exact filepath given.
-                # Valid JSON:
-                #   'file_specific': <Exact file path here>
-                if ('file_specific' in item):
-                    with open(str(item['file_specific']), 'w') as file:
-                        # lgtm [py/clear-text-storage-sensitive-data]
-                        file.write(environment_value)
-                    environment_file_path = str(item['file_specific'])
-
-                # Writes whatever is in environment_value to the relative (according to the Python file) filepath given.
-                # Valid JSON:
-                #   'file_relative': <Relative file path here>
-                if ('file_relative' in item):
-                    with open(str(self.current_folder) + str(item['file_relative']), 'w') as file:
-                        # lgtm [py/clear-text-storage-sensitive-data]
-                        file.write(environment_value)
-                    environment_file_path = str(self.current_folder) + str(item['file_relative'])
-
                 # Writes whatever is in environment_value to a temporary named file.
                 # NOTE: The value you pass here doesn't matter, if it is present it WILL be written to a temporary file.
                 # Valid JSON:
