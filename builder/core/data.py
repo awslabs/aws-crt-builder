@@ -29,7 +29,7 @@ KEYS = {
     'cxx': None,  # c++ compiler
     'cmake_args': [],  # additional cmake arguments
 
-    'CI_JSON_FILES': [], # CI JSON files
+    'CI_JSON_FILES': [],  # CI JSON files
 
     # where the cmake binaries should be stored, and dependencies installed
     'build_dir': 'build',
