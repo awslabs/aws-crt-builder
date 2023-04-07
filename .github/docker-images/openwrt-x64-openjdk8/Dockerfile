@@ -1,4 +1,4 @@
-FROM openwrtorg/rootfs:x86-64
+FROM openwrtorg/rootfs
 
 # for some reason this directory isn't created by this point and we need it
 RUN mkdir -p /var/lock
@@ -7,7 +7,7 @@ RUN mkdir -p /usr/local/bin
 RUN opkg update
 
 # packages in openwrt
-RUN opkg install boringssl git-http ca-bundle curl python3 python3-pip gcc make bash sudo
+RUN opkg install git-http ca-bundle curl python3 python3-pip gcc make bash sudo
 
 # packages we have to get from alpine
 
