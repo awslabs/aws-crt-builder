@@ -26,6 +26,10 @@ class SetupCIFromJSON(Action):
 
             environment_name = None
             environment_value = None
+            # If we need to write multiple environment variables
+            # in a single environment variable request, then set
+            # them in this dictionary
+            environment_multi = {}
 
             if ('name' in item):
                 environment_name = str(item['name'])
@@ -57,6 +61,40 @@ class SetupCIFromJSON(Action):
                         environment_value = self.env_instance.shell.get_secret(str(item['input_secret']))
                     except:
                         sys.exit(f"[FAIL] {environment_name} [Input Secret]: Exception ocurred trying to get secret")
+
+                # Calls 'assume_role' on the given IAM role ARN and puts the access key, secret access key, and
+                # session token in environment variables with the following names:
+                # * <environment name in JSON file>_ACCCESS_KEY = role access key
+                # * <environment name in JSON file>_SECRET_ACCCESS_KEY = role secret access key
+                # * <environment name in JSON file>_SESSION_TOKEN = role session token
+                #
+                # Valid JSON:
+                #    { 'input_role_arn': <AWS IAM role ARN here> }
+                if ('input_role_arn' in item):
+                    try:
+                        arn_credentials = self.get_arn_role_credentials(str(item["input_role_arn"]))
+                        environment_value = "SUCCESS"
+                        environment_multi[environment_name + "_ACCESS_KEY"] = arn_credentials[0]
+                        environment_multi[environment_name + "_SECRET_ACCESS_KEY"] = arn_credentials[1]
+                        environment_multi[environment_name + "_SESSION_TOKEN"] = arn_credentials[2]
+                    except Exception as ex:
+                        print (ex)
+                        sys.exit(f"[FAIL] {environment_name} [Input Role ARN]: Exception ocurred trying to get role ARN credentials")
+
+                # The same as "input_role_arn" but instead of taking the IAM role arn directly, it instead
+                # takes a AWS Secret Name and assumes the value in that secret is the IAM Role ARN to use and assume.
+                # Valid JSON:
+                #    { 'input_role_arn_secret': <AWS Secret Name containing IAM Role ARN here> }
+                if ('input_role_arn_secret' in item):
+                    try:
+                        input_role_arn = self.env_instance.shell.get_secret(str(item['input_role_arn_secret']))
+                        arn_credentials = self.get_arn_role_credentials(input_role_arn)
+                        environment_value = "SUCCESS"
+                        environment_multi[environment_name + "_ACCESS_KEY"] = arn_credentials[0]
+                        environment_multi[environment_name + "_SECRET_ACCESS_KEY"] = arn_credentials[1]
+                        environment_multi[environment_name + "_SESSION_TOKEN"] = arn_credentials[2]
+                    except:
+                        sys.exit(f"[FAIL] {environment_name} [Input Role ARN Secret]: Exception ocurred trying to get role ARN credentials")
 
                 # Downloads the S3 file at the given URL and sets environment_value to the downloaded (temporary) file.
                 # Valid JSON:
@@ -101,9 +139,13 @@ class SetupCIFromJSON(Action):
                 print(
                     f"[SKIPPED] {environment_name}: Invalid environment variable in JSON: No environment value could not be set")
                 continue
-            print(f"{environment_name}: Set successfully")
             # Set the variable with quiet=true so we do NOT print anything secret to the console
             self.env_instance.shell.setenv(environment_name, environment_value, quiet=True)
+            print(f"{environment_name}: Set successfully")
+            # Set any additional ones
+            for key, value in environment_multi.items():
+                self.env_instance.shell.setenv(key, value, quiet=True)
+                print(f"{key}: Set successfully")
 
         print("Finished processing all environment variables in JSON.")
 
@@ -126,6 +168,12 @@ class SetupCIFromJSON(Action):
         cmd = ['aws', '--region', 'us-east-1', 's3', 'cp',
                s3_url, filename]
         self.env_instance.shell.exec(*cmd, check=True, quiet=True)
+
+    def get_arn_role_credentials(self, role_arn):
+        cmd = ["aws", "--region", "us-east-1", "sts", "assume-role", "--role-arn", role_arn, "--role-session", "CI_Test_Run"]
+        result = self.env_instance.shell.exec(*cmd, check=True, quiet=True)
+        result_json = json.loads(result.output)
+        return [result_json["Credentials"]["AccessKeyId"], result_json["Credentials"]["SecretAccessKey"], result_json["Credentials"]["SessionToken"]]
 
     def run(self, env):
         # Get the executing folder

@@ -120,10 +120,10 @@ See builder/data.py for more info/defaults/possible values.
     "search_dirs": [],
 
     // environment variables
-    "pre_build_env": {} # environment variable(s) for pre_build_steps
-    "build_env": {} # environment variable(s) for build_steps
-    "post_build_env": {} # environment variable(s) for build_steps
-    "env": {} # environment variable(s) for all build steps. Shorthand for setting same variables in each env
+    "pre_build_env": {}, // environment variable(s) for pre_build_steps
+    "build_env": {}, // environment variable(s) for build_steps
+    "post_build_env": {}, // environment variable(s) for build_steps
+    "env": {}, // environment variable(s) for all build steps. Shorthand for setting same variables in each env
 
     // Steps to run before building. default: []
     "pre_build_steps": [
