@@ -40,7 +40,7 @@ class SetupCIFromJSON(Action):
                 ############################################################
 
                 # NOTE: These options WILL override each other if multiple are present.
-                # Example: 'secret' overrides whatver value is in 'data' because 'secret' is AFTER 'data',
+                # Example: 'secret' overrides whatever value is in 'data' because 'secret' is AFTER 'data',
                 # so if both are present, 'secret' will be what is used and not 'data'.
 
                 # Puts whatever data is in the JSON directly into the environment_value.
@@ -76,13 +76,6 @@ class SetupCIFromJSON(Action):
                 ############################################################
                 # FILE (starts with "file_")
                 ############################################################
-                # Writes whatever is in environment_value to a file
-                #
-                # NOTE: The last file processing option's resulting filepath will override the value of environment_value
-                #
-                # NOTE: File processing will happen to for EACH file processing option without overrides.
-                #       If you have multiple "file_" options, you will have multiple files.
-                environment_file_path = None
 
                 # Writes whatever is in environment_value to a temporary named file.
                 # NOTE: The value you pass here doesn't matter, if it is present it WILL be written to a temporary file.
@@ -94,11 +87,7 @@ class SetupCIFromJSON(Action):
                     tmp_file.write(str.encode(environment_value))
                     tmp_file.flush()
                     self.tmp_file_storage.append(tmp_file)
-                    environment_file_path = tmp_file.name
-
-                # If a file was written to, then override environment_value to it
-                if (environment_file_path != None):
-                    environment_value = environment_file_path
+                    environment_value = tmp_file.name
 
             except Exception as ex:
                 sys.exit(f"[FAIL] {environment_name}: Something threw an exception! "
@@ -108,15 +97,12 @@ class SetupCIFromJSON(Action):
             ############################################################
             # POST-PROCESSING
             ############################################################
-
             if (environment_value == None):
                 print(
                     f"[SKIPPED] {environment_name}: Invalid environment variable in JSON: No environment value could not be set")
                 continue
-
-            # Write the environment variable
             print(f"{environment_name}: Set successfully")
-            # Set it with quiet=true so we do NOT print anything secret to the console
+            # Set the variable with quiet=true so we do NOT print anything secret to the console
             self.env_instance.shell.setenv(environment_name, environment_value, quiet=True)
 
         print("Finished processing all environment variables in JSON.")
@@ -156,16 +142,17 @@ class SetupCIFromJSON(Action):
         for file in self.env_instance.project.config['CI_JSON_FILES']:
             # Is this an S3 file? If so, then download it to a temporary file and execute it there
             if (file.startswith("s3://")):
-                tmp_file_path = str(self.current_folder) + "tmp_s3_file.json"
-                self.copy_s3_file(file, tmp_file_path)
-                if (os.path.exists(tmp_file_path)):
+                tmp_file = tempfile.NamedTemporaryFile()
+                tmp_file.flush()
+                self.tmp_file_storage.append(tmp_file)
+                tmp_s3_filepath = tmp_file.name
+                self.copy_s3_file(file, tmp_s3_filepath)
+                if (os.path.exists(tmp_s3_filepath)):
                     print("Processing JSON file...")
-                    self._process_json_file(tmp_file_path)
+                    self._process_json_file(tmp_s3_filepath)
                     print("Processed JSON file.")
-                    # delete once finished
-                    os.remove(tmp_file_path)
                 else:
-                    sys.exit(f"Cannot parse JSON file: file given [{file}] does not point to a valid file")
+                    sys.exit(f"Cannot parse JSON file: Error processing temporary file from S3")
             # otherwise it's just a normal file, so execute it
             else:
                 if (os.path.exists(file) == False):
