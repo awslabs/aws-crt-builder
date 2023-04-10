@@ -67,6 +67,7 @@ class SetupCIFromJSON(Action):
                 # * <environment name in JSON file>_ACCCESS_KEY = role access key
                 # * <environment name in JSON file>_SECRET_ACCCESS_KEY = role secret access key
                 # * <environment name in JSON file>_SESSION_TOKEN = role session token
+                # It will assign environment_value to "SUCCESS".
                 #
                 # Valid JSON:
                 #    { 'input_role_arn': <AWS IAM role ARN here> }
@@ -78,8 +79,9 @@ class SetupCIFromJSON(Action):
                         environment_multi[environment_name + "_SECRET_ACCESS_KEY"] = arn_credentials[1]
                         environment_multi[environment_name + "_SESSION_TOKEN"] = arn_credentials[2]
                     except Exception as ex:
-                        print (ex)
-                        sys.exit(f"[FAIL] {environment_name} [Input Role ARN]: Exception ocurred trying to get role ARN credentials")
+                        print(ex)
+                        sys.exit(
+                            f"[FAIL] {environment_name} [Input Role ARN]: Exception ocurred trying to get role ARN credentials")
 
                 # The same as "input_role_arn" but instead of taking the IAM role arn directly, it instead
                 # takes a AWS Secret Name and assumes the value in that secret is the IAM Role ARN to use and assume.
@@ -94,7 +96,8 @@ class SetupCIFromJSON(Action):
                         environment_multi[environment_name + "_SECRET_ACCESS_KEY"] = arn_credentials[1]
                         environment_multi[environment_name + "_SESSION_TOKEN"] = arn_credentials[2]
                     except:
-                        sys.exit(f"[FAIL] {environment_name} [Input Role ARN Secret]: Exception ocurred trying to get role ARN credentials")
+                        sys.exit(
+                            f"[FAIL] {environment_name} [Input Role ARN Secret]: Exception ocurred trying to get role ARN credentials")
 
                 # Downloads the S3 file at the given URL and sets environment_value to the downloaded (temporary) file.
                 # Valid JSON:
@@ -170,7 +173,8 @@ class SetupCIFromJSON(Action):
         self.env_instance.shell.exec(*cmd, check=True, quiet=True)
 
     def get_arn_role_credentials(self, role_arn):
-        cmd = ["aws", "--region", "us-east-1", "sts", "assume-role", "--role-arn", role_arn, "--role-session", "CI_Test_Run"]
+        cmd = ["aws", "--region", "us-east-1", "sts", "assume-role",
+               "--role-arn", role_arn, "--role-session", "CI_Test_Run"]
         result = self.env_instance.shell.exec(*cmd, check=True, quiet=True)
         result_json = json.loads(result.output)
         return [result_json["Credentials"]["AccessKeyId"], result_json["Credentials"]["SecretAccessKey"], result_json["Credentials"]["SessionToken"]]
