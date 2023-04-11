@@ -566,7 +566,7 @@ COMPILERS = {
             '4.8': {
                 # ASan has been broken on 4.8 GCC version distributed on Ubuntu
                 # and will unlikely to get fixed upstream. so turn it off.
-                'cmake_args': ['-DENABLE_SANITIZERS=OFF'],
+                '!cmake_args': ['-DENABLE_SANITIZERS=OFF'],
             },
             '5': {},
             '6': {},
