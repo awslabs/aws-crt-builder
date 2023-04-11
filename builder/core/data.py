@@ -324,7 +324,7 @@ TARGETS = {
             },
         },
 
-        'cmake_args': [
+        '+cmake_args': [
             "-DENABLE_SANITIZERS=ON",
         ],
 
