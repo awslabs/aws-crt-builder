@@ -493,7 +493,7 @@ COMPILERS = {
     },
     'clang': {
         'hosts': ['linux', 'openbsd'],
-        'targets': ['linux', 'openbsd'],
+        'targets': ['linux', 'openbsd', 'android'],
 
         'imports': ['llvm'],
 
@@ -550,7 +550,7 @@ COMPILERS = {
     },
     'gcc': {
         'hosts': ['linux', 'manylinux', 'al2012', 'al2', 'freebsd'],
-        'targets': ['linux', 'freebsd'],
+        'targets': ['linux', 'freebsd', 'android'],
 
         'imports': ['gcc'],
 
