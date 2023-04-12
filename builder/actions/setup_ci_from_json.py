@@ -13,7 +13,7 @@ class SetupCIFromJSON(Action):
     current_folder = None
     config_json = None
     env_instance = None
-    tmp_file_storage = []  # NOTE: This is needed to keep the tmp files alive
+    tmp_file_storage = [] # NOTE: This is needed to keep the tmp files alive
 
     def _process_environment_variables(self, json_environment_variables):
         print("Starting to process all environment variables in JSON...")
