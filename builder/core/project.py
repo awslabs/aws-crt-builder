@@ -190,7 +190,6 @@ def produce_config(build_spec, project, overrides=None, variant_config=None, **a
 
     new_version = _coalesce_pkg_options(build_spec, new_version)
 
-
     def apply_overrides(config, overrides):
         if not overrides:
             return
@@ -227,8 +226,6 @@ def produce_config(build_spec, project, overrides=None, variant_config=None, **a
     # Post process
     new_version = replace_variables(new_version, replacements)
     new_version['variables'] = replacements
-
-
 
     # resolve build variants for the top level config
     if not variant_config:
