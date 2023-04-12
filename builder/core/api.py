@@ -11,7 +11,7 @@ from builder.actions.cmake import CMakeBuild, CTestRun
 from builder.actions.git import DownloadSource, DownloadDependencies
 from builder.actions.install import InstallPackages, InstallCompiler
 from builder.actions.script import Script
-from builder.actions.setup_ci_from_json import SetupCIFromJSON
+from builder.actions.setup_ci_from_files import SetupCIFromFiles
 from builder.core.toolchain import Toolchain
 from builder.core import host
 from builder.core import util
@@ -50,6 +50,6 @@ class Builder(VirtualModule):
     InstallPackages = InstallPackages
     InstallCompiler = InstallCompiler
     Script = Script
-    SetupCIFromJSON = SetupCIFromJSON
+    SetupCIFromFiles = SetupCIFromFiles
 
     Util = Util

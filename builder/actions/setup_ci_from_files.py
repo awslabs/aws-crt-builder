@@ -6,19 +6,19 @@ import os
 import pathlib
 import sys
 import json
+import yaml
 import tempfile
 
 
-class SetupCIFromJSON(Action):
+class SetupCIFromFiles(Action):
     current_folder = None
-    config_json = None
     env_instance = None
-    tmp_file_storage = [] # NOTE: This is needed to keep the tmp files alive
+    tmp_file_storage = []  # NOTE: This is needed to keep the tmp files alive
 
-    def _process_environment_variables(self, json_environment_variables):
+    def _process_environment_variables(self, object_environment_variables):
         print("Starting to process all environment variables in JSON...")
 
-        for item in json_environment_variables:
+        for item in object_environment_variables:
 
             ############################################################
             # PRE-PROCESSING
@@ -161,11 +161,26 @@ class SetupCIFromJSON(Action):
         # Load the JSON file
         try:
             json_data = json.loads(json_file_data_raw)
-        except:
-            sys.exit(f"[FAIL]: Exception ocurred trying parson JSON file with name {json_filepath}")
+        except Exception as ex:
+            sys.exit(f"[FAIL]: Exception ocurred trying parson JSON file with name {json_filepath}. Exception {ex}")
 
         # Process Environment Variables
         self._process_environment_variables(json_data)
+
+    def _process_yaml_file(self, yaml_filepath):
+        # Open the YAML file
+        yaml_filepath_abs = pathlib.Path(yaml_filepath).resolve()
+        yaml_file_data_raw = ""
+        with open(yaml_filepath_abs, "r") as yaml_file:
+            yaml_file_data_raw = yaml_file.read()
+        # Load the YAML file
+        try:
+            yaml_data = yaml.safe_load(yaml_file_data_raw)
+        except Exception as ex:
+            sys.exit(f"[FAIL]: Exception ocurred trying parson YAML file with name {yaml_filepath}. Exception: {ex}")
+
+        # Process Environment Variables
+        self._process_environment_variables(yaml_data)
 
     def copy_s3_file(self, s3_url, filename):
         cmd = ['aws', '--region', 'us-east-1', 's3', 'cp',
@@ -190,8 +205,8 @@ class SetupCIFromJSON(Action):
         # Cache the env
         self.env_instance = env
 
-        # Get the JSON file(s)
-        for file in self.env_instance.project.config['CI_JSON_FILES']:
+        # Get the file(s)
+        for file in self.env_instance.project.config['CI_ENVIRONMENT_VARIABLE_FILES']:
             # Is this an S3 file? If so, then download it to a temporary file and execute it there
             if (file.startswith("s3://")):
                 tmp_file = tempfile.NamedTemporaryFile()
@@ -200,15 +215,32 @@ class SetupCIFromJSON(Action):
                 tmp_s3_filepath = tmp_file.name
                 self.copy_s3_file(file, tmp_s3_filepath)
                 if (os.path.exists(tmp_s3_filepath)):
-                    print("Processing JSON file...")
-                    self._process_json_file(tmp_s3_filepath)
-                    print("Processed JSON file.")
+                    # Is it a JSON file or a YAML/YML file?
+                    if (file.endswith(".json")):
+                        print("Processing JSON file...")
+                        self._process_json_file(tmp_s3_filepath)
+                        print("Processed JSON file.")
+                    elif (file.endswith(".yml") or file.endswith(".yaml")):
+                        print("Processing YAML file...")
+                        self._process_yaml_file(file)
+                        print("Processed YAML file.")
+                    else:
+                        sys.exit(f"Cannot parse file: S3 file given [{file}] has an unknown extension!")
                 else:
                     sys.exit(f"Cannot parse JSON file: Error processing temporary file from S3")
             # otherwise it's just a normal file, so execute it
             else:
                 if (os.path.exists(file) == False):
-                    sys.exit(f"Cannot parse JSON file: file given [{file}] does not point to a valid file")
-                print("Processing JSON file...")
-                self._process_json_file(file)
-                print("Processed JSON file.")
+                    sys.exit(f"Cannot parse file: file given [{file}] does not point to a valid file")
+
+                # Is it a JSON file or a YAML/YML file?
+                if (file.endswith(".json")):
+                    print("Processing JSON file...")
+                    self._process_json_file(file)
+                    print("Processed JSON file.")
+                elif (file.endswith(".yml") or file.endswith(".yaml")):
+                    print("Processing YAML file...")
+                    self._process_yaml_file(file)
+                    print("Processed YAML file.")
+                else:
+                    sys.exit(f"Cannot parse file: file given [{file}] has an unknown extension!")
