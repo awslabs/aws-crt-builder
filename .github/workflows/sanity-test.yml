@@ -78,7 +78,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        host: [ubuntu-18.04, ubuntu-20.04, macos-11, macos-12, windows-2019]
+        host: [ubuntu-20.04, macos-11, macos-12, windows-2019]
     needs: package
     runs-on: ${{ matrix.host }}
     steps:
@@ -162,17 +162,25 @@ jobs:
       fail-fast: false
       matrix:
         compiler:
-          - clang-6
-          - clang-7 # this one actually has to be installed by the script
-          - clang-8
+          # Note: 18.04 image is no longer supported by gh and 20.04 image does
+          # not have some of the old compilers we want. disable those for now
+          # until we figure out a way to test them.
+          # - clang-6
+          # - clang-7 # this one actually has to be installed by the script
+          # - clang-8
           - clang-9
-          - gcc-4.8
-          - gcc-5
-          - gcc-6
+          - clang-10
+          - clang-11
+          # - gcc-4.8
+          # - gcc-5
+          # - gcc-6
           - gcc-7
           - gcc-8
+          - gcc-9
+          - gcc-10
+          - gcc-11
     needs: [package]
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     steps:
     - name: Checkout Source
       uses: actions/checkout@v3
@@ -189,7 +197,7 @@ jobs:
   # Make sure linux compilers + stdlibs are installing properly
   std-compat:
     needs: [package, sanity_test]
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
       matrix:
