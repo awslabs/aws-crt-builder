@@ -162,6 +162,9 @@ jobs:
       fail-fast: false
       matrix:
         compiler:
+          # Note: 18.04 image is no longer supported by gh and 20.04 image does
+          # not have some of the old compilers we want. disable those for now
+          # until we figure out a way to test them.
           # - clang-6
           # - clang-7 # this one actually has to be installed by the script
           # - clang-8
