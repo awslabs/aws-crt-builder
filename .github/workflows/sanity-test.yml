@@ -162,15 +162,20 @@ jobs:
       fail-fast: false
       matrix:
         compiler:
-          - clang-6
-          - clang-7 # this one actually has to be installed by the script
-          - clang-8
+          # - clang-6
+          # - clang-7 # this one actually has to be installed by the script
+          # - clang-8
           - clang-9
-          - gcc-4.8
-          - gcc-5
-          - gcc-6
+          - clang-10
+          - clang-11
+          # - gcc-4.8
+          # - gcc-5
+          # - gcc-6
           - gcc-7
           - gcc-8
+          - gcc-9
+          - gcc-10
+          - gcc-11
     needs: [package]
     runs-on: ubuntu-20.04
     steps:
