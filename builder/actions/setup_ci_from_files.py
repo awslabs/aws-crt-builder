@@ -48,14 +48,14 @@ class SetupCIFromFiles(Action):
                 # so if both are present, 'secret' will be what is used and not 'data'.
 
                 # Puts whatever data is in the JSON directly into the environment_value.
-                # Valid JSON:
+                # Example JSON:
                 #   'input_data': <whatever input you want>
                 if ('input_data' in item):
                     environment_value = str(item["input_data"])
 
                 # Puts whatever data is in the given AWS Secret Name into the environment_value
-                # Valid JSON:
-                #   { 'input_secret': <AWS Secret Name Here> }
+                # Example JSON:
+                #   'input_secret': <AWS Secret Name Here>
                 if ('input_secret' in item):
                     try:
                         environment_value = self.env_instance.shell.get_secret(str(item['input_secret']))
@@ -69,8 +69,8 @@ class SetupCIFromFiles(Action):
                 # * <environment name in JSON file>_SESSION_TOKEN = role session token
                 # It will assign environment_value to "SUCCESS".
                 #
-                # Valid JSON:
-                #    { 'input_role_arn': <AWS IAM role ARN here> }
+                # Example JSON:
+                #    'input_role_arn': <AWS IAM role ARN here>
                 if ('input_role_arn' in item):
                     try:
                         arn_credentials = self.get_arn_role_credentials(str(item["input_role_arn"]))
@@ -85,8 +85,8 @@ class SetupCIFromFiles(Action):
 
                 # The same as "input_role_arn" but instead of taking the IAM role arn directly, it instead
                 # takes a AWS Secret Name and assumes the value in that secret is the IAM Role ARN to use and assume.
-                # Valid JSON:
-                #    { 'input_role_arn_secret': <AWS Secret Name containing IAM Role ARN here> }
+                # Example JSON:
+                #    'input_role_arn_secret': <AWS Secret Name containing IAM Role ARN here>
                 if ('input_role_arn_secret' in item):
                     try:
                         input_role_arn = self.env_instance.shell.get_secret(str(item['input_role_arn_secret']))
@@ -100,8 +100,8 @@ class SetupCIFromFiles(Action):
                             f"[FAIL] {environment_name} [Input Role ARN Secret]: Exception ocurred trying to get role ARN credentials")
 
                 # Downloads the S3 file at the given URL and sets environment_value to the downloaded (temporary) file.
-                # Valid JSON:
-                #   { 'input_s3': <S3 URL Here> }
+                # Example JSON:
+                #   'input_s3': <S3 URL Here>
                 if ('input_s3' in item):
                     try:
                         tmp_file = tempfile.NamedTemporaryFile()
@@ -120,7 +120,7 @@ class SetupCIFromFiles(Action):
 
                 # Writes whatever is in environment_value to a temporary named file.
                 # NOTE: The value you pass here doesn't matter, if it is present it WILL be written to a temporary file.
-                # Valid JSON:
+                # Example JSON:
                 #   'file_tmp': <whatever you want - its unused>
                 if ('file_tmp' in item):
                     tmp_file = tempfile.NamedTemporaryFile()
