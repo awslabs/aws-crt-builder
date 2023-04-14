@@ -347,7 +347,7 @@ TARGETS = {
                 ],
             },
         },
-        '!cmake_args': ['-DENABLE_SANITIZERS=ON'],
+        'cmake_args': ['-DENABLE_SANITIZERS=ON'],
         'variables': {
             'exe': '',
         },
@@ -495,7 +495,7 @@ COMPILERS = {
     },
     'clang': {
         'hosts': ['linux', 'openbsd'],
-        'targets': ['linux', 'openbsd'],
+        'targets': ['linux', 'openbsd', 'android'],
 
         'imports': ['llvm'],
 
@@ -552,7 +552,7 @@ COMPILERS = {
     },
     'gcc': {
         'hosts': ['linux', 'manylinux', 'al2012', 'al2', 'freebsd'],
-        'targets': ['linux', 'freebsd'],
+        'targets': ['linux', 'freebsd', 'android'],
 
         'imports': ['gcc'],
 
@@ -568,7 +568,7 @@ COMPILERS = {
             '4.8': {
                 # ASan has been broken on 4.8 GCC version distributed on Ubuntu
                 # and will unlikely to get fixed upstream. so turn it off.
-                'cmake_args': ['-DENABLE_SANITIZERS=OFF'],
+                '+cmake_args': ['-DENABLE_SANITIZERS=OFF'],
             },
             '5': {},
             '6': {},
