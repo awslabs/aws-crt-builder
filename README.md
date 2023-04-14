@@ -285,7 +285,7 @@ arbitrary commands.
 
 Install the package locally to your virtual environment in development mode:
 
-```
+```sh
 pip install -e .
 ```
 
