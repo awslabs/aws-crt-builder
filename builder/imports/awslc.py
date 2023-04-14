@@ -38,6 +38,13 @@ class AWSLCImport(Import):
             self.path = os.path.join(env.deps_dir, 'aws-lc')
             DownloadSource(project=Project.find_project(self.name), path=env.deps_dir).run(env)
 
+    def cmake_args(self, env):
+        if env.spec.compiler == 'gcc' and env.spec.compiler_version < '5':
+            # Disable AVX512 on old GCC for aws-lc
+            return super().cmake_args(env) + ['-DMY_ASSEMBLER_IS_TOO_OLD_FOR_512AVX']
+
+        return super().cmake_args(env)
+
     def build(self, env):
         return Project.build(Project.find_project(self.name, [self.path]), env)
 
