@@ -194,12 +194,11 @@ class SetupCIFromFiles(Action):
             # Load the XML file
             xml_data = xml.fromstring(xml_file_data_raw)
 
+            # Convert to a list of dictionaries so it processes like JSON and YAML
             convert_list = []
             for element in xml_data:
-                # print (element)
                 item = {}
                 for sub_item in element:
-                    print(sub_item)
                     item[sub_item.tag] = sub_item.text
                 convert_list.append(item)
 
