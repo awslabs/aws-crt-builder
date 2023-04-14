@@ -6,8 +6,8 @@ import os
 import pathlib
 import sys
 import json
-import yaml
 import tempfile
+import xml.etree.cElementTree as xml
 
 
 class SetupCIFromFiles(Action):
@@ -48,14 +48,14 @@ class SetupCIFromFiles(Action):
                 # so if both are present, 'secret' will be what is used and not 'data'.
 
                 # Puts whatever data is in the JSON directly into the environment_value.
-                # Example JSON:
+                # Valid JSON:
                 #   'input_data': <whatever input you want>
                 if ('input_data' in item):
                     environment_value = str(item["input_data"])
 
                 # Puts whatever data is in the given AWS Secret Name into the environment_value
-                # Example JSON:
-                #   'input_secret': <AWS Secret Name Here>
+                # Valid JSON:
+                #   { 'input_secret': <AWS Secret Name Here> }
                 if ('input_secret' in item):
                     try:
                         environment_value = self.env_instance.shell.get_secret(str(item['input_secret']))
@@ -69,8 +69,8 @@ class SetupCIFromFiles(Action):
                 # * <environment name in JSON file>_SESSION_TOKEN = role session token
                 # It will assign environment_value to "SUCCESS".
                 #
-                # Example JSON:
-                #    'input_role_arn': <AWS IAM role ARN here>
+                # Valid JSON:
+                #    { 'input_role_arn': <AWS IAM role ARN here> }
                 if ('input_role_arn' in item):
                     try:
                         arn_credentials = self.get_arn_role_credentials(str(item["input_role_arn"]))
@@ -85,8 +85,8 @@ class SetupCIFromFiles(Action):
 
                 # The same as "input_role_arn" but instead of taking the IAM role arn directly, it instead
                 # takes a AWS Secret Name and assumes the value in that secret is the IAM Role ARN to use and assume.
-                # Example JSON:
-                #    'input_role_arn_secret': <AWS Secret Name containing IAM Role ARN here>
+                # Valid JSON:
+                #    { 'input_role_arn_secret': <AWS Secret Name containing IAM Role ARN here> }
                 if ('input_role_arn_secret' in item):
                     try:
                         input_role_arn = self.env_instance.shell.get_secret(str(item['input_role_arn_secret']))
@@ -100,8 +100,8 @@ class SetupCIFromFiles(Action):
                             f"[FAIL] {environment_name} [Input Role ARN Secret]: Exception ocurred trying to get role ARN credentials")
 
                 # Downloads the S3 file at the given URL and sets environment_value to the downloaded (temporary) file.
-                # Example JSON:
-                #   'input_s3': <S3 URL Here>
+                # Valid JSON:
+                #   { 'input_s3': <S3 URL Here> }
                 if ('input_s3' in item):
                     try:
                         tmp_file = tempfile.NamedTemporaryFile()
@@ -120,7 +120,7 @@ class SetupCIFromFiles(Action):
 
                 # Writes whatever is in environment_value to a temporary named file.
                 # NOTE: The value you pass here doesn't matter, if it is present it WILL be written to a temporary file.
-                # Example JSON:
+                # Valid JSON:
                 #   'file_tmp': <whatever you want - its unused>
                 if ('file_tmp' in item):
                     tmp_file = tempfile.NamedTemporaryFile()
@@ -168,19 +168,46 @@ class SetupCIFromFiles(Action):
         self._process_environment_variables(json_data)
 
     def _process_yaml_file(self, yaml_filepath):
-        # Open the YAML file
-        yaml_filepath_abs = pathlib.Path(yaml_filepath).resolve()
-        yaml_file_data_raw = ""
-        with open(yaml_filepath_abs, "r") as yaml_file:
-            yaml_file_data_raw = yaml_file.read()
-        # Load the YAML file
         try:
+            # YAML is really nice and compact, and supports comments, but alas it's not
+            # part of the standard library, so our support for it is limited.
+            import yaml
+            # Open the YAML file
+            yaml_filepath_abs = pathlib.Path(yaml_filepath).resolve()
+            yaml_file_data_raw = ""
+            with open(yaml_filepath_abs, "r") as yaml_file:
+                yaml_file_data_raw = yaml_file.read()
+            # Load the YAML file
             yaml_data = yaml.safe_load(yaml_file_data_raw)
+            # Process Environment Variables
+            self._process_environment_variables(yaml_data)
         except Exception as ex:
             sys.exit(f"[FAIL]: Exception ocurred trying parson YAML file with name {yaml_filepath}. Exception: {ex}")
 
-        # Process Environment Variables
-        self._process_environment_variables(yaml_data)
+    def _process_xml_file(self, xml_filepath):
+        try:
+            # Open the XML file
+            xml_filepath_abs = pathlib.Path(xml_filepath).resolve()
+            xml_file_data_raw = ""
+            with open(xml_filepath_abs, "r") as xml_file:
+                xml_file_data_raw = xml_file.read()
+            # Load the XML file
+            xml_data = xml.fromstring(xml_file_data_raw)
+
+            convert_list = []
+            for element in xml_data:
+                # print (element)
+                item = {}
+                for sub_item in element:
+                    print(sub_item)
+                    item[sub_item.tag] = sub_item.text
+                convert_list.append(item)
+
+            # Process Environment Variables
+            self._process_environment_variables(convert_list)
+
+        except Exception as ex:
+            sys.exit(f"[FAIL]: Exception ocurred trying parson XML file with name {xml_filepath}. Exception: {ex}")
 
     def copy_s3_file(self, s3_url, filename):
         cmd = ['aws', '--region', 'us-east-1', 's3', 'cp',
@@ -215,7 +242,7 @@ class SetupCIFromFiles(Action):
                 tmp_s3_filepath = tmp_file.name
                 self.copy_s3_file(file, tmp_s3_filepath)
                 if (os.path.exists(tmp_s3_filepath)):
-                    # Is it a JSON file or a YAML/YML file?
+                    # Is it a JSON file, YAML/YML, or XML file?
                     if (file.endswith(".json")):
                         print("Processing JSON file...")
                         self._process_json_file(tmp_s3_filepath)
@@ -224,6 +251,10 @@ class SetupCIFromFiles(Action):
                         print("Processing YAML file...")
                         self._process_yaml_file(file)
                         print("Processed YAML file.")
+                    elif (file.endswith(".xml")):
+                        print("Processing XML file...")
+                        self._process_xml_file(file)
+                        print("Processed XML file.")
                     else:
                         sys.exit(f"Cannot parse file: S3 file given [{file}] has an unknown extension!")
                 else:
@@ -233,7 +264,7 @@ class SetupCIFromFiles(Action):
                 if (os.path.exists(file) == False):
                     sys.exit(f"Cannot parse file: file given [{file}] does not point to a valid file")
 
-                # Is it a JSON file or a YAML/YML file?
+                # Is it a JSON file, YAML/YML, or XML file?
                 if (file.endswith(".json")):
                     print("Processing JSON file...")
                     self._process_json_file(file)
@@ -242,5 +273,9 @@ class SetupCIFromFiles(Action):
                     print("Processing YAML file...")
                     self._process_yaml_file(file)
                     print("Processed YAML file.")
+                elif (file.endswith(".xml")):
+                    print("Processing XML file...")
+                    self._process_xml_file(file)
+                    print("Processed XML file.")
                 else:
                     sys.exit(f"Cannot parse file: file given [{file}] has an unknown extension!")
