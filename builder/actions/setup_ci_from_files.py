@@ -16,7 +16,7 @@ class SetupCIFromFiles(Action):
     tmp_file_storage = []  # NOTE: This is needed to keep the tmp files alive
 
     def _process_environment_variables(self, object_environment_variables):
-        print("Starting to process all environment variables in JSON...")
+        print("Starting to process all environment variables in file...")
 
         for item in object_environment_variables:
 
@@ -34,7 +34,7 @@ class SetupCIFromFiles(Action):
             if ('name' in item):
                 environment_name = str(item['name'])
             else:
-                print("[SKIPPED]: Invalid environment variable in JSON: variable is missing name")
+                print("[SKIPPED]: Invalid environment variable in file: variable is missing name")
                 continue
 
             try:
@@ -47,7 +47,7 @@ class SetupCIFromFiles(Action):
                 # Example: 'secret' overrides whatever value is in 'data' because 'secret' is AFTER 'data',
                 # so if both are present, 'secret' will be what is used and not 'data'.
 
-                # Puts whatever data is in the JSON directly into the environment_value.
+                # Puts whatever data is in the file directly into the environment_value.
                 # Valid JSON:
                 #   'input_data': <whatever input you want>
                 if ('input_data' in item):
@@ -64,9 +64,9 @@ class SetupCIFromFiles(Action):
 
                 # Calls 'assume_role' on the given IAM role ARN and puts the access key, secret access key, and
                 # session token in environment variables with the following names:
-                # * <environment name in JSON file>_ACCCESS_KEY = role access key
-                # * <environment name in JSON file>_SECRET_ACCCESS_KEY = role secret access key
-                # * <environment name in JSON file>_SESSION_TOKEN = role session token
+                # * <environment name in file file>_ACCCESS_KEY = role access key
+                # * <environment name in file file>_SECRET_ACCCESS_KEY = role secret access key
+                # * <environment name in file file>_SESSION_TOKEN = role session token
                 # It will assign environment_value to "SUCCESS".
                 #
                 # Valid JSON:
@@ -132,7 +132,7 @@ class SetupCIFromFiles(Action):
 
             except Exception as ex:
                 sys.exit(f"[FAIL] {environment_name}: Something threw an exception! "
-                         "This is likely due to an invalid/incorrectly-formatted JSON file. "
+                         "This is likely due to an invalid/incorrectly-formatted file. "
                          f"Exception: {ex}")
 
             ############################################################
@@ -140,7 +140,7 @@ class SetupCIFromFiles(Action):
             ############################################################
             if (environment_value == None):
                 print(
-                    f"[SKIPPED] {environment_name}: Invalid environment variable in JSON: No environment value could not be set")
+                    f"[SKIPPED] {environment_name}: Invalid environment variable in file: No environment value could not be set")
                 continue
             # Set the variable with quiet=true so we do NOT print anything secret to the console
             self.env_instance.shell.setenv(environment_name, environment_value, quiet=True)
@@ -150,7 +150,7 @@ class SetupCIFromFiles(Action):
                 self.env_instance.shell.setenv(key, value, quiet=True)
                 print(f"{key}: Set successfully")
 
-        print("Finished processing all environment variables in JSON.")
+        print("Finished processing all environment variables in file.")
 
     def _process_json_file(self, json_filepath):
         # Open the JSON file
@@ -232,7 +232,7 @@ class SetupCIFromFiles(Action):
         self.env_instance = env
 
         # Get the file(s)
-        for file in self.env_instance.project.config['CI_ENVIRONMENT_VARIABLE_FILES']:
+        for file in self.env_instance.config.get('CI_ENVIRONMENT_VARIABLE_FILES'):
             # Is this an S3 file? If so, then download it to a temporary file and execute it there
             if (file.startswith("s3://")):
                 tmp_file = tempfile.NamedTemporaryFile()
