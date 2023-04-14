@@ -555,7 +555,10 @@ COMPILERS = {
         'yum_compiler_packages': ['gcc', 'gcc-c++'],
 
         'versions': {
-            '4.8': {},
+            '4.8': {
+                'cmake_args': [
+                    "-DMY_ASSEMBLER_IS_TOO_OLD_FOR_512AVX",
+                ], },
             '5': {},
             '6': {},
             '7': {},
