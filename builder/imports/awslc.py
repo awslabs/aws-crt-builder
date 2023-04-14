@@ -41,7 +41,7 @@ class AWSLCImport(Import):
     def cmake_args(self, env):
         if env.spec.compiler == 'gcc' and env.spec.compiler_version < '5':
             # Disable AVX512 on old GCC for aws-lc
-            return super().cmake_args(env) + ['-DMY_ASSEMBLER_IS_TOO_OLD_FOR_512AVX']
+            return super().cmake_args(env) + ['-DMY_ASSEMBLER_IS_TOO_OLD_FOR_512AVX=ON']
 
         return super().cmake_args(env)
 
