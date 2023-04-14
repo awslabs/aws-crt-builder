@@ -8,7 +8,6 @@ RUN yum -y update \
     && yum -y install \
     tar \
     git \
-    curl \
     sudo \
     # Python
     python3 \
@@ -21,15 +20,13 @@ RUN yum -y update \
     which \
     && yum clean all \
     && rm -rf /var/cache/yum \
-    && ln -s /usr/bin/cmake3 /usr/bin/cmake \
-    && ln -s /usr/bin/ctest3 /usr/bin/ctest \
     && cmake --version \
     && ctest --version
 
 ###############################################################################
 # Python/AWS CLI
 ###############################################################################
-RUN python3 -m pip install --upgrade pip setuptools virtualenv \
+RUN python3 -m pip install setuptools virtualenv \
     && python3 -m pip install --upgrade awscli \
     && aws --version
 

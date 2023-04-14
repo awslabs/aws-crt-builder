@@ -8,7 +8,7 @@ RUN dnf install -y make gcc gcc-c++ git cmake curl wget python3 python3-pip pyth
 ###############################################################################
 # Python/AWS CLI
 ###############################################################################
-RUN python3 -m pip install --upgrade pip setuptools virtualenv \
+RUN python3 -m pip install --upgrade setuptools virtualenv \
     && python3 -m pip install --upgrade awscli \
     && aws --version
 

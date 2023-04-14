@@ -54,7 +54,7 @@ RUN sudo apt-get install libreadline-gplv2-dev libncursesw5-dev libssl-dev libsq
 ###############################################################################
 # Python/AWS CLI
 ###############################################################################
-RUN python -m pip install --upgrade pip setuptools virtualenv \
+RUN python -m pip install --upgrade setuptools virtualenv \
     && python -m pip install --upgrade awscli \
     && ln -s `find /opt -name aws` /usr/local/bin/aws \
     && which aws \

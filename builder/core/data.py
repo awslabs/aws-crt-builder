@@ -345,7 +345,7 @@ TARGETS = {
                 ],
             },
         },
-        '!cmake_args': [],
+        'cmake_args': ['-DENABLE_SANITIZERS=ON'],
         'variables': {
             'exe': '',
         },
@@ -478,16 +478,27 @@ COMPILERS = {
             'default': {}
         }
     },
+    'appleclang': {
+        'hosts': ['macos'],
+        'targets': ['macos', 'ios', 'tvos', 'watchos'],
+
+        'versions': {
+            'default': {},
+
+            '11': {},
+            '12': {},
+            '13': {},
+            '14': {},
+        },
+    },
     'clang': {
-        'hosts': ['linux', 'macos', 'openbsd'],
-        'targets': ['linux', 'macos', 'openbsd', 'ios', 'tvos', 'watchos'],
+        'hosts': ['linux', 'openbsd'],
+        'targets': ['linux', 'openbsd', 'android'],
 
         'imports': ['llvm'],
 
         'versions': {
-            'default': {
-                '!cmake_args': [],
-            },
+            'default': {},
             '3': {
                 'c': "clang-3.9",
                 'cxx': "clang++-3.9",
@@ -516,16 +527,13 @@ COMPILERS = {
                 'cmake_args': ['-DENABLE_FUZZ_TESTS=ON'],
                 'apt_compiler_packages': ['libstdc++-9-dev'],
             },
-            # 10 and 11 are XCode Apple clang/LLVM
-            '10': {
-                '!cmake_args': [],
-            },
-            '11': {
-                '!cmake_args': [],
-            },
-            '12': {
-
-            }
+            '10': {},
+            '11': {},
+            '12': {},
+            '13': {},
+            '14': {},
+            '15': {},
+            '16': {}
         },
         'architectures': {
             # No fuzz tests on ARM
@@ -542,7 +550,7 @@ COMPILERS = {
     },
     'gcc': {
         'hosts': ['linux', 'manylinux', 'al2012', 'al2', 'freebsd'],
-        'targets': ['linux', 'freebsd'],
+        'targets': ['linux', 'freebsd', 'android'],
 
         'imports': ['gcc'],
 
@@ -556,9 +564,12 @@ COMPILERS = {
 
         'versions': {
             '4.8': {
-                'cmake_args': [
-                    "-DMY_ASSEMBLER_IS_TOO_OLD_FOR_512AVX",
-                ], },
+                # ASan has been broken on 4.8 GCC version distributed on Ubuntu
+                # and will unlikely to get fixed upstream. so turn it off.
+                # Disable AVX512 on GCC 4.8 for aws-lc
+                '+cmake_args': ['-DENABLE_SANITIZERS=OFF',
+                                "-DMY_ASSEMBLER_IS_TOO_OLD_FOR_512AVX"],
+            },
             '5': {},
             '6': {},
             '7': {},
@@ -566,6 +577,7 @@ COMPILERS = {
             '9': {},
             '10': {},
             '11': {},
+            '12': {}
         },
 
         'architectures': {

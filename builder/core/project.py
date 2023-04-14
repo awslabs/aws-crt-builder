@@ -26,7 +26,7 @@ def looks_like_code(path):
     return False
 
 
-def _apply_value(obj, key, new_value, apply_before=True):
+def _apply_value(obj, key, new_value, apply_before=False):
     """
     Merge values according to type
     :type obj: dict
