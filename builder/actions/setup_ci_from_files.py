@@ -15,6 +15,16 @@ class SetupCIFromFiles(Action):
     env_instance = None
     tmp_file_storage = []  # NOTE: This is needed to keep the tmp files alive
 
+    def _is_same_os_as_string(self, os_string):
+        our_platform = ""
+        if sys.platform.startswith("freebsd") or sys.platform.startswith("linux"):
+            our_platform = "linux"
+        elif sys.platform.startswith("windows") or sys.platform.startswith("cygwin"):
+            our_platform = "windows"
+        elif sys.platform.startswith("darwin"):
+            our_platform = "mac"
+        return os_string == our_platform
+
     def _process_environment_variables(self, object_environment_variables):
         print("Starting to process all environment variables in file...")
 
@@ -70,7 +80,7 @@ class SetupCIFromFiles(Action):
                 # It will assign environment_value to "SUCCESS".
                 #
                 # Valid JSON:
-                #    { 'input_role_arn': <AWS IAM role ARN here> }
+                #    'input_role_arn': <AWS IAM role ARN here>
                 if ('input_role_arn' in item):
                     try:
                         arn_credentials = self.get_arn_role_credentials(str(item["input_role_arn"]))
@@ -86,7 +96,7 @@ class SetupCIFromFiles(Action):
                 # The same as "input_role_arn" but instead of taking the IAM role arn directly, it instead
                 # takes a AWS Secret Name and assumes the value in that secret is the IAM Role ARN to use and assume.
                 # Valid JSON:
-                #    { 'input_role_arn_secret': <AWS Secret Name containing IAM Role ARN here> }
+                #    'input_role_arn_secret': <AWS Secret Name containing IAM Role ARN here>
                 if ('input_role_arn_secret' in item):
                     try:
                         input_role_arn = self.env_instance.shell.get_secret(str(item['input_role_arn_secret']))
@@ -101,7 +111,7 @@ class SetupCIFromFiles(Action):
 
                 # Downloads the S3 file at the given URL and sets environment_value to the downloaded (temporary) file.
                 # Valid JSON:
-                #   { 'input_s3': <S3 URL Here> }
+                #   'input_s3': <S3 URL Here>
                 if ('input_s3' in item):
                     try:
                         tmp_file = tempfile.NamedTemporaryFile()
@@ -111,8 +121,45 @@ class SetupCIFromFiles(Action):
                         self.copy_s3_file(str(item['input_s3']), tmp_s3_filepath)
                         environment_value = str(tmp_s3_filepath)
                     except Exception as ex:
-                        print(ex)
                         sys.exit(f"[FAIL] {environment_name} [Input S3]: Exception ocurred trying to get S3 file")
+
+                ############################################################
+                # OS Condition (starts with "os_")
+                ############################################################
+
+                # Checks to see if the operating system is the same as the desired operating system(s) of the environment variable.
+                # Valid JSON:
+                #   'os_only': "windows" or "linux" or "mac" <add ',' for multiple. Example: "windows,linux">
+                if ('os_only' in item):
+                    try:
+                        supported_systems = str(item["os_only"]).split(",")
+                        is_supported = False
+                        for os in supported_systems:
+                            if (self._is_same_os_as_string(os.lower()) == True):
+                                is_supported = True
+                        if (is_supported == False):
+                            print(f"[SKIP] {environment_name} [OS Only]: Not desired OS. Skipping...")
+                            continue
+                    except Exception as ex:
+                        sys.exit(f"[FAIL] {environment_name} [OS Only]: Exception ocurred trying to only process on OS")
+
+                # Checks to see if the platform is ARM. If it is, then it skips
+                # Valid JSON:
+                #   'os_arm_skip': <any value - the existence is what is checked>
+                if ('os_arm_skip' in item):
+                    if os.uname()[4][:3] == 'arm':
+                        print(f"[SKIP] {environment_name} [OS No ARM]: OS is ARM. Skipping...")
+                        continue
+
+                # Checks to see if the platform is Codebuild. If the platform is NOT codebuild, then it skips.
+                if ('os_codebuild_only' in item):
+                    # List of Codebuild environment variables:
+                    # https://docs.aws.amazon.com/codebuild/latest/userguide/build-env-ref-env-vars.html
+                    if self.env_instance.shell.getenv("CODEBUILD_BUILD_ID") != None:
+                        pass  # Do nothing!
+                    else:
+                        print(f"[SKIP] {environment_name} [OS Codebuild Only]: NOT running on Codebuild. Skipping...")
+                        continue
 
                 ############################################################
                 # FILE (starts with "file_")
@@ -167,23 +214,6 @@ class SetupCIFromFiles(Action):
         # Process Environment Variables
         self._process_environment_variables(json_data)
 
-    def _process_yaml_file(self, yaml_filepath):
-        try:
-            # YAML is really nice and compact, and supports comments, but alas it's not
-            # part of the standard library, so our support for it is limited.
-            import yaml
-            # Open the YAML file
-            yaml_filepath_abs = pathlib.Path(yaml_filepath).resolve()
-            yaml_file_data_raw = ""
-            with open(yaml_filepath_abs, "r") as yaml_file:
-                yaml_file_data_raw = yaml_file.read()
-            # Load the YAML file
-            yaml_data = yaml.safe_load(yaml_file_data_raw)
-            # Process Environment Variables
-            self._process_environment_variables(yaml_data)
-        except Exception as ex:
-            sys.exit(f"[FAIL]: Exception ocurred trying parson YAML file with name {yaml_filepath}. Exception: {ex}")
-
     def _process_xml_file(self, xml_filepath):
         try:
             # Open the XML file
@@ -194,7 +224,7 @@ class SetupCIFromFiles(Action):
             # Load the XML file
             xml_data = xml.fromstring(xml_file_data_raw)
 
-            # Convert to a list of dictionaries so it processes like JSON and YAML
+            # Convert to a list of dictionaries so it processes like JSON
             convert_list = []
             for element in xml_data:
                 item = {}
@@ -241,15 +271,11 @@ class SetupCIFromFiles(Action):
                 tmp_s3_filepath = tmp_file.name
                 self.copy_s3_file(file, tmp_s3_filepath)
                 if (os.path.exists(tmp_s3_filepath)):
-                    # Is it a JSON file, YAML/YML, or XML file?
+                    # Is it a JSON file or XML file?
                     if (file.endswith(".json")):
                         print("Processing JSON file...")
                         self._process_json_file(tmp_s3_filepath)
                         print("Processed JSON file.")
-                    elif (file.endswith(".yml") or file.endswith(".yaml")):
-                        print("Processing YAML file...")
-                        self._process_yaml_file(file)
-                        print("Processed YAML file.")
                     elif (file.endswith(".xml")):
                         print("Processing XML file...")
                         self._process_xml_file(file)
@@ -263,15 +289,11 @@ class SetupCIFromFiles(Action):
                 if (os.path.exists(file) == False):
                     sys.exit(f"Cannot parse file: file given [{file}] does not point to a valid file")
 
-                # Is it a JSON file, YAML/YML, or XML file?
+                # Is it a JSON file or XML file?
                 if (file.endswith(".json")):
                     print("Processing JSON file...")
                     self._process_json_file(file)
                     print("Processed JSON file.")
-                elif (file.endswith(".yml") or file.endswith(".yaml")):
-                    print("Processing YAML file...")
-                    self._process_yaml_file(file)
-                    print("Processed YAML file.")
                 elif (file.endswith(".xml")):
                     print("Processing XML file...")
                     self._process_xml_file(file)
