@@ -13,7 +13,7 @@ config = {
     'targets': ['linux', 'android'],
     'test_steps': [],
     'build_tests': False,
-    'cmake_args': ['-DDISABLE_GO=ON', '-DDISABLE_PERL=ON', '-DBUILD_LIBSSL=OFF']
+    'cmake_args': ['-DDISABLE_GO=ON', '-DBUILD_LIBSSL=OFF']
 }
 
 
@@ -58,5 +58,5 @@ class AWSLCProject(Project):
         if env.spec.compiler == 'gcc' and re.match(r'4\.[0-9]', env.spec.compiler_version) != None:
             # Disable AVX512 on old GCC for aws-lc
             return super().cmake_args(env) + ['-DMY_ASSEMBLER_IS_TOO_OLD_FOR_512AVX=ON']
-
-        return super().cmake_args(env)
+        else:
+            return super().cmake_args(env) + ['-DDISABLE_PERL=ON']
