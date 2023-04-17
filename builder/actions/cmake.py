@@ -128,8 +128,6 @@ def _build_project(env, project, cmake_extra, build_tests=False, args_transforme
     if toolchain.host in ("al2012", "manylinux"):
         build_config = "Debug"
 
-    print("####################### tool chain host is {}".format(toolchain.host))
-
     # Set compiler flags
     compiler_flags = []
     if toolchain.compiler != 'default' and toolchain.compiler != 'msvc' and not toolchain.cross_compile:
@@ -158,7 +156,6 @@ def _build_project(env, project, cmake_extra, build_tests=False, args_transforme
     # set on and off multiple times. ex. Flag A is added to args with value On,
     # Off, On. With UniqueList last On will be removed and cmake will treat flag
     # as off. Without UniqueList cmake will treat it as on.
-    print("########################## CMake args: {}".format(project.cmake_args(env)))
     cmake_args += project.cmake_args(env)
     cmake_args += cmake_extra
     if coverage:
