@@ -104,7 +104,6 @@ def _build_project(env, project, cmake_extra, build_tests=False, args_transforme
     sh = env.shell
     config = project.get_config(env.spec)
     toolchain = env.toolchain
-    print("####################### project is {}".format(project))
     # build dependencies first, let cmake decide what needs doing
     for dep in project.get_dependencies(env.spec):
         _build_project(env, dep, cmake_extra)
@@ -128,6 +127,8 @@ def _build_project(env, project, cmake_extra, build_tests=False, args_transforme
     build_config = env.args.config
     if toolchain.host in ("al2012", "manylinux"):
         build_config = "Debug"
+
+    print("####################### tool chain host is {}".format(toolchain.host))
 
     # Set compiler flags
     compiler_flags = []
