@@ -23,6 +23,7 @@ class AWSLCImport(Import):
             del kwargs['name']
         super().__init__(
             library=True,
+            account='aws',
             name='aws-lc',
             config=config,
             **kwargs)
@@ -49,7 +50,7 @@ class AWSLCProject(Project):
         if kwargs.get('name'):
             del kwargs['name']
         super().__init__(
-            account='awslabs',
+            account='aws',
             name='aws-lc',
             **config,
             **kwargs)
