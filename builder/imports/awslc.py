@@ -26,6 +26,12 @@ class AWSLCImport(Import):
             **kwargs)
 
     def pre_build(self, env):
+
+        print(f"################################ {env.spec.compiler_version} ################################")
+        print(f"################################ {env.spec.compiler} ################################")
+        if env.spec.compiler == 'gcc' and '4.8' in env.spec.compiler_version:
+            # Disable AVX512 on old GCC for aws-lc
+            self.config['cmake_args'].append('-DMY_ASSEMBLER_IS_TOO_OLD_FOR_512AVX=ON')
         # Search for an aws-lc directory
         if not hasattr(self, 'path'):
             for root, dirs, files in os.walk(env.deps_dir):
