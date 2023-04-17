@@ -89,7 +89,6 @@ class SetupCIFromFiles(Action):
                         environment_multi[environment_name + "_SECRET_ACCESS_KEY"] = arn_credentials[1]
                         environment_multi[environment_name + "_SESSION_TOKEN"] = arn_credentials[2]
                     except Exception as ex:
-                        print(ex)
                         sys.exit(
                             f"[FAIL] {environment_name} [Input Role ARN]: Exception ocurred trying to get role ARN credentials")
 
