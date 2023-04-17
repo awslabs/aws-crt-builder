@@ -29,7 +29,7 @@ KEYS = {
     'cxx': None,  # c++ compiler
     'cmake_args': [],  # additional cmake arguments
 
-    'CI_ENVIRONMENT_VARIABLE_FILES': [],  # CI Environment Files files
+    'ci_environment_variable_files': [],  # CI Environment Files files
 
     # where the cmake binaries should be stored, and dependencies installed
     'build_dir': 'build',
