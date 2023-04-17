@@ -3,6 +3,8 @@
 
 import os
 
+import re
+
 from builder.core.project import Project, Import
 from builder.actions.git import DownloadSource
 
@@ -53,7 +55,7 @@ class AWSLCProject(Project):
             **kwargs)
 
     def cmake_args(self, env):
-        if env.spec.compiler == 'gcc' and '4.8' in env.spec.compiler_version:
+        if env.spec.compiler == 'gcc' and re.match(r'4\.[0-9]', env.spec.compiler_version) != None:
             # Disable AVX512 on old GCC for aws-lc
             return super().cmake_args(env) + ['-DMY_ASSEMBLER_IS_TOO_OLD_FOR_512AVX=ON']
 
