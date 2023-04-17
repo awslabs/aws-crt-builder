@@ -129,7 +129,6 @@ def coerce_arg(arg):
 
 
 def parse_args():
-    print(f"################################ testing testings ################################")
     parser = argparse.ArgumentParser()
     parser.add_argument('-d', '--dry-run', action='store_true',
                         help="Don't run the build, just print the commands that would run")
