@@ -49,7 +49,7 @@ class AWSLCProject(Project):
         if kwargs.get('name'):
             del kwargs['name']
         super().__init__(
-            account='TingDaoK',
+            account='awslabs',
             name='aws-lc',
             **config,
             **kwargs)
@@ -57,6 +57,7 @@ class AWSLCProject(Project):
     def cmake_args(self, env):
         if env.spec.compiler == 'gcc' and re.match(r'4\.[0-9]', env.spec.compiler_version) != None:
             # Disable AVX512 on old GCC for aws-lc
+            # Not disable PERL for old GCC to avoid the pre-compiled binary with AVX512
             return super().cmake_args(env) + ['-DMY_ASSEMBLER_IS_TOO_OLD_FOR_512AVX=ON']
         else:
             return super().cmake_args(env) + ['-DDISABLE_PERL=ON']
