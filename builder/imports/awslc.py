@@ -11,7 +11,7 @@ config = {
     'targets': ['linux', 'android'],
     'test_steps': [],
     'build_tests': False,
-    'cmake_args': ['-DDISABLE_GO=ON', '-DDISABLE_PERL=ON', '-DBUILD_LIBSSL=OFF']
+    'cmake_args': ['-DDISABLE_GO=ON', '-DBUILD_LIBSSL=OFF']
 }
 
 
@@ -21,6 +21,7 @@ class AWSLCImport(Import):
             del kwargs['name']
         super().__init__(
             library=True,
+            account='aws',
             name='aws-lc',
             config=config,
             **kwargs)
@@ -38,13 +39,6 @@ class AWSLCImport(Import):
             self.path = os.path.join(env.deps_dir, 'aws-lc')
             DownloadSource(project=Project.find_project(self.name), path=env.deps_dir).run(env)
 
-    def cmake_args(self, env):
-        if env.spec.compiler == 'gcc' and env.spec.compiler_version < '5':
-            # Disable AVX512 on old GCC for aws-lc
-            return super().cmake_args(env) + ['-DMY_ASSEMBLER_IS_TOO_OLD_FOR_512AVX=ON']
-
-        return super().cmake_args(env)
-
     def build(self, env):
         return Project.build(Project.find_project(self.name, [self.path]), env)
 
@@ -54,7 +48,15 @@ class AWSLCProject(Project):
         if kwargs.get('name'):
             del kwargs['name']
         super().__init__(
-            account='awslabs',
+            account='aws',
             name='aws-lc',
             **config,
             **kwargs)
+
+    def cmake_args(self, env):
+        if env.spec.compiler == 'gcc' and env.spec.compiler_version.startswith('4.'):
+            # Disable AVX512 on old GCC for aws-lc
+            # Not disable PERL for old GCC to avoid the pre-compiled binary with AVX512
+            return super().cmake_args(env) + ['-DMY_ASSEMBLER_IS_TOO_OLD_FOR_512AVX=ON']
+        else:
+            return super().cmake_args(env) + ['-DDISABLE_PERL=ON']
