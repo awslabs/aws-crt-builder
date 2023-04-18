@@ -12,6 +12,7 @@ env:
   AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
   AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
   AWS_REGION: 'us-east-1'
+  LATEST_TAG: latest
 
 jobs:
   package:
@@ -39,7 +40,7 @@ jobs:
         cp -r builder staging/.
         python3 -m zipapp --python="/usr/bin/env python3" -m "builder.main:main" --output=build/builder staging
         aws s3 cp build/builder s3://$AWS_S3_BUCKET/releases/${{ steps.tag.outputs.release_tag }}/builder.pyz
-        aws s3 cp build/builder s3://$AWS_S3_BUCKET/releases/LATEST/builder.pyz
+        aws s3 cp build/builder s3://$AWS_S3_BUCKET/releases/$LATEST_TAG/builder.pyz
 
     - name: Artifact builder
       uses: actions/upload-artifact@v3
@@ -130,6 +131,7 @@ jobs:
         | gzip \
         | aws s3 cp - s3://${{env.AWS_S3_BUCKET}}/releases/$IMAGE_TAG/aws-crt-${{ matrix.variant }}.tar.gz
         aws s3 cp s3://${{env.AWS_S3_BUCKET}}/releases/$IMAGE_TAG/aws-crt-${{ matrix.variant }}.tar.gz s3://${{env.AWS_S3_BUCKET}}/LATEST/aws-crt-${{ matrix.variant }}.tar.gz
+        aws s3 cp s3://${{env.AWS_S3_BUCKET}}/releases/$IMAGE_TAG/aws-crt-${{ matrix.variant }}.tar.gz s3://${{env.AWS_S3_BUCKET}}/releases/$LATEST_TAG/aws-crt-${{ matrix.variant }}.tar.gz
 
   upload-ci-script:
     name: Upload container ci script
@@ -145,4 +147,4 @@ jobs:
 
     - name: Upload script
       run: aws s3 cp ./.github/workflows/linux-container-ci.sh s3://aws-crt-test-stuff/ci/${{ steps.tag.outputs.release_tag }}/linux-container-ci.sh
-      run: aws s3 cp ./.github/workflows/linux-container-ci.sh s3://aws-crt-test-stuff/ci/LATEST/linux-container-ci.sh
+      run: aws s3 cp ./.github/workflows/linux-container-ci.sh s3://aws-crt-test-stuff/ci/$LATEST_TAG/linux-container-ci.sh
