@@ -8,7 +8,6 @@ import pathlib
 import sys
 import json
 import tempfile
-import xml.etree.cElementTree as xml
 
 
 class SetupCIFromFiles(Action):
@@ -26,6 +25,12 @@ class SetupCIFromFiles(Action):
         print("Starting to process all environment variables in file...")
 
         for item in object_environment_variables:
+
+            # Is this an array/list? If so, then skip as there is no environment variable format
+            # that is defined as a list currently.
+            if isinstance(item, list):
+                print("[SKIP]: Skipping comment...")
+                continue
 
             ############################################################
             # PRE-PROCESSING
@@ -110,7 +115,7 @@ class SetupCIFromFiles(Action):
                 #   'input_s3': <S3 URL Here>
                 if ('input_s3' in item):
                     try:
-                        tmp_file = tempfile.NamedTemporaryFile()
+                        tmp_file = tempfile.NamedTemporaryFile(delete=False)
                         tmp_file.flush()
                         self.tmp_file_storage.append(tmp_file)
                         tmp_s3_filepath = tmp_file.name
@@ -167,7 +172,7 @@ class SetupCIFromFiles(Action):
                 # Valid JSON:
                 #   'file_tmp': <whatever you want - its unused>
                 if ('file_tmp' in item):
-                    tmp_file = tempfile.NamedTemporaryFile()
+                    tmp_file = tempfile.NamedTemporaryFile(delete=False)
                     # lgtm [py/clear-text-storage-sensitive-data]
                     tmp_file.write(str.encode(environment_value))
                     tmp_file.flush()
@@ -205,35 +210,11 @@ class SetupCIFromFiles(Action):
         # Load the JSON file
         try:
             json_data = json.loads(json_file_data_raw)
-        except:
-            sys.exit(f"[FAIL]: Exception ocurred trying parson JSON file with name {json_filepath}.")
+        except Exception as ex:
+            sys.exit(f"[FAIL]: Exception ocurred trying parson JSON file with name {json_filepath}")
 
         # Process Environment Variables
         self._process_environment_variables(json_data)
-
-    def _process_xml_file(self, xml_filepath):
-        try:
-            # Open the XML file
-            xml_filepath_abs = pathlib.Path(xml_filepath).resolve()
-            xml_file_data_raw = ""
-            with open(xml_filepath_abs, "r") as xml_file:
-                xml_file_data_raw = xml_file.read()
-            # Load the XML file
-            xml_data = xml.fromstring(xml_file_data_raw)
-
-            # Convert to a list of dictionaries so it processes like JSON
-            convert_list = []
-            for element in xml_data:
-                item = {}
-                for sub_item in element:
-                    item[sub_item.tag] = sub_item.text
-                convert_list.append(item)
-
-            # Process Environment Variables
-            self._process_environment_variables(convert_list)
-
-        except:
-            sys.exit(f"[FAIL]: Exception ocurred trying parse XML file with name {xml_filepath}.")
 
     def copy_s3_file(self, s3_url, filename):
         try:
@@ -268,7 +249,7 @@ class SetupCIFromFiles(Action):
         for file in self.env_instance.config.get('ci_environment_variable_files'):
             # Is this an S3 file? If so, then download it to a temporary file and execute it there
             if (file.startswith("s3://")):
-                tmp_file = tempfile.NamedTemporaryFile()
+                tmp_file = tempfile.NamedTemporaryFile(delete=False)
                 tmp_file.flush()
                 self.tmp_file_storage.append(tmp_file)
                 tmp_s3_filepath = tmp_file.name
@@ -283,10 +264,6 @@ class SetupCIFromFiles(Action):
                         print("Processing JSON file...")
                         self._process_json_file(tmp_s3_filepath)
                         print("Processed JSON file.")
-                    elif (file.endswith(".xml")):
-                        print("Processing XML file...")
-                        self._process_xml_file(tmp_s3_filepath)
-                        print("Processed XML file.")
                     else:
                         print(f"[SKIP] S3 file given [{file}] has an unknown extension. Skipping...")
                         continue
@@ -304,10 +281,6 @@ class SetupCIFromFiles(Action):
                     print("Processing JSON file...")
                     self._process_json_file(file)
                     print("Processed JSON file.")
-                elif (file.endswith(".xml")):
-                    print("Processing XML file...")
-                    self._process_xml_file(file)
-                    print("Processed XML file.")
                 else:
                     print(f"[SKIP] file given [{file}] has an unknown extension. Skipping...")
                     continue
