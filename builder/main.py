@@ -243,7 +243,7 @@ def upload_test_coverage(env):
     try:
         token = env.shell.get_secret("codecov-token", env.project.name)
     except:
-        print(f"No token found for {env.project.name}, check https://app.codecov.io/github/awslabs/{env.project.name}/settings for token and add it to codecov-token in secret-manager.", file=sys.stderr)
+        print(f"No token found for <env.project.name>, check https://app.codecov.io/github/awslabs/<env.project.name>/settings for token and add it to codecov-token in secret-manager.", file=sys.stderr)
         exit()
     # only works for linux for now
     env.shell.exec('curl', '-Os', 'https://uploader.codecov.io/latest/linux/codecov', check=True)
