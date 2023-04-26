@@ -309,17 +309,19 @@ class SetupCrossCICrtEnvironment(Action):
                 self._setenv(env, "AWS_TEST_MQTT5_PROXY_HOST", "host.docker.internal")
 
             ########## HTTP Proxy ##########
-            self._setenv_secret("AWS_TEST_HTTP_PROXY_HOST", "ci/http/proxy/host")
-            self._setenv("AWS_TEST_HTTP_PROXY_PORT", "3128")
-            self._setenv_secret("AWS_TEST_HTTP_PROXY_URL", "ci/http/proxy/url")
-            self._setenv_secret("AWS_TEST_HTTPS_PROXY_HOST", "ci/https/proxy/host")
-            self._setenv("AWS_TEST_HTTPS_PROXY_PORT", "3128")
-            self._setenv_secret("AWS_TEST_HTTPS_PROXY_URL", "ci/https/proxy/url")
-            self._setenv_secret("AWS_TEST_HTTP_PROXY_BASIC_HOST", "ci/http/proxy/basichost")
-            self._setenv("AWS_TEST_HTTP_PROXY_BASIC_PORT", "3128")
-            self._setenv_secret("AWS_TEST_BASIC_AUTH_USERNAME", "ci/http/proxy/username")
-            self._setenv_secret("AWS_TEST_BASIC_AUTH_PASSWORD", "ci/http/proxy/password")
-            self._setenv_secret("AWS_TEST_HTTP_PROXY_BASIC_URL", "ci/http/proxy/basicurl")
+            # Never run the HTTP proxy stuff locally for now
+            if (self.is_running_locally == False):
+                self._setenv_secret("AWS_TEST_HTTP_PROXY_HOST", "ci/http/proxy/host")
+                self._setenv("AWS_TEST_HTTP_PROXY_PORT", "3128")
+                self._setenv_secret("AWS_TEST_HTTP_PROXY_URL", "ci/http/proxy/url")
+                self._setenv_secret("AWS_TEST_HTTPS_PROXY_HOST", "ci/https/proxy/host")
+                self._setenv("AWS_TEST_HTTPS_PROXY_PORT", "3128")
+                self._setenv_secret("AWS_TEST_HTTPS_PROXY_URL", "ci/https/proxy/url")
+                self._setenv_secret("AWS_TEST_HTTP_PROXY_BASIC_HOST", "ci/http/proxy/basichost")
+                self._setenv("AWS_TEST_HTTP_PROXY_BASIC_PORT", "3128")
+                self._setenv_secret("AWS_TEST_BASIC_AUTH_USERNAME", "ci/http/proxy/username")
+                self._setenv_secret("AWS_TEST_BASIC_AUTH_PASSWORD", "ci/http/proxy/password")
+                self._setenv_secret("AWS_TEST_HTTP_PROXY_BASIC_URL", "ci/http/proxy/basicurl")
 
         ################################################
         # POST-PROCESSING
