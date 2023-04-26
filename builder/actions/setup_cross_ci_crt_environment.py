@@ -248,6 +248,8 @@ class SetupCrossCICrtEnvironment(Action):
         # The Mosquitto direct MQTT host endpoint used in CI on Codebuild.
 
         if (self.is_codebuild == True):
+
+            ########## MQTT311 ##########
             self._setenv_secret(env, "AWS_TEST_MQTT311_DIRECT_MQTT_HOST", "ci/mqtt5/us/mosquitto/host")
             self._setenv(env, "AWS_TEST_MQTT311_DIRECT_MQTT_PORT", "1883")
             self._setenv_secret(env, "AWS_TEST_MQTT311_DIRECT_MQTT_BASIC_AUTH_HOST", "ci/mqtt5/us/mosquitto/host")
@@ -256,18 +258,36 @@ class SetupCrossCICrtEnvironment(Action):
             self._setenv(env, "AWS_TEST_MQTT311_DIRECT_MQTT_TLS_PORT", "8883")
             self._setenv_secret_file(env, "AWS_TEST_MQTT311_CERTIFICATE_FILE", "ci/mqtt5/us/Mqtt5Prod/cert")
             self._setenv_secret_file(env, "AWS_TEST_MQTT311_KEY_FILE", "ci/mqtt5/us/Mqtt5Prod/key")
-
             self._setenv_secret(env, "AWS_TEST_MQTT311_WS_MQTT_HOST", "ci/mqtt5/us/mosquitto/host")
             self._setenv(env, "AWS_TEST_MQTT311_WS_MQTT_PORT", "8080")
             self._setenv_secret(env, "AWS_TEST_MQTT311_WS_MQTT_BASIC_AUTH_HOST", "ci/mqtt5/us/mosquitto/host")
             self._setenv(env, "AWS_TEST_MQTT311_WS_MQTT_BASIC_AUTH_PORT", "8090")
             self._setenv_secret(env, "AWS_TEST_MQTT311_WS_MQTT_TLS_HOST", "ci/mqtt5/us/mosquitto/host")
             self._setenv(env, "AWS_TEST_MQTT311_WS_MQTT_TLS_PORT", "8081")
-
             self._setenv(env, "AWS_TEST_MQTT311_BASIC_AUTH_USERNAME", "rw")
             self._setenv(env, "AWS_TEST_MQTT311_BASIC_AUTH_PASSWORD", "rw")
             self._setenv_secret(env, "AWS_TEST_MQTT311_PROXY_HOST", "ci/mqtt5/us/proxy/host")
             self._setenv(env, "AWS_TEST_MQTT311_PROXY_PORT", "3128")
+
+            ########## MQTT5 ##########
+            self._setenv_secret(env, "AWS_TEST_MQTT5_DIRECT_MQTT_HOST", "ci/mqtt5/us/mosquitto/host")
+            self._setenv(env, "AWS_TEST_MQTT5_DIRECT_MQTT_PORT", "1883")
+            self._setenv_secret(env, "AWS_TEST_MQTT5_DIRECT_MQTT_BASIC_AUTH_HOST", "ci/mqtt5/us/mosquitto/host")
+            self._setenv(env, "AWS_TEST_MQTT5_DIRECT_MQTT_BASIC_AUTH_PORT", "1884")
+            self._setenv_secret(env, "AWS_TEST_MQTT5_DIRECT_MQTT_TLS_HOST", "ci/mqtt5/us/mosquitto/host")
+            self._setenv(env, "AWS_TEST_MQTT5_DIRECT_MQTT_TLS_PORT", "8883")
+            self._setenv_secret_file(env, "AWS_TEST_MQTT5_CERTIFICATE_FILE", "ci/mqtt5/us/Mqtt5Prod/cert")
+            self._setenv_secret_file(env, "AWS_TEST_MQTT5_KEY_FILE", "ci/mqtt5/us/Mqtt5Prod/key")
+            self._setenv_secret(env, "AWS_TEST_MQTT5_WS_MQTT_HOST", "ci/mqtt5/us/mosquitto/host")
+            self._setenv(env, "AWS_TEST_MQTT5_WS_MQTT_PORT", "8080")
+            self._setenv_secret(env, "AWS_TEST_MQTT5_WS_MQTT_BASIC_AUTH_HOST", "ci/mqtt5/us/mosquitto/host")
+            self._setenv(env, "AWS_TEST_MQTT5_WS_MQTT_BASIC_AUTH_PORT", "8090")
+            self._setenv_secret(env, "AWS_TEST_MQTT5_WS_MQTT_TLS_HOST", "ci/mqtt5/us/mosquitto/host")
+            self._setenv(env, "AWS_TEST_MQTT5_WS_MQTT_TLS_PORT", "8081")
+            self._setenv(env, "AWS_TEST_MQTT5_BASIC_AUTH_USERNAME", "rw")
+            self._setenv(env, "AWS_TEST_MQTT5_BASIC_AUTH_PASSWORD", "rw")
+            self._setenv_secret(env, "AWS_TEST_MQTT5_PROXY_HOST", "ci/mqtt5/us/proxy/host")
+            self._setenv(env, "AWS_TEST_MQTT5_PROXY_PORT", "3128")
 
             # If running locally, override the endpoints to localhost on docker ('host.docker.internal')
             if (self.is_running_locally == True):
@@ -278,6 +298,14 @@ class SetupCrossCICrtEnvironment(Action):
                 self._setenv(env, "AWS_TEST_MQTT311_WS_MQTT_BASIC_AUTH_HOST", "host.docker.internal")
                 self._setenv(env, "AWS_TEST_MQTT311_WS_MQTT_TLS_HOST", "host.docker.internal")
                 self._setenv(env, "AWS_TEST_MQTT311_PROXY_HOST", "host.docker.internal")
+
+                self._setenv(env, "AWS_TEST_MQTT5_DIRECT_MQTT_HOST", "host.docker.internal")
+                self._setenv(env, "AWS_TEST_MQTT5_DIRECT_MQTT_BASIC_AUTH_HOST", "host.docker.internal")
+                self._setenv(env, "AWS_TEST_MQTT5_DIRECT_MQTT_TLS_HOST", "host.docker.internal")
+                self._setenv(env, "AWS_TEST_MQTT5_WS_MQTT_HOST", "host.docker.internal")
+                self._setenv(env, "AWS_TEST_MQTT5_WS_MQTT_BASIC_AUTH_HOST", "host.docker.internal")
+                self._setenv(env, "AWS_TEST_MQTT5_WS_MQTT_TLS_HOST", "host.docker.internal")
+                self._setenv(env, "AWS_TEST_MQTT5_PROXY_HOST", "host.docker.internal")
 
         ################################################
         # POST-PROCESSING
