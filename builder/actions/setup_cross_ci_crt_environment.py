@@ -8,6 +8,7 @@ import tempfile
 
 import builder.actions.setup_cross_ci_helpers as helpers
 
+
 class SetupCrossCICrtEnvironment(Action):
 
     # Needed to keep the temporary files alive
@@ -33,7 +34,7 @@ class SetupCrossCICrtEnvironment(Action):
     def _setenv(self, env, env_name, env_data):
         # Kinda silly to have a function for this, but makes the API calls consistent and looks better
         # beside the other functions...
-        print (f"Setting environment variable {env_name}...")
+        print(f"Setting environment variable {env_name}...")
         env.shell.setenv(env_name, str(env_data), quiet=True)
 
     def _setenv_secret(self, env, env_name, secret_name):
@@ -60,7 +61,7 @@ class SetupCrossCICrtEnvironment(Action):
     def _setenv_role_arn(self, env, env_name, role_arn):
         try:
             cmd = ["aws", "--region", "us-east-1", "sts", "assume-role",
-                    "--role-arn", role_arn, "--role-session", "CI_Test_Run"]
+                   "--role-arn", role_arn, "--role-session", "CI_Test_Run"]
             result = env.shell.exec(*cmd, check=True, quiet=True)
             result_json = json.loads(result.output)
             self._setenv(env, env_name + "_ACCESS_KEY", result_json["Credentials"]["AccessKeyId"])
@@ -77,7 +78,7 @@ class SetupCrossCICrtEnvironment(Action):
             self.tmp_file_storage.append(tmp_file)
             tmp_s3_filepath = tmp_file.name
             cmd = ['aws', '--region', 'us-east-1', 's3', 'cp',
-                    s3_file, tmp_s3_filepath]
+                   s3_file, tmp_s3_filepath]
             env.shell.exec(*cmd, check=True, quiet=True)
             self._setenv(env, env_name, tmp_s3_filepath)
         except:
@@ -111,7 +112,8 @@ class SetupCrossCICrtEnvironment(Action):
         self._setenv(env, "AWS_TEST_MQTT5_IOT_CORE_REGION", "us-east-1")
         self._setenv_secret_file(env, "AWS_TEST_MQTT5_IOT_CORE_RSA_CERT", "ci/mqtt5/us/Mqtt5Prod/cert")
         self._setenv_secret_file(env, "AWS_TEST_MQTT5_IOT_CORE_RSA_KEY", "ci/mqtt5/us/Mqtt5Prod/key")
-        self._setenv_role_arn(env, "AWS_TEST_MQTT5_ROLE_CREDENTIAL", "arn:aws:iam::123124136734:role/assume_role_connect_iot")
+        self._setenv_role_arn(env, "AWS_TEST_MQTT5_ROLE_CREDENTIAL",
+                              "arn:aws:iam::123124136734:role/assume_role_connect_iot")
 
         # CUSTOM KEY OPS
         if (self.is_linux == True):
@@ -120,34 +122,47 @@ class SetupCrossCICrtEnvironment(Action):
             pass
 
         # UNSIGNED CUSTOM AUTH
-        self._setenv_secret(env, "AWS_TEST_MQTT5_IOT_CORE_NO_SIGNING_AUTHORIZER_NAME", "ci/mqtt5/us/authorizer/unsigned/name")
-        self._setenv_secret(env, "AWS_TEST_MQTT5_IOT_CORE_NO_SIGNING_AUTHORIZER_USERNAME", "ci/mqtt5/us/authorizer/unsigned/username")
-        self._setenv_secret(env, "AWS_TEST_MQTT5_IOT_CORE_NO_SIGNING_AUTHORIZER_PASSWORD", "ci/mqtt5/us/authorizer/unsigned/password")
+        self._setenv_secret(env, "AWS_TEST_MQTT5_IOT_CORE_NO_SIGNING_AUTHORIZER_NAME",
+                            "ci/mqtt5/us/authorizer/unsigned/name")
+        self._setenv_secret(env, "AWS_TEST_MQTT5_IOT_CORE_NO_SIGNING_AUTHORIZER_USERNAME",
+                            "ci/mqtt5/us/authorizer/unsigned/username")
+        self._setenv_secret(env, "AWS_TEST_MQTT5_IOT_CORE_NO_SIGNING_AUTHORIZER_PASSWORD",
+                            "ci/mqtt5/us/authorizer/unsigned/password")
 
         # SIGNED CUSTOM AUTH
-        self._setenv_secret(env, "AWS_TEST_MQTT5_IOT_CORE_SIGNING_AUTHORIZER_NAME", "ci/mqtt5/us/authorizer/signed/name")
-        self._setenv_secret(env, "AWS_TEST_MQTT5_IOT_CORE_SIGNING_AUTHORIZER_USERNAME", "ci/mqtt5/us/authorizer/signed/username")
-        self._setenv_secret(env, "AWS_TEST_MQTT5_IOT_CORE_SIGNING_AUTHORIZER_PASSWORD", "ci/mqtt5/us/authorizer/signed/password")
-        self._setenv_secret(env, "AWS_TEST_MQTT5_IOT_CORE_SIGNING_AUTHORIZER_TOKEN", "ci/mqtt5/us/authorizer/signed/tokenvalue")
-        self._setenv_secret(env, "AWS_TEST_MQTT5_IOT_CORE_SIGNING_AUTHORIZER_TOKEN_KEY_NAME", "ci/mqtt5/us/authorizer/signed/tokenkeyname")
-        self._setenv_secret(env, "AWS_TEST_MQTT5_IOT_CORE_SIGNING_AUTHORIZER_TOKEN_SIGNATURE", "ci/mqtt5/us/authorizer/signed/signature")
+        self._setenv_secret(env, "AWS_TEST_MQTT5_IOT_CORE_SIGNING_AUTHORIZER_NAME",
+                            "ci/mqtt5/us/authorizer/signed/name")
+        self._setenv_secret(env, "AWS_TEST_MQTT5_IOT_CORE_SIGNING_AUTHORIZER_USERNAME",
+                            "ci/mqtt5/us/authorizer/signed/username")
+        self._setenv_secret(env, "AWS_TEST_MQTT5_IOT_CORE_SIGNING_AUTHORIZER_PASSWORD",
+                            "ci/mqtt5/us/authorizer/signed/password")
+        self._setenv_secret(env, "AWS_TEST_MQTT5_IOT_CORE_SIGNING_AUTHORIZER_TOKEN",
+                            "ci/mqtt5/us/authorizer/signed/tokenvalue")
+        self._setenv_secret(env, "AWS_TEST_MQTT5_IOT_CORE_SIGNING_AUTHORIZER_TOKEN_KEY_NAME",
+                            "ci/mqtt5/us/authorizer/signed/tokenkeyname")
+        self._setenv_secret(env, "AWS_TEST_MQTT5_IOT_CORE_SIGNING_AUTHORIZER_TOKEN_SIGNATURE",
+                            "ci/mqtt5/us/authorizer/signed/signature")
 
         # JAVA KEYSTORE
         self._setenv(env, "AWS_TEST_MQTT5_IOT_CORE_KEYSTORE_FORMAT", "JKS")
-        self._setenv_s3(env, "AWS_TEST_MQTT5_IOT_CORE_KEYSTORE_FILE", "s3://aws-crt-test-stuff/unit-test-keystore.keystore")
+        self._setenv_s3(env, "AWS_TEST_MQTT5_IOT_CORE_KEYSTORE_FILE",
+                        "s3://aws-crt-test-stuff/unit-test-keystore.keystore")
         self._setenv(env, "AWS_TEST_MQTT5_IOT_CORE_KEYSTORE_PASSWORD", "PKCS12_KEY_PASSWORD")
         self._setenv(env, "AWS_TEST_MQTT5_IOT_CORE_KEYSTORE_CERT_ALIAS", "PKCS12_ALIAS")
         self._setenv(env, "AWS_TEST_MQTT5_IOT_CORE_KEYSTORE_CERT_PASSWORD", "PKCS12_KEY_PASSWORD")
 
         # PKCS12
         if (self.is_mac == True):
-            self._setenv_s3(env, "AWS_TEST_MQTT5_IOT_CORE_PKCS12_KEY", "s3://aws-crt-test-stuff/unit-test-key-pkcs12.pem")
+            self._setenv_s3(env, "AWS_TEST_MQTT5_IOT_CORE_PKCS12_KEY",
+                            "s3://aws-crt-test-stuff/unit-test-key-pkcs12.pem")
             self._setenv(env, "AWS_TEST_MQTT5_IOT_CORE_PKCS12_KEY_PASSWORD", "PKCS12_KEY_PASSWORD")
 
         # Windows Key Cert
         if (self.is_windows == True):
-            self._setenv_s3(env, "AWS_TEST_MQTT5_IOT_CORE_WINDOWS_PFX_CERT_NO_PASS", "s3://aws-crt-test-stuff/unit-test-pfx-no-password.pfx")
-            helper.create_windows_cert_store(env, "AWS_TEST_MQTT5_IOT_CORE_WINDOWS_PFX_CERT_NO_PASS", "AWS_TEST_MQTT5_IOT_CORE_WINDOWS_CERT_STORE")
+            self._setenv_s3(env, "AWS_TEST_MQTT5_IOT_CORE_WINDOWS_PFX_CERT_NO_PASS",
+                            "s3://aws-crt-test-stuff/unit-test-pfx-no-password.pfx")
+            helper.create_windows_cert_store(
+                env, "AWS_TEST_MQTT5_IOT_CORE_WINDOWS_PFX_CERT_NO_PASS", "AWS_TEST_MQTT5_IOT_CORE_WINDOWS_CERT_STORE")
 
         # X509
         self._setenv_secret(env, "AWS_TEST_MQTT5_IOT_CORE_X509_ENDPOINT", "ci/mqtt5/us/x509/endpoint")
@@ -166,7 +181,8 @@ class SetupCrossCICrtEnvironment(Action):
         self._setenv(env, "AWS_TEST_MQTT311_IOT_CORE_REGION", "us-east-1")
         self._setenv_secret_file(env, "AWS_TEST_MQTT311_IOT_CORE_RSA_CERT", "ci/mqtt5/us/Mqtt5Prod/cert")
         self._setenv_secret_file(env, "AWS_TEST_MQTT311_IOT_CORE_RSA_KEY", "ci/mqtt5/us/Mqtt5Prod/key")
-        self._setenv_role_arn(env, "AWS_TEST_MQTT311_ROLE_CREDENTIAL", "arn:aws:iam::123124136734:role/assume_role_connect_iot")
+        self._setenv_role_arn(env, "AWS_TEST_MQTT311_ROLE_CREDENTIAL",
+                              "arn:aws:iam::123124136734:role/assume_role_connect_iot")
 
         # CUSTOM KEY OPS
         if (self.is_linux == True):
@@ -175,34 +191,47 @@ class SetupCrossCICrtEnvironment(Action):
             pass
 
         # UNSIGNED CUSTOM AUTH
-        self._setenv_secret(env, "AWS_TEST_MQTT311_IOT_CORE_NO_SIGNING_AUTHORIZER_NAME", "ci/mqtt5/us/authorizer/unsigned/name")
-        self._setenv_secret(env, "AWS_TEST_MQTT311_IOT_CORE_NO_SIGNING_AUTHORIZER_USERNAME", "ci/mqtt5/us/authorizer/unsigned/username")
-        self._setenv_secret(env, "AWS_TEST_MQTT311_IOT_CORE_NO_SIGNING_AUTHORIZER_PASSWORD", "ci/mqtt5/us/authorizer/unsigned/password")
+        self._setenv_secret(env, "AWS_TEST_MQTT311_IOT_CORE_NO_SIGNING_AUTHORIZER_NAME",
+                            "ci/mqtt5/us/authorizer/unsigned/name")
+        self._setenv_secret(env, "AWS_TEST_MQTT311_IOT_CORE_NO_SIGNING_AUTHORIZER_USERNAME",
+                            "ci/mqtt5/us/authorizer/unsigned/username")
+        self._setenv_secret(env, "AWS_TEST_MQTT311_IOT_CORE_NO_SIGNING_AUTHORIZER_PASSWORD",
+                            "ci/mqtt5/us/authorizer/unsigned/password")
 
         # SIGNED CUSTOM AUTH
-        self._setenv_secret(env, "AWS_TEST_MQTT311_IOT_CORE_SIGNING_AUTHORIZER_NAME", "ci/mqtt5/us/authorizer/signed/name")
-        self._setenv_secret(env, "AWS_TEST_MQTT311_IOT_CORE_SIGNING_AUTHORIZER_USERNAME", "ci/mqtt5/us/authorizer/signed/username")
-        self._setenv_secret(env, "AWS_TEST_MQTT311_IOT_CORE_SIGNING_AUTHORIZER_PASSWORD", "ci/mqtt5/us/authorizer/signed/password")
-        self._setenv_secret(env, "AWS_TEST_MQTT311_IOT_CORE_SIGNING_AUTHORIZER_TOKEN", "ci/mqtt5/us/authorizer/signed/tokenvalue")
-        self._setenv_secret(env, "AWS_TEST_MQTT311_IOT_CORE_SIGNING_AUTHORIZER_TOKEN_KEY_NAME", "ci/mqtt5/us/authorizer/signed/tokenkeyname")
-        self._setenv_secret(env, "AWS_TEST_MQTT311_IOT_CORE_SIGNING_AUTHORIZER_TOKEN_SIGNATURE", "ci/mqtt5/us/authorizer/signed/signature")
+        self._setenv_secret(env, "AWS_TEST_MQTT311_IOT_CORE_SIGNING_AUTHORIZER_NAME",
+                            "ci/mqtt5/us/authorizer/signed/name")
+        self._setenv_secret(env, "AWS_TEST_MQTT311_IOT_CORE_SIGNING_AUTHORIZER_USERNAME",
+                            "ci/mqtt5/us/authorizer/signed/username")
+        self._setenv_secret(env, "AWS_TEST_MQTT311_IOT_CORE_SIGNING_AUTHORIZER_PASSWORD",
+                            "ci/mqtt5/us/authorizer/signed/password")
+        self._setenv_secret(env, "AWS_TEST_MQTT311_IOT_CORE_SIGNING_AUTHORIZER_TOKEN",
+                            "ci/mqtt5/us/authorizer/signed/tokenvalue")
+        self._setenv_secret(env, "AWS_TEST_MQTT311_IOT_CORE_SIGNING_AUTHORIZER_TOKEN_KEY_NAME",
+                            "ci/mqtt5/us/authorizer/signed/tokenkeyname")
+        self._setenv_secret(env, "AWS_TEST_MQTT311_IOT_CORE_SIGNING_AUTHORIZER_TOKEN_SIGNATURE",
+                            "ci/mqtt5/us/authorizer/signed/signature")
 
         # JAVA KEYSTORE
         self._setenv(env, "AWS_TEST_MQTT311_IOT_CORE_KEYSTORE_FORMAT", "JKS")
-        self._setenv_s3(env, "AWS_TEST_MQTT311_IOT_CORE_KEYSTORE_FILE", "s3://aws-crt-test-stuff/unit-test-keystore.keystore")
+        self._setenv_s3(env, "AWS_TEST_MQTT311_IOT_CORE_KEYSTORE_FILE",
+                        "s3://aws-crt-test-stuff/unit-test-keystore.keystore")
         self._setenv(env, "AWS_TEST_MQTT311_IOT_CORE_KEYSTORE_PASSWORD", "PKCS12_KEY_PASSWORD")
         self._setenv(env, "AWS_TEST_MQTT311_IOT_CORE_KEYSTORE_CERT_ALIAS", "PKCS12_ALIAS")
         self._setenv(env, "AWS_TEST_MQTT311_IOT_CORE_KEYSTORE_CERT_PASSWORD", "PKCS12_KEY_PASSWORD")
 
         # PKCS12
         if (self.is_mac == True):
-            self._setenv_s3(env, "AWS_TEST_MQTT311_IOT_CORE_PKCS12_KEY", "s3://aws-crt-test-stuff/unit-test-key-pkcs12.pem")
+            self._setenv_s3(env, "AWS_TEST_MQTT311_IOT_CORE_PKCS12_KEY",
+                            "s3://aws-crt-test-stuff/unit-test-key-pkcs12.pem")
             self._setenv(env, "AWS_TEST_MQTT311_IOT_CORE_PKCS12_KEY_PASSWORD", "PKCS12_KEY_PASSWORD")
 
         # Windows Key Cert
         if (self.is_windows == True):
-            self._setenv_s3(env, "AWS_TEST_MQTT311_IOT_CORE_WINDOWS_PFX_CERT_NO_PASS", "s3://aws-crt-test-stuff/unit-test-pfx-no-password.pfx")
-            helper.create_windows_cert_store(env, "AWS_TEST_MQTT311_IOT_CORE_WINDOWS_PFX_CERT_NO_PASS", "AWS_TEST_MQTT311_IOT_CORE_WINDOWS_CERT_STORE")
+            self._setenv_s3(env, "AWS_TEST_MQTT311_IOT_CORE_WINDOWS_PFX_CERT_NO_PASS",
+                            "s3://aws-crt-test-stuff/unit-test-pfx-no-password.pfx")
+            helper.create_windows_cert_store(
+                env, "AWS_TEST_MQTT311_IOT_CORE_WINDOWS_PFX_CERT_NO_PASS", "AWS_TEST_MQTT311_IOT_CORE_WINDOWS_CERT_STORE")
 
         # X509
         self._setenv_secret(env, "AWS_TEST_MQTT311_IOT_CORE_X509_ENDPOINT", "ci/mqtt5/us/x509/endpoint")

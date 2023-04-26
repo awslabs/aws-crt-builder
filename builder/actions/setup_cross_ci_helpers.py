@@ -9,6 +9,7 @@ import os
 ################################################################################
 # Windows Certificate Store
 
+
 def create_windows_cert_store(self, env, certificate_env, location_env):
     windows_certificate_folder = "Cert:\\CurrentUser\\My"
 
@@ -44,12 +45,13 @@ def create_windows_cert_store(self, env, certificate_env, location_env):
         else:
             current_str += import_pfx_output[i]
     if (thumbprint == ""):
-        print (f"Windows Cert Setup: {certificate_env} - ERROR - could not find certificate thumbprint")
+        print(f"Windows Cert Setup: {certificate_env} - ERROR - could not find certificate thumbprint")
         return
     env.shell.setenv(location_env, windows_certificate_folder + "\\" + thumbprint)
 
 ################################################################################
 # PKCS11
+
 
 def create_pkcs11_environment(env, pkcs8key, pkcs8cert, ca_file):
     # try to install softhsm
@@ -81,7 +83,7 @@ def create_pkcs11_environment(env, pkcs8key, pkcs8cert, ca_file):
     _exec_softhsm2_util(
         env,
         '--init-token',
-        '--free', # use any free slot
+        '--free',  # use any free slot
         '--label', 'my-test-token',
         '--pin', '0000',
         '--so-pin', '0000')
@@ -99,7 +101,7 @@ def create_pkcs11_environment(env, pkcs8key, pkcs8cert, ca_file):
         '--import', pkcs8key,
         '--slot', str(slot),
         '--label', 'my-test-key',
-        '--id', 'BEEFCAFE', # ID is hex
+        '--id', 'BEEFCAFE',  # ID is hex
         '--pin', '0000')
 
     # for logging's sake, print the new state of things
@@ -137,6 +139,7 @@ def create_pkcs11_environment(env, pkcs8key, pkcs8cert, ca_file):
         "AWS_TEST_MQTT5_IOT_CORE_PKCS11_PKEY_LABEL",
         "AWS_TEST_MQTT5_IOT_CORE_PKCS11_CERT_FILE")
 
+
 def _setenv(env, var, value):
     """
     Set environment variable now,
@@ -145,18 +148,19 @@ def _setenv(env, var, value):
     env.shell.setenv(var, value)
     env.project.config['test_env'][var] = value
 
+
 def _make_iot_pkcs11_environment_variables(
-    env, softhsm_lib, env_cert, env_key, env_pkcs11_lib, env_pkcs11_token, env_pkcs11_pin,
-    env_pkcs11_private_label, env_pkcs11_cert):
+        env, softhsm_lib, env_cert, env_key, env_pkcs11_lib, env_pkcs11_token, env_pkcs11_pin,
+        env_pkcs11_private_label, env_pkcs11_cert):
 
     if (env.shell.getenv(env_cert) != None and
-        env.shell.getenv(env_key) != None):
+            env.shell.getenv(env_key) != None):
 
         # create a token
         _exec_softhsm2_util(
             env,
             '--init-token',
-            '--free', # use any free slot
+            '--free',  # use any free slot
             '--label', 'my-test-iot-token',
             '--pin', '0000',
             '--so-pin', '0000')
@@ -174,7 +178,7 @@ def _make_iot_pkcs11_environment_variables(
             '--import', env.shell.getenv(env_key),
             '--slot', str(iot_slot),
             '--label', 'my-test-iot-key',
-            '--id', 'BEEFCAFF', # ID is hex
+            '--id', 'BEEFCAFF',  # ID is hex
             '--pin', '0000')
 
         # for logging's sake, print the new state of things
@@ -187,6 +191,7 @@ def _make_iot_pkcs11_environment_variables(
         _setenv(env, env_pkcs11_private_label, 'my-test-iot-key')
         _setenv(env, env_pkcs11_cert, env.shell.getenv(env_cert))
 
+
 def _find_softhsm_lib():
     """Return path to SoftHSM2 shared lib, or None if not found"""
 
@@ -194,8 +199,8 @@ def _find_softhsm_lib():
     # some installers put it in weird places where ldconfig doesn't look
     # (like in a subfolder under lib/)
 
-    for lib_dir in ['lib64', 'lib']: # search lib64 before lib
-        for base_dir in ['/usr/local', '/usr', '/',]:
+    for lib_dir in ['lib64', 'lib']:  # search lib64 before lib
+        for base_dir in ['/usr/local', '/usr', '/', ]:
             search_dir = os.path.join(base_dir, lib_dir)
             for root, dirs, files in os.walk(search_dir):
                 for file_name in files:
@@ -222,6 +227,7 @@ def _exec_softhsm2_util(env, *args, **kwargs):
 
     return result
 
+
 def _get_token_slots(env):
     """Return array of IDs for slots with initialized tokens"""
     token_slot_ids = []
@@ -229,8 +235,8 @@ def _get_token_slots(env):
     output = _exec_softhsm2_util(env, '--show-slots', quiet=True).output
 
     # --- output looks like ---
-    #Available slots:
-    #Slot 0
+    # Available slots:
+    # Slot 0
     #    Slot info:
     #        ...
     #        Token present:    yes
