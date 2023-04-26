@@ -158,9 +158,6 @@ def parse_args():
     parser.add_argument('--coverage-exclude', action='append', default=[],
                         help="The relative (based on the project directory) path of files and folders (ends with `/`) to exlude from the test coverage report.\n"
                         + "The default code coverage report will include everything in the `source/` directory")
-    parser.add_argument('--no_coverage', action='store_true',
-                        help="Force disables test coverage report and upload to codecov.\n"
-                        "Useful for running different CI configurations or platforms without needing a whole new builder file")
     # hand parse command and spec from within the args given
     command = None
     spec = None
@@ -243,7 +240,7 @@ def upload_test_coverage(env):
     try:
         token = env.shell.get_secret("codecov-token", env.project.name)
     except:
-        print(f"No token found for {env.project.name}, check https://app.codecov.io/github/awslabs/{env.project.name}/settings for token and add it to codecov-token in secret-manager.")
+        print(f"No token found for {env.project.name}, check app.codecov.io/github/awslabs/{env.project.name}/settings for token and add it to codecov-token in secret-manager.")
         exit()
     # only works for linux for now
     env.shell.exec('curl', '-Os', 'https://uploader.codecov.io/latest/linux/codecov', check=True)
@@ -324,7 +321,7 @@ def main():
     else:
         run_action(args.command, env)
 
-    if args.coverage and not args.no_coverage:
+    if args.coverage:
         upload_test_coverage(env)
 
 
