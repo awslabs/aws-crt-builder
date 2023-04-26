@@ -88,20 +88,10 @@ class SetupCrossCICrtEnvironment(Action):
     def _common_setup(self, env):
 
         ################################################
-        # OLD / To-be-replaced / To-be-changed
+        # NON-MQTT / GENERAL ENVIRONMENT VARIABLES
         ################################################
 
         self._setenv(env, "AWS_TEST_IS_CI", True)
-        self._setenv_secret(env, "AWS_TEST_ENDPOINT", "unit-test/endpoint")
-        self._setenv_secret_file(env, "AWS_TEST_ROOT_CA", "unit-test/rootca")
-        self._setenv_secret_file(env, "AWS_TEST_RSA_CERTIFICATE", "unit-test/certificate")
-        self._setenv_secret_file(env, "AWS_TEST_RSA_PRIVATE_KEY", "unit-test/privatekey")
-
-        self._setenv_secret_file(env, "AWS_TEST_ECC_CERTIFICATE", "ecc-test/certificate")
-        self._setenv_secret_file(env, "AWS_TEST_ECC_PRIVATE_KEY", "ecc-test/privatekey")
-
-        self._setenv(env, "AWS_TEST_COGNITO_ENDPOINT", "cognito-identity.us-east-1.amazonaws.com")
-        self._setenv_secret(env, "AWS_TEST_COGNITO_IDENTITY", "aws-c-auth-testing/cognito-identity")
 
         ################################################
         # MQTT5 IOT CORE CREDENTIALS
@@ -120,6 +110,10 @@ class SetupCrossCICrtEnvironment(Action):
             self._setenv_secret_file(env, "AWS_TEST_MQTT5_CUSTOM_KEY_OPS_CERT", "unit-test/certificate")
             self._setenv_secret_file(env, "AWS_TEST_MQTT5_CUSTOM_KEY_OPS_KEY", "unit-test/privatekey-p8")
             pass
+
+        # Cognito
+        self._setenv(env, "AWS_TEST_MQTT5_COGNITO_ENDPOINT", "cognito-identity.us-east-1.amazonaws.com")
+        self._setenv_secret(env, "AWS_TEST_MQTT5_COGNITO_IDENTITY", "aws-c-auth-testing/cognito-identity")
 
         # UNSIGNED CUSTOM AUTH
         self._setenv_secret(env, "AWS_TEST_MQTT5_IOT_CORE_NO_SIGNING_AUTHORIZER_NAME",
@@ -183,6 +177,13 @@ class SetupCrossCICrtEnvironment(Action):
         self._setenv_secret_file(env, "AWS_TEST_MQTT311_IOT_CORE_RSA_KEY", "ci/mqtt5/us/Mqtt5Prod/key")
         self._setenv_role_arn(env, "AWS_TEST_MQTT311_ROLE_CREDENTIAL",
                               "arn:aws:iam::123124136734:role/assume_role_connect_iot")
+        self._setenv_secret_file(env, "AWS_TEST_MQTT311_IOT_CORE_ECC_KEY", "ecc-test/certificate")
+        self._setenv_secret_file(env, "AWS_TEST_MQTT311_IOT_CORE_ECC_CERT", "ecc-test/privatekey")
+        self._setenv_secret_file(env, "AWS_TEST_MQTT311_ROOT_CA", "unit-test/rootca")
+
+        # Cognito
+        self._setenv(env, "AWS_TEST_MQTT311_COGNITO_ENDPOINT", "cognito-identity.us-east-1.amazonaws.com")
+        self._setenv_secret(env, "AWS_TEST_MQTT311_COGNITO_IDENTITY", "aws-c-auth-testing/cognito-identity")
 
         # CUSTOM KEY OPS
         if (self.is_linux == True):
@@ -306,6 +307,19 @@ class SetupCrossCICrtEnvironment(Action):
                 self._setenv(env, "AWS_TEST_MQTT5_WS_MQTT_BASIC_AUTH_HOST", "host.docker.internal")
                 self._setenv(env, "AWS_TEST_MQTT5_WS_MQTT_TLS_HOST", "host.docker.internal")
                 self._setenv(env, "AWS_TEST_MQTT5_PROXY_HOST", "host.docker.internal")
+
+            ########## HTTP Proxy ##########
+            self._setenv_secret("AWS_TEST_HTTP_PROXY_HOST", "ci/http/proxy/host")
+            self._setenv("AWS_TEST_HTTP_PROXY_PORT", "3128")
+            self._setenv_secret("AWS_TEST_HTTP_PROXY_URL", "ci/http/proxy/url")
+            self._setenv_secret("AWS_TEST_HTTPS_PROXY_HOST", "ci/https/proxy/host")
+            self._setenv("AWS_TEST_HTTPS_PROXY_PORT", "3128")
+            self._setenv_secret("AWS_TEST_HTTPS_PROXY_URL", "ci/https/proxy/url")
+            self._setenv_secret("AWS_TEST_HTTP_PROXY_BASIC_HOST", "ci/http/proxy/basichost")
+            self._setenv("AWS_TEST_HTTP_PROXY_BASIC_PORT", "3128")
+            self._setenv_secret("AWS_TEST_BASIC_AUTH_USERNAME", "ci/http/proxy/username")
+            self._setenv_secret("AWS_TEST_BASIC_AUTH_PASSWORD", "ci/http/proxy/password")
+            self._setenv_secret("AWS_TEST_HTTP_PROXY_BASIC_URL", "ci/http/proxy/basicurl")
 
         ################################################
         # POST-PROCESSING
