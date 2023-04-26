@@ -324,7 +324,7 @@ def main():
     else:
         run_action(args.command, env)
 
-    if args.coverage and args.no_coverage == False:
+    if args.coverage and not args.no_coverage:
         upload_test_coverage(env)
 
 
