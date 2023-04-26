@@ -17,7 +17,8 @@ CLASSES = (
     Builder.DownloadDependencies,
     Builder.DownloadSource,
     Builder.InstallTools,
-    Builder.Script
+    Builder.Script,
+    Builder.SetupCrossCICrtEnvironment
 )
 
 print('Found API classes available:')

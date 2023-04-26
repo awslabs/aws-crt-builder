@@ -14,6 +14,7 @@ from builder.actions.script import Script
 from builder.core.toolchain import Toolchain
 from builder.core import host
 from builder.core import util
+from builder.actions.setup_cross_ci_crt_environment import SetupCrossCICrtEnvironment
 
 
 class Host(object):
@@ -49,5 +50,6 @@ class Builder(VirtualModule):
     InstallPackages = InstallPackages
     InstallCompiler = InstallCompiler
     Script = Script
+    SetupCrossCICrtEnvironment = SetupCrossCICrtEnvironment
 
     Util = Util
