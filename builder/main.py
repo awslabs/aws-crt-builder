@@ -158,7 +158,9 @@ def parse_args():
     parser.add_argument('--coverage-exclude', action='append', default=[],
                         help="The relative (based on the project directory) path of files and folders (ends with `/`) to exlude from the test coverage report.\n"
                         + "The default code coverage report will include everything in the `source/` directory")
-
+    parser.add_argument('--no_coverage', action='store_true',
+                        help="Force disables test coverage report and upload to codecov.\n"
+                        "Useful for running different CI configurations or platforms without needing a whole new builder file")
     # hand parse command and spec from within the args given
     command = None
     spec = None
@@ -322,7 +324,7 @@ def main():
     else:
         run_action(args.command, env)
 
-    if args.coverage:
+    if args.coverage and args.no_coverage == False:
         upload_test_coverage(env)
 
 
