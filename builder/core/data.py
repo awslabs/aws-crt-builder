@@ -617,7 +617,13 @@ COMPILERS = {
                 'cmake_args': [
                     '-Tv142',
                 ],
-            }
+            },
+            # 2022
+            '17': {
+                'cmake_args': [
+                    '-Tv143',
+                ],
+            },
         },
 
         'architectures': {
