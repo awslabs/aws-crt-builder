@@ -9,9 +9,9 @@ on:
       - 'main'
     paths:
       - '.github/workflows/create-channel.yml'
-      - '.github/actions/**/*'
-      - '.github/docker-images/**/*'
-      - '.github/docker-images/entrypoint.sh'
+      - '.github/actions/**'
+      - '.github/builder/**'
+      - '.github/docker-images/**'
       - '.github/workflows/*.sh'
   create:
 
