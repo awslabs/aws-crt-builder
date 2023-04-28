@@ -11,7 +11,8 @@ import os
 
 
 def create_windows_cert_store(env, certificate_env, location_env):
-    windows_certificate_folder = "Cert:\\CurrentUser\\My"
+    windows_certificate_location = "CurrentUser\\My"
+    windows_certificate_folder = "Cert:\\" + windows_certificate_location
 
     # Is the environment variable set?
     if (env.shell.getenv(certificate_env) == None):
@@ -47,7 +48,7 @@ def create_windows_cert_store(env, certificate_env, location_env):
     if (thumbprint == ""):
         print(f"Windows Cert Setup: {certificate_env} - ERROR - could not find certificate thumbprint")
         return
-    env.shell.setenv(location_env, windows_certificate_folder + "\\" + thumbprint)
+    env.shell.setenv(location_env, windows_certificate_location + "\\" + thumbprint)
 
 ################################################################################
 # PKCS11
