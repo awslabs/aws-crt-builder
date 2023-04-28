@@ -5,7 +5,8 @@ from builder.core.action import Action
 from builder.core.host import current_os, current_arch
 import json
 import tempfile
-from uuid import uuid4
+import os
+import pathlib
 
 import builder.actions.setup_cross_ci_helpers as helpers
 
@@ -86,8 +87,8 @@ class SetupCrossCICrtEnvironment(Action):
                 self._setenv(env, env_name, tmp_s3_filepath)
             # For Windows, we have to store the temporary files elsewhere
             else:
-                current_folder = tempfile.gettempdir()
-                filename = str(uuid4()) + ".tmp"
+                current_folder = os.path.dirname(pathlib.Path(__file__).resolve()) + "\\"
+                filename = str(len(self.tmp_file_storage)) + "_ci_file.tmp"
                 cmd = ['aws', '--region', 'us-east-1', 's3', 'cp',
                        s3_file, current_folder + filename]
                 env.shell.exec(*cmd, check=True, quiet=True)
