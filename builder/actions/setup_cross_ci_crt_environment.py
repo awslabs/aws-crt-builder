@@ -87,12 +87,11 @@ class SetupCrossCICrtEnvironment(Action):
                 self._setenv(env, env_name, tmp_s3_filepath)
             # For Windows, we have to store the temporary files elsewhere
             else:
-                current_folder = os.path.dirname(pathlib.Path(__file__).resolve()) + "\\"
-                filename = str(len(self.tmp_file_storage)) + "_ci_file.tmp"
+                filename = os.path.join(env.build_dir, str(len(self.tmp_file_storage)) + "_ci_file.tmp")
                 cmd = ['aws', '--region', 'us-east-1', 's3', 'cp',
-                       s3_file, current_folder + filename]
+                       s3_file, filename]
                 env.shell.exec(*cmd, check=True, quiet=True)
-                self._setenv(env, env_name, current_folder + filename)
+                self._setenv(env, env_name, filename)
                 # Unfortunately it means we will NOT clean it up or delete it auto-magically, which is unfortunate...
         except:
             print("[ERROR]: Could not get S3 file: " + str(s3_file))
