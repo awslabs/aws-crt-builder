@@ -3,7 +3,6 @@
 
 from setuptools import setup, find_packages
 from subprocess import check_output
-import re
 
 git_branch = check_output(['git', 'rev-parse', '--abbrev-ref', 'HEAD'], text=True).strip()
 version = 'v0.9+{}'.format(git_branch)
