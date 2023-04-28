@@ -87,7 +87,7 @@ class SetupCrossCICrtEnvironment(Action):
                 self._setenv(env, env_name, tmp_s3_filepath)
             # For Windows, we have to store the temporary files elsewhere
             else:
-                filename = os.path.join(env.build_dir, "ci_file_" str(len(self.tmp_file_storage)) + ".file")
+                filename = os.path.join(env.build_dir, "ci_file_" + str(len(self.tmp_file_storage)) + ".file")
                 cmd = ['aws', '--region', 'us-east-1', 's3', 'cp',
                        s3_file, filename]
                 env.shell.exec(*cmd, check=True, quiet=True)
