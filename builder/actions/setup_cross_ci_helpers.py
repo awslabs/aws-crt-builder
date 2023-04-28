@@ -10,7 +10,7 @@ import os
 # Windows Certificate Store
 
 
-def create_windows_cert_store(self, env, certificate_env, location_env):
+def create_windows_cert_store(env, certificate_env, location_env):
     windows_certificate_folder = "Cert:\\CurrentUser\\My"
 
     # Is the environment variable set?
