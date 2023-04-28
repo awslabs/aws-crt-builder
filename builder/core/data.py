@@ -597,7 +597,7 @@ COMPILERS = {
                 'cmake_args': [
                     '-Tv140',
                     # The windows-2019 github runner is the last one with the v140 toolset,
-                    # but it has an old Windows 10 SDK whose headers cause level 4 compiler warnings
+                    # but it has an old Windows 10 SDK whose headers causes level 4 compiler warnings.
                     # https://developercommunity.visualstudio.com/t/issue-in-corecrth-header-results-in-an-undefined-m/433021
                     '-DPERFORM_HEADER_CHECK=OFF',
                 ],
@@ -606,10 +606,6 @@ COMPILERS = {
             '15': {
                 'cmake_args': [
                     '-Tv141',
-                    # The windows-2019 github runner is the last one with the v141 toolset,
-                    # but it has an old Windows 10 SDK whose headers cause level 4 compiler warnings
-                    # https://developercommunity.visualstudio.com/t/issue-in-corecrth-header-results-in-an-undefined-m/433021
-                    '-DPERFORM_HEADER_CHECK=OFF',
                 ],
             },
             # 2019
