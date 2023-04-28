@@ -119,10 +119,6 @@ HOSTS = {
         'variables': {
             'python': "python3",
         },
-
-        'cmake_args': [
-            "-DPERFORM_HEADER_CHECK=ON",
-        ],
         'sudo': True
     },
     'ubuntu': {
@@ -195,7 +191,6 @@ HOSTS = {
         'os': 'linux',
         'cmake_args': [
             "-DENABLE_SANITIZERS=OFF",
-            "-DPERFORM_HEADER_CHECK=OFF",
         ],
 
         'pkg_tool': PKG_TOOLS.YUM,
@@ -210,7 +205,6 @@ HOSTS = {
         'os': 'linux',
         'cmake_args': [
             "-DENABLE_SANITIZERS=OFF",
-            "-DPERFORM_HEADER_CHECK=OFF",
         ],
 
         'pkg_tool': PKG_TOOLS.YUM,
@@ -251,10 +245,6 @@ HOSTS = {
 
         'pkg_tool': PKG_TOOLS.CHOCO,
         'pkg_install': 'choco install --no-progress',
-
-        'cmake_args': [
-            "-DPERFORM_HEADER_CHECK=ON",
-        ],
     },
     'macos': {
         'os': 'macos',

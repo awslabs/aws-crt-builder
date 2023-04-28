@@ -140,14 +140,14 @@ def _build_project(env, project, cmake_extra, build_tests=False, args_transforme
     cmake_args = UniqueList([
         "-B{}".format(project_build_dir),
         "-H{}".format(project_source_dir),
-        # "-Werror=dev",
-        # "-Werror=deprecated",
         "-DAWS_WARNINGS_ARE_ERRORS=ON",
+        "-DPERFORM_HEADER_CHECK=ON",
         "-DCMAKE_INSTALL_PREFIX=" + project_install_dir,
         "-DCMAKE_PREFIX_PATH=" + project_install_dir,
         "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
         "-DCMAKE_BUILD_TYPE=" + build_config,
         "-DBUILD_TESTING=" + ("ON" if build_tests else "OFF"),
+        "--no-warn-unused-cli",
         *compiler_flags,
     ])
     # Merging in cmake_args from all upstream projects inevitably leads to duplicate arguments.
