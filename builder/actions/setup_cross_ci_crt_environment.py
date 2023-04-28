@@ -5,6 +5,9 @@ from builder.core.action import Action
 from builder.core.host import current_os, current_arch
 import json
 import tempfile
+import os
+import pathlib
+from uuid import uuid4
 
 import builder.actions.setup_cross_ci_helpers as helpers
 
@@ -73,14 +76,25 @@ class SetupCrossCICrtEnvironment(Action):
 
     def _setenv_s3(self, env, env_name, s3_file):
         try:
-            tmp_file = tempfile.NamedTemporaryFile(delete=False)
-            tmp_file.flush()
-            self.tmp_file_storage.append(tmp_file)
-            tmp_s3_filepath = tmp_file.name
-            cmd = ['aws', '--region', 'us-east-1', 's3', 'cp',
-                   s3_file, tmp_s3_filepath]
-            env.shell.exec(*cmd, check=True, quiet=True)
-            self._setenv(env, env_name, tmp_s3_filepath)
+            # On non-Windows platforms, we can override a temporary file
+            if (self.is_windows == False):
+                tmp_file = tempfile.NamedTemporaryFile(delete=False)
+                tmp_file.flush()
+                self.tmp_file_storage.append(tmp_file)
+                tmp_s3_filepath = tmp_file.name
+                cmd = ['aws', '--region', 'us-east-1', 's3', 'cp',
+                    s3_file, tmp_s3_filepath]
+                env.shell.exec(*cmd, check=True, quiet=True)
+                self._setenv(env, env_name, tmp_s3_filepath)
+            # For Windows, we have to store the temporary files elsewhere
+            else:
+                current_folder = os.path.dirname(pathlib.Path(__file__).resolve()) + "\\"
+                filename = str(uuid4()) + ".tmp"
+                cmd = ['aws', '--region', 'us-east-1', 's3', 'cp',
+                    s3_file, current_folder + filename]
+                env.shell.exec(*cmd, check=True, quiet=True)
+                self._setenv(env, env_name, current_folder + filename)
+                # Unfortunately it means we will NOT clean it up or delete it, which is unfortunate...
         except:
             print("[ERROR]: Could not get S3 file: " + str(s3_file))
             raise ValueError("Exception occurred trying to get S3 file")
