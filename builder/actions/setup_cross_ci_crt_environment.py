@@ -150,13 +150,14 @@ class SetupCrossCICrtEnvironment(Action):
         self._setenv_secret(env, "AWS_TEST_MQTT5_IOT_CORE_SIGNING_AUTHORIZER_TOKEN_SIGNATURE",
                             "ci/mqtt5/us/authorizer/signed/signature")
 
-        # JAVA KEYSTORE
-        self._setenv(env, "AWS_TEST_MQTT5_IOT_CORE_KEYSTORE_FORMAT", "JKS")
-        self._setenv_s3(env, "AWS_TEST_MQTT5_IOT_CORE_KEYSTORE_FILE",
-                        "s3://aws-crt-test-stuff/unit-test-keystore.keystore")
-        self._setenv(env, "AWS_TEST_MQTT5_IOT_CORE_KEYSTORE_PASSWORD", "PKCS12_KEY_PASSWORD")
-        self._setenv(env, "AWS_TEST_MQTT5_IOT_CORE_KEYSTORE_CERT_ALIAS", "PKCS12_ALIAS")
-        self._setenv(env, "AWS_TEST_MQTT5_IOT_CORE_KEYSTORE_CERT_PASSWORD", "PKCS12_KEY_PASSWORD")
+        # JAVA KEYSTORE (Java uses PKCS#8 keys internally, which currently only Linux supports ATM)
+        if (self.is_linux == True):
+            self._setenv(env, "AWS_TEST_MQTT5_IOT_CORE_KEYSTORE_FORMAT", "JKS")
+            self._setenv_s3(env, "AWS_TEST_MQTT5_IOT_CORE_KEYSTORE_FILE",
+                            "s3://aws-crt-test-stuff/unit-test-keystore.keystore")
+            self._setenv(env, "AWS_TEST_MQTT5_IOT_CORE_KEYSTORE_PASSWORD", "PKCS12_KEY_PASSWORD")
+            self._setenv(env, "AWS_TEST_MQTT5_IOT_CORE_KEYSTORE_CERT_ALIAS", "PKCS12_ALIAS")
+            self._setenv(env, "AWS_TEST_MQTT5_IOT_CORE_KEYSTORE_CERT_PASSWORD", "PKCS12_KEY_PASSWORD")
 
         # PKCS12
         if (self.is_mac == True):
@@ -226,13 +227,14 @@ class SetupCrossCICrtEnvironment(Action):
         self._setenv_secret(env, "AWS_TEST_MQTT311_IOT_CORE_SIGNING_AUTHORIZER_TOKEN_SIGNATURE",
                             "ci/mqtt5/us/authorizer/signed/signature")
 
-        # JAVA KEYSTORE
-        self._setenv(env, "AWS_TEST_MQTT311_IOT_CORE_KEYSTORE_FORMAT", "JKS")
-        self._setenv_s3(env, "AWS_TEST_MQTT311_IOT_CORE_KEYSTORE_FILE",
-                        "s3://aws-crt-test-stuff/unit-test-keystore.keystore")
-        self._setenv(env, "AWS_TEST_MQTT311_IOT_CORE_KEYSTORE_PASSWORD", "PKCS12_KEY_PASSWORD")
-        self._setenv(env, "AWS_TEST_MQTT311_IOT_CORE_KEYSTORE_CERT_ALIAS", "PKCS12_ALIAS")
-        self._setenv(env, "AWS_TEST_MQTT311_IOT_CORE_KEYSTORE_CERT_PASSWORD", "PKCS12_KEY_PASSWORD")
+        # JAVA KEYSTORE (Java uses PKCS#8 keys internally, which currently only Linux supports ATM)
+        if (self.is_linux == True):
+            self._setenv(env, "AWS_TEST_MQTT311_IOT_CORE_KEYSTORE_FORMAT", "JKS")
+            self._setenv_s3(env, "AWS_TEST_MQTT311_IOT_CORE_KEYSTORE_FILE",
+                            "s3://aws-crt-test-stuff/unit-test-keystore.keystore")
+            self._setenv(env, "AWS_TEST_MQTT311_IOT_CORE_KEYSTORE_PASSWORD", "PKCS12_KEY_PASSWORD")
+            self._setenv(env, "AWS_TEST_MQTT311_IOT_CORE_KEYSTORE_CERT_ALIAS", "PKCS12_ALIAS")
+            self._setenv(env, "AWS_TEST_MQTT311_IOT_CORE_KEYSTORE_CERT_PASSWORD", "PKCS12_KEY_PASSWORD")
 
         # PKCS12
         if (self.is_mac == True):
