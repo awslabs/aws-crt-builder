@@ -83,7 +83,7 @@ class SetupCrossCICrtEnvironment(Action):
                 self.tmp_file_storage.append(tmp_file)
                 tmp_s3_filepath = tmp_file.name
                 cmd = ['aws', '--region', 'us-east-1', 's3', 'cp',
-                    s3_file, tmp_s3_filepath]
+                       s3_file, tmp_s3_filepath]
                 env.shell.exec(*cmd, check=True, quiet=True)
                 self._setenv(env, env_name, tmp_s3_filepath)
             # For Windows, we have to store the temporary files elsewhere
@@ -91,7 +91,7 @@ class SetupCrossCICrtEnvironment(Action):
                 current_folder = os.path.dirname(pathlib.Path(__file__).resolve()) + "\\"
                 filename = str(uuid4()) + ".tmp"
                 cmd = ['aws', '--region', 'us-east-1', 's3', 'cp',
-                    s3_file, current_folder + filename]
+                       s3_file, current_folder + filename]
                 env.shell.exec(*cmd, check=True, quiet=True)
                 self._setenv(env, env_name, current_folder + filename)
                 # Unfortunately it means we will NOT clean it up or delete it, which is unfortunate...
