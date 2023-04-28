@@ -5,8 +5,6 @@ from builder.core.action import Action
 from builder.core.host import current_os, current_arch
 import json
 import tempfile
-import os
-import pathlib
 from uuid import uuid4
 
 import builder.actions.setup_cross_ci_helpers as helpers
@@ -169,7 +167,7 @@ class SetupCrossCICrtEnvironment(Action):
         if (self.is_windows == True):
             self._setenv_s3(env, "AWS_TEST_MQTT5_IOT_CORE_WINDOWS_PFX_CERT_NO_PASS",
                             "s3://aws-crt-test-stuff/unit-test-pfx-no-password.pfx")
-            helper.create_windows_cert_store(
+            helpers.create_windows_cert_store(
                 env, "AWS_TEST_MQTT5_IOT_CORE_WINDOWS_PFX_CERT_NO_PASS", "AWS_TEST_MQTT5_IOT_CORE_WINDOWS_CERT_STORE")
 
         # X509
@@ -245,7 +243,7 @@ class SetupCrossCICrtEnvironment(Action):
         if (self.is_windows == True):
             self._setenv_s3(env, "AWS_TEST_MQTT311_IOT_CORE_WINDOWS_PFX_CERT_NO_PASS",
                             "s3://aws-crt-test-stuff/unit-test-pfx-no-password.pfx")
-            helper.create_windows_cert_store(
+            helpers.create_windows_cert_store(
                 env, "AWS_TEST_MQTT311_IOT_CORE_WINDOWS_PFX_CERT_NO_PASS", "AWS_TEST_MQTT311_IOT_CORE_WINDOWS_CERT_STORE")
 
         # X509
