@@ -4,10 +4,10 @@
 from setuptools import setup, find_packages
 from subprocess import check_output
 
-git_branch = check_output(['git', 'rev-parse', '--abbrev-ref', 'HEAD'])
-version = 'v0.1-{}'.format(git_branch)
+git_branch = check_output(['git', 'rev-parse', '--abbrev-ref', 'HEAD'], text=True).strip()
+version = 'v0.9+{}'.format(git_branch)
 if git_branch in ['master', 'main']:
-    git_rev = check_output(['git', 'describe', '--abbrev=0'])
+    git_rev = check_output(['git', 'describe', '--abbrev=0', '--tags'], text=True).strip()
     version = git_rev
 
 setup(
