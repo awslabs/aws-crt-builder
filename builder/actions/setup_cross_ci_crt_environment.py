@@ -49,13 +49,25 @@ class SetupCrossCICrtEnvironment(Action):
 
     def _setenv_secret_file(self, env, env_name, secret_name):
         try:
-            environment_value = env.shell.get_secret(str(secret_name))
-            tmp_file = tempfile.NamedTemporaryFile(delete=False)
-            # lgtm [py/clear-text-storage-sensitive-data]
-            tmp_file.write(str.encode(environment_value))
-            tmp_file.flush()
-            self.tmp_file_storage.append(tmp_file)
-            self._setenv(env, env_name, tmp_file.name)
+            # On non-Windows platforms, we can override a temporary file
+            if (self.is_windows == False):
+                environment_value = env.shell.get_secret(str(secret_name))
+                tmp_file = tempfile.NamedTemporaryFile(delete=False)
+                # lgtm [py/clear-text-storage-sensitive-data]
+                tmp_file.write(str.encode(environment_value))
+                tmp_file.flush()
+                self.tmp_file_storage.append(tmp_file)
+                self._setenv(env, env_name, tmp_file.name)
+            # For Windows, we have to store the temporary files elsewhere
+            # (unfortunately temporary files don't work for access reasons)
+            else:
+                environment_value = env.shell.get_secret(str(secret_name))
+                filename = os.path.join(env.build_dir, "ci_file_" + str(len(self.tmp_file_storage)) + ".file")
+                with open(file=filename, mode='w+') as file:
+                    file.write(environment_value)
+                    file.flush()
+                self.tmp_file_storage.append(filename)
+
         except:
             print("[ERROR]: Could not get secret file with name: " + str(secret_name))
             raise ValueError("Exception occurred trying to get secret file")
@@ -92,8 +104,7 @@ class SetupCrossCICrtEnvironment(Action):
                        s3_file, filename]
                 env.shell.exec(*cmd, check=True, quiet=True)
                 self._setenv(env, env_name, filename)
-                os.chmod(filename, stat.S_IREAD)
-                # Unfortunately it means we will NOT clean it up or delete it auto-magically, which is unfortunate...
+                self.tmp_file_storage.append(filename)
         except:
             print("[ERROR]: Could not get S3 file: " + str(s3_file))
             raise ValueError("Exception occurred trying to get S3 file")
