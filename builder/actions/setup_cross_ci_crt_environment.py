@@ -6,7 +6,7 @@ from builder.core.host import current_os, current_arch
 import json
 import tempfile
 import os
-import pathlib
+import stat
 
 import builder.actions.setup_cross_ci_helpers as helpers
 
@@ -92,6 +92,7 @@ class SetupCrossCICrtEnvironment(Action):
                        s3_file, filename]
                 env.shell.exec(*cmd, check=True, quiet=True)
                 self._setenv(env, env_name, filename)
+                os.chmod(filename, stat.S_IREAD)
                 # Unfortunately it means we will NOT clean it up or delete it auto-magically, which is unfortunate...
         except:
             print("[ERROR]: Could not get S3 file: " + str(s3_file))
