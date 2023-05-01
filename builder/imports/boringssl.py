@@ -34,6 +34,5 @@ class BoringSSLProject(Project):
         super().__init__(
             account='google',
             url='https://github.com/google/boringssl.git',
-            revision='9939e14cffc66f9b9f3374fb52c97bd8bfb0bfbe',
             **config,
             **kwargs)

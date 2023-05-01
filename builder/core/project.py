@@ -462,7 +462,6 @@ class Project(object):
 
         # explicit override (e.g. for upstream dependencies)
         self.revision = kwargs.get('revision', None)
-        self.commit = kwargs.get('commit', None)
 
         self.variant = None
 
