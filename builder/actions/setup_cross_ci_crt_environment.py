@@ -202,8 +202,8 @@ class SetupCrossCICrtEnvironment(Action):
         self._setenv_secret_file(env, "AWS_TEST_MQTT311_IOT_CORE_RSA_KEY", "ci/mqtt5/us/Mqtt5Prod/key")
         self._setenv_role_arn(env, "AWS_TEST_MQTT311_ROLE_CREDENTIAL",
                               "arn:aws:iam::123124136734:role/assume_role_connect_iot")
-        self._setenv_secret_file(env, "AWS_TEST_MQTT311_IOT_CORE_ECC_KEY", "ecc-test/certificate")
-        self._setenv_secret_file(env, "AWS_TEST_MQTT311_IOT_CORE_ECC_CERT", "ecc-test/privatekey")
+        self._setenv_secret_file(env, "AWS_TEST_MQTT311_IOT_CORE_ECC_CERT", "ecc-test/certificate")
+        self._setenv_secret_file(env, "AWS_TEST_MQTT311_IOT_CORE_ECC_KEY", "ecc-test/privatekey")
         self._setenv_secret_file(env, "AWS_TEST_MQTT311_ROOT_CA", "unit-test/rootca")
 
         # Cognito
