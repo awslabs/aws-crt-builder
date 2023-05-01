@@ -5,7 +5,7 @@ import glob
 import os
 import sys
 from collections import namedtuple
-from functools import partial, lru_cache
+from functools import partial
 
 from builder.core.data import *
 from builder.core.host import current_os, package_tool
@@ -462,6 +462,7 @@ class Project(object):
 
         # explicit override (e.g. for upstream dependencies)
         self.revision = kwargs.get('revision', None)
+        self.commit = kwargs.get('commit', None)
 
         self.variant = None
 
