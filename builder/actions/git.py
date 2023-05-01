@@ -12,6 +12,7 @@ class DownloadSource(Action):
     def __init__(self, **kwargs):
         self.project = kwargs['project']
         self.branch = kwargs.get('branch', 'main')
+        self.commit = kwargs['project']
         self.path = os.path.abspath(os.path.join(
             kwargs.get('path', '.'), self.project.name))
 
@@ -29,8 +30,12 @@ class DownloadSource(Action):
                 self.path, always=True, retries=3)
         sh.pushd(self.path)
         try:
-            sh.exec("git", "checkout", self.branch,
-                    always=True, quiet=True, check=True)
+            if self.commit:
+                sh.exec("git", "checkout", self.commit,
+                        always=True, quiet=True, check=True)
+            else:
+                sh.exec("git", "checkout", self.branch,
+                        always=True, quiet=True, check=True)
             print('Switched to branch {}'.format(self.branch))
         except:
             print("Project {} does not have a branch named {}, using main".format(
@@ -69,7 +74,8 @@ class DownloadDependencies(Action):
                     continue
 
                 dep_branch = branch if dep.revision is None else dep.revision
-                DownloadSource(project=dep_proj, branch=dep_branch, path=env.deps_dir).run(env)
+                dep_commit = None if dep.revision is None else dep.commit
+                DownloadSource(project=dep_proj, branch=dep_branch, commit=dep_commit, path=env.deps_dir).run(env)
 
                 # grab updated project, collect transitive dependencies/consumers
                 dep_proj = Project.find_project(dep.name)

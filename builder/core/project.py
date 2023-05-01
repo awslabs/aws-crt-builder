@@ -572,9 +572,9 @@ class Project(object):
         return Script(steps, name='post_build {}'.format(self.name))
 
     def test(self, env):
-        run_tests = env.config.get('run_tests', True)
-        if not run_tests:
-            return
+        if  not self.needs_tests(env):
+            print('Tests not needed for project. Skipping test action.')
+            return None
 
         steps = self.config.get('test_steps', self.config.get('test', []))
         if not steps:

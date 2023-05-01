@@ -207,7 +207,6 @@ class CMakeBuild(Action):
         self.args_transformer = args_transformer
 
     def run(self, env):
-        toolchain = env.toolchain
         sh = env.shell
 
         for d in (env.build_dir, env.deps_dir, env.install_dir):
