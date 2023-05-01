@@ -69,7 +69,7 @@ class DownloadDependencies(Action):
                     continue
 
                 dep_branch = branch if dep.revision is None else dep.revision
-                DownloadSource(project=dep_proj, branch=dep_branch path=env.deps_dir).run(env)
+                DownloadSource(project=dep_proj, branch=dep_branch, path=env.deps_dir).run(env)
 
                 # grab updated project, collect transitive dependencies/consumers
                 dep_proj = Project.find_project(dep.name)
