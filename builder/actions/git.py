@@ -12,7 +12,7 @@ class DownloadSource(Action):
     def __init__(self, **kwargs):
         self.project = kwargs['project']
         self.branch = kwargs.get('branch', 'main')
-        self.commit = kwargs['project']
+        self.commit = kwargs['commit']
         self.path = os.path.abspath(os.path.join(
             kwargs.get('path', '.'), self.project.name))
 
@@ -74,7 +74,7 @@ class DownloadDependencies(Action):
                     continue
 
                 dep_branch = branch if dep.revision is None else dep.revision
-                dep_commit = None if dep.revision is None else dep.commit
+                dep_commit = None if dep.commit is None else dep.commit
                 DownloadSource(project=dep_proj, branch=dep_branch, commit=dep_commit, path=env.deps_dir).run(env)
 
                 # grab updated project, collect transitive dependencies/consumers
