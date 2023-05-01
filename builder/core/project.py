@@ -577,7 +577,7 @@ class Project(object):
             return
 
         steps = self.config.get('test_steps', self.config.get('test', []))
-        if not steps and self.needs_tests(env):
+        if not steps:
             steps = ['test']
         if isinstance(steps, list):
             steps = _transform_steps(steps, env, self)

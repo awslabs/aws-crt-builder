@@ -230,6 +230,10 @@ class CTestRun(Action):
         sh = env.shell
         toolchain = env.toolchain
 
+        if not self.project.needs_tests(env):
+            print('Tests not needed for project. Skipping')
+            return
+
         if toolchain.cross_compile:
             print('WARNING: Running tests for cross compile is not yet supported')
             return
