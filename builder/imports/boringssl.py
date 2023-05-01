@@ -8,7 +8,7 @@ config = {
     'targets': ['macos', 'linux', 'android'],
     'test_steps': [],
     'build_tests': False,
-    'cmake_args': []
+    'cmake_args': ['-fPIC']
 }
 
 
