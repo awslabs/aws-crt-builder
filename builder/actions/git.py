@@ -12,7 +12,7 @@ class DownloadSource(Action):
     def __init__(self, **kwargs):
         self.project = kwargs['project']
         self.branch = kwargs.get('branch', 'main')
-        self.commit = kwargs['commit']
+        self.commit = kwargs.get('commit', None)
         self.path = os.path.abspath(os.path.join(
             kwargs.get('path', '.'), self.project.name))
 
