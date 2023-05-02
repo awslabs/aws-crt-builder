@@ -57,9 +57,6 @@ RUN mkdir -p /usr/share/maven /usr/share/maven/ref \
 ENV MAVEN_HOME /usr/share/maven
 ENV MAVEN_CONFIG "$USER_HOME_DIR/.m2"
 
-# print maven version
-RUN mvn --version
-
 ###############################################################################
 # Install entrypoint
 ###############################################################################
