@@ -33,7 +33,7 @@ RUN curl -sSL https://d19elf31gohf1l.cloudfront.net/_binaries/cmake/cmake-3.13-m
 
 # Downloading and installing Maven
 # 1- Define a constant with the version of maven you want to install
-ARG MAVEN_VERSION=3.6.1
+ARG MAVEN_VERSION=3.9.1
 
 # 2- Define a constant with the working directory
 ARG USER_HOME_DIR="/root"
