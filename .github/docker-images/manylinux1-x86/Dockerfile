@@ -6,7 +6,7 @@ FROM quay.io/pypa/manylinux1_i686
 # Basics
 ###############################################################################
 RUN yum -y update \
-    && yum -y install sudo \
+    && yum -y install sudo maven \
     && yum clean all
 
 ###############################################################################
