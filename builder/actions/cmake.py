@@ -207,7 +207,6 @@ class CMakeBuild(Action):
         self.args_transformer = args_transformer
 
     def run(self, env):
-        toolchain = env.toolchain
         sh = env.shell
 
         for d in (env.build_dir, env.deps_dir, env.install_dir):
@@ -230,6 +229,10 @@ class CTestRun(Action):
     def run(self, env):
         sh = env.shell
         toolchain = env.toolchain
+
+        if not self.project.needs_tests(env):
+            print('Tests not needed for project. Skipping')
+            return
 
         if toolchain.cross_compile:
             print('WARNING: Running tests for cross compile is not yet supported')
