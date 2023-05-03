@@ -6,7 +6,6 @@ from builder.core.host import current_os, current_arch
 import json
 import tempfile
 import os
-import stat
 
 import builder.actions.setup_cross_ci_helpers as helpers
 
@@ -67,7 +66,7 @@ class SetupCrossCICrtEnvironment(Action):
                     file.write(environment_value)
                     file.flush()
                 self.tmp_file_storage.append(filename)
-
+                self._setenv(env, env_name, filename)
         except:
             print("[ERROR]: Could not get secret file with name: " + str(secret_name))
             raise ValueError("Exception occurred trying to get secret file")
@@ -109,6 +108,56 @@ class SetupCrossCICrtEnvironment(Action):
             print("[ERROR]: Could not get S3 file: " + str(s3_file))
             raise ValueError("Exception occurred trying to get S3 file")
 
+    def _setenv_profile_file(self, env, profile_env_name, config_env_name, access_key_id_env, secret_access_key_env, session_token_env):
+        try:
+            # On non-Windows platforms, we can override a temporary file
+            if (self.is_windows == False):
+                # Credentials File
+                tmp_file = tempfile.NamedTemporaryFile(delete=False)
+                tmp_file.write(str.encode("[Default]\n"))
+                tmp_file.write(str.encode(f"aws_access_key_id={env.shell.getenv(access_key_id_env)}\n"))
+                tmp_file.write(str.encode(f"aws_secret_access_key={env.shell.getenv(secret_access_key_env)}\n"))
+                tmp_file.write(str.encode(f"aws_session_token={env.shell.getenv(session_token_env)}\n"))
+                tmp_file.flush()
+                self.tmp_file_storage.append(tmp_file)
+                self._setenv(env, profile_env_name, tmp_file.name)
+
+                # Config file
+                tmp_file_config = tempfile.NamedTemporaryFile(delete=False)
+                tmp_file_config.write(str.encode("[Default]\n"))
+                tmp_file_config.write(str.encode(f"region=us-east-1\n"))
+                tmp_file_config.write(str.encode(f"output=json\n"))
+                tmp_file_config.flush()
+                self.tmp_file_storage.append(tmp_file_config)
+                self._setenv(env, config_env_name, tmp_file_config.name)
+
+            # For Windows, we have to store the temporary files elsewhere
+            # (unfortunately temporary files don't work for access reasons)
+            else:
+                # Credentials File
+                filename = os.path.join(env.build_dir, "ci_file_" + str(len(self.tmp_file_storage)) + ".file")
+                with open(file=filename, mode='w+') as file:
+                    file.write(str.encode("[Default]\n"))
+                    file.write(str.encode(f"aws_access_key_id={env.shell.getenv(access_key_id_env)}\n"))
+                    file.write(str.encode(f"aws_secret_access_key={env.shell.getenv(secret_access_key_env)}\n"))
+                    file.write(str.encode(f"aws_session_token={env.shell.getenv(session_token_env)}\n"))
+                    file.flush()
+                self.tmp_file_storage.append(filename)
+                self._setenv(env, profile_env_name, filename)
+
+                # Config File
+                filename_config = os.path.join(env.build_dir, "ci_file_" + str(len(self.tmp_file_storage)) + ".file")
+                with open(file=filename_config, mode='w+') as file:
+                    file.write(str.encode("[Default]\n"))
+                    file.write(str.encode(f"region=us-east-1\n"))
+                    file.write(str.encode(f"output=json\n"))
+                    file.flush()
+                self.tmp_file_storage.append(filename_config)
+                self._setenv(env, config_env_name, filename_config)
+        except:
+            print("[ERROR]: Could not make profile file for env: " + str(profile_env_name))
+            raise ValueError("Exception occurred trying to get secret file")
+
     def _common_setup(self, env):
 
         ################################################
@@ -128,6 +177,15 @@ class SetupCrossCICrtEnvironment(Action):
         self._setenv_secret_file(env, "AWS_TEST_MQTT5_IOT_CORE_RSA_KEY", "ci/mqtt5/us/Mqtt5Prod/key")
         self._setenv_role_arn(env, "AWS_TEST_MQTT5_ROLE_CREDENTIAL",
                               "arn:aws:iam::123124136734:role/assume_role_connect_iot")
+
+        # Profile (uses AWS_TEST_MQTT5_ROLE_CREDENTIAL)
+        self._setenv_profile_file(
+            env,
+            "AWS_TEST_MQTT5_IOT_PROFILE_CREDENTIALS",
+            "AWS_TEST_MQTT5_IOT_PROFILE_CONFIG",
+            "AWS_TEST_MQTT5_ROLE_CREDENTIAL_ACCESS_KEY",
+            "AWS_TEST_MQTT5_ROLE_CREDENTIAL_SECRET_ACCESS_KEY",
+            "AWS_TEST_MQTT5_ROLE_CREDENTIAL_SESSION_TOKEN")
 
         # CUSTOM KEY OPS
         if (self.is_linux == True):
@@ -205,6 +263,15 @@ class SetupCrossCICrtEnvironment(Action):
         self._setenv_secret_file(env, "AWS_TEST_MQTT311_IOT_CORE_ECC_CERT", "ecc-test/certificate")
         self._setenv_secret_file(env, "AWS_TEST_MQTT311_IOT_CORE_ECC_KEY", "ecc-test/privatekey")
         self._setenv_secret_file(env, "AWS_TEST_MQTT311_ROOT_CA", "unit-test/rootca")
+
+        # Profile (uses AWS_TEST_MQTT311_ROLE_CREDENTIAL)
+        self._setenv_profile_file(
+            env,
+            "AWS_TEST_MQTT311_IOT_PROFILE_CREDENTIALS",
+            "AWS_TEST_MQTT311_IOT_PROFILE_CONFIG",
+            "AWS_TEST_MQTT311_ROLE_CREDENTIAL_ACCESS_KEY",
+            "AWS_TEST_MQTT311_ROLE_CREDENTIAL_SECRET_ACCESS_KEY",
+            "AWS_TEST_MQTT311_ROLE_CREDENTIAL_SESSION_TOKEN")
 
         # Cognito
         self._setenv(env, "AWS_TEST_MQTT311_COGNITO_ENDPOINT", "cognito-identity.us-east-1.amazonaws.com")
