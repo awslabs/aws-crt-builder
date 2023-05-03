@@ -6,6 +6,7 @@ from builder.core.host import current_os, current_arch
 import json
 import tempfile
 import os
+import stat
 
 import builder.actions.setup_cross_ci_helpers as helpers
 
@@ -114,7 +115,7 @@ class SetupCrossCICrtEnvironment(Action):
             if (self.is_windows == False):
                 # Credentials File
                 tmp_file = tempfile.NamedTemporaryFile(delete=False)
-                tmp_file.write(str.encode("[Default]\n"))
+                tmp_file.write(str.encode("[default]\n"))
                 tmp_file.write(str.encode(f"aws_access_key_id={env.shell.getenv(access_key_id_env)}\n"))
                 tmp_file.write(str.encode(f"aws_secret_access_key={env.shell.getenv(secret_access_key_env)}\n"))
                 tmp_file.write(str.encode(f"aws_session_token={env.shell.getenv(session_token_env)}\n"))
@@ -124,7 +125,7 @@ class SetupCrossCICrtEnvironment(Action):
 
                 # Config file
                 tmp_file_config = tempfile.NamedTemporaryFile(delete=False)
-                tmp_file_config.write(str.encode("[Default]\n"))
+                tmp_file_config.write(str.encode("[default]\n"))
                 tmp_file_config.write(str.encode(f"region=us-east-1\n"))
                 tmp_file_config.write(str.encode(f"output=json\n"))
                 tmp_file_config.flush()
@@ -137,10 +138,10 @@ class SetupCrossCICrtEnvironment(Action):
                 # Credentials File
                 filename = os.path.join(env.build_dir, "ci_file_" + str(len(self.tmp_file_storage)) + ".file")
                 with open(file=filename, mode='w+') as file:
-                    file.write(str.encode("[Default]\n"))
-                    file.write(str.encode(f"aws_access_key_id={env.shell.getenv(access_key_id_env)}\n"))
-                    file.write(str.encode(f"aws_secret_access_key={env.shell.getenv(secret_access_key_env)}\n"))
-                    file.write(str.encode(f"aws_session_token={env.shell.getenv(session_token_env)}\n"))
+                    file.write("[default]\n")
+                    file.write(f"aws_access_key_id={env.shell.getenv(access_key_id_env)}\n")
+                    file.write(f"aws_secret_access_key={env.shell.getenv(secret_access_key_env)}\n")
+                    file.write(f"aws_session_token={env.shell.getenv(session_token_env)}\n")
                     file.flush()
                 self.tmp_file_storage.append(filename)
                 self._setenv(env, profile_env_name, filename)
@@ -148,15 +149,15 @@ class SetupCrossCICrtEnvironment(Action):
                 # Config File
                 filename_config = os.path.join(env.build_dir, "ci_file_" + str(len(self.tmp_file_storage)) + ".file")
                 with open(file=filename_config, mode='w+') as file:
-                    file.write(str.encode("[Default]\n"))
-                    file.write(str.encode(f"region=us-east-1\n"))
-                    file.write(str.encode(f"output=json\n"))
+                    file.write("[default]\n")
+                    file.write(f"region=us-east-1\n")
+                    file.write(f"output=json\n")
                     file.flush()
                 self.tmp_file_storage.append(filename_config)
                 self._setenv(env, config_env_name, filename_config)
         except:
-            print("[ERROR]: Could not make profile file for env: " + str(profile_env_name))
-            raise ValueError("Exception occurred trying to get secret file")
+            print("[ERROR]: Could not get create profile with name: " + str(profile_env_name))
+            raise ValueError("Exception occurred trying to create profile")
 
     def _common_setup(self, env):
 
