@@ -102,7 +102,7 @@ def create_pkcs11_environment(env, pkcs8key, pkcs8cert, ca_file):
         '--import', pkcs8key,
         '--slot', str(slot),
         '--label', 'my-test-key',
-        '--id', 'BEEFCAFE',  # ID is hex
+        '--id', 'BEEFCAFE',  # ID is hex (3203386110)
         '--pin', '0000')
 
     # for logging's sake, print the new state of things
@@ -116,30 +116,6 @@ def create_pkcs11_environment(env, pkcs8key, pkcs8cert, ca_file):
     _setenv(env, 'AWS_TEST_PKCS11_CERT_FILE', pkcs8cert)
     _setenv(env, 'AWS_TEST_PKCS11_CA_FILE', ca_file)
 
-    # Make usable, 'real' PKCS11 token and key for connection tests
-    # MQTT311
-    _make_iot_pkcs11_environment_variables(
-        env,
-        softhsm_lib,
-        "AWS_TEST_MQTT311_IOT_CORE_RSA_CERT",
-        "AWS_TEST_MQTT311_IOT_CORE_RSA_Key",
-        "AWS_TEST_MQTT311_IOT_CORE_PKCS11_LIB",
-        "AWS_TEST_MQTT311_IOT_CORE_PKCS11_TOKEN_LABEL",
-        "AWS_TEST_MQTT311_IOT_CORE_PKCS11_PIN",
-        "AWS_TEST_MQTT311_IOT_CORE_PKCS11_PKEY_LABEL",
-        "AWS_TEST_MQTT311_IOT_CORE_PKCS11_CERT_FILE")
-    # MQTT5
-    _make_iot_pkcs11_environment_variables(
-        env,
-        softhsm_lib,
-        "AWS_TEST_MQTT5_IOT_CORE_RSA_CERT",
-        "AWS_TEST_MQTT5_IOT_CORE_RSA_Key",
-        "AWS_TEST_MQTT5_IOT_CORE_PKCS11_LIB",
-        "AWS_TEST_MQTT5_IOT_CORE_PKCS11_TOKEN_LABEL",
-        "AWS_TEST_MQTT5_IOT_CORE_PKCS11_PIN",
-        "AWS_TEST_MQTT5_IOT_CORE_PKCS11_PKEY_LABEL",
-        "AWS_TEST_MQTT5_IOT_CORE_PKCS11_CERT_FILE")
-
 
 def _setenv(env, var, value):
     """
@@ -148,49 +124,6 @@ def _setenv(env, var, value):
     """
     env.shell.setenv(var, value)
     env.project.config['test_env'][var] = value
-
-
-def _make_iot_pkcs11_environment_variables(
-        env, softhsm_lib, env_cert, env_key, env_pkcs11_lib, env_pkcs11_token, env_pkcs11_pin,
-        env_pkcs11_private_label, env_pkcs11_cert):
-
-    if (env.shell.getenv(env_cert) != None and
-            env.shell.getenv(env_key) != None):
-
-        # create a token
-        _exec_softhsm2_util(
-            env,
-            '--init-token',
-            '--free',  # use any free slot
-            '--label', 'my-test-iot-token',
-            '--pin', '0000',
-            '--so-pin', '0000')
-
-        # we need to figure out which slot the new token is in because:
-        # 1) old versions of softhsm2-util make you pass --slot <number>
-        #    (instead of accepting --token <name> like newer versions)
-        # 2) newer versions of softhsm2-util reassign new tokens to crazy
-        #    slot numbers (instead of simply using 0 like older versions)
-        iot_slot = _get_token_slots()[0]
-
-        # add private key to token
-        _exec_softhsm2_util(
-            env,
-            '--import', env.shell.getenv(env_key),
-            '--slot', str(iot_slot),
-            '--label', 'my-test-iot-key',
-            '--id', 'BEEFCAFF',  # ID is hex
-            '--pin', '0000')
-
-        # for logging's sake, print the new state of things
-        _exec_softhsm2_util(env, '--show-slots', '--pin', '0000')
-
-        # set env vars for tests
-        _setenv(env, env_pkcs11_lib, softhsm_lib)
-        _setenv(env, env_pkcs11_token, 'my-test-iot-token')
-        _setenv(env, env_pkcs11_pin, '0000')
-        _setenv(env, env_pkcs11_private_label, 'my-test-iot-key')
-        _setenv(env, env_pkcs11_cert, env.shell.getenv(env_cert))
 
 
 def _find_softhsm_lib():
