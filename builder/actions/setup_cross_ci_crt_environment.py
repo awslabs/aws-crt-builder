@@ -10,39 +10,23 @@ import stat
 
 import builder.actions.setup_cross_ci_helpers as helpers
 
+"""
+A builder action used by several CRT repositories to setup a set of common, cross-repository
+environment variables, secrets, files, etc. that is used to build up the testing environment.
+"""
+
 
 class SetupCrossCICrtEnvironment(Action):
 
-    # Needed to keep the temporary files alive
-    tmp_file_storage = []
-
-    # NOTE: Either manually set this to 'true' or run the following export:
-    # * export setup_cross_crt_ci_environment_local=true
-    # This will adjust some environment variables to point to 'host.docker.internal'
-    # and will run Codebuild tests even if the Codebuild environment is NOT set.
-    is_running_locally = False
-
-    # Will be True if on Windows
-    is_windows = False
-    # Will be True if on Mac
-    is_mac = False
-    # Will be True if on Linux (including freebsd and openbsd)
-    is_linux = False
-    # Will be True if on ARM
-    is_arm = False
-    # Will be True if on Codebuild
-    is_codebuild = False
-
-    def _setenv(self, env, env_name, env_data):
+    def _setenv(self, env, env_name, env_data, is_secret=False):
         # Kinda silly to have a function for this, but makes the API calls consistent and looks better
         # beside the other functions...
-        print(f"Setting environment variable {env_name}...")
-        env.shell.setenv(env_name, str(env_data), quiet=True)
+        env.shell.setenv(env_name, str(env_data), is_secret=is_secret)
 
     def _setenv_secret(self, env, env_name, secret_name):
         try:
             environment_value = env.shell.get_secret(str(secret_name))
-            self._setenv(env, env_name, environment_value)
+            self._setenv(env, env_name, environment_value, is_secret=True)
         except:
             print("[ERROR]: Could not get secret with name: " + str(secret_name))
             raise ValueError("Exception occurred trying to get secret")
@@ -78,9 +62,10 @@ class SetupCrossCICrtEnvironment(Action):
                    "--role-arn", role_arn, "--role-session", "CI_Test_Run"]
             result = env.shell.exec(*cmd, check=True, quiet=True)
             result_json = json.loads(result.output)
-            self._setenv(env, env_name + "_ACCESS_KEY", result_json["Credentials"]["AccessKeyId"])
-            self._setenv(env, env_name + "_SECRET_ACCESS_KEY", result_json["Credentials"]["SecretAccessKey"])
-            self._setenv(env, env_name + "_SESSION_TOKEN", result_json["Credentials"]["SessionToken"])
+            self._setenv(env, env_name + "_ACCESS_KEY", result_json["Credentials"]["AccessKeyId"], is_secret=True)
+            self._setenv(env, env_name + "_SECRET_ACCESS_KEY",
+                         result_json["Credentials"]["SecretAccessKey"], is_secret=True)
+            self._setenv(env, env_name + "_SESSION_TOKEN", result_json["Credentials"]["SessionToken"], is_secret=True)
         except:
             print("[ERROR]: Could not get AWS arn role: " + str(role_arn))
             raise ValueError("Exception occurred trying to get role arn")
@@ -433,10 +418,34 @@ class SetupCrossCICrtEnvironment(Action):
         pass
 
     def run(self, env):
+        # Bail if not running tests
+        if not self.project.needs_tests(env):
+            print('Tests not needed for project. Skipping setting test environment variables')
+            return
+
+        # Needed to keep the temporary files alive
+        self.tmp_file_storage = []
+
+        # NOTE: Either manually set this to 'true' or run the following export:
+        # * export setup_cross_crt_ci_environment_local=true
+        # This will adjust some environment variables to point to 'host.docker.internal'
+        # and will run Codebuild tests even if the Codebuild environment is NOT set.
+        self.is_running_locally = False
+
+        # Will be True if on Windows
+        self.is_windows = False
+        # Will be True if on Mac
+        self.is_mac = False
+        # Will be True if on Linux (including freebsd and openbsd)
+        self.is_linux = False
+        # Will be True if on ARM
+        self.is_arm = False
+        # Will be True if on Codebuild
+        self.is_codebuild = False
+
         # Any easier way to use in docker without having to always modify the builder action
-        if (env.shell.getenv("setup_cross_crt_ci_environment_local") != None):
-            if (env.shell.getenv("setup_cross_crt_ci_environment_local") == "true"):
-                self.is_running_locally = True
+        if (env.shell.getenv("SETUP_CROSSS_CRT_TEST_ENVIRONMENT_LOCAL", "0") == "1"):
+            self.is_running_locally = True
 
         our_os = current_os()
         if (our_os == "windows"):

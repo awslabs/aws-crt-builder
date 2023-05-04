@@ -2,11 +2,8 @@
 # SPDX-License-Identifier: Apache-2.0.
 
 import json
-from collections import namedtuple
 import os
 import shutil
-import subprocess
-import sys
 import tempfile
 
 from builder.core.host import current_os
@@ -76,10 +73,13 @@ class Shell(object):
         else:
             return os.getcwd()
 
-    def setenv(self, var, value, **kwargs):
+    def setenv(self, var, value, is_secret=False, **kwargs):
         """ Set an environment variable """
         if not kwargs.get('quiet', False):
-            util.log_command(["export", "{}={}".format(var, value)])
+            if is_secret:
+                util.log_command(["export", "{}=***".format(var)])
+            else:
+                util.log_command(["export", "{}={}".format(var, value)])
         if not self.dryrun:
             os.environ[var] = value
 
