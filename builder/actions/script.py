@@ -10,10 +10,9 @@ from builder.core.util import replace_variables, to_list
 class Script(Action):
     """ A build step that runs a series of shell commands or python functions """
 
-    def __init__(self, commands, exit_on_fail=True, **kwargs):
+    def __init__(self, commands, **kwargs):
         self.commands = commands
         self.name = kwargs.get('name', self.__class__.__name__)
-        self.exit_on_fail = exit_on_fail
 
     def run(self, env):
         sh = env.shell
@@ -45,21 +44,13 @@ class Script(Action):
             if cmd_type == str:
                 result = sh.exec(*cmd.split(' '))
                 if result.returncode != 0:
-                    if self.exit_on_fail:
-                        print('Command failed, exiting')
-                        sys.exit(12)
-                    else:
-                        print('Command failed, raising')
-                        raise RuntimeError("Command failed")
+                    print('Command failed, exiting')
+                    sys.exit(12)
             elif cmd_type == list:
                 result = sh.exec(*cmd)
                 if result.returncode != 0:
-                    if self.exit_on_fail:
-                        print('Command failed, exiting')
-                        sys.exit(12)
-                    else:
-                        print('Command failed, raising')
-                        raise RuntimeError("Command failed")
+                    print('Command failed, exiting')
+                    sys.exit(12)
             elif isinstance(cmd, Action):
                 Scripts.run_action(cmd, env)
             elif callable(cmd):
