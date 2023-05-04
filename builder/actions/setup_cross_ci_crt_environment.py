@@ -14,8 +14,6 @@ import builder.actions.setup_cross_ci_helpers as helpers
 A builder action used by several CRT repositories to setup a set of common, cross-repository
 environment variables, secrets, files, etc. that is used to build up the testing environment.
 """
-
-
 class SetupCrossCICrtEnvironment(Action):
 
     def _setenv(self, env, env_name, env_data, is_secret=False):
@@ -63,8 +61,7 @@ class SetupCrossCICrtEnvironment(Action):
             result = env.shell.exec(*cmd, check=True, quiet=True)
             result_json = json.loads(result.output)
             self._setenv(env, env_name + "_ACCESS_KEY", result_json["Credentials"]["AccessKeyId"], is_secret=True)
-            self._setenv(env, env_name + "_SECRET_ACCESS_KEY",
-                         result_json["Credentials"]["SecretAccessKey"], is_secret=True)
+            self._setenv(env, env_name + "_SECRET_ACCESS_KEY", result_json["Credentials"]["SecretAccessKey"], is_secret=True)
             self._setenv(env, env_name + "_SESSION_TOKEN", result_json["Credentials"]["SessionToken"], is_secret=True)
         except:
             print("[ERROR]: Could not get AWS arn role: " + str(role_arn))
@@ -419,7 +416,7 @@ class SetupCrossCICrtEnvironment(Action):
 
     def run(self, env):
         # Bail if not running tests
-        if not self.project.needs_tests(env):
+        if not env.project.needs_tests(env):
             print('Tests not needed for project. Skipping setting test environment variables')
             return
 
