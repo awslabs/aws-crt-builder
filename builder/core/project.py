@@ -5,7 +5,7 @@ import glob
 import os
 import sys
 from collections import namedtuple
-from functools import partial, lru_cache
+from functools import partial
 
 from builder.core.data import *
 from builder.core.host import current_os, package_tool
