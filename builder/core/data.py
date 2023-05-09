@@ -119,10 +119,6 @@ HOSTS = {
         'variables': {
             'python': "python3",
         },
-
-        'cmake_args': [
-            "-DPERFORM_HEADER_CHECK=ON",
-        ],
         'sudo': True
     },
     'ubuntu': {
@@ -195,7 +191,6 @@ HOSTS = {
         'os': 'linux',
         'cmake_args': [
             "-DENABLE_SANITIZERS=OFF",
-            "-DPERFORM_HEADER_CHECK=OFF",
         ],
 
         'pkg_tool': PKG_TOOLS.YUM,
@@ -210,7 +205,6 @@ HOSTS = {
         'os': 'linux',
         'cmake_args': [
             "-DENABLE_SANITIZERS=OFF",
-            "-DPERFORM_HEADER_CHECK=OFF",
         ],
 
         'pkg_tool': PKG_TOOLS.YUM,
@@ -251,10 +245,6 @@ HOSTS = {
 
         'pkg_tool': PKG_TOOLS.CHOCO,
         'pkg_install': 'choco install --no-progress',
-
-        'cmake_args': [
-            "-DPERFORM_HEADER_CHECK=ON",
-        ],
     },
     'macos': {
         'os': 'macos',
@@ -596,6 +586,10 @@ COMPILERS = {
             '14': {
                 'cmake_args': [
                     '-Tv140',
+                    # The windows-2019 github runner is the last one with the v140 toolset,
+                    # but it has an old Windows 10 SDK whose headers causes level 4 compiler warnings.
+                    # https://developercommunity.visualstudio.com/t/issue-in-corecrth-header-results-in-an-undefined-m/433021
+                    '-DPERFORM_HEADER_CHECK=OFF',
                 ],
             },
             # 2017
@@ -609,7 +603,13 @@ COMPILERS = {
                 'cmake_args': [
                     '-Tv142',
                 ],
-            }
+            },
+            # 2022
+            '17': {
+                'cmake_args': [
+                    '-Tv143',
+                ],
+            },
         },
 
         'architectures': {
