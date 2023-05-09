@@ -5,6 +5,7 @@ RUN mkdir -p /var/lock
 RUN mkdir -p /usr/local/bin
 
 RUN opkg update
+RUN opkg update
 
 # packages in openwrt
 RUN opkg install git-http ca-bundle curl python3 python3-pip gcc make bash sudo
