@@ -1,10 +1,9 @@
-FROM openwrtorg/rootfs
+FROM openwrt/rootfs
 
 # for some reason this directory isn't created by this point and we need it
 RUN mkdir -p /var/lock
 RUN mkdir -p /usr/local/bin
 
-RUN opkg update
 RUN opkg update
 
 # packages in openwrt
