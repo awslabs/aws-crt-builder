@@ -1,18 +1,17 @@
 name: Create Channel
 
 # need images created at least once per branch, even if there are no docker changes
-# so that downstream projects can use the branch channel. Also anytime this
-# file is updated
+# so that downstream projects can use the branch channel.
 on:
   push:
     branches-ignore:
       - 'main'
     paths:
       - '.github/workflows/create-channel.yml'
-      - '.github/actions/**/*'
-      - '.github/docker-images/**/*'
-      - '.github/docker-images/entrypoint.sh'
+      - '.github/actions/**'
+      - '.github/docker-images/**'
       - '.github/workflows/*.sh'
+      - 'builder/**'
   create:
 
 env:
