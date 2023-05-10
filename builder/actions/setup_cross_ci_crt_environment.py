@@ -449,15 +449,18 @@ class SetupCrossCICrtEnvironment(Action):
             self.is_running_locally = True
 
         our_os = current_os()
+        print (f"Detected OS is: {our_os}")
         if (our_os == "windows"):
             self.is_windows = True
-        elif (our_os == "mac"):
+        elif (our_os == "mac" or our_os == "macos"):
             self.is_mac = True
         elif (our_os == "linux" or our_os == "freebsd" or our_os == "openbsd"):
             self.is_linux = True
+
         our_arch = current_arch()
         if (our_arch != "x64" and our_arch != "x86"):
             self.is_arm = True
+        print (f"Detected whether on ARM: {self.is_arm}")
 
         if (self.is_running_locally == True):
             self.is_codebuild = True
@@ -465,5 +468,6 @@ class SetupCrossCICrtEnvironment(Action):
             # List of Codebuild environment variables:
             # https://docs.aws.amazon.com/codebuild/latest/userguide/build-env-ref-env-vars.html
             self.is_codebuild = True
+        print(f"Detected whether on Codebuild: {self.is_codebuild}")
 
         self._common_setup(env)
