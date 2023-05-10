@@ -449,7 +449,7 @@ class SetupCrossCICrtEnvironment(Action):
             self.is_running_locally = True
 
         our_os = current_os()
-        print (f"Detected OS is: {our_os}")
+        print(f"Detected OS is: {our_os}")
         if (our_os == "windows"):
             self.is_windows = True
         elif (our_os == "mac" or our_os == "macos"):
@@ -460,7 +460,7 @@ class SetupCrossCICrtEnvironment(Action):
         our_arch = current_arch()
         if (our_arch != "x64" and our_arch != "x86"):
             self.is_arm = True
-        print (f"Detected whether on ARM: {self.is_arm}")
+        print(f"Detected whether on ARM: {self.is_arm}")
 
         if (self.is_running_locally == True):
             self.is_codebuild = True
