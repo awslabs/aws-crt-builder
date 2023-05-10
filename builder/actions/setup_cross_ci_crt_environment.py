@@ -6,7 +6,6 @@ from builder.core.host import current_os, current_arch
 import json
 import tempfile
 import os
-import stat
 
 import builder.actions.setup_cross_ci_helpers as helpers
 
@@ -22,6 +21,8 @@ class SetupCrossCICrtEnvironment(Action):
         # Kinda silly to have a function for this, but makes the API calls consistent and looks better
         # beside the other functions...
         env.shell.setenv(env_name, str(env_data), is_secret=is_secret)
+        # Set it in the test environment as well, for C++
+        env.project.config['test_env'][env_name] = env_data
 
     def _setenv_secret(self, env, env_name, secret_name):
         try:
@@ -460,7 +461,7 @@ class SetupCrossCICrtEnvironment(Action):
 
         if (self.is_running_locally == True):
             self.is_codebuild = True
-        elif (env.shell.getenv("CODEBUILD_BUILD_ID") != None):
+        elif (env.shell.getenv("CODEBUILD_BUILD_ID") != None or env.shell.getenv("CODEBUILD_BUILD_NUMBER") != None):
             # List of Codebuild environment variables:
             # https://docs.aws.amazon.com/codebuild/latest/userguide/build-env-ref-env-vars.html
             self.is_codebuild = True
