@@ -80,6 +80,12 @@ def create_pkcs11_environment(env, pkcs8key, pkcs8cert, ca_file):
     # print SoftHSM version
     _exec_softhsm2_util(env, '--version')
 
+    # bail out if softhsm is too old
+    # 2.1.0 is a known offender that crashes on exit if C_Finalize() isn't called
+    if _get_softhsm2_version(env) < (2, 2, 0):
+        print("WARNING: SoftHSM2 installation is too old. PKCS#11 tests are disabled")
+        return
+
     # create a token
     _exec_softhsm2_util(
         env,
@@ -205,5 +211,11 @@ def _get_token_slots(env):
                 token_slot_ids.append(current_slot)
 
     return token_slot_ids
+
+
+def _get_softhsm2_version(env):
+    output = _exec_softhsm2_util(env, '--version').output
+    match = re.match('([0-9+])\.([0-9]+).([0-9]+)', output)
+    return (int(match.group(1)), int(match.group(2)), int(match.group(3)))
 
 ################################################################################
