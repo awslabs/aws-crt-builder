@@ -158,7 +158,6 @@ def parse_args():
     parser.add_argument('--coverage-exclude', action='append', default=[],
                         help="The relative (based on the project directory) path of files and folders (ends with `/`) to exlude from the test coverage report.\n"
                         + "The default code coverage report will include everything in the `source/` directory")
-
     # hand parse command and spec from within the args given
     command = None
     spec = None
