@@ -81,7 +81,7 @@ class Shell(object):
             else:
                 util.log_command(["export", "{}={}".format(var, value)])
         if not self.dryrun:
-            os.environ[var] = value
+            os.environ[var] = str(value)
 
     def getenv(self, var, default=None):
         """ Get an environment variable """
