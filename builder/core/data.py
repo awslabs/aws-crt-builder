@@ -482,8 +482,8 @@ COMPILERS = {
         },
     },
     'clang': {
-        'hosts': ['linux', 'openbsd'],
-        'targets': ['linux', 'openbsd', 'android'],
+        'hosts': ['linux', 'openbsd', 'freebsd'],
+        'targets': ['linux', 'openbsd', 'freebsd', 'android'],
 
         'imports': ['llvm'],
 
