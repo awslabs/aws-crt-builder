@@ -192,6 +192,7 @@ def _build_project(env, project, cmake_extra, build_tests=False, args_transforme
     working_dir = env.root_dir if toolchain.cross_compile else os.getcwd()
 
     # configure
+    sh.exec(*toolchain.shell_env, "ldd", "--version", check=True)
     sh.exec(*toolchain.shell_env, cmake, cmake_args, working_dir=working_dir, check=True)
 
     # build & install
