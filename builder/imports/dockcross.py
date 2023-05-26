@@ -37,8 +37,11 @@ class Dockcross(Import):
             'cross_compile_platform', toolchain.platform)
         if cross_compile_platform == "linux-armv6":
             cross_compile_platform = "linux-armv6-lts"
-        result = sh.exec(
-            'docker', 'run', 'dockcross/{}'.format(cross_compile_platform), quiet=True, check=True)
+            result = sh.exec(
+                'docker', 'run', 'original-linux-armv6', check=True)
+        else:
+            result = sh.exec(
+                'docker', 'run', 'dockcross/{}'.format(cross_compile_platform), quiet=True, check=True)
         # Strip off any output from docker itself
         output, shebang, script = result.output.partition('#!')
         script = shebang + script
