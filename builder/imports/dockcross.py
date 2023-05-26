@@ -35,6 +35,8 @@ class Dockcross(Import):
             'Installing cross-compile via dockcross for {}'.format(toolchain.platform))
         cross_compile_platform = env.config.get(
             'cross_compile_platform', toolchain.platform)
+        if cross_compile_platform == "linux-armv6":
+            cross_compile_platform = "linux-armv6-lts"
         result = sh.exec(
             'docker', 'run', 'dockcross/{}'.format(cross_compile_platform), quiet=True, check=True)
         # Strip off any output from docker itself
