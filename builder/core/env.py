@@ -151,20 +151,24 @@ class Env(object):
                 return branch
 
         try:
-            branches = subprocess.check_output(
+            branch_output = subprocess.check_output(
                 ["git", "branch", "-a", "--contains", "HEAD"]).decode("utf-8")
-            star_branch = None
-            for branch in branches.split('\n'):
-                if branch and branch.startswith('*'):
-                    star_branch = branch.strip('*').strip()
-                    if star_branch == "(no branch)":
-                        # if git branch says we are no branch, we are not on any branch
-                        star_branch = None
-                    break
-            branches = [branch.strip('*').strip()
-                        for branch in branches.split('\n') if branch]
+            branches_unfiltered = [branch.strip() for branch in branch_output.splitlines()]
+            print("Found branches:", branches_unfiltered)
 
-            print("Found branches:", branches)
+            branches = []
+            star_branch = None
+            for line in branches_unfiltered:
+                branch = line.lstrip('*').strip()
+
+                # eliminate candidates like "(no branch)" and "(HEAD detached at 1dd6804)"
+                if branch.startswith('('):
+                    continue
+
+                if line.startswith('*'):
+                    star_branch = branch
+
+                branches.append(branch)
 
             # if git branch says we're on a branch, that's it
             if star_branch:
@@ -173,9 +177,6 @@ class Env(object):
 
             # pick the first one (it should be the only one, if it's a fresh sync)
             for branch in branches:
-                if branch == "(no branch)":
-                    continue
-
                 origin_str = "remotes/origin/"
                 if branch.startswith(origin_str):
                     branch = branch[len(origin_str):]
@@ -183,7 +184,7 @@ class Env(object):
                 print('Working in branch: {}'.format(branch))
                 return branch
         except:
-            print("Current directory () is not a git repository".format(os.getcwd()))
+            print("Current directory ({}) is not a git repository".format(os.getcwd()))
 
         # git symbolic-ref --short HEAD
         return 'main'
