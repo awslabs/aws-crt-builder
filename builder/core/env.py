@@ -153,10 +153,14 @@ class Env(object):
         try:
             branch_output = subprocess.check_output(
                 ["git", "branch", "-a", "--contains", "HEAD"]).decode("utf-8")
+            branches_unfiltered = [branch.strip() for branch in branch_output.splitlines()]
+            print("Found branches:", branches_unfiltered)
+
             branches = []
             star_branch = None
-            for line in branch_output.splitlines():
+            for line in branches_unfiltered:
                 branch = line.lstrip('*').strip()
+
                 # eliminate candidates like "(no branch)" and "(HEAD detached at 1dd6804)"
                 if branch.startswith('('):
                     continue
@@ -165,8 +169,6 @@ class Env(object):
                     star_branch = branch
 
                 branches.append(branch)
-
-            print("Found branches:", branches)
 
             # if git branch says we're on a branch, that's it
             if star_branch:
@@ -182,7 +184,7 @@ class Env(object):
                 print('Working in branch: {}'.format(branch))
                 return branch
         except:
-            print("Current directory () is not a git repository".format(os.getcwd()))
+            print("Current directory ({}) is not a git repository".format(os.getcwd()))
 
         # git symbolic-ref --short HEAD
         return 'main'
