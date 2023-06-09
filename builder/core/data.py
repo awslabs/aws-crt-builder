@@ -226,6 +226,17 @@ HOSTS = {
             'python': "/opt/python/cp39-cp39/bin/python",
         },
     },
+    'musllinux': {
+        'os': 'linux',
+        'pkg_tool': PKG_TOOLS.APK,
+        'packages': ['build-base'],
+        'pkg_setup': [],
+        'pkg_update': '',
+        'pkg_install': 'apk add --no-cache',
+        'variables': {
+            'python': "/opt/python/cp39-cp39/bin/python",
+        },
+    },
     'centos': {
         'os': 'linux',
         'pkg_tool': PKG_TOOLS.YUM,

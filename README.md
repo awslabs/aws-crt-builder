@@ -185,6 +185,7 @@ See builder/data.py for more info/defaults/possible values.
         "alpine": {},
         "raspbian": {},
         "manylinux": {},
+        "musllinux": {},
         "macos": {},
         "windows": {}
     },

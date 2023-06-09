@@ -87,6 +87,8 @@ def current_host():
             if _file_contains('/etc/os-release', 'Debian'):
                 return 'debian'
             if _file_contains('/etc/os-release', 'Alpine Linux'):
+                if os.path.exists('/opt/python/cp39-cp39'):
+                    return 'musllinux'
                 return 'alpine'
             if _file_contains('/etc/os-release', 'Raspbian'):
                 return 'raspbian'
