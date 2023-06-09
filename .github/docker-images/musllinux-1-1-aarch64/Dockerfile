@@ -10,7 +10,7 @@ RUN apk update && apk add py3-pip
 ################################################################################
 WORKDIR /tmp
 RUN python3 -m pip install awscli \
-    && aws --version \
+    && aws --version
 
 #################################################################################
 ### Install entrypoint
