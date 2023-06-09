@@ -277,6 +277,9 @@ jobs:
         - manylinux2014-x86
         - manylinux2014-x64
         - manylinux2014-aarch64
+        - musllinux-1-1-aarch64
+        - musllinux-1-1-x86_64
+        - musllinux-1-1-i686
 
     needs: package
     runs-on: ubuntu-latest
