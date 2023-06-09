@@ -6,7 +6,7 @@ FROM quay.io/pypa/musllinux_1_1_x86_64
 RUN apk update
 RUN apk add \
     sudo \
-    py3-pip \
+    py3-pip
 
 ################################################################################
 ## Python/AWS CLI
