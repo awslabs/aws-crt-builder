@@ -3,35 +3,18 @@ FROM quay.io/pypa/musllinux_1_1_x86_64
 ###############################################################################
 # Basics
 ###############################################################################
-RUN yum -y install sudo cmake3 \
-    && yum clean all \
-    && ln -s `which cmake3` /usr/bin/cmake \
-    && ln -s `which ctest3` /usr/bin/ctest \
-    && cmake --version \
-    && ctest --version
+RUN apk update && apk add py3-pip
 
-###############################################################################
-# Python/AWS CLI
-###############################################################################
-RUN /opt/python/cp37-cp37m/bin/python -m pip install --upgrade setuptools virtualenv \
-    && /opt/python/cp37-cp37m/bin/python -m pip install --upgrade awscli \
-    && ln -s `find /opt -name aws` /usr/local/bin/aws \
-    && which aws \
-    && aws --version
-
-###############################################################################
-# Install pre-built CMake
-###############################################################################
+################################################################################
+## Python/AWS CLI
+################################################################################
 WORKDIR /tmp
-RUN curl -sSL https://d19elf31gohf1l.cloudfront.net/_binaries/cmake/cmake-3.13-manylinux1-x64.tar.gz -o cmake.tar.gz \
-    && tar xvzf cmake.tar.gz -C /usr/local \
-    && cmake --version \
-    && rm -f /tmp/cmake.tar.gz
+RUN python3 -m pip install awscli \
+    && aws --version \
 
-###############################################################################
-# Install entrypoint
-###############################################################################
+#################################################################################
+### Install entrypoint
+#################################################################################
 ADD entrypoint.sh /usr/local/bin/builder
 RUN chmod a+x /usr/local/bin/builder
 ENTRYPOINT ["/usr/local/bin/builder"]
-
