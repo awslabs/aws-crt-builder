@@ -60,7 +60,6 @@ jobs:
         - manylinux2014-aarch64
         - musllinux-1-1-aarch64
         - musllinux-1-1-x64
-        - musllinux-1-1-x86
         - al2012-x64
         - al2-x64
         - ubuntu-18-x64
