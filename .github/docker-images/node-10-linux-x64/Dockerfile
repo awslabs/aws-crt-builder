@@ -16,6 +16,8 @@ RUN yum -y update \
     make \
     gcc \
     gcc-c++ \
+    && curl --silent --location https://rpm.nodesource.com/setup_10.x | sudo bash - \
+    && yum -y install nodejs \
     && yum clean all \
     && rm -rf /var/cache/yum
 
