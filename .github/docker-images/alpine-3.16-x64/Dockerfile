@@ -25,7 +25,8 @@ RUN apk add \
 
 # Create bashrc directory
 RUN touch ~/.bashrc && chmod +x ~/.bashrc
-RUN chsh -s /bin/bash root
+# Change default shell to bash
+SHELL ["/bin/bash", "-c"]
 
 WORKDIR /tmp
 
