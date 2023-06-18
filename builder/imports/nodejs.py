@@ -32,7 +32,7 @@ class NodeJS(Import):
                 'targets': ['linux'],
             },
             **kwargs)
-        self.url = 'https://raw.githubusercontent.com/nvm-sh/nvm/v0.38.0/install.sh'
+        self.url = 'https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh'
         self.version = kwargs.get('version', DEFAULT_VERSION)
 
         self.nvm = 'nvm'
