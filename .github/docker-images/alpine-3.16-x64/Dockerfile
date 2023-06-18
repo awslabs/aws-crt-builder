@@ -9,7 +9,6 @@ RUN apk add \
     curl \
     sudo \
     unzip \
-    # Python
     python3 \
     python3-dev \
     py3-pip \
@@ -20,8 +19,17 @@ RUN apk add \
     bash \
     aws-cli \
     coreutils \
-    bash \
-    shadow
+    shadow \
+    openssl \
+    ncurses \
+    make \
+    gcc \
+    g++ \
+    libgcc \
+    grep \
+    util-linux \
+    binutils \
+    findutils
 
 # Create bashrc directory
 RUN touch ~/.bashrc && chmod +x ~/.bashrc
