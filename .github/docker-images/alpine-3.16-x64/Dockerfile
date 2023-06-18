@@ -19,7 +19,13 @@ RUN apk add \
     cmake \
     bash \
     aws-cli \
-    coreutils
+    coreutils \
+    bash \
+    shadow
+
+# Create bashrc directory
+RUN touch ~/.bashrc && chmod +x ~/.bashrc
+RUN chsh -s /bin/bash root
 
 WORKDIR /tmp
 
