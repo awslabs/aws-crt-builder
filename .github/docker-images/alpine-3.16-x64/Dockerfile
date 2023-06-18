@@ -18,7 +18,8 @@ RUN apk add \
     ca-certificates \
     cmake \
     bash \
-    aws-cli
+    aws-cli \
+    coreutils
 
 ###############################################################################
 # Install entrypoint
