@@ -19,9 +19,9 @@ RUN apk add \
     cmake \
     bash \
     aws-cli \
-    apk add --update nodejs npm && \
-    # Ensure you have npm version 10
-    npm install -g npm@10
+    nodejs
+
+RUN npm install -g npm@10
 
 WORKDIR /tmp
 
