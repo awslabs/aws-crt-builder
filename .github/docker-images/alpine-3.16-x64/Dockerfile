@@ -19,10 +19,14 @@ RUN apk add \
     cmake \
     bash \
     aws-cli \
-    coreutils 
+    coreutils \
+    bash \
+    shadow
 
 # Create bashrc directory
-RUN touch ~/.profile && chmod +x ~/.profile
+RUN touch ~/.bashrc && chmod +x ~/.bashrc
+# Change default shell to bash
+SHELL ["/bin/bash", "-c"]
 
 WORKDIR /tmp
 
