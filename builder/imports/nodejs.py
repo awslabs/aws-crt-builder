@@ -70,7 +70,7 @@ class NodeJS(Import):
             node_path = os.path.dirname(result.output)
             sh.setenv('PATH', '{}{}{}'.format(
                 node_path, os.pathsep, sh.getenv('PATH')))
-            sh.exec(". ~/.bashrc")
+            sh.exec(". /root/.bashrc")
         else:
             sh.exec('nvm', 'use', '10.16', check=True)
             sh.exec('refreshenv', check=True)
