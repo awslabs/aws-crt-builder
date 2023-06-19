@@ -16,10 +16,8 @@ RUN apk add \
     linux-headers \
     ca-certificates \
     cmake \
-    bash \
     aws-cli \
     coreutils \
-    shadow \
     openssl \
     ncurses \
     make \
@@ -33,9 +31,7 @@ RUN apk add \
     gcompat
 
 # Create bashrc directory
-RUN touch ~/.bashrc && chmod +x ~/.bashrc
-# Change default shell to bash
-SHELL ["/bin/bash", "-c"]
+RUN touch ~/.profile && chmod +x ~/.profile
 
 WORKDIR /tmp
 
