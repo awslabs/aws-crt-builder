@@ -47,7 +47,7 @@ class NodeJS(Import):
         self.install_dir = os.path.join(env.deps_dir, self.name)
         sh.mkdir(self.install_dir)
 
-        if current_arch() == "x86" or current_host() == "alpine":
+        if current_arch() == "x86":
             self.install_node_via_unofficial_build(env)
         else:
             if current_os() == 'windows':
@@ -70,7 +70,7 @@ class NodeJS(Import):
             node_path = os.path.dirname(result.output)
             sh.setenv('PATH', '{}{}{}'.format(
                 node_path, os.pathsep, sh.getenv('PATH')))
-            sh.exec(". /root/.bashrc")
+
         else:
             sh.exec('nvm', 'use', '10.16', check=True)
             sh.exec('refreshenv', check=True)
