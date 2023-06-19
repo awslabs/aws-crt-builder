@@ -28,9 +28,9 @@ RUN apk add \
     util-linux \
     binutils \
     findutils \
-    gcompat
+    gcompat \
+    bash
 
-# Create bashrc directory
 RUN touch ~/.profile && chmod +x ~/.profile
 
 WORKDIR /tmp
