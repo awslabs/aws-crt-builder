@@ -47,7 +47,7 @@ class NodeJS(Import):
         self.install_dir = os.path.join(env.deps_dir, self.name)
         sh.mkdir(self.install_dir)
 
-        if current_arch() == "x86":
+        if current_arch() == "x86" or current_os() == "alpine":
             self.install_node_via_unofficial_build(env)
         else:
             if current_os() == 'windows':
