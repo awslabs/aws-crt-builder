@@ -18,20 +18,7 @@ RUN apk add \
     cmake \
     aws-cli \
     coreutils \
-    openssl \
-    ncurses \
-    make \
-    gcc \
-    g++ \
-    libgcc \
-    grep \
-    util-linux \
-    binutils \
-    findutils \
-    gcompat \
-    bash
-
-RUN touch ~/.profile && chmod +x ~/.profile
+    gcompat
 
 WORKDIR /tmp
 
