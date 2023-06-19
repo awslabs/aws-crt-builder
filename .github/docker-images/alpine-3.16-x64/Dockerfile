@@ -18,7 +18,8 @@ RUN apk add \
     cmake \
     aws-cli \
     coreutils \
-    gcompat
+    gcompat \
+    bash
 
 WORKDIR /tmp
 
