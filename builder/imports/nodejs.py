@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0.
 
 from builder.core.fetch import fetch_script, fetch_and_extract
-from builder.core.host import current_os, current_arch
+from builder.core.host import current_os, current_arch, current_host
 from builder.core.project import Import
 import builder.core.util as util
 from builder.actions.install import InstallPackages
@@ -47,7 +47,7 @@ class NodeJS(Import):
         self.install_dir = os.path.join(env.deps_dir, self.name)
         sh.mkdir(self.install_dir)
 
-        if current_arch() == "x86" or current_os() == "alpine":
+        if current_arch() == "x86" or current_host() == "alpine":
             self.install_node_via_unofficial_build(env)
         else:
             if current_os() == 'windows':
