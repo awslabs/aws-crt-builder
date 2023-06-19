@@ -29,7 +29,8 @@ RUN apk add \
     grep \
     util-linux \
     binutils \
-    findutils
+    findutils \
+    gcompat
 
 # Create bashrc directory
 RUN touch ~/.bashrc && chmod +x ~/.bashrc
