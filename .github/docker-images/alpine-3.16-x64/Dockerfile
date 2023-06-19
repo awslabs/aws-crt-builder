@@ -19,7 +19,9 @@ RUN apk add \
     aws-cli \
     coreutils \
     gcompat \
-    bash
+    bash \
+    nodejs \
+    npm
 
 WORKDIR /tmp
 
