@@ -16,13 +16,9 @@ RUN apk add \
     linux-headers \
     ca-certificates \
     cmake \
-    aws-cli \
-    coreutils \
-    gcompat \
     bash \
-    nodejs \
-    npm
-
+    aws-cli
+    
 WORKDIR /tmp
 
 ###############################################################################
