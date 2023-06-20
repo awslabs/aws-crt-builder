@@ -22,8 +22,7 @@ RUN apk add \
     coreutils \
     automake \
     autoconf \
-    libtool \
-    pkg-config
+    libtool 
 
 WORKDIR /tmp
 
