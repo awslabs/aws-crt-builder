@@ -121,6 +121,7 @@ def create_pkcs11_environment(env, pkcs8key, pkcs8cert, ca_file):
     _setenv(env, 'AWS_TEST_PKCS11_PKEY_LABEL', 'my-test-key')
     _setenv(env, 'AWS_TEST_PKCS11_CERT_FILE', pkcs8cert)
     _setenv(env, 'AWS_TEST_PKCS11_CA_FILE', ca_file)
+    _setenv(env, 'AWS_TEST_PKCS11_TOKEN_DIR', token_dir)
 
 
 def _setenv(env, var, value):
