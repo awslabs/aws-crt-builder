@@ -19,7 +19,11 @@ RUN apk add \
     bash \
     aws-cli \
     gcompat \
-    coreutils
+    coreutils \
+    automake \
+    autoconf \
+    libtool \
+    pkg-config
 
 WORKDIR /tmp
 
