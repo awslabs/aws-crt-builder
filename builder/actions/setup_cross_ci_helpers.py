@@ -86,33 +86,33 @@ def create_pkcs11_environment(env, pkcs8key, pkcs8cert, ca_file):
         print("WARNING: SoftHSM2 installation is too old. PKCS#11 tests are disabled")
         return
 
-    # # create a token
-    # _exec_softhsm2_util(
-    #     env,
-    #     '--init-token',
-    #     '--free',  # use any free slot
-    #     '--label', 'my-test-token',
-    #     '--pin', '0000',
-    #     '--so-pin', '0000')
-    #
-    # # we need to figure out which slot the new token is in because:
-    # # 1) old versions of softhsm2-util make you pass --slot <number>
-    # #    (instead of accepting --token <name> like newer versions)
-    # # 2) newer versions of softhsm2-util reassign new tokens to crazy
-    # #    slot numbers (instead of simply using 0 like older versions)
-    # slot = _get_token_slots(env)[0]
-    #
-    # # add private key to token
-    # _exec_softhsm2_util(
-    #     env,
-    #     '--import', pkcs8key,
-    #     '--slot', str(slot),
-    #     '--label', 'my-test-key',
-    #     '--id', 'BEEFCAFE',  # ID is hex (3203386110)
-    #     '--pin', '0000')
-    #
-    # # for logging's sake, print the new state of things
-    # _exec_softhsm2_util(env, '--show-slots', '--pin', '0000')
+    # create a token
+    _exec_softhsm2_util(
+        env,
+        '--init-token',
+        '--free',  # use any free slot
+        '--label', 'my-test-token',
+        '--pin', '0000',
+        '--so-pin', '0000')
+
+    # we need to figure out which slot the new token is in because:
+    # 1) old versions of softhsm2-util make you pass --slot <number>
+    #    (instead of accepting --token <name> like newer versions)
+    # 2) newer versions of softhsm2-util reassign new tokens to crazy
+    #    slot numbers (instead of simply using 0 like older versions)
+    slot = _get_token_slots(env)[0]
+
+    # add private key to token
+    _exec_softhsm2_util(
+        env,
+        '--import', pkcs8key,
+        '--slot', str(slot),
+        '--label', 'my-test-key',
+        '--id', 'BEEFCAFE',  # ID is hex (3203386110)
+        '--pin', '0000')
+
+    # for logging's sake, print the new state of things
+    _exec_softhsm2_util(env, '--show-slots', '--pin', '0000')
 
     # set env vars for tests
     _setenv(env, 'AWS_TEST_PKCS11_LIB', softhsm_lib)
@@ -122,6 +122,13 @@ def create_pkcs11_environment(env, pkcs8key, pkcs8cert, ca_file):
     # _setenv(env, 'AWS_TEST_PKCS11_CERT_FILE', pkcs8cert)
     # _setenv(env, 'AWS_TEST_PKCS11_CA_FILE', ca_file)
     _setenv(env, 'AWS_TEST_PKCS11_TOKEN_DIR', token_dir)
+    _exec_softhsm2_util(
+        env,
+        '--delete-token',
+        '--token', 'my-test-token',
+        '--pin','0000'
+        )
+
 
 
 def _setenv(env, var, value):
