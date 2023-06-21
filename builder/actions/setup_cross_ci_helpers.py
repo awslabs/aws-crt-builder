@@ -116,11 +116,11 @@ def create_pkcs11_environment(env, pkcs8key, pkcs8cert, ca_file):
 
     # set env vars for tests
     _setenv(env, 'AWS_TEST_PKCS11_LIB', softhsm_lib)
-    # _setenv(env, 'AWS_TEST_PKCS11_TOKEN_LABEL', 'my-test-token')
-    # _setenv(env, 'AWS_TEST_PKCS11_PIN', '0000')
-    # _setenv(env, 'AWS_TEST_PKCS11_PKEY_LABEL', 'my-test-key')
-    # _setenv(env, 'AWS_TEST_PKCS11_CERT_FILE', pkcs8cert)
-    # _setenv(env, 'AWS_TEST_PKCS11_CA_FILE', ca_file)
+    _setenv(env, 'AWS_TEST_PKCS11_TOKEN_LABEL', 'my-test-token')
+    _setenv(env, 'AWS_TEST_PKCS11_PIN', '0000')
+    _setenv(env, 'AWS_TEST_PKCS11_PKEY_LABEL', 'my-test-key')
+    _setenv(env, 'AWS_TEST_PKCS11_CERT_FILE', pkcs8cert)
+    _setenv(env, 'AWS_TEST_PKCS11_CA_FILE', ca_file)
     _setenv(env, 'AWS_TEST_PKCS11_TOKEN_DIR', token_dir)
     _exec_softhsm2_util(
         env,
