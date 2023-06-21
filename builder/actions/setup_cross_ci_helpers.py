@@ -57,7 +57,7 @@ def create_windows_cert_store(env, certificate_env, location_env):
 def create_pkcs11_environment(env, pkcs8key, pkcs8cert, ca_file):
     # try to install softhsm
     try:
-        softhsm_install_acion = InstallPackages(['softhsm=2.5.0'])
+        softhsm_install_acion = InstallPackages(['softhsm'])
         softhsm_install_acion.run(env)
     except:
         print("WARNING: softhsm could not be installed. PKCS#11 tests are disabled")
