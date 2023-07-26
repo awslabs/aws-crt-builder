@@ -20,7 +20,11 @@ RUN apk add \
     bash \
     aws-cli
 
+RUN apk del openjdk11
+
 WORKDIR /tmp
+
+
 
 ###############################################################################
 # Install entrypoint
