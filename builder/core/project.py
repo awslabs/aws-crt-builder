@@ -457,7 +457,12 @@ class Project(object):
         self.name = kwargs.get('name', self.__class__.__name__.lower().replace('project', ''))
         assert self.name != 'project'
 
+
         self.url = kwargs.get('url', "https://github.com/{}/{}.git".format(self.account, self.name))
+
+        if "staging" in self.name:
+            token_value = os.environ.get("ACCESS_TOKEN", "")
+            self.url = "https://{}@github.com/{}/{}.git".format(token_value, self.account, self.name)
         self.path = kwargs.get('path', None)
 
         # explicit override (e.g. for upstream dependencies)
