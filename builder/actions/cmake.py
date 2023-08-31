@@ -246,7 +246,7 @@ class CTestRun(Action):
             return
 
         ctest = toolchain.ctest_binary()
-        sh.exec(*toolchain.shell_env, ctest, "--parallel", os.cpu_count(),
+        sh.exec(*toolchain.shell_env, ctest, "--parallel", str(os.cpu_count()),
                 "--output-on-failure", working_dir=project_build_dir, check=True)
         # Try to generate the coverage report. Will be ignored by ctest if no coverage data available.
         sh.exec(*toolchain.shell_env, ctest,
