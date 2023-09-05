@@ -28,7 +28,7 @@ jobs:
 
     steps:
     - name: Checkout Source
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Get release tag
       uses: ./.github/actions/release-tag
@@ -88,7 +88,7 @@ jobs:
 
     steps:
     - name: Checkout Sources
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Get release tag
       uses: ./.github/actions/release-tag
