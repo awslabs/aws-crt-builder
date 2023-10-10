@@ -246,9 +246,13 @@ class CTestRun(Action):
             return
 
         ctest = toolchain.ctest_binary()
-        sh.exec(*toolchain.shell_env, ctest,
-                "--output-on-failure", working_dir=project_build_dir, check=True)
-        # Try to generate the coverage report. Will be ignored by ctest if no coverage data available.
+        try:
+            sh.exec(*toolchain.shell_env, ctest,
+                    "--output-on-failure", working_dir=project_build_dir, check=True)
+        except:
+            # Skip generate the coverage report on error
+            return
+        # If CTest found no test, generate coverage will hang
         sh.exec(*toolchain.shell_env, ctest,
                 "-T", "coverage", working_dir=project_build_dir, check=True)
 
