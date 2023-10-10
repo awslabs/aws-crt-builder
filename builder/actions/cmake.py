@@ -229,6 +229,9 @@ class CTestRun(Action):
     def run(self, env):
         sh = env.shell
         toolchain = env.toolchain
+        print(env.args)
+        print(env.args.coverage)
+        print("########################################")
 
         if not self.project.needs_tests(env):
             print('Tests not needed for project. Skipping')
