@@ -1,4 +1,4 @@
-FROM raspbian/stretch as raspbian-bullseye
+FROM raspbian/dists/stretch as raspbian-bullseye
 
 ###############################################################################
 # Upgrade to bullseye from stretch
