@@ -71,6 +71,7 @@ jobs:
         - ubuntu-18-x64
         - ubuntu-20-x64
         - ubuntu-20-aarch64
+        - ubuntu-22-x64
         - node-10-linux-x64
         - swift-5-al2-x64
         - swift-5-centos-x64
