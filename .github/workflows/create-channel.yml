@@ -128,30 +128,30 @@ jobs:
   # This job is only for a temporary fix. The cheated image would not get updated.
   cheated-images:
     name: ${{ matrix.variant }}
-      runs-on: ubuntu-latest
-      strategy:
-        fail-fast: false
-        matrix:
-          variant:
-          - raspbian-bullseye
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        variant:
+        - raspbian-bullseye
 
-      steps:
-      - name: Checkout Sources
-        uses: actions/checkout@v4
+    steps:
+    - name: Checkout Sources
+      uses: actions/checkout@v4
 
-      - name: Get release tag
-        uses: ./.github/actions/release-tag
-        id: tag
+    - name: Get release tag
+      uses: ./.github/actions/release-tag
+      id: tag
 
-      - name: Login to docker repo
-        run: aws ecr get-login-password --region us-east-1 | docker login ${{ secrets.AWS_ECR_REPO }} -u AWS --password-stdin
+    - name: Login to docker repo
+      run: aws ecr get-login-password --region us-east-1 | docker login ${{ secrets.AWS_ECR_REPO }} -u AWS --password-stdin
 
-      - name: Pull latest image and push
-        run: |
-          if ! aws --region us-east-1 ecr describe-repositories --repository-names aws-crt-${{ matrix.variant }} > /dev/null 2>&1; then \
-            exit 1
-          fi
-          export IMAGE_TAG=${{ steps.tag.outputs.release_tag }}
-          docker pull ${{ secrets.AWS_ECR_REPO }}/aws-crt-${{ matrix.variant }}:latest
-          docker tag ${{ secrets.AWS_ECR_REPO }}/aws-crt-${{ matrix.variant }}:latest ${{ secrets.AWS_ECR_REPO }}/aws-crt-${{ matrix.variant }}:$IMAGE_TAG
-          docker push ${{ secrets.AWS_ECR_REPO }}/aws-crt-${{ matrix.variant }}:$IMAGE_TAG
+    - name: Pull latest image and push
+      run: |
+        if ! aws --region us-east-1 ecr describe-repositories --repository-names aws-crt-${{ matrix.variant }} > /dev/null 2>&1; then \
+          exit 1
+        fi
+        export IMAGE_TAG=${{ steps.tag.outputs.release_tag }}
+        docker pull ${{ secrets.AWS_ECR_REPO }}/aws-crt-${{ matrix.variant }}:latest
+        docker tag ${{ secrets.AWS_ECR_REPO }}/aws-crt-${{ matrix.variant }}:latest ${{ secrets.AWS_ECR_REPO }}/aws-crt-${{ matrix.variant }}:$IMAGE_TAG
+        docker push ${{ secrets.AWS_ECR_REPO }}/aws-crt-${{ matrix.variant }}:$IMAGE_TAG
