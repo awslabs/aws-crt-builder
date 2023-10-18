@@ -126,7 +126,7 @@ jobs:
 
   # The job will directly pull the image from the latest, and push to the new tag.
   # This job is only for a temporary fix. The cheated image would not get updated.
-  cheated-images:
+  passthrough-images:
     name: ${{ matrix.variant }}
     runs-on: ubuntu-latest
     strategy:
