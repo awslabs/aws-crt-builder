@@ -22,7 +22,7 @@ RUN /opt/python/cp39-cp39/bin/python -m pip install --upgrade setuptools virtual
 ###############################################################################
 # nodejs/npm
 ###############################################################################
-RUN curl -sL https://rpm.nodesource.com/setup_12.x | sudo bash -
+RUN curl -sL https://rpm.nodesource.com/setup_14.x | sudo bash -
 RUN sudo yum -y install nodejs && node --version
 
 ###############################################################################
