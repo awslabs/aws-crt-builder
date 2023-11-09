@@ -1,29 +1,43 @@
-# See: https://github.com/pypa/manylinux
-# and: https://github.com/pypa/python-manylinux-demo
-FROM quay.io/pypa/manylinux2014_aarch64
+FROM ubuntu:22.04
+
+ENV DEBIAN_FRONTEND=noninteractive
 
 ###############################################################################
-# Basics
+# Install prereqs
 ###############################################################################
-RUN yum -y install sudo \
-    && yum clean all \
-    && cmake --version \
-    && ctest --version
+RUN apt-get update -qq \
+    && apt-get -y install \
+    git \
+    curl \
+    sudo \
+    unzip \
+    python3-dev \
+    python3-pip \
+    build-essential \
+    # For PPAs
+    software-properties-common \
+    apt-transport-https \
+    ca-certificates \
+    && apt-get clean
 
 ###############################################################################
 # Python/AWS CLI
 ###############################################################################
-RUN /opt/python/cp39-cp39/bin/python -m pip install --upgrade setuptools virtualenv \
-    && /opt/python/cp39-cp39/bin/python -m pip install --upgrade awscli \
-    && ln -s `find /opt -name aws` /usr/local/bin/aws \
-    && which aws \
+WORKDIR /tmp
+
+RUN python3 -m pip install setuptools \
+    && curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o awscliv2.zip \
+    && unzip awscliv2.zip \
+    && sudo aws/install \
     && aws --version
 
 ###############################################################################
-# nodejs/npm
+# Install pre-built CMake
 ###############################################################################
-RUN curl -sL https://rpm.nodesource.com/setup_14.x | sudo bash -
-RUN sudo yum -y install nodejs && node --version
+RUN curl -sSL https://d19elf31gohf1l.cloudfront.net/_binaries/cmake/cmake-3.13-manylinux1-x64.tar.gz -o cmake.tar.gz \
+    && tar xvzf cmake.tar.gz -C /usr/local \
+    && cmake --version \
+    && rm -f /tmp/cmake.tar.gz
 
 ###############################################################################
 # Install entrypoint
