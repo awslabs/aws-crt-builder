@@ -1,5 +1,5 @@
 # https://hub.docker.com/_/swift
-FROM swift:5.5.3-focal
+FROM swift:5.7.3-focal
 
 ###############################################################################
 # Install prereqs
