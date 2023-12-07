@@ -215,7 +215,7 @@ def _get_token_slots(env):
 
 def _get_softhsm2_version(env):
     output = _exec_softhsm2_util(env, '--version').output
-    match = re.match('([0-9+])\.([0-9]+).([0-9]+)', output)
+    match = re.match(r'([0-9+])\.([0-9]+).([0-9]+)', output)
     return (int(match.group(1)), int(match.group(2)), int(match.group(3)))
 
 ################################################################################

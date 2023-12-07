@@ -1,38 +1,43 @@
-# https://hub.docker.com/_/swift
-FROM swift:5.7.3-focal
+FROM ubuntu:22.04
+
+ENV DEBIAN_FRONTEND=noninteractive
 
 ###############################################################################
 # Install prereqs
-# any prereqs that appear to be missing are installed on base swift image i.e. tar, git
 ###############################################################################
 RUN apt-get update -qq \
     && apt-get -y install \
-    sudo \
+    git \
     curl \
-    wget \
-    # Python
-    python3 \
+    sudo \
+    unzip \
+    python3-dev \
     python3-pip \
+    build-essential \
     # For PPAs
-    libssl-dev \
     software-properties-common \
     apt-transport-https \
     ca-certificates \
     && apt-get clean
 
 ###############################################################################
-# Add the corretto repo and public key and install corretto
-###############################################################################
-RUN wget -O- https://apt.corretto.aws/corretto.key | sudo apt-key add -
-RUN sudo add-apt-repository 'deb https://apt.corretto.aws stable main'
-RUN apt-get -y install java-11-amazon-corretto-jdk
-
-###############################################################################
 # Python/AWS CLI
 ###############################################################################
+WORKDIR /tmp
+
 RUN python3 -m pip install setuptools \
-    && python3 -m pip install --upgrade awscli \
+    && curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o awscliv2.zip \
+    && unzip awscliv2.zip \
+    && sudo aws/install \
     && aws --version
+
+###############################################################################
+# Install pre-built CMake
+###############################################################################
+RUN curl -sSL https://d19elf31gohf1l.cloudfront.net/_binaries/cmake/cmake-3.13-manylinux1-x64.tar.gz -o cmake.tar.gz \
+    && tar xvzf cmake.tar.gz -C /usr/local \
+    && cmake --version \
+    && rm -f /tmp/cmake.tar.gz
 
 ###############################################################################
 # Install entrypoint

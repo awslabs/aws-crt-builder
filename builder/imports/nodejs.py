@@ -14,7 +14,7 @@ import os
 import re
 
 
-NVM = """\
+NVM = r"""\
 #!/usr/bin/env bash
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
@@ -126,7 +126,7 @@ class NodeJS(Import):
         # Normaliz version format, please note 12.16.3 is the last version has x86 support
         def normalize_version(v):
             append_times = 0
-            while re.match('^([0-9]+\.){2}[0-9]+$', v) == None:
+            while re.match(r'^([0-9]+\.){2}[0-9]+$', v) == None:
                 # Only try append sub version twice
                 if append_times < 2:
                     v += ".0"
