@@ -293,6 +293,8 @@ class SetupCrossCICrtEnvironment(Action):
                             "ci/mqtt5/us/authorizer/signed/tokenkeyname")
         self._setenv_secret(env, "AWS_TEST_MQTT311_IOT_CORE_SIGNING_AUTHORIZER_TOKEN_SIGNATURE",
                             "ci/mqtt5/us/authorizer/signed/signature")
+        self._setenv_secret(env, "AWS_TEST_MQTT311_IOT_CORE_SIGNING_AUTHORIZER_TOKEN_SIGNATURE_UNENCODED",
+                            "ci/mqtt5/us/authorizer/signed/signature/unencoded")
 
         # JAVA KEYSTORE (Java uses PKCS#8 keys internally, which currently only Linux supports ATM)
         if (self.is_linux == True):
