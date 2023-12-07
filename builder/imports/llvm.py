@@ -130,7 +130,7 @@ class LLVM(Import):
         sudo = ['sudo'] if sudo else []
 
         # Strip minor version info
-        version = env.toolchain.compiler_version.replace('\..+', '')
+        version = env.toolchain.compiler_version.replace(r'\..+', '')
 
         script = tempfile.NamedTemporaryFile(delete=False)
         script_path = script.name
