@@ -17,19 +17,19 @@ def _compiler_version(cc):
 
         for text in lines:
             # Apple clang
-            m = re.match('Apple (LLVM|clang) version (\d+)', text)
+            m = re.match(r'Apple (LLVM|clang) version (\d+)', text)
             if m:
                 return 'appleclang', m.group(2)
             # LLVM clang
-            m = re.match('.*(LLVM|clang) version (\d+)', text)
+            m = re.match(r'.*(LLVM|clang) version (\d+)', text)
             if m:
                 return 'clang', m.group(2)
             # GCC 4.x
-            m = re.match('gcc .+ (4\.\d+)', text)
+            m = re.match(r'gcc .+ (4\.\d+)', text)
             if m:
                 return 'gcc', m.group(1)
             # GCC 5+
-            m = re.match('gcc .+ (\d+)\.', text)
+            m = re.match(r'gcc .+ (\d+)\.', text)
             if m:
                 return 'gcc', m.group(1)
     return None, None
