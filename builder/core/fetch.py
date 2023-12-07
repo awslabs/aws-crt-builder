@@ -254,7 +254,6 @@ def fetch_and_extract(url, archive_path, extract_path):
 
                 tar.extractall(path, members, numeric_owner=numeric_owner)
 
-
             safe_extract(tar, extract_path)
 
     elif zipfile.is_zipfile(archive_path):
