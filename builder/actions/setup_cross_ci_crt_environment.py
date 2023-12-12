@@ -423,8 +423,11 @@ class SetupCrossCICrtEnvironment(Action):
         pass
 
     def run(self, env):
+        # A special environment variable indicating that we want to dump test environment variables to a specified file.
+        env_dump_file = env.shell.getenv("AWS_SETUP_CRT_TEST_ENVIRONMENT_DUMP_FILE")
+
         # Bail if not running tests
-        if not env.project.needs_tests(env):
+        if not env.project.needs_tests(env) and not env_dump_file:
             print('Tests not needed for project. Skipping setting test environment variables')
             return
 
@@ -475,3 +478,10 @@ class SetupCrossCICrtEnvironment(Action):
         print(f"Detected whether on Codebuild: {self.is_codebuild}")
 
         self._common_setup(env)
+
+        # Create a temporary file with all environment variables.
+        # Useful for running tests locally.
+        if env_dump_file:
+            with open(file=env_dump_file, mode='w+') as file:
+                for env_name, env_value in env.project.config['test_env'].items():
+                    file.write(f"export {env_name}={env_value}\n")
