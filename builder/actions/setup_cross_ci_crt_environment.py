@@ -424,7 +424,7 @@ class SetupCrossCICrtEnvironment(Action):
 
     def run(self, env):
         # A special environment variable indicating that we want to dump test environment variables to a specified file.
-        env_dump_file = env.shell.getenv("SETUP_CROSSS_CRT_TEST_ENVIRONMENT_DUMP_FILE")
+        env_dump_file = env.shell.getenv("AWS_SETUP_CRT_TEST_ENVIRONMENT_DUMP_FILE")
 
         # Bail if not running tests
         if not env.project.needs_tests(env) and not env_dump_file:
