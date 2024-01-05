@@ -58,3 +58,5 @@ class AWSLCProject(Project):
             # Disable AVX512 on old GCC for aws-lc
             # Not disable PERL for old GCC to avoid the pre-compiled binary with AVX512
             return super().cmake_args(env) + ['-DMY_ASSEMBLER_IS_TOO_OLD_FOR_512AVX=ON']
+        else:
+            return super().cmake_args(env)
