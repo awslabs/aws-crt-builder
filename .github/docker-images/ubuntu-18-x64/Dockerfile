@@ -24,7 +24,10 @@ RUN apt-get update -qq \
     ca-certificates \
     && apt-get clean
 
-###############################################################################
+# Add the longsleep/golang-backports PPA
+RUN apt-get update && apt-get install -y software-properties-common && add-apt-repository ppa:longsleep/golang-backports && apt-get update
+
+RUN apt-get install -y golang-go
 
 ###############################################################################
 # Python/AWS CLI
