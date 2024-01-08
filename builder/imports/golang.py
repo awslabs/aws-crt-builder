@@ -3,7 +3,7 @@
 
 import os
 from pathlib import Path
-from packaging import version
+from distutils.version import LooseVersion
 
 from builder.core.fetch import fetch_and_extract, mirror_package
 from builder.core.project import Import
@@ -47,7 +47,7 @@ class GOLANG(Import):
             if result.returncode == 0:
                 # check the version, we need version >=1.18
                 version_str = result.output.split(" ")[2][2:]
-                if version.parse(version_str) >= version.parse("1.18.0"):
+                if LooseVersion(version_str) > LooseVersion("1.18.0"):
                     return
 
         if target not in URLs:
