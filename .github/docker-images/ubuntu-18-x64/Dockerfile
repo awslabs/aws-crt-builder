@@ -22,8 +22,14 @@ RUN apt-get update -qq \
     software-properties-common \
     apt-transport-https \
     ca-certificates \
-    golang-1.18 \
     && apt-get clean
+
+# Add the longsleep/golang-backports PPA
+RUN apt-get update && apt-get install -y software-properties-common && add-apt-repository ppa:longsleep/golang-backports && apt-get update
+
+# Install Go from the PPA
+RUN apt-get install -y golang-go
+###############################################################################
 
 ###############################################################################
 # Python/AWS CLI
