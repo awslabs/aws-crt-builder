@@ -74,6 +74,8 @@ class GOLANG(Import):
         go_path = '{}/go/bin'.format(install_dir)
         sh.setenv('PATH', '{}{}{}'.format(go_path, os.pathsep, sh.getenv('PATH')))
 
+        self.installed = True
+
     def mirror(self, env):
         for src_url in URLs.values():
             mirror_package(self.name, src_url)
