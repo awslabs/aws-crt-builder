@@ -8,7 +8,6 @@ from builder.core.fetch import fetch_and_extract, mirror_package
 from builder.core.project import Import
 import builder.core.util as util
 
-# Only linux versions for now
 URLs = {
     'linux-armv6': 'https://go.dev/dl/go1.21.5.linux-armv6l.tar.gz',
     'linux-armv7': 'https://go.dev/dl/go1.21.5.linux-armv6l.tar.gz',
@@ -16,6 +15,9 @@ URLs = {
     'linux-x86': 'https://go.dev/dl/go1.21.5.linux-386.tar.gz',
     'linux-x64': 'https://go.dev/dl/go1.21.5.linux-amd64.tar.gz',
     'openbsd-x64': 'https://go.dev/dl/go1.21.5.linux-amd64.tar.gz',
+    'windows-x64': 'https://go.dev/dl/go1.21.5.windows-amd64.zip',
+    'windows-x86': 'https://go.dev/dl/go1.21.5.windows-386.zip',
+    'macos-x64': 'https://go.dev/dl/go1.21.5.darwin-amd64.tar.gz',
 }
 
 
