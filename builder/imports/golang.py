@@ -15,6 +15,7 @@ URLs = {
     'linux-armv8': 'https://go.dev/dl/go1.21.5.linux-arm64.tar.gz',
     'linux-x86': 'https://go.dev/dl/go1.21.5.linux-386.tar.gz',
     'linux-x64': 'https://go.dev/dl/go1.21.5.linux-amd64.tar.gz',
+    'openbsd-x64': 'https://go.dev/dl/go1.21.5.linux-amd64.tar.gz',
 }
 
 
