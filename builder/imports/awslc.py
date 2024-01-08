@@ -21,6 +21,7 @@ class AWSLCImport(Import):
             del kwargs['name']
         super().__init__(
             library=True,
+            imports=['golang'],
             account='aws',
             name='aws-lc',
             config=config,
@@ -49,6 +50,7 @@ class AWSLCProject(Project):
             del kwargs['name']
         super().__init__(
             account='aws',
+            imports=['golang'],
             name='aws-lc',
             **config,
             **kwargs)
