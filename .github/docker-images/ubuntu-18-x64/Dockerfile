@@ -22,6 +22,7 @@ RUN apt-get update -qq \
     software-properties-common \
     apt-transport-https \
     ca-certificates \
+    perl \
     && apt-get clean
 
 # Add the longsleep/golang-backports PPA
