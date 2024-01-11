@@ -235,7 +235,7 @@ def fetch_and_extract(url, archive_path, extract_path):
 
     print('Extracting {} to {}'.format(archive_path, extract_path))
     if tarfile.is_tarfile(archive_path):
-        with tarfile.open(archive_path) as tar:
+        with tarfile.open(archive_path, 'rb') as tar:
             def is_within_directory(directory, target):
 
                 abs_directory = os.path.abspath(directory)
