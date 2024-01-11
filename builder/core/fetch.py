@@ -235,26 +235,27 @@ def fetch_and_extract(url, archive_path, extract_path):
 
     print('Extracting {} to {}'.format(archive_path, extract_path))
     if tarfile.is_tarfile(archive_path):
-        with tarfile.open(archive_path, 'rb') as tar:
-            def is_within_directory(directory, target):
+        with open(archive_path, mode='rb') as file:
+            with tarfile.open(fileobj=file) as tar:
+                def is_within_directory(directory, target):
 
-                abs_directory = os.path.abspath(directory)
-                abs_target = os.path.abspath(target)
+                    abs_directory = os.path.abspath(directory)
+                    abs_target = os.path.abspath(target)
 
-                prefix = os.path.commonprefix([abs_directory, abs_target])
+                    prefix = os.path.commonprefix([abs_directory, abs_target])
 
-                return prefix == abs_directory
+                    return prefix == abs_directory
 
-            def safe_extract(tar, path=".", members=None, *, numeric_owner=False):
+                def safe_extract(tar, path=".", members=None, *, numeric_owner=False):
 
-                for member in tar.getmembers():
-                    member_path = os.path.join(path, member.name)
-                    if not is_within_directory(path, member_path):
-                        raise Exception("Attempted Path Traversal in Tar File")
+                    for member in tar.getmembers():
+                        member_path = os.path.join(path, member.name)
+                        if not is_within_directory(path, member_path):
+                            raise Exception("Attempted Path Traversal in Tar File")
 
-                tar.extractall(path, members, numeric_owner=numeric_owner)
+                    tar.extractall(path, members, numeric_owner=numeric_owner)
 
-            safe_extract(tar, extract_path)
+                safe_extract(tar, extract_path)
 
     elif zipfile.is_zipfile(archive_path):
         with zipfile.ZipFile(archive_path) as zip:
