@@ -18,7 +18,6 @@ RUN apt-get update -qq \
     software-properties-common \
     apt-transport-https \
     ca-certificates \
-    golang-1.18 \
     && apt-get clean
 
 ###############################################################################
