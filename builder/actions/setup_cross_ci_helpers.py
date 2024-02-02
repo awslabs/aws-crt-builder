@@ -20,15 +20,6 @@ def create_windows_cert_store(env, certificate_env, location_env):
         return
     pfx_cert_path = env.shell.getenv(certificate_env)
 
-    new_cert_folder_arguments = [
-        "New-Item",
-        windows_certificate_folder,
-        "-Name",
-        "test_folder",
-        "-ItemType",
-        "container"
-    ]
-
     env.shell.exec("powershell.exe", new_cert_folder_arguments, check=True)
 
     # Import the PFX into the Windows Certificate Store
