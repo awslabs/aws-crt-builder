@@ -14,6 +14,10 @@ A builder action used by several CRT repositories to setup a set of common, cros
 environment variables, secrets, files, etc. that is used to build up the testing environment.
 """
 
+# TODO: The variable is used to disable the windows certificate store test to unblock a CI failure.
+# The variable should be set to TRUE after the CI is fixed.
+ENABLE_WINDOWS_CERT_STORE_TEST = False
+
 
 class SetupCrossCICrtEnvironment(Action):
 
@@ -145,6 +149,12 @@ class SetupCrossCICrtEnvironment(Action):
             print("[ERROR]: Could not get create profile with name: " + str(profile_env_name))
             raise ValueError("Exception occurred trying to create profile")
 
+    def _setup_windows_cert_store_test(self, env, certificate_env_name, cerfiticate_s3_path, store_location_env_name):
+        if (self.is_windows == True and ENABLE_WINDOWS_CERT_STORE_TEST == True):
+            self._setenv_s3(env, certificate_env_name, cerfiticate_s3_path)
+            helpers.create_windows_cert_store(
+                env, certificate_env_name, store_location_env_name)
+
     def _common_setup(self, env):
 
         ################################################
@@ -223,14 +233,9 @@ class SetupCrossCICrtEnvironment(Action):
                             "s3://aws-crt-test-stuff/unit-test-key-pkcs12.pem")
             self._setenv(env, "AWS_TEST_MQTT5_IOT_CORE_PKCS12_KEY_PASSWORD", "PKCS12_KEY_PASSWORD")
 
-        # TODO: The windows certificate env var is disabled as it is failing in CI. We will bring it back once
-        # it is fixed.
         # Windows Key Cert
-        # if (self.is_windows == True):
-        #     self._setenv_s3(env, "AWS_TEST_MQTT5_IOT_CORE_WINDOWS_PFX_CERT_NO_PASS",
-        #                     "s3://aws-crt-test-stuff/unit-test-pfx-no-password.pfx")
-        #     helpers.create_windows_cert_store(
-        #         env, "AWS_TEST_MQTT5_IOT_CORE_WINDOWS_PFX_CERT_NO_PASS", "AWS_TEST_MQTT5_IOT_CORE_WINDOWS_CERT_STORE")
+        self._setup_windows_cert_store_test(env, "AWS_TEST_MQTT5_IOT_CORE_WINDOWS_PFX_CERT_NO_PASS",
+                                            "s3://aws-crt-test-stuff/unit-test-pfx-no-password.pfx", "AWS_TEST_MQTT5_IOT_CORE_WINDOWS_CERT_STORE")
 
         # X509
         self._setenv_secret(env, "AWS_TEST_MQTT5_IOT_CORE_X509_ENDPOINT", "ci/mqtt5/us/x509/endpoint")
@@ -313,14 +318,10 @@ class SetupCrossCICrtEnvironment(Action):
                             "s3://aws-crt-test-stuff/unit-test-key-pkcs12.pem")
             self._setenv(env, "AWS_TEST_MQTT311_IOT_CORE_PKCS12_KEY_PASSWORD", "PKCS12_KEY_PASSWORD")
 
-        # TODO: The windows certificate env var is disabled as it is failing in CI. We will bring it back once
-        # it is fixed.
         # Windows Key Cert
-        # if (self.is_windows == True):
-            # self._setenv_s3(env, "AWS_TEST_MQTT311_IOT_CORE_WINDOWS_PFX_CERT_NO_PASS",
-            #                 "s3://aws-crt-test-stuff/unit-test-pfx-no-password.pfx")
-            # helpers.create_windows_cert_store(
-            #     env, "AWS_TEST_MQTT311_IOT_CORE_WINDOWS_PFX_CERT_NO_PASS", "AWS_TEST_MQTT311_IOT_CORE_WINDOWS_CERT_STORE")
+        self._setup_windows_cert_store_test(env, "AWS_TEST_MQTT311_IOT_CORE_WINDOWS_PFX_CERT_NO_PASS",
+                                            "s3://aws-crt-test-stuff/unit-test-pfx-no-password.pfx",
+                                            "AWS_TEST_MQTT311_IOT_CORE_WINDOWS_CERT_STORE")
 
         # X509
         self._setenv_secret(env, "AWS_TEST_MQTT311_IOT_CORE_X509_ENDPOINT", "ci/mqtt5/us/x509/endpoint")
