@@ -21,7 +21,7 @@ def create_windows_cert_store(env, certificate_env, location_env):
     pfx_cert_path = env.shell.getenv(certificate_env)
 
     # Then print the avaliable folders
-    env.shell.exec("pwsh.exe", "set-location Cert:", check=True)
+    env.shell.exec("pwsh.exe", "Set-Location Cert:", check=True)
 
     # Import the PFX into the Windows Certificate Store
     # (Passing '$mypwd' is required even though it is empty and our certificate has no password. It fails CI otherwise)
