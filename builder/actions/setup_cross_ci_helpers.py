@@ -23,6 +23,9 @@ def create_windows_cert_store(env, certificate_env, location_env):
     # Import the PFX into the Windows Certificate Store
     # (Passing '$mypwd' is required even though it is empty and our certificate has no password. It fails CI otherwise)
     import_pfx_arguments = [
+        # Powershell 7.3 introduced an issue where launching powershell from cmd would not set PSModulePath correctly.
+        # As a workaround, we set `PSModulePath` to empty so powershell would automatically reset the PSModulePath to default.
+        # More details: https://github.com/PowerShell/PowerShell/issues/18530
         "$env:PSModulePath = '';",
         "Import-PfxCertificate",
         "-FilePath", pfx_cert_path,
