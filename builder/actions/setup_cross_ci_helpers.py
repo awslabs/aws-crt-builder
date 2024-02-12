@@ -23,6 +23,7 @@ def create_windows_cert_store(env, certificate_env, location_env):
     # Import the PFX into the Windows Certificate Store
     # (Passing '$mypwd' is required even though it is empty and our certificate has no password. It fails CI otherwise)
     import_pfx_arguments = [
+        "$env:PSModulePath = '';",
         "Import-PfxCertificate",
         "-FilePath", pfx_cert_path,
         "-CertStoreLocation", windows_certificate_folder]
