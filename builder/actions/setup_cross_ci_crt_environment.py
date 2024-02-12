@@ -16,7 +16,7 @@ environment variables, secrets, files, etc. that is used to build up the testing
 
 # TODO: The variable is used to disable the windows certificate store test to unblock a CI failure.
 # The variable should be set to TRUE after the CI is fixed.
-ENABLE_WINDOWS_CERT_STORE_TEST = False
+ENABLE_WINDOWS_CERT_STORE_TEST = True
 
 
 class SetupCrossCICrtEnvironment(Action):
