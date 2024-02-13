@@ -14,9 +14,8 @@ A builder action used by several CRT repositories to setup a set of common, cros
 environment variables, secrets, files, etc. that is used to build up the testing environment.
 """
 
-# TODO: The variable is used to disable the windows certificate store test to unblock a CI failure.
-# The variable should be set to TRUE after the CI is fixed.
-ENABLE_WINDOWS_CERT_STORE_TEST = False
+# Enable windows certificate store test
+ENABLE_WINDOWS_CERT_STORE_TEST = True
 
 
 class SetupCrossCICrtEnvironment(Action):
