@@ -14,6 +14,9 @@ A builder action used by several CRT repositories to setup a set of common, cros
 environment variables, secrets, files, etc. that is used to build up the testing environment.
 """
 
+# Enable windows certificate store test
+ENABLE_WINDOWS_CERT_STORE_TEST = True
+
 
 class SetupCrossCICrtEnvironment(Action):
 
@@ -145,6 +148,12 @@ class SetupCrossCICrtEnvironment(Action):
             print("[ERROR]: Could not get create profile with name: " + str(profile_env_name))
             raise ValueError("Exception occurred trying to create profile")
 
+    def _setup_windows_cert_store_test(self, env, certificate_env_name, cerfiticate_s3_path, store_location_env_name):
+        if (self.is_windows == True and ENABLE_WINDOWS_CERT_STORE_TEST == True):
+            self._setenv_s3(env, certificate_env_name, cerfiticate_s3_path)
+            helpers.create_windows_cert_store(
+                env, certificate_env_name, store_location_env_name)
+
     def _common_setup(self, env):
 
         ################################################
@@ -205,6 +214,8 @@ class SetupCrossCICrtEnvironment(Action):
                             "ci/mqtt5/us/authorizer/signed/tokenkeyname")
         self._setenv_secret(env, "AWS_TEST_MQTT5_IOT_CORE_SIGNING_AUTHORIZER_TOKEN_SIGNATURE",
                             "ci/mqtt5/us/authorizer/signed/signature")
+        self._setenv_secret(env, "AWS_TEST_MQTT5_IOT_CORE_SIGNING_AUTHORIZER_TOKEN_SIGNATURE_UNENCODED",
+                            "ci/mqtt5/us/authorizer/signed/signature/unencoded")
 
         # JAVA KEYSTORE (Java uses PKCS#8 keys internally, which currently only Linux supports ATM)
         if (self.is_linux == True):
@@ -222,11 +233,8 @@ class SetupCrossCICrtEnvironment(Action):
             self._setenv(env, "AWS_TEST_MQTT5_IOT_CORE_PKCS12_KEY_PASSWORD", "PKCS12_KEY_PASSWORD")
 
         # Windows Key Cert
-        if (self.is_windows == True):
-            self._setenv_s3(env, "AWS_TEST_MQTT5_IOT_CORE_WINDOWS_PFX_CERT_NO_PASS",
-                            "s3://aws-crt-test-stuff/unit-test-pfx-no-password.pfx")
-            helpers.create_windows_cert_store(
-                env, "AWS_TEST_MQTT5_IOT_CORE_WINDOWS_PFX_CERT_NO_PASS", "AWS_TEST_MQTT5_IOT_CORE_WINDOWS_CERT_STORE")
+        self._setup_windows_cert_store_test(env, "AWS_TEST_MQTT5_IOT_CORE_WINDOWS_PFX_CERT_NO_PASS",
+                                            "s3://aws-crt-test-stuff/unit-test-pfx-no-password.pfx", "AWS_TEST_MQTT5_IOT_CORE_WINDOWS_CERT_STORE")
 
         # X509
         self._setenv_secret(env, "AWS_TEST_MQTT5_IOT_CORE_X509_ENDPOINT", "ci/mqtt5/us/x509/endpoint")
@@ -291,6 +299,8 @@ class SetupCrossCICrtEnvironment(Action):
                             "ci/mqtt5/us/authorizer/signed/tokenkeyname")
         self._setenv_secret(env, "AWS_TEST_MQTT311_IOT_CORE_SIGNING_AUTHORIZER_TOKEN_SIGNATURE",
                             "ci/mqtt5/us/authorizer/signed/signature")
+        self._setenv_secret(env, "AWS_TEST_MQTT311_IOT_CORE_SIGNING_AUTHORIZER_TOKEN_SIGNATURE_UNENCODED",
+                            "ci/mqtt5/us/authorizer/signed/signature/unencoded")
 
         # JAVA KEYSTORE (Java uses PKCS#8 keys internally, which currently only Linux supports ATM)
         if (self.is_linux == True):
@@ -308,11 +318,9 @@ class SetupCrossCICrtEnvironment(Action):
             self._setenv(env, "AWS_TEST_MQTT311_IOT_CORE_PKCS12_KEY_PASSWORD", "PKCS12_KEY_PASSWORD")
 
         # Windows Key Cert
-        if (self.is_windows == True):
-            self._setenv_s3(env, "AWS_TEST_MQTT311_IOT_CORE_WINDOWS_PFX_CERT_NO_PASS",
-                            "s3://aws-crt-test-stuff/unit-test-pfx-no-password.pfx")
-            helpers.create_windows_cert_store(
-                env, "AWS_TEST_MQTT311_IOT_CORE_WINDOWS_PFX_CERT_NO_PASS", "AWS_TEST_MQTT311_IOT_CORE_WINDOWS_CERT_STORE")
+        self._setup_windows_cert_store_test(env, "AWS_TEST_MQTT311_IOT_CORE_WINDOWS_PFX_CERT_NO_PASS",
+                                            "s3://aws-crt-test-stuff/unit-test-pfx-no-password.pfx",
+                                            "AWS_TEST_MQTT311_IOT_CORE_WINDOWS_CERT_STORE")
 
         # X509
         self._setenv_secret(env, "AWS_TEST_MQTT311_IOT_CORE_X509_ENDPOINT", "ci/mqtt5/us/x509/endpoint")
@@ -419,8 +427,11 @@ class SetupCrossCICrtEnvironment(Action):
         pass
 
     def run(self, env):
+        # A special environment variable indicating that we want to dump test environment variables to a specified file.
+        env_dump_file = env.shell.getenv("AWS_SETUP_CRT_TEST_ENVIRONMENT_DUMP_FILE")
+
         # Bail if not running tests
-        if not env.project.needs_tests(env):
+        if not env.project.needs_tests(env) and not env_dump_file:
             print('Tests not needed for project. Skipping setting test environment variables')
             return
 
@@ -471,3 +482,10 @@ class SetupCrossCICrtEnvironment(Action):
         print(f"Detected whether on Codebuild: {self.is_codebuild}")
 
         self._common_setup(env)
+
+        # Create a temporary file with all environment variables.
+        # Useful for running tests locally.
+        if env_dump_file:
+            with open(file=env_dump_file, mode='w+') as file:
+                for env_name, env_value in env.project.config['test_env'].items():
+                    file.write(f"export {env_name}={env_value}\n")

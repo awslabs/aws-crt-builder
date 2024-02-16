@@ -23,6 +23,10 @@ def create_windows_cert_store(env, certificate_env, location_env):
     # Import the PFX into the Windows Certificate Store
     # (Passing '$mypwd' is required even though it is empty and our certificate has no password. It fails CI otherwise)
     import_pfx_arguments = [
+        # Powershell 7.3 introduced an issue where launching powershell from cmd would not set PSModulePath correctly.
+        # As a workaround, we set `PSModulePath` to empty so powershell would automatically reset the PSModulePath to default.
+        # More details: https://github.com/PowerShell/PowerShell/issues/18530
+        "$env:PSModulePath = '';",
         "Import-PfxCertificate",
         "-FilePath", pfx_cert_path,
         "-CertStoreLocation", windows_certificate_folder]
@@ -215,7 +219,7 @@ def _get_token_slots(env):
 
 def _get_softhsm2_version(env):
     output = _exec_softhsm2_util(env, '--version').output
-    match = re.match('([0-9+])\.([0-9]+).([0-9]+)', output)
+    match = re.match(r'([0-9+])\.([0-9]+).([0-9]+)', output)
     return (int(match.group(1)), int(match.group(2)), int(match.group(3)))
 
 ################################################################################
