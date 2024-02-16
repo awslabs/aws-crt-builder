@@ -19,7 +19,7 @@ RUN apk add \
     cmake \
     bash \
     aws-cli \
-    perl
+    perl-strictures
 
 WORKDIR /tmp
 
