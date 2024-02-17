@@ -7,7 +7,7 @@ RUN mkdir -p /usr/local/bin
 RUN opkg update
 
 # packages in openwrt
-RUN opkg install git-http ca-bundle curl python3 python3-pip gcc make bash sudo perl-strictures
+RUN opkg install git-http ca-bundle curl python3 python3-pip gcc make bash sudo perl perlbase-essential
 
 # packages we have to get from alpine
 
@@ -36,6 +36,4 @@ RUN ar -rc /usr/lib/libm.a
 ###############################################################################
 # Install entrypoint
 ###############################################################################
-ADD entrypoint.sh /usr/local/bin/builder
-RUN chmod a+x /usr/local/bin/builder
-ENTRYPOINT ["/usr/local/bin/builder"]
+RUN perl --version
