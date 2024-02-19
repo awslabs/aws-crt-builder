@@ -7,6 +7,7 @@ from pathlib import Path
 from builder.core.fetch import fetch_and_extract, mirror_package
 from builder.core.project import Import
 import builder.core.util as util
+from builder.core.host import current_platform
 
 URLs = {
     'linux-armv6': 'https://go.dev/dl/go1.21.5.linux-armv6l.tar.gz',
@@ -65,7 +66,11 @@ class GOLANG(Import):
             target, install_dir))
 
         sh.mkdir(install_dir)
-        url = URLs[target]
+        if cross_compile:
+            # If cross compile using the go execuble for current platform instead to codegen
+            url = URLs[current_platform()]
+        else:
+            url = URLs[target]
         ext = '.tar.gz' if url.endswith('.tar.gz') else '.zip'
         filename = '{}/golang{}'.format(install_dir, ext)
         print('Downloading {}'.format(url))
@@ -73,8 +78,13 @@ class GOLANG(Import):
         os.remove(filename)
 
         # Set PATH
-        go_path = '{}/go/bin'.format(install_dir)
-        sh.setenv('PATH', '{}{}{}'.format(go_path, os.pathsep, sh.getenv('PATH')))
+        if cross_compile:
+            # Path to go binary
+            env.variables['go_path'] = "/work/"+str(Path(os.path.join(install_dir, 'go/bin')
+                                    ).relative_to(env.root_dir))
+        else:
+            # export the PATH directly if not cross compile.
+            env.variables['go_path'] = '{}/go/bin'.format(install_dir)
 
         self.installed = True
 
