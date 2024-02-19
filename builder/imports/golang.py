@@ -84,7 +84,8 @@ class GOLANG(Import):
                                     ).relative_to(env.root_dir))
         else:
             # export the PATH directly if not cross compile.
-            env.variables['go_path'] = '{}/go/bin'.format(install_dir)
+            # env.variables['go_path'] = '{}/go/bin'.format(install_dir)
+            sh.setenv('PATH', '{}{}{}'.format('{}/go/bin'.format(install_dir), os.pathsep, sh.getenv('PATH')))
 
         self.installed = True
 
