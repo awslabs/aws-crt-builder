@@ -11,7 +11,7 @@ config = {
     'targets': ['linux', 'android'],
     'test_steps': [],
     'build_tests': False,
-    'cmake_args': ['-DFIPS=ON', '-DBUILD_LIBSSL=OFF']
+    'cmake_args': ['-DDISABLE_GO=ON', '-DBUILD_LIBSSL=OFF']
 }
 
 
@@ -23,7 +23,6 @@ class AWSLCImport(Import):
             library=True,
             account='aws',
             name='aws-lc',
-            imports=['golang'],
             config=config,
             **kwargs)
 
@@ -51,7 +50,6 @@ class AWSLCProject(Project):
         super().__init__(
             account='aws',
             name='aws-lc',
-            imports=['golang'],
             **config,
             **kwargs)
 
@@ -61,4 +59,4 @@ class AWSLCProject(Project):
             # Not disable PERL for old GCC to avoid the pre-compiled binary with AVX512
             return super().cmake_args(env) + ['-DMY_ASSEMBLER_IS_TOO_OLD_FOR_512AVX=ON']
         else:
-            return super().cmake_args(env)
+            return super().cmake_args(env)+ ['-DDISABLE_PERL=ON']
