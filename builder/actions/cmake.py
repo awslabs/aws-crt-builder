@@ -103,7 +103,12 @@ def _project_dirs(env, project):
 def _build_project(env, project, cmake_extra, build_tests=False, args_transformer=None, coverage=False):
     sh = env.shell
     config = project.get_config(env.spec)
+    build_env = []
     toolchain = env.toolchain
+    if toolchain.cross_compile and env.variables['go_path'] is not None:
+        # We need to set the envrionment variable of GO_PATH for cross compile
+        build_env = ["GO_PATH={}\n".format(env.variables['go_path'])]
+
     # build dependencies first, let cmake decide what needs doing
     for dep in project.get_dependencies(env.spec):
         _build_project(env, dep, cmake_extra)
@@ -178,13 +183,11 @@ def _build_project(env, project, cmake_extra, build_tests=False, args_transforme
         cmake_args = args_transformer(env, project, cmake_args)
 
     # When cross compiling, we must inject the build_env into the cross compile container
-    build_env = []
     if toolchain.cross_compile:
-        build_env = ['{}={}\n'.format(key, val)
+        build_env = build_env + ['{}={}\n'.format(key, val)
                      for key, val in config.get('build_env', {}).items()]
         with open(toolchain.env_file, 'a') as f:
             f.writelines(build_env)
-
     # set parallism via env var (cmake's --parallel CLI option doesn't exist until 3.12)
     if os.environ.get('CMAKE_BUILD_PARALLEL_LEVEL') is None:
         sh.setenv('CMAKE_BUILD_PARALLEL_LEVEL', str(os.cpu_count()))
