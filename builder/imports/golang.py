@@ -81,7 +81,7 @@ class GOLANG(Import):
         if cross_compile:
             # Path to go binary
             env.variables['go_path'] = "/work/"+str(Path(os.path.join(install_dir, 'go/bin')
-                                    ).relative_to(env.root_dir))
+                                                         ).relative_to(env.root_dir))
         else:
             # export the PATH directly if not cross compile.
             # env.variables['go_path'] = '{}/go/bin'.format(install_dir)
