@@ -185,7 +185,7 @@ def _build_project(env, project, cmake_extra, build_tests=False, args_transforme
     # When cross compiling, we must inject the build_env into the cross compile container
     if toolchain.cross_compile:
         build_env = build_env + ['{}={}\n'.format(key, val)
-                     for key, val in config.get('build_env', {}).items()]
+                                 for key, val in config.get('build_env', {}).items()]
         with open(toolchain.env_file, 'a') as f:
             f.writelines(build_env)
     # set parallism via env var (cmake's --parallel CLI option doesn't exist until 3.12)
