@@ -105,7 +105,7 @@ def _build_project(env, project, cmake_extra, build_tests=False, args_transforme
     config = project.get_config(env.spec)
     build_env = []
     toolchain = env.toolchain
-    if toolchain.cross_compile and 'go_path' in env.variables and env.variables['go_path'] is not None:
+    if toolchain.cross_compile and 'go_path' in env.variables:
         # We need to set the envrionment variable of GO_PATH for cross compile
         build_env = ["GO_PATH={}\n".format(env.variables['go_path'])]
 
