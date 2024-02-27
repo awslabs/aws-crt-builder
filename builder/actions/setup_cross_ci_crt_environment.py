@@ -56,6 +56,7 @@ class SetupCrossCICrtEnvironment(Action):
                     file.flush()
                 self.tmp_file_storage.append(filename)
                 os.chmod(filename, 777)
+                print("chmod file {}".format(filename))
                 self._setenv(env, env_name, filename)
         except:
             print("[ERROR]: Could not get secret file with name: " + str(secret_name))
