@@ -274,6 +274,10 @@ HOSTS = {
         'sudo': True,
 
         'pkg_tool': PKG_TOOLS.PKG,
+        'packages': [
+            'cmake',
+            'git',
+        ],
         'pkg_update': 'pkg update',
         'pkg_install': 'pkg install -y'
     },
