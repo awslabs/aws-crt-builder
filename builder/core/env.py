@@ -136,6 +136,14 @@ class Env(object):
         # see: https://docs.github.com/en/actions/reference/environment-variables#default-environment-variables
         github_head_ref = os.environ.get("GITHUB_HEAD_REF")
         github_ref = os.environ.get("GITHUB_REF")
+
+        # set when codebuild triggers from webhook integration with GH
+        # see: https://docs.aws.amazon.com/codebuild/latest/userguide/build-env-ref-env-vars.html
+        # format: refs/heads/[branch|tag]
+        codebuild_head_ref = os.environ.get("CODEBUILD_WEBHOOK_HEAD_REF")
+
+        head_ref = github_ref if github_ref is not None else codebuild_head_ref
+
         if github_head_ref:
             # if we are triggered from a PR then we are in a detached head state (e.g. `refs/pull/:prNumber/merge`)
             # and we need to grab the branch being merged from
@@ -143,11 +151,11 @@ class Env(object):
             branch = github_head_ref
             print("Found github ref for PR from: {}".format(branch))
             return branch
-        elif github_ref:
+        elif head_ref:
             origin_str = "refs/heads/"
-            if github_ref.startswith(origin_str):
-                branch = github_ref[len(origin_str):]
-                print("Found github ref: {}".format(branch))
+            if head_ref.startswith(origin_str):
+                branch = head_ref[len(origin_str):]
+                print("Found head ref: {}".format(branch))
                 return branch
 
         try:
