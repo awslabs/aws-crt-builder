@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0.
 
 from builder.core.fetch import fetch_script, fetch_and_extract
-from builder.core.host import current_os, current_arch
+from builder.core.host import current_os, current_arch, current_host
 from builder.core.project import Import
 import builder.core.util as util
 from builder.actions.install import InstallPackages
@@ -32,7 +32,7 @@ class NodeJS(Import):
                 'targets': ['linux'],
             },
             **kwargs)
-        self.url = 'https://raw.githubusercontent.com/nvm-sh/nvm/v0.38.0/install.sh'
+        self.url = 'https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh'
         self.version = kwargs.get('version', DEFAULT_VERSION)
 
         self.nvm = 'nvm'
@@ -70,6 +70,7 @@ class NodeJS(Import):
             node_path = os.path.dirname(result.output)
             sh.setenv('PATH', '{}{}{}'.format(
                 node_path, os.pathsep, sh.getenv('PATH')))
+
         else:
             sh.exec('nvm', 'use', '10.16', check=True)
             sh.exec('refreshenv', check=True)

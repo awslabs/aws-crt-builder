@@ -1,4 +1,4 @@
-FROM amd64/alpine:3.16.2
+FROM amd64/alpine:3.12.12
 
 ###############################################################################
 # Install prereqs
@@ -19,10 +19,7 @@ RUN apk add \
     bash \
     aws-cli \
     gcompat \
-    coreutils \
-    automake \
-    autoconf \
-    libtool 
+    coreutils
 
 WORKDIR /tmp
 
