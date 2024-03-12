@@ -143,8 +143,7 @@ const checkSubmodules = async function () {
             if (nonCrtRepo.test(submodule.name)) {
                 const isOnMain = await isAncestor(diff.thisCommit, 'origin/main', submodule.path);
                 if (!isOnMain) {
-                    const awslc = /^(aws-lc)$/
-                    if (awslc.test(submodule.name)) {
+                    if (/^(aws-lc)$/.test(submodule.name)) {
                         // for aws-lc we also use fips-2022-11-02 branch for FIPS support.
                         const isOnFIPS = await isAncestor(diff.thisCommit, 'origin/fips-2022-11-02', submodule.path);
                         if (!isOnFIPS) {
