@@ -7,7 +7,7 @@ RUN mkdir -p /usr/local/bin
 RUN opkg update
 
 # packages in openwrt
-RUN opkg install git-http ca-bundle curl python3 python3-pip gcc make bash sudo
+RUN opkg install git-http ca-bundle curl python3 python3-pip gcc make bash sudo perl
 
 # packages we have to get from alpine
 
@@ -27,7 +27,7 @@ RUN tar -xzf apk-tools-static-2.12.9-r3.apk
 RUN ./sbin/apk.static -X http://dl-cdn.alpinelinux.org/alpine/v3.16/main -X http://dl-cdn.alpinelinux.org/alpine/v3.16/community -U --allow-untrusted --initdb add cmake openjdk8 maven aws-cli
 
 # stub libraries for stuff we unconditionally link; functionality is all actually in musl already
-# long term we might want to make our recognition better, but this is a blocker for the s2n build 
+# long term we might want to make our recognition better, but this is a blocker for the s2n build
 RUN ar -rc /usr/lib/libpthread.a
 RUN ar -rc /usr/lib/libdl.a
 RUN ar -rc /usr/lib/librt.a
