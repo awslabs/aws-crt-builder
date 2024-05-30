@@ -148,12 +148,15 @@ class Toolchain(object):
                               self.compiler_version, self.target, self.arch])
 
     def compiler_path(self):
+        print("DEBUG_CLANG: in compiler_path")
         assert not self.cross_compile
         if self.compiler == 'default':
             return Toolchain.default_compiler()[0]
+        print("DEBUG_CLANG: try access compiler {}".format(self.compiler))
         return Toolchain.find_compiler(self.compiler, self.compiler_version if self.compiler_version != 'default' else None)[0]
 
     def cxx_compiler_path(self):
+        print("DEBUG_CLANG: in cxx_compiler_path, compiler is {}".format(self.compiler))
         assert not self.cross_compile
         compiler = self.compiler
         if self.compiler == 'default':
