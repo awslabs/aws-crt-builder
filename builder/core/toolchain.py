@@ -42,13 +42,16 @@ def _find_compiler_tool(name, versions):
     if path:
         version = _compiler_version(path)[1]
         if version in versions:
+            print("DEBUG_CLANG: find compiler path return1")
             return path, version
     for version in versions:
         for pattern in ('{name}-{version}', '{name}-{version}.0'):
             exe = pattern.format(name=name, version=version)
             path = util.where(exe, resolve_symlinks=False)
             if path:
+                print("DEBUG_CLANG: find compiler path return2")
                 return path, version
+    print("DEBUG_CLANG: find compiler path return3")
     return None, None
 
 
@@ -237,6 +240,7 @@ class Toolchain(object):
             if current_os() == "macos":
                 return Toolchain.find_apple_llvm_compiler(compiler, version)
             else:
+                print("DEBUG_CLANG: try find_compiler() in clang")
                 return Toolchain.find_llvm_tool(compiler, version)
         elif compiler == 'appleclang':
             return Toolchain.find_apple_llvm_compiler('clang', version)
