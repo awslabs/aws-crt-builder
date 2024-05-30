@@ -60,6 +60,7 @@ def _clang_versions():
                 ['versions'].keys() if v != 'default']
     versions.sort()
     versions.reverse()
+    print("DEBUG_CLANG: versions {}".format(versions))
     return versions
 
 
