@@ -14,7 +14,7 @@ def _compiler_version(cc):
     if current_os() != 'windows':
         result = util.run_command(cc, '--version', quiet=True)
         lines = result.output.split('\n')
-
+        print("DEBUG_CLANG: compiler version {}".format(lines))
         for text in lines:
             # Apple clang
             m = re.match(r'Apple (LLVM|clang) version (\d+)', text)
@@ -38,6 +38,7 @@ def _compiler_version(cc):
 def _find_compiler_tool(name, versions):
     # look for the default tool, and see if the version is in the search set
     path = util.where(name, resolve_symlinks=False)
+    print("DEBUG_CLANG: find compiler path {}".format(path))
     if path:
         version = _compiler_version(path)[1]
         if version in versions:
