@@ -59,10 +59,12 @@ def _find_compiler_tool(name, versions):
 
 def _clang_versions(version=None):
     versions = []
+    print('DEBUG_CLANG: _clang_versions {}'.format(version))
     if version:
         versions = [version]
-        versions.append(COMPILERS['clang']['versions']
-                        [version]['releases'])
+        specific_versions = COMPILERS['clang']['versions'][str(version)]['releases']
+        if specific_versions:
+            versions.append(specific_versions)
     else:
         versions = [v for v in COMPILERS['clang']
                     ['versions'].keys() if v != 'default']
