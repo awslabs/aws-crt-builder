@@ -58,6 +58,7 @@ def _find_compiler_tool(name, versions):
 
 
 def _clang_versions(version=None):
+    versions = []
     print('DEBUG_CLANG: _clang_versions {}'.format(version))
     all_versions = [v for v in COMPILERS['clang']
                 ['versions'].keys() if v != 'default']
