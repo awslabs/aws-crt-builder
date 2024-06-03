@@ -197,7 +197,7 @@ class Toolchain(object):
     def find_llvm_tool(name, version=None):
         """ Finds clang, clang-tidy, lld, etc at a specific version, or the
         latest one available """
-        versions = _clang_versions()
+        versions = _clang_versions(version)
         return _find_compiler_tool(name, versions)
 
     @staticmethod
