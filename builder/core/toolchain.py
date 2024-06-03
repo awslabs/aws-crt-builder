@@ -57,9 +57,15 @@ def _find_compiler_tool(name, versions):
     return None, None
 
 
-def _clang_versions():
-    versions = [v for v in COMPILERS['clang']
-                ['versions'].keys() if v != 'default']
+def _clang_versions(version=None):
+    versions = []
+    if version:
+        versions = [version]
+        versions.append(COMPILERS['clang']['versions']
+                        [version]['releases'])
+    else:
+        versions = [v for v in COMPILERS['clang']
+                    ['versions'].keys() if v != 'default']
     versions.sort()
     versions.reverse()
     print("DEBUG_CLANG: versions {}".format(versions))
@@ -191,7 +197,7 @@ class Toolchain(object):
     def find_llvm_tool(name, version=None):
         """ Finds clang, clang-tidy, lld, etc at a specific version, or the
         latest one available """
-        versions = [version] if version else _clang_versions()
+        versions = _clang_versions()
         return _find_compiler_tool(name, versions)
 
     @staticmethod

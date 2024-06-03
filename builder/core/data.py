@@ -508,10 +508,8 @@ COMPILERS = {
             '3': {
                 'c': "clang-3.9",
                 'cxx': "clang++-3.9",
-            },
-            '3.9': {
-                'c': "clang-3.9",
-                'cxx': "clang++-3.9",
+                # specific version number in use
+                'releases': ['3.9']
             },
             '6': {
                 'c': "clang-6.0",
