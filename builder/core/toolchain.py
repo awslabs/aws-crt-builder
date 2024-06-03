@@ -45,8 +45,10 @@ def _find_compiler_tool(name, versions):
             print("DEBUG_CLANG: find compiler path return1")
             return path, version
     for version in versions:
+        print("DEBUG_CLANG VERSION {}".format(version))
         for pattern in ('{name}-{version}', '{name}-{version}.0'):
             exe = pattern.format(name=name, version=version)
+            print("version: {}".format(exe))
             path = util.where(exe, resolve_symlinks=False)
             if path:
                 print("DEBUG_CLANG: find compiler path return2")
