@@ -144,8 +144,7 @@ def _build_project(env, project, cmake_extra, build_tests=False, args_transforme
                     '-DCMAKE_{}_COMPILER={}'.format(opt.upper(), value))
                 if 'clang-3' in value:
                     # enable extra compiler flags
-                    compiler_flags.append("-Wextra")
-                    compiler_flags.append("-Wno-missing-field-initializers")
+                    compiler_flags.append("COMPILE_FLAGS=\"-Wextra,-Wno-missing-field-initializers\"")
     cmake_args = UniqueList([
         "-B{}".format(project_build_dir),
         "-H{}".format(project_source_dir),
