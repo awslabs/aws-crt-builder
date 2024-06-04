@@ -102,7 +102,6 @@ def export_compiler(compiler, env):
 
     if not env.shell.getenv('CC'):
         cc_path = toolchain.compiler_path()
-        print("DEBUG_CLANG: print cc_path {}".format(cc_path))
         if cc_path:
             env.shell.setenv('CC', cc_path)
         else:

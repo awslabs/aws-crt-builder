@@ -14,7 +14,6 @@ def _compiler_version(cc):
     if current_os() != 'windows':
         result = util.run_command(cc, '--version', quiet=True)
         lines = result.output.split('\n')
-        print("DEBUG_CLANG: compiler version {}".format(lines))
         for text in lines:
             # Apple clang
             m = re.match(r'Apple (LLVM|clang) version (\d+)', text)
@@ -38,28 +37,22 @@ def _compiler_version(cc):
 def _find_compiler_tool(name, versions):
     # look for the default tool, and see if the version is in the search set
     path = util.where(name, resolve_symlinks=False)
-    print("DEBUG_CLANG: find compiler path {}".format(path))
     if path:
         version = _compiler_version(path)[1]
         if version in versions:
-            print("DEBUG_CLANG: find compiler path return1")
             return path, version
     for version in versions:
-        print("DEBUG_CLANG VERSION {}".format(version))
         for pattern in ('{name}-{version}', '{name}-{version}.0'):
             exe = pattern.format(name=name, version=version)
             print("version: {}".format(exe))
             path = util.where(exe, resolve_symlinks=False)
             if path:
-                print("DEBUG_CLANG: find compiler path return2")
                 return path, version
-    print("DEBUG_CLANG: find compiler path return3")
     return None, None
 
 
 def _clang_versions(version=None):
     versions = []
-    print('DEBUG_CLANG: _clang_versions {}'.format(version))
     all_versions = [v for v in COMPILERS['clang']
                 ['versions'].keys() if v != 'default']
     if version:
@@ -71,7 +64,6 @@ def _clang_versions(version=None):
         versions += all_versions
     versions.sort()
     versions.reverse()
-    print("DEBUG_CLANG: versions {}".format(versions))
     return versions
 
 
@@ -164,15 +156,12 @@ class Toolchain(object):
                               self.compiler_version, self.target, self.arch])
 
     def compiler_path(self):
-        print("DEBUG_CLANG: in compiler_path")
         assert not self.cross_compile
         if self.compiler == 'default':
             return Toolchain.default_compiler()[0]
-        print("DEBUG_CLANG: try access compiler {}".format(self.compiler))
         return Toolchain.find_compiler(self.compiler, self.compiler_version if self.compiler_version != 'default' else None)[0]
 
     def cxx_compiler_path(self):
-        print("DEBUG_CLANG: in cxx_compiler_path, compiler is {}".format(self.compiler))
         assert not self.cross_compile
         compiler = self.compiler
         if self.compiler == 'default':
@@ -252,7 +241,6 @@ class Toolchain(object):
             if current_os() == "macos":
                 return Toolchain.find_apple_llvm_compiler(compiler, version)
             else:
-                print("DEBUG_CLANG: try find_compiler() in clang")
                 return Toolchain.find_llvm_tool(compiler, version)
         elif compiler == 'appleclang':
             return Toolchain.find_apple_llvm_compiler('clang', version)
