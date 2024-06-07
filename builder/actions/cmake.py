@@ -124,6 +124,7 @@ def _merge_cmake_lang_flags(cmake_args):
 
     return new_cmake_args
 
+
 def _build_project(env, project, cmake_extra, build_tests=False, args_transformer=None, coverage=False):
     sh = env.shell
     config = project.get_config(env.spec)
