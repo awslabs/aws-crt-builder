@@ -510,7 +510,7 @@ COMPILERS = {
                 'cxx': "clang++-3.9",
                 # specific version number in use
                 'releases': ['3.9'],
-                'cmake_args': ['-DCMAKE_C_FLAGS=-Wno-missing-field-initializers'],
+                'cmake_args': ['-DCMAKE_C_FLAGS="-Wno-missing-field-initializers -Wno-extended-offsetof"'],
             },
             '6': {
                 'c': "clang-6.0",
