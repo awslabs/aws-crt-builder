@@ -231,8 +231,12 @@ def _build_project(env, project, cmake_extra, build_tests=False, args_transforme
     sh.exec(*toolchain.shell_env, cmake, cmake_args, working_dir=working_dir, check=True)
 
     # build & install
-    sh.exec(*toolchain.shell_env, cmake, "--build", project_build_dir, "--config",
-            build_config, "--target", "install", working_dir=working_dir, check=True)
+    if toolchain.host == 'linux':
+        sh.exec(*toolchain.shell_env, cmake, "--build", project_build_dir, "--config",
+                build_config, "--verbose", "--target", "install", working_dir=working_dir, check=True)
+    else:
+        sh.exec(*toolchain.shell_env, cmake, "--build", project_build_dir, "--config",
+                build_config, "--target", "install", working_dir=working_dir, check=True)
 
 
 class CMakeBuild(Action):
