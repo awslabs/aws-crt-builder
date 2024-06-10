@@ -1,1 +1,0 @@
-FROM aptman/qus:latest

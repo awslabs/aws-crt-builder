@@ -87,7 +87,6 @@ jobs:
         - alpine-3.16-armv7
         - alpine-3.16-armv6
         - openwrt-x64-openjdk8
-        - aptman-qus
 
     steps:
     - name: Checkout Sources
