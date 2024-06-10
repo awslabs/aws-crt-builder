@@ -189,6 +189,7 @@ def _build_project(env, project, cmake_extra, build_tests=False, args_transforme
     # as off. Without UniqueList cmake will treat it as on.
     cmake_args += project.cmake_args(env)
     cmake_args += cmake_extra
+    cmake_args += '-DCMAKE_VERBOSE_MAKEFILE=ON'
     if coverage:
         if c_path and "gcc" in c_path:
             # Tell cmake to add coverage related configuration. And make sure GCC is used to compile the project.
@@ -232,12 +233,8 @@ def _build_project(env, project, cmake_extra, build_tests=False, args_transforme
 
     print("=== toolchain.host is {}".format(toolchain.host))
     # build & install
-    if toolchain.host == 'ubuntu':
-        sh.exec(*toolchain.shell_env, cmake, "--build", project_build_dir, "--config",
-                build_config, "--verbose", "--target", "install", working_dir=working_dir, check=True)
-    else:
-        sh.exec(*toolchain.shell_env, cmake, "--build", project_build_dir, "--config",
-                build_config, "--target", "install", working_dir=working_dir, check=True)
+    sh.exec(*toolchain.shell_env, cmake, "--build", project_build_dir, "--config",
+            build_config, "--target", "install", working_dir=working_dir, check=True)
 
 
 class CMakeBuild(Action):
