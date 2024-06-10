@@ -1,7 +1,7 @@
 #!/bin/bash
 # $1 - TARGET_ARCH
 
-set -e
+set -ex
 TARGET_ARCH=$1
 shift
 
