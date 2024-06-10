@@ -232,7 +232,7 @@ def _build_project(env, project, cmake_extra, build_tests=False, args_transforme
 
     print("=== toolchain.host is {}".format(toolchain.host))
     # build & install
-    if toolchain.host == 'linux':
+    if toolchain.host == 'ubuntu':
         sh.exec(*toolchain.shell_env, cmake, "--build", project_build_dir, "--config",
                 build_config, "--verbose", "--target", "install", working_dir=working_dir, check=True)
     else:
