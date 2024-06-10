@@ -6,4 +6,5 @@ TARGET_ARCH=$1
 shift
 
 aws ecr get-login-password | docker login 123124136734.dkr.ecr.us-east-1.amazonaws.com -u AWS --password-stdin
-docker run --rm --privileged aws-crt-aptman-qus -s -- -p $TARGET_ARCH
+export DOCKER_IMAGE=123124136734.dkr.ecr.us-east-1.amazonaws.com/aws-crt-aptman-qus:${BUILDER_VERSION}
+docker run --rm --privileged $DOCKER_IMAGE -s -- -p $TARGET_ARCH
