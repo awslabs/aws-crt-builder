@@ -36,6 +36,7 @@ RUN apt-get update -qq \
     python3.9 \
     python3-dev \
     python3-pip \
+    python3-venv \
     build-essential \
     # For PPAs
     software-properties-common \
