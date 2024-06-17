@@ -1,4 +1,4 @@
-FROM dtcooper/raspberrypi-os:bullseye
+FROM --platform=linux/arm/v7 dtcooper/raspberrypi-os:bullseye
 
 ###############################################################################
 # Install prereqs
