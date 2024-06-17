@@ -1,23 +1,4 @@
-FROM raspbian/stretch as raspbian-bullseye
-
-###############################################################################
-# Upgrade to bullseye from stretch
-###############################################################################
-
-RUN apt-get update \
-	&& apt-get upgrade -y \
-	&& apt-get full-upgrade -y \
-	&& apt-get autoremove --purge -y \
-	&& apt-get clean -y \
-	# Switch to bullseye repository.
-	&& sed -i 's/stretch/bullseye/g' /etc/apt/sources.list \
-	# Update all packages.
-	&& apt-get update \
-	&& apt-get upgrade -y \
-	&& apt-get full-upgrade -y \
-	&& apt-get autoremove --purge -y \
-	&& apt-get clean -y
-
+FROM dtcooper/raspberrypi-os:bullseye
 
 ###############################################################################
 # Install prereqs
