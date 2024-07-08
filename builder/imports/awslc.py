@@ -11,7 +11,7 @@ config = {
     'targets': ['linux', 'android'],
     'test_steps': [],
     'build_tests': False,
-    'cmake_args': ['-DDISABLE_GO=ON', '-DBUILD_LIBSSL=OFF']
+    'cmake_args': ['-DDISABLE_GO=ON', '-DBUILD_LIBSSL=OFF', '-DDISABLE_PERL=ON']
 }
 
 
@@ -54,11 +54,8 @@ class AWSLCProject(Project):
             **kwargs)
 
     def cmake_args(self, env):
-        # always disable perl to skip codegen and instead rely on pre-generated code
-        args = super().cmake_args(env) + ['-DDISABLE_PERL=ON']
-
         if env.spec.compiler == 'gcc' and env.spec.compiler_version.startswith('4.'):
             # Disable AVX512 on old GCC versions for aws-lc as they dont support AVX512 instructions used by aws-lc
-            args += ['-DMY_ASSEMBLER_IS_TOO_OLD_FOR_512AVX=ON']
+            return super().cmake_args(env) + ['-DMY_ASSEMBLER_IS_TOO_OLD_FOR_512AVX=ON']
 
-        return args
+        return super().cmake_args(env)
