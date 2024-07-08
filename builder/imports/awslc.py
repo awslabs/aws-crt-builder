@@ -54,9 +54,11 @@ class AWSLCProject(Project):
             **kwargs)
 
     def cmake_args(self, env):
+        # always disable perl to skip codegen and instead rely on pre-generated code
+        args = super().cmake_args(env) + ['-DDISABLE_PERL=ON']
+
         if env.spec.compiler == 'gcc' and env.spec.compiler_version.startswith('4.'):
-            # Disable AVX512 on old GCC for aws-lc
-            # Not disable PERL for old GCC to avoid the pre-compiled binary with AVX512
-            return super().cmake_args(env) + ['-DDISABLE_PERL=ON', '-DMY_ASSEMBLER_IS_TOO_OLD_FOR_512AVX=ON']
-        else:
-            return super().cmake_args(env) + ['-DDISABLE_PERL=ON']
+            # Disable AVX512 on old GCC versions for aws-lc as they dont support AVX512 instructions used by aws-lc
+            args += ['-DMY_ASSEMBLER_IS_TOO_OLD_FOR_512AVX=ON']
+
+        return args
