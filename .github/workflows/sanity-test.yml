@@ -78,7 +78,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        host: [ubuntu-22.04, macos-11, macos-12, windows-2022]
+        host: [ubuntu-22.04, macos-12, macos-13, macos-14, windows-2022]
     needs: package
     runs-on: ${{ matrix.host }}
     steps:
