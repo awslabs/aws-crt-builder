@@ -19,6 +19,7 @@ URLs = {
     'windows-x64': 'https://go.dev/dl/go1.21.5.windows-amd64.zip',
     'windows-x86': 'https://go.dev/dl/go1.21.5.windows-386.zip',
     'macos-x64': 'https://go.dev/dl/go1.21.5.darwin-amd64.tar.gz',
+    'macos-armv8': 'https://go.dev/dl/go1.21.5.darwin-arm64.tar.gz',
 }
 
 
