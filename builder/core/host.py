@@ -25,15 +25,15 @@ def current_os():
 
 
 def current_arch():
-    if current_os() == 'linux':
+    if current_os() == 'linux' or current_os() == 'macos':
         machine_id = os.uname()[4]
-        m = re.match(r'^(aarch64|armv[6-8])', machine_id.strip())
+        m = re.match(r'^(aarch64|armv[6-8]|arm64)', machine_id.strip())
         if m:
             arch = m.group(1)
             if arch == 'aarch64':
                 arch = 'armv8'
             return arch
-    return ('x64' if sys.maxsize > 2**32 else 'x86')
+    return 'x64' if sys.maxsize > 2**32 else 'x86'
 
 
 def current_platform():
