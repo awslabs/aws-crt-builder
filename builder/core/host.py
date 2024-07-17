@@ -33,7 +33,7 @@ def current_arch():
             if arch == 'aarch64':
                 arch = 'armv8'
             return arch
-    return 'x64' if sys.maxsize > 2 ** 32 else 'x86'
+    return 'x64' if sys.maxsize > 2**32 else 'x86'
 
 
 def current_platform():
