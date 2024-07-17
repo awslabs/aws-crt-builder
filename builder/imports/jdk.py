@@ -56,20 +56,20 @@ class JDK8(Import):
                     'lib/**/jvm.dll', '**/lib/**/jvm.dll'],
             ]
             found = 0
-
-            for paths in required_files:
-                path_found = False
-                for path in paths:
-                    for prefix in prefixes:
-                        if not prefix:
-                            continue
-                        full_path = os.path.join(prefix, path)
-                        if glob.glob(full_path, recursive=True):
-                            found += 1
-                            path_found = True
-                            break
-                    if path_found:
-                        break
+            #
+            # for paths in required_files:
+            #     path_found = False
+            #     for path in paths:
+            #         for prefix in prefixes:
+            #             if not prefix:
+            #                 continue
+            #             full_path = os.path.join(prefix, path)
+            #             if glob.glob(full_path, recursive=True):
+            #                 found += 1
+            #                 path_found = True
+            #                 break
+            #         if path_found:
+            #             break
 
             if found >= len(required_files):
                 print('Found existing JDK8 at {}'.format(prefix))
@@ -95,8 +95,8 @@ class JDK8(Import):
         print('Downloading {}'.format(url))
         fetch_and_extract(url, filename, install_dir)
         os.remove(filename)
-
-        jdk_home = glob.glob(os.path.join(install_dir, 'jdk*'))[0]
+        print(glob.glob(os.path.join(install_dir, 'jdk*')))
+        jdk_home = glob.glob(os.path.join(install_dir, '*jdk*'))[0]
         assert jdk_home
 
         # OSX is special and has a Contents/Home folder inside the distro
