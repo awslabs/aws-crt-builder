@@ -596,6 +596,7 @@ class Project(object):
         """ Can be overridden to install a project from anywhere """
         imports = self.get_imports(env.spec)
         for imp in imports:
+            print("install imports : {}".format(imp))
             imp.install(env)
 
     def cmake_args(self, env):

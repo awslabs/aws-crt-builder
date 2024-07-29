@@ -134,7 +134,6 @@ class InstallCompiler(Action):
         imports = env.project.get_imports(env.spec)
         for imp in imports:
             if imp.compiler:
-                print("install imports : {}".format(imp))
                 imp.install(env)
 
         export_compiler(env.spec.compiler, env)
