@@ -60,5 +60,5 @@ class AWSLCProject(Project):
             result = result + ['-DMY_ASSEMBLER_IS_TOO_OLD_FOR_512AVX=ON']
         if env.spec.arch == 'x86':
             # Add -msse2 for compiler on x86.
-            result = result + ['-DCMAKE_C_FLAGS="${CMAKE_C_FLAGS} -msse2"']
+            result = result + ['-DCMAKE_C_FLAGS=-msse2']
         return result
