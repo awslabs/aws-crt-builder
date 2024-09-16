@@ -54,11 +54,8 @@ class AWSLCProject(Project):
             **kwargs)
 
     def cmake_args(self, env):
-        result = super().cmake_args(env)
         if env.spec.compiler == 'gcc' and env.spec.compiler_version.startswith('4.'):
             # Disable AVX512 on old GCC versions for aws-lc as they dont support AVX512 instructions used by aws-lc
-            result = result + ['-DMY_ASSEMBLER_IS_TOO_OLD_FOR_512AVX=ON']
-        if env.spec.arch == 'x86':
-            # Add -msse2 for compiler on x86.
-            result = result + ['-DCMAKE_C_FLAGS=-msse2']
-        return result
+            return super().cmake_args(env) + ['-DMY_ASSEMBLER_IS_TOO_OLD_FOR_512AVX=ON']
+
+        return super().cmake_args(env)
