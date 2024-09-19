@@ -430,8 +430,8 @@ class SetupCrossCICrtEnvironment(Action):
     def get_sts_caller_identity(self):
         try:
             # Run AWS CLI command to get STS caller identity
-            result = subprocess.run(['aws', 'sts', 'get-caller-identity'], capture_output=True, text=True)
-
+            result = subprocess.run(['aws', 'sts', 'get-caller-identity'], stdout=subprocess.PIPE,
+                                    stderr=subprocess.PIPE, text=True)
             # Check if the command was successful
             if result.returncode == 0:
                 # Parse the JSON output
@@ -446,8 +446,8 @@ class SetupCrossCICrtEnvironment(Action):
     def run(self, env):
         # A special environment variable indicating that we want to dump test environment variables to a specified file.
         env_dump_file = env.shell.getenv("AWS_SETUP_CRT_TEST_ENVIRONMENT_DUMP_FILE")
-        print(self.get_sts_caller_identity())
-        
+        print(f"waahm7: {self.get_sts_caller_identity()}")
+
         # Bail if not running tests
         if not env.project.needs_tests(env) and not env_dump_file:
             print('Tests not needed for project. Skipping setting test environment variables')
