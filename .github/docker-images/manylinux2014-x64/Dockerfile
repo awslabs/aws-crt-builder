@@ -5,7 +5,7 @@ FROM quay.io/pypa/manylinux2014_x86_64
 ###############################################################################
 # Basics
 ###############################################################################
-RUN yum -y install sudo cmake3 \
+RUN yum -y install sudo cmake3 maven \
     && yum clean all \
     && ln -s `which cmake3` /usr/bin/cmake \
     && ln -s `which ctest3` /usr/bin/ctest \
