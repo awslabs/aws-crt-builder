@@ -5,7 +5,8 @@ FROM quay.io/pypa/manylinux2014_x86_64
 ###############################################################################
 # Basics
 ###############################################################################
-RUN yum -y install sudo cmake3 maven \
+RUN yum -y install sudo cmake3 \
+    maven \ # used in java release pipeline
     && yum clean all \
     && ln -s `which cmake3` /usr/bin/cmake \
     && ln -s `which ctest3` /usr/bin/ctest \
