@@ -6,6 +6,8 @@ FROM quay.io/pypa/manylinux2014_i686
 # Basics
 ###############################################################################
 RUN yum -y install sudo \
+    # used in java release pipeline
+    maven \ 
     && yum clean all
 
 ###############################################################################
