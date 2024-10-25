@@ -71,6 +71,7 @@ jobs:
         - ubuntu-18-x64
         - ubuntu-20-x64
         - ubuntu-20-aarch64
+          extra-build-flag: --platform=linux/aarch64
         - ubuntu-22-x64
         - node-10-linux-x64
         - swift-5-al2-x64
@@ -113,7 +114,7 @@ jobs:
         image_name: aws-crt-${{ matrix.variant }}
         image_tag: ${{ steps.tag.outputs.release_tag }}
         context: .github/docker-images/${{ matrix.variant }}
-        build_extra_args: --compress=true --platform=linux/aarch64
+        build_extra_args: --compress=true ${{ matrix.variant.extra-build-flag }}
 
     - name: Create ECR repo if necessary
       run: |
