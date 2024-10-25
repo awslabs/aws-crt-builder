@@ -58,37 +58,35 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        variant:
-        - manylinux1-x86
-        - manylinux1-x64
-        - manylinux2014-x86
-        - manylinux2014-x64
-        - manylinux2014-aarch64
-        - musllinux-1-1-aarch64
-        - musllinux-1-1-x64
-        - al2012-x64
-        - al2-x64
-        - ubuntu-18-x64
-        - ubuntu-20-x64
-        - ubuntu-20-aarch64  
-        - ubuntu-22-x64
-        - node-10-linux-x64
-        - swift-5-al2-x64
-        - swift-5-centos-x64
-        - swift-5-ubuntu-x64
-        - rhel8-x64
-        - opensuse-leap
-        - fedora-34-x64
-        - raspbian-bullseye
-        - alpine-3.16-x64
-        - alpine-3.16-x86
-        - alpine-3.16-arm64
-        - alpine-3.16-armv7
-        - alpine-3.16-armv6
-        - openwrt-x64-openjdk8
-      include:
-          - variant: ubuntu-20-aarch64
-            extra-build-flag: --platform=linux/aarch64
+        - variant: manylinux1-x86
+        - variant: manylinux1-x64
+        - variant: manylinux2014-x86
+        - variant: manylinux2014-x64
+        - variant: manylinux2014-aarch64
+        - variant: musllinux-1-1-aarch64
+        - variant: musllinux-1-1-x64
+        - variant: al2012-x64
+        - variant: al2-x64
+        - variant: ubuntu-18-x64
+        - variant: ubuntu-20-x64
+        - variant: ubuntu-20-aarch64  
+          extra-build-flag: --platform=linux/aarch64
+        - variant: ubuntu-22-x64
+        - variant: node-10-linux-x64
+        - variant: swift-5-al2-x64
+        - variant: swift-5-centos-x64
+        - variant: swift-5-ubuntu-x64
+        - variant: rhel8-x64
+        - variant: opensuse-leap
+        - variant: fedora-34-x64
+        - variant: raspbian-bullseye
+        - variant: alpine-3.16-x64
+        - variant: alpine-3.16-x86
+        - variant: alpine-3.16-arm64
+        - variant: alpine-3.16-armv7
+        - variant: alpine-3.16-armv6
+        - variant: openwrt-x64-openjdk8
+            
     steps:
     - name: Checkout Sources
       uses: actions/checkout@v4
