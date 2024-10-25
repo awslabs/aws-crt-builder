@@ -111,9 +111,9 @@ jobs:
         registry: ${{ secrets.AWS_ECR_REPO }}
         username: ${{ secrets.AWS_ACCESS_KEY_ID }}
         password: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        image_name: aws-crt-${{ matrix.variant }}
+        image_name: aws-crt-${{ matrix.variant.name }}
         image_tag: ${{ steps.tag.outputs.release_tag }}
-        context: .github/docker-images/${{ matrix.variant }}
+        context: .github/docker-images/${{ matrix.variant.name }}
         build_extra_args: --compress=true ${{ matrix.variant.extra-build-flag }}
 
     - name: Create ECR repo if necessary
