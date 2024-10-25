@@ -53,7 +53,7 @@ jobs:
       run: aws s3 cp ./.github/workflows/linux-container-ci.sh s3://aws-crt-test-stuff/ci/${{ steps.tag.outputs.release_tag }}/linux-container-ci.sh
 
   standard-images:
-    name: ${{ matrix.variant }}
+    name: ${{ matrix.variant.name }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
