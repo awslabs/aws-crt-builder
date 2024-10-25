@@ -53,40 +53,41 @@ jobs:
       run: aws s3 cp ./.github/workflows/linux-container-ci.sh s3://aws-crt-test-stuff/ci/${{ steps.tag.outputs.release_tag }}/linux-container-ci.sh
 
   standard-images:
-    name: ${{ matrix.variant }}
+    name: ${{ matrix.variant.name }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         variant:
-        - manylinux1-x86
-        - manylinux1-x64
-        - manylinux2014-x86
-        - manylinux2014-x64
-        - manylinux2014-aarch64
-        - musllinux-1-1-aarch64
-        - musllinux-1-1-x64
-        - al2012-x64
-        - al2-x64
-        - ubuntu-18-x64
-        - ubuntu-20-x64
-        - ubuntu-20-aarch64
-        - ubuntu-22-x64
-        - node-10-linux-x64
-        - swift-5-al2-x64
-        - swift-5-centos-x64
-        - swift-5-ubuntu-x64
-        - rhel8-x64
-        - opensuse-leap
-        - fedora-34-x64
-        - raspbian-bullseye
-        - alpine-3.16-x64
-        - alpine-3.16-x86
-        - alpine-3.16-arm64
-        - alpine-3.16-armv7
-        - alpine-3.16-armv6
-        - openwrt-x64-openjdk8
-
+        - name: manylinux1-x86
+        - name: manylinux1-x64
+        - name: manylinux2014-x86
+        - name: manylinux2014-x64
+        - name: manylinux2014-aarch64
+        - name: musllinux-1-1-aarch64
+        - name: musllinux-1-1-x64
+        - name: al2012-x64
+        - name: al2-x64
+        - name: ubuntu-18-x64
+        - name: ubuntu-20-x64
+        - name: ubuntu-20-aarch64  
+          extra-build-flag: --platform=linux/aarch64
+        - name: ubuntu-22-x64
+        - name: node-10-linux-x64
+        - name: swift-5-al2-x64
+        - name: swift-5-centos-x64
+        - name: swift-5-ubuntu-x64
+        - name: rhel8-x64
+        - name: opensuse-leap
+        - name: fedora-34-x64
+        - name: raspbian-bullseye
+        - name: alpine-3.16-x64
+        - name: alpine-3.16-x86
+        - name: alpine-3.16-arm64
+        - name: alpine-3.16-armv7
+        - name: alpine-3.16-armv6
+        - name: openwrt-x64-openjdk8
+            
     steps:
     - name: Checkout Sources
       uses: actions/checkout@v4
@@ -99,29 +100,29 @@ jobs:
       run: aws ecr get-login-password --region us-east-1 | docker login ${{ secrets.AWS_ECR_REPO }} -u AWS --password-stdin
 
     - name: Install entrypoint
-      run: cat .github/docker-images/entrypoint.sh | sed s/version=LATEST/version=${{ steps.tag.outputs.release_tag }}/ > .github/docker-images/${{ matrix.variant }}/entrypoint.sh
+      run: cat .github/docker-images/entrypoint.sh | sed s/version=LATEST/version=${{ steps.tag.outputs.release_tag }}/ > .github/docker-images/${{ matrix.variant.name }}/entrypoint.sh
 
     - name: Install qemu/docker
       run: docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
 
-    - name: Build ${{ matrix.variant }} image
+    - name: Build ${{ matrix.variant.name }} image
       uses: whoan/docker-build-with-cache-action@v8
       with:
         registry: ${{ secrets.AWS_ECR_REPO }}
         username: ${{ secrets.AWS_ACCESS_KEY_ID }}
         password: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        image_name: aws-crt-${{ matrix.variant }}
+        image_name: aws-crt-${{ matrix.variant.name }}
         image_tag: ${{ steps.tag.outputs.release_tag }}
-        context: .github/docker-images/${{ matrix.variant }}
-        build_extra_args: --compress=true
+        context: .github/docker-images/${{ matrix.variant.name }}
+        build_extra_args: --compress=true ${{ matrix.variant.extra-build-flag }}
 
     - name: Create ECR repo if necessary
       run: |
-        if ! aws --region us-east-1 ecr describe-repositories --repository-names aws-crt-${{ matrix.variant }} > /dev/null 2>&1; then \
-          aws --region us-east-1 ecr create-repository --repository-name aws-crt-${{ matrix.variant }}; \
+        if ! aws --region us-east-1 ecr describe-repositories --repository-names aws-crt-${{ matrix.variant.name }} > /dev/null 2>&1; then \
+          aws --region us-east-1 ecr create-repository --repository-name aws-crt-${{ matrix.variant.name }}; \
         fi
 
-    - name: Export ${{ matrix.variant }} image to ECR
+    - name: Export ${{ matrix.variant.name }} image to ECR
       run: |
         export IMAGE_TAG=${{ steps.tag.outputs.release_tag }}
-        docker push ${{ secrets.AWS_ECR_REPO }}/aws-crt-${{ matrix.variant }}:$IMAGE_TAG
+        docker push ${{ secrets.AWS_ECR_REPO }}/aws-crt-${{ matrix.variant.name }}:$IMAGE_TAG
