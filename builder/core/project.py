@@ -254,10 +254,10 @@ def _pushenv(project, key, env):
     env.shell.pushenv()
     # set project env defaults
     for var, value in project.config.get('env', {}).items():
-        env.shell.setenv(var, value)
+        env.shell.setenv(var, value, is_secret=True)
     # specific env defaults
     for var, value in project.config.get(key, {}).items():
-        env.shell.setenv(var, value)
+        env.shell.setenv(var, value, is_secret=True)
 
 
 def _popenv(env):
