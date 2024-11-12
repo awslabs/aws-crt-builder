@@ -217,6 +217,13 @@ class SetupCrossCICrtEnvironment(Action):
         self._setenv_secret(env, "AWS_TEST_MQTT5_IOT_CORE_SIGNING_AUTHORIZER_TOKEN_SIGNATURE_UNENCODED",
                             "ci/mqtt5/us/authorizer/signed/signature/unencoded")
 
+        # Fleet Provisoning
+        self._setenv_secret(env, "AWS_TEST_IOT_CORE_PROVISIONING_HOST", "unit-test/endpoint")
+        self._setenv_secret_file(env, "AWS_TEST_IOT_CORE_PROVISIONING_CERTIFICATE_PATH", "ci/mqtt5/us/Mqtt5Prod/cert")
+        self._setenv_secret_file(env, "AWS_TEST_IOT_CORE_PROVISIONING_KEY_PATH", "ci/mqtt5/us/Mqtt5Prod/key")
+        self._setenv(env, "AWS_TEST_IOT_CORE_PROVISIONING_TEMPLATE_NAME", "FleetProvisioningCi")
+        self._setenv_secret_file(env, "AWS_TEST_IOT_CORE_PROVISIONING_CSR_PATH", "ci/mqtt/fleet/provisioning/csr")
+
         # JAVA KEYSTORE (Java uses PKCS#8 keys internally, which currently only Linux supports ATM)
         if (self.is_linux == True):
             self._setenv(env, "AWS_TEST_MQTT5_IOT_CORE_KEYSTORE_FORMAT", "JKS")
