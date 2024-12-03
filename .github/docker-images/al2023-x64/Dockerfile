@@ -18,7 +18,7 @@ RUN yum -y update \
     gcc-c++ \
     which \
     && yum clean all \
-    && rm -rf /var/cache/yum \
+    && rm -rf /var/cache/yum
 
 ###############################################################################
 # Python/AWS CLI
