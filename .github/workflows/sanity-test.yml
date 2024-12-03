@@ -12,14 +12,15 @@ on:
 
 env:
   AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
-  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-  AWS_REGION: 'us-east-1'
+  CRT_CI_ROLE: ${{ secrets.CRT_CI_ROLE_ARN }}
+  AWS_DEFAULT_REGION: us-east-1
+
+
 
 jobs:
   cleanup:
     name: Clean up previous branch jobs
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
     - name: Clean up previous branch jobs
       uses: rokroskar/workflow-run-cleanup-action@master
@@ -28,7 +29,7 @@ jobs:
 
   unit_test:
     name: Unit Tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
     - name: Checkout Source
       uses: actions/checkout@v4
@@ -38,7 +39,7 @@ jobs:
 
   package:
     name: Package builder app
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
     - name: Checkout Source
@@ -78,7 +79,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        host: [ubuntu-22.04, macos-12, macos-13, macos-14, windows-2022]
+        host: [ubuntu-22.04, macos-13, macos-14, windows-2022]
     needs: package
     runs-on: ${{ matrix.host }}
     steps:
@@ -137,7 +138,7 @@ jobs:
 
   # Make sure cross compiling works
   cross_compile:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.24
     needs: [package]
     strategy:
       matrix:
@@ -197,7 +198,7 @@ jobs:
   # Make sure linux compilers + stdlibs are installing properly
   std-compat:
     needs: [package, sanity_test]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
@@ -252,7 +253,7 @@ jobs:
           - aws-crt-nodejs
 
     needs: package
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
     - name: Checkout Source
       uses: actions/checkout@v4
@@ -314,7 +315,7 @@ jobs:
           - swift-5-al2-x64
 
     needs: package
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
     - name: Checkout Source
       uses: actions/checkout@v4
@@ -334,7 +335,7 @@ jobs:
 
   sanity-tests-passed:
     name: All Sanity Tests passed
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs:
     - unit_test
     - sanity_test
