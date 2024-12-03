@@ -187,7 +187,7 @@ jobs:
           - gcc-10
           - gcc-11
     needs: [package]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
     - name: Checkout Source
       uses: actions/checkout@v4
@@ -234,7 +234,7 @@ jobs:
           - aws-iot-device-sdk-python-v2
 
     needs: package
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
     - name: Install builder
       uses: actions/download-artifact@v4
@@ -290,6 +290,11 @@ jobs:
     needs: package
     runs-on: ubuntu-latest
     steps:
+    - uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ env.CRT_CI_ROLE }}
+        aws-region: ${{ env.AWS_DEFAULT_REGION }}
+
     - name: Checkout Source
       uses: actions/checkout@v4
 
@@ -323,6 +328,11 @@ jobs:
     needs: package
     runs-on: ubuntu-24.04
     steps:
+    - uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ env.CRT_CI_ROLE }}
+        aws-region: ${{ env.AWS_DEFAULT_REGION }}
+
     - name: Checkout Source
       uses: actions/checkout@v4
 
