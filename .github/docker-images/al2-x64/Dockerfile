@@ -18,8 +18,7 @@ RUN yum -y update \
     gcc-c++ \
     which \
     && yum clean all \
-    && rm -rf /var/cache/yum \
-    && ctest --version
+    && rm -rf /var/cache/yum
 
 ###############################################################################
 # Python/AWS CLI
@@ -35,6 +34,7 @@ WORKDIR /tmp
 RUN curl -sSL https://d19elf31gohf1l.cloudfront.net/_binaries/cmake/cmake-3.13-manylinux1-x64.tar.gz -o cmake.tar.gz \
     && tar xvzf cmake.tar.gz -C /usr/local \
     && cmake --version \
+    && ctest --version
     && rm -f /tmp/cmake.tar.gz
 
 ###############################################################################
