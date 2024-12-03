@@ -14,13 +14,11 @@ RUN yum -y update \
     python3-devel \
     python3-pip \
     make \
-    cmake3 \
     gcc \
     gcc-c++ \
     which \
     && yum clean all \
     && rm -rf /var/cache/yum \
-    && cmake --version \
     && ctest --version
 
 ###############################################################################
