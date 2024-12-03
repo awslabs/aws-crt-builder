@@ -15,7 +15,8 @@ env:
   CRT_CI_ROLE: ${{ secrets.CRT_CI_ROLE_ARN }}
   AWS_DEFAULT_REGION: us-east-1
 
-
+permissions:
+  id-token: write # This is required for requesting the JWT
 
 jobs:
   cleanup:
@@ -42,6 +43,11 @@ jobs:
     runs-on: ubuntu-24.04
 
     steps:
+    - uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ env.CRT_CI_ROLE }}
+        aws-region: ${{ env.AWS_DEFAULT_REGION }}
+
     - name: Checkout Source
       uses: actions/checkout@v4
 
