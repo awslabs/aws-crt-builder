@@ -12,14 +12,16 @@ on:
 
 env:
   AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
-  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-  AWS_REGION: 'us-east-1'
+  CRT_CI_ROLE: ${{ secrets.CRT_CI_ROLE_ARN }}
+  AWS_DEFAULT_REGION: us-east-1
+
+permissions:
+  id-token: write # This is required for requesting the JWT
 
 jobs:
   cleanup:
     name: Clean up previous branch jobs
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
     - name: Clean up previous branch jobs
       uses: rokroskar/workflow-run-cleanup-action@master
@@ -28,7 +30,7 @@ jobs:
 
   unit_test:
     name: Unit Tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
     - name: Checkout Source
       uses: actions/checkout@v4
@@ -38,9 +40,14 @@ jobs:
 
   package:
     name: Package builder app
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
+    - uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ env.CRT_CI_ROLE }}
+        aws-region: ${{ env.AWS_DEFAULT_REGION }}
+
     - name: Checkout Source
       uses: actions/checkout@v4
 
@@ -78,7 +85,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        host: [ubuntu-22.04, macos-12, macos-13, macos-14, windows-2022]
+        host: [ubuntu-22.04, macos-13, macos-14, windows-2022]
     needs: package
     runs-on: ${{ matrix.host }}
     steps:
@@ -137,7 +144,7 @@ jobs:
 
   # Make sure cross compiling works
   cross_compile:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [package]
     strategy:
       matrix:
@@ -204,6 +211,10 @@ jobs:
         compiler: [gcc-8, clang-9]
         std: [c++11, c++14, c++17, c++2a]
     steps:
+    - uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ env.CRT_CI_ROLE }}
+        aws-region: ${{ env.AWS_DEFAULT_REGION }}
     - name: Checkout Source
       uses: actions/checkout@v4
 
@@ -227,7 +238,7 @@ jobs:
           - aws-iot-device-sdk-python-v2
 
     needs: package
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
     - name: Install builder
       uses: actions/download-artifact@v4
@@ -254,6 +265,11 @@ jobs:
     needs: package
     runs-on: ubuntu-20.04
     steps:
+    - uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ env.CRT_CI_ROLE }}
+        aws-region: ${{ env.AWS_DEFAULT_REGION }}
+
     - name: Checkout Source
       uses: actions/checkout@v4
 
@@ -281,8 +297,13 @@ jobs:
         - musllinux-1-1-x64
 
     needs: package
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
+    - uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ env.CRT_CI_ROLE }}
+        aws-region: ${{ env.AWS_DEFAULT_REGION }}
+
     - name: Checkout Source
       uses: actions/checkout@v4
 
@@ -314,8 +335,13 @@ jobs:
           - swift-5-al2-x64
 
     needs: package
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
+    - uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ env.CRT_CI_ROLE }}
+        aws-region: ${{ env.AWS_DEFAULT_REGION }}
+
     - name: Checkout Source
       uses: actions/checkout@v4
 
@@ -334,7 +360,7 @@ jobs:
 
   sanity-tests-passed:
     name: All Sanity Tests passed
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs:
     - unit_test
     - sanity_test
