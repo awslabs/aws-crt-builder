@@ -144,7 +144,7 @@ jobs:
 
   # Make sure cross compiling works
   cross_compile:
-    runs-on: ubuntu-24.24
+    runs-on: ubuntu-24.04
     needs: [package]
     strategy:
       matrix:
