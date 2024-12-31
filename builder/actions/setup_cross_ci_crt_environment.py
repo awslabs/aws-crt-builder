@@ -435,7 +435,7 @@ class SetupCrossCICrtEnvironment(Action):
 
         pass
 
-    def run(self, is_xcodebuild=False, env):
+    def run(self, env, is_xcodebuild=False):
         # A special environment variable indicating that we want to dump test environment variables to a specified file.
         env_dump_file = env.shell.getenv("AWS_SETUP_CRT_TEST_ENVIRONMENT_DUMP_FILE")
 
