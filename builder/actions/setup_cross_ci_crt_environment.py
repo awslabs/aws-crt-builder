@@ -21,6 +21,8 @@ ENABLE_WINDOWS_CERT_STORE_TEST = True
 class SetupCrossCICrtEnvironment(Action):
 
     def _setenv(self, env, env_name, env_data, is_secret=False):
+        if self.is_xcodebuild:
+            env_name = "TEST_RUNNER_"+env_name
         # Kinda silly to have a function for this, but makes the API calls consistent and looks better
         # beside the other functions...
         env.shell.setenv(env_name, str(env_data), is_secret=is_secret)
@@ -433,7 +435,7 @@ class SetupCrossCICrtEnvironment(Action):
 
         pass
 
-    def run(self, env):
+    def run(self, is_xcodebuild=False, env):
         # A special environment variable indicating that we want to dump test environment variables to a specified file.
         env_dump_file = env.shell.getenv("AWS_SETUP_CRT_TEST_ENVIRONMENT_DUMP_FILE")
 
@@ -461,6 +463,8 @@ class SetupCrossCICrtEnvironment(Action):
         self.is_arm = False
         # Will be True if on Codebuild
         self.is_codebuild = False
+        # Will be True if is using xcodebuild
+        self.is_xcodebuild = is_xcodebuild
 
         # Any easier way to use in docker without having to always modify the builder action
         if (env.shell.getenv("SETUP_CROSSS_CRT_TEST_ENVIRONMENT_LOCAL", "0") == "1"):
