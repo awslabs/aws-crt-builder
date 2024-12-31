@@ -19,9 +19,12 @@ ENABLE_WINDOWS_CERT_STORE_TEST = True
 
 
 class SetupCrossCICrtEnvironment(Action):
+    def __init__(self, use_xcodebuild=False):
+        # set to true if using Apple XCodebuild
+        self.use_xcodebuild = use_xcodebuild
 
     def _setenv(self, env, env_name, env_data, is_secret=False):
-        if self.is_xcodebuild:
+        if self.use_xcodebuild:
             env_name = "TEST_RUNNER_"+env_name
         # Kinda silly to have a function for this, but makes the API calls consistent and looks better
         # beside the other functions...
@@ -463,8 +466,6 @@ class SetupCrossCICrtEnvironment(Action):
         self.is_arm = False
         # Will be True if on Codebuild
         self.is_codebuild = False
-        # Will be True if is using xcodebuild
-        self.is_xcodebuild = is_xcodebuild
 
         # Any easier way to use in docker without having to always modify the builder action
         if (env.shell.getenv("SETUP_CROSSS_CRT_TEST_ENVIRONMENT_LOCAL", "0") == "1"):
