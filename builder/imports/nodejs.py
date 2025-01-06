@@ -70,11 +70,13 @@ class NodeJS(Import):
             node_path = os.path.dirname(result.output)
             sh.setenv('PATH', '{}{}{}'.format(
                 node_path, os.pathsep, sh.getenv('PATH')))
-            sh.exec('echo $PATH', check=True)
+            sh.exec('echo', '$PATH')
         else:
             sh.exec('nvm', 'use', '10.16', check=True)
             sh.exec('refreshenv', check=True)
 
+        sh.exec('ls', '/root/.nvm/versions/node/v14.21.3/bin/node')
+        sh.exec('/root/.nvm/versions/node/v14.21.3/bin/node', '--version')
         sh.exec('node', '--version', check=True)
 
     def install_nvm_choco(self, env):
