@@ -75,7 +75,7 @@ class NodeJS(Import):
             sh.exec('nvm', 'use', '10.16', check=True)
             sh.exec('refreshenv', check=True)
 
-        sh.exec('ls', '/root/.nvm/versions/node/v14.21.3/bin/node')
+        sh.exec('ls', '-l', '/root/.nvm/versions/node/v14.21.3/bin/')
         sh.exec('/root/.nvm/versions/node/v14.21.3/bin/node', '--version')
         sh.exec('node', '--version', check=True)
 
