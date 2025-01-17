@@ -33,6 +33,12 @@ def _compiler_version(cc):
             m = re.match(r'gcc .+ (\d+)\.', text)
             if m:
                 return 'gcc', m.group(1)
+            # other gcc
+            m = re.match(r'gcc .+', text)
+            if m:
+                result = util.run_command(cc, '-dumpfullversion -dumpversion', quiet=True)
+                if result.returncode == 0:
+                    return 'gcc', result.output.split('\n')[0]
     return None, None
 
 
