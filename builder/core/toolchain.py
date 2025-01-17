@@ -14,7 +14,6 @@ def _compiler_version(cc):
     if current_os() != 'windows':
         result = util.run_command(cc, '--version', quiet=True)
         lines = result.output.split('\n')
-        print(lines)
 
         for text in lines:
             # Apple clang
@@ -38,6 +37,8 @@ def _compiler_version(cc):
             if m:
                 result = util.run_command(cc, '-dumpfullversion -dumpversion', quiet=True)
                 if result.returncode == 0:
+                    lines2 = result.output.split('\n')
+                    print(lines2)
                     return 'gcc', result.output.split('\n')[0]
     return None, None
 
