@@ -33,7 +33,9 @@ def _compiler_version(cc):
             if m:
                 return 'gcc', m.group(1)
             # other gcc
+            print(text)
             m = re.match(r'^gcc', text)
+            print(m)
             if m:
                 print("got here")
                 result = util.run_command(cc, '-dumpfullversion -dumpversion', quiet=True)
