@@ -14,6 +14,7 @@ def _compiler_version(cc):
     if current_os() != 'windows':
         result = util.run_command(cc, '--version', quiet=True)
         lines = result.output.split('\n')
+        print(lines)
 
         for text in lines:
             # Apple clang
