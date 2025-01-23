@@ -573,11 +573,11 @@ COMPILERS = {
 
         'versions': {
             'default': {
-                'c': "gcc",
-                'cxx': "g++",
-                'compiler_packages': ['gcc', 'g++'],
+                '!c': "gcc",
+                '!cxx': "g++",
+                '!compiler_packages': ['gcc', 'g++'],
 
-                'apt_compiler_packages': ['gcc', 'g++', 'libstdc++-dev'],
+                '!apt_compiler_packages': ['gcc', 'g++', 'libstdc++-dev'],
             },
             '4.8': {
                 # ASan has been broken on 4.8 GCC version distributed on Ubuntu
