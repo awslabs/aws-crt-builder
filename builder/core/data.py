@@ -572,6 +572,12 @@ COMPILERS = {
         'yum_compiler_packages': ['gcc', 'gcc-c++'],
 
         'versions': {
+            'default': {
+                '!c': "gcc",
+                '!cxx': "g++",
+                '!compiler_packages': [],
+                '!apt_compiler_packages': [],
+            },
             '4.8': {
                 # ASan has been broken on 4.8 GCC version distributed on Ubuntu
                 # and will unlikely to get fixed upstream. so turn it off.
