@@ -43,7 +43,7 @@ def _apply_value(obj, key, new_value, apply_before=False):
         key_type = type(new_value)
 
     if key_type == list:
-        # apply the config's value before the existing list
+        # apply the config's value before the existing list asdfasdf
         val = obj[key]
         if apply_before:
             obj[key] = new_value + val
