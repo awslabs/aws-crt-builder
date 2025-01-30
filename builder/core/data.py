@@ -215,6 +215,15 @@ HOSTS = {
             'python': "python3",
         },
     },
+    'al2023': {
+        'os': 'linux',
+        'pkg_tool': PKG_TOOLS.DNF,
+        'pkg_update': 'dnf update -y',
+        'pkg_install': 'dnf install -y',
+        'variables': {
+            'python': "python3",
+        },
+    },
     'manylinux': {
         'os': 'linux',
         'pkg_tool': PKG_TOOLS.YUM,
@@ -319,9 +328,6 @@ TARGETS = {
                 'run_tests': False
             },
             'armv7': {
-                'run_tests': False
-            },
-            'armv8': {
                 'run_tests': False
             },
             'mips': {
