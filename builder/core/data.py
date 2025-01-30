@@ -321,9 +321,6 @@ TARGETS = {
             'armv7': {
                 'run_tests': False
             },
-            'armv8': {
-                'run_tests': False
-            },
             'mips': {
                 'run_tests': False
             },
