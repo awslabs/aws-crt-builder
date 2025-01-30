@@ -572,7 +572,7 @@ class Project(object):
         return Script(steps, name='post_build {}'.format(self.name))
 
     def test(self, env):
-        run_tests = env.config.get('run_tests', True)
+        run_tests = self.needs_tests(env)
         if not run_tests:
             return
 
