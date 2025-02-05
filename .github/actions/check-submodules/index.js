@@ -144,7 +144,7 @@ const checkSubmodules = async function () {
                 const isOnMain = await isAncestor(diff.thisCommit, 'origin/main', submodule.path);
                 if (!isOnMain) {
                     if (/^(aws-lc)$/.test(submodule.name)) {
-                        // for aws-lc we also use fips-2022-11-02 branch for FIPS support.
+                        // for aws-lc, we may use a branch for FIPS support.
                         const isOnFIPS = await isAncestor(diff.thisCommit, 'origin/fips-2022-11-02', submodule.path);
                         if (!isOnFIPS) {
                             core.setFailed(`Submodule ${submodule.name} is using a branch`);
