@@ -297,7 +297,7 @@ jobs:
         - musllinux-1-1-x64
 
     needs: package
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-22.04 # temporarily downgrade to old ubuntu as 24.04 likes to segfault in the middle of the build 
     steps:
     - uses: aws-actions/configure-aws-credentials@v4
       with:
