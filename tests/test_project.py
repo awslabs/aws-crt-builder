@@ -16,6 +16,7 @@ _test_proj_config = {
     'name': 'test-proj',
     'search_dirs': [test_data_dir],
     'path': here,
+    'run_tests': True,
 }
 
 
@@ -148,7 +149,8 @@ class TestProject(unittest.TestCase):
         ]
 
         p = Project(**config)
-        mock_env = mock.Mock(name='MockEnv', config=config)
+        m_toolchain = mock.Mock(name='mock toolchain', cross_compile=False)
+        mock_env = mock.Mock(name='MockEnv', config=config, project=p, toolchain=m_toolchain)
         mock_env.spec = BuildSpec()
         steps = p.build_consumers(mock_env)
         self._assert_step_contains_all(steps, ['test lib-1'])
@@ -163,7 +165,8 @@ class TestProject(unittest.TestCase):
         ]
 
         p = Project(**config)
-        mock_env = mock.Mock(name='MockEnv', config=config)
+        m_toolchain = mock.Mock(name='mock toolchain', cross_compile=False)
+        mock_env = mock.Mock(name='MockEnv', config=config, project=p, toolchain=m_toolchain)
         mock_env.spec = BuildSpec()
         steps = p.build_consumers(mock_env)
         self._assert_step_contains_all(steps, ['post build lib-1', 'test lib-1'])

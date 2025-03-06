@@ -553,7 +553,8 @@ class Project(object):
         for c in consumers:
             build_consumers += _build_project(c, env)
             # build consumer tests
-            build_consumers += to_list(c.test(env))
+            if c.needs_tests(env):
+                build_consumers += to_list(c.test(env))
         if len(build_consumers) == 0:
             return None
         return Script(build_consumers, name='build consumers of {}'.format(self.name))
