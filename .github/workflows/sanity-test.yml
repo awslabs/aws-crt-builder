@@ -297,7 +297,7 @@ jobs:
         - musllinux-1-1-x64
 
     needs: package
-    runs-on: ubuntu-22.04 # temporarily downgrade to old ubuntu as 24.04 likes to segfault in the middle of the build 
+    runs-on: ubuntu-24.04
     steps:
     - uses: aws-actions/configure-aws-credentials@v4
       with:
@@ -315,7 +315,7 @@ jobs:
 
     # Only aarch64 needs this, but it doesn't hurt anything
     - name: Install qemu/docker
-      run: docker run --privileged --rm tonistiigi/binfmt --install all
+      run: docker run --privileged --rm tonistiigi/binfmt --install arm64
 
     - name: Build ${{ env.PACKAGE_NAME }}
       run: |
