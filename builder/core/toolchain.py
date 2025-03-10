@@ -14,7 +14,6 @@ def _compiler_version(cc):
     if current_os() != 'windows':
         result = util.run_command(cc, '--version', quiet=True)
         lines = result.output.split('\n')
-
         for text in lines:
             # Apple clang
             m = re.match(r'Apple (LLVM|clang) version (\d+)', text)
@@ -45,15 +44,24 @@ def _find_compiler_tool(name, versions):
     for version in versions:
         for pattern in ('{name}-{version}', '{name}-{version}.0'):
             exe = pattern.format(name=name, version=version)
+            print("version: {}".format(exe))
             path = util.where(exe, resolve_symlinks=False)
             if path:
                 return path, version
     return None, None
 
 
-def _clang_versions():
-    versions = [v for v in COMPILERS['clang']
-                ['versions'].keys() if v != 'default']
+def _clang_versions(version=None):
+    versions = []
+    all_versions = [v for v in COMPILERS['clang']
+                    ['versions'].keys() if v != 'default']
+    if version:
+        if version in all_versions:
+            versions = [version]
+            if 'releases' in COMPILERS['clang']['versions'][str(version)]:
+                versions += COMPILERS['clang']['versions'][str(version)]['releases']
+    else:
+        versions += all_versions
     versions.sort()
     versions.reverse()
     return versions
@@ -181,7 +189,7 @@ class Toolchain(object):
     def find_llvm_tool(name, version=None):
         """ Finds clang, clang-tidy, lld, etc at a specific version, or the
         latest one available """
-        versions = [version] if version else _clang_versions()
+        versions = _clang_versions(version)
         return _find_compiler_tool(name, versions)
 
     @staticmethod
