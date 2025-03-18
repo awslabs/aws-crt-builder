@@ -19,6 +19,8 @@ ENABLE_WINDOWS_CERT_STORE_TEST = True
 
 
 class SetupCrossCICrtEnvironment(Action):
+    """ Setup Environment Variables for CI Unit Tests """
+
     def __init__(self, use_xcodebuild=False):
         # set to true if using Apple XCodebuild
         self.use_xcodebuild = use_xcodebuild
