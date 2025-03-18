@@ -26,10 +26,14 @@ class SetupCrossCICrtEnvironment(Action):
         self.use_xcodebuild = use_xcodebuild
 
     def _setenv(self, env, env_name, env_data, is_secret=False):
-        if self.use_xcodebuild:
-            env_name = "TEST_RUNNER_"+env_name
         # Kinda silly to have a function for this, but makes the API calls consistent and looks better
         # beside the other functions...
+
+        # XCodebuild will passing env var with "TEST_RUNNER_" prefix into tests. Setup the builder to add
+        # "TEST_RUNNER_" to environment variables when use xcodebuild.
+        # (https://developer.apple.com/documentation/xcode/environment-variable-reference)
+        if self.use_xcodebuild:
+            env_name = "TEST_RUNNER_"+env_name
         env.shell.setenv(env_name, str(env_data), is_secret=is_secret)
         # Set it in the test environment as well, for C++
         env.project.config['test_env'][env_name] = env_data
