@@ -204,7 +204,7 @@ jobs:
   # Make sure linux compilers + stdlibs are installing properly
   std-compat:
     needs: [package, sanity_test]
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
       matrix:
@@ -227,6 +227,7 @@ jobs:
     - name: Build aws-crt-cpp with ${{ matrix.compiler }}/${{ matrix.std }}
       run: |
         export CXXFLAGS=-std=${{ matrix.std }}
+        export CMAKE_C_STANDARD=99
         export VERBOSE=1
         python3 builder.pyz build -p aws-crt-cpp --compiler=${{ matrix.compiler }}
 
