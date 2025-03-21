@@ -204,11 +204,11 @@ jobs:
   # Make sure linux compilers + stdlibs are installing properly
   std-compat:
     needs: [package, sanity_test]
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
       matrix:
-        compiler: [gcc-9, clang-9]
+        compiler: [gcc-8, clang-9]
         cxx-std: ["11", "14", "17", "20"]
     steps:
     - uses: aws-actions/configure-aws-credentials@v4
@@ -224,7 +224,7 @@ jobs:
         name: builder
         path: .
 
-    - name: Build aws-crt-cpp with ${{ matrix.compiler }}/${{ matrix.std }}
+    - name: Build aws-crt-cpp with ${{ matrix.compiler }}/cxx${{ matrix.cxx-std }}
       run: |
         python3 builder.pyz build -p aws-crt-cpp --compiler=${{ matrix.compiler }} --cmake-extra=-DCMAKE_CXX_STANDARD=${{ matrix.cxx-std }}
 
