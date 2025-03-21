@@ -73,7 +73,8 @@ def run_build(env):
         return env.project.post_build(env)
 
     def test(env):
-        return env.project.test(env)
+        if env.project.needs_tests(env):
+            return env.project.test(env)
 
     def install(env):
         return env.project.install(env)
