@@ -147,6 +147,7 @@ def _build_project(env, project, cmake_extra, build_tests=False, args_transforme
         "-H{}".format(project_source_dir),
         "-DAWS_WARNINGS_ARE_ERRORS=ON",
         "-DPERFORM_HEADER_CHECK=ON",
+        "-DCMAKE_VERBOSE_MAKEFILE=ON",  # shows all flags passed to compiler & linker
         "-DCMAKE_INSTALL_PREFIX=" + project_install_dir,
         "-DCMAKE_PREFIX_PATH=" + project_install_dir,
         "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
