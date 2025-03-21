@@ -209,7 +209,7 @@ jobs:
       fail-fast: false
       matrix:
         compiler: [gcc-9, clang-9]
-        std: [c++11, c++14, c++17, c++2a]
+        cxx-std: ["11", "14", "17", "20"]
     steps:
     - uses: aws-actions/configure-aws-credentials@v4
       with:
@@ -226,9 +226,7 @@ jobs:
 
     - name: Build aws-crt-cpp with ${{ matrix.compiler }}/${{ matrix.std }}
       run: |
-        export CXXFLAGS=-std=${{ matrix.std }}
-        export VERBOSE=1
-        python3 builder.pyz build -p aws-crt-cpp --compiler=${{ matrix.compiler }}
+        python3 builder.pyz build -p aws-crt-cpp --compiler=${{ matrix.compiler }} --cmake-extra=-DCMAKE_CXX_STANDARD=${{ matrix.cxx-std }}
 
   release_notes:
     strategy:
