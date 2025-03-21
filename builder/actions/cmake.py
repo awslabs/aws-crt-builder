@@ -2,8 +2,10 @@
 # SPDX-License-Identifier: Apache-2.0.
 
 import os
+import pprint
 import re
 import shutil
+from collections import defaultdict
 from functools import lru_cache, partial
 from pathlib import Path
 
@@ -100,6 +102,29 @@ def _project_dirs(env, project):
     return source_dir, build_dir, install_dir
 
 
+def _merge_cmake_lang_flags(cmake_args):
+    print("=== _merge_cmake_lang_flags: cmake args")
+    pprint.pprint(cmake_args, indent=4, depth=4)
+    pattern = re.compile(r'''-D(CMAKE_C(?:XX)?_FLAGS)=["']?([^"']+)''')
+
+    new_cmake_args = []
+
+    cmake_lang_flags = defaultdict(list)
+    for arg in cmake_args:
+        m = pattern.match(arg)
+        if m:
+            cmake_lang_flags[m.group(1)].append(m.group(2))
+        else:
+            new_cmake_args.append(arg)
+
+    pprint.pprint(cmake_lang_flags, indent=4, depth=4)
+
+    for (k, v) in cmake_lang_flags.items():
+        new_cmake_args.append('-D{}={}'.format(k, ' '.join(v)))
+
+    return new_cmake_args
+
+
 def _build_project(env, project, cmake_extra, build_tests=False, args_transformer=None, coverage=False):
     sh = env.shell
     config = project.get_config(env.spec)
@@ -135,6 +160,7 @@ def _build_project(env, project, cmake_extra, build_tests=False, args_transforme
 
     # Set compiler flags
     compiler_flags = []
+    c_path = None
     if toolchain.compiler != 'default' and toolchain.compiler != 'msvc' and not toolchain.cross_compile:
         c_path = toolchain.compiler_path()
         cxx_path = toolchain.cxx_compiler_path()
@@ -164,6 +190,7 @@ def _build_project(env, project, cmake_extra, build_tests=False, args_transforme
     # as off. Without UniqueList cmake will treat it as on.
     cmake_args += project.cmake_args(env)
     cmake_args += cmake_extra
+    cmake_args += ['-DCMAKE_VERBOSE_MAKEFILE=ON']
     if coverage:
         if c_path and "gcc" in c_path:
             # Tell cmake to add coverage related configuration. And make sure GCC is used to compile the project.
@@ -177,6 +204,13 @@ def _build_project(env, project, cmake_extra, build_tests=False, args_transforme
             ]
         else:
             raise Exception('--coverage only support GCC as compiler. Current compiler is: {}'.format(c_path))
+
+    # If there are multiple of the same -DCMAKE_<LANG>_FLAGS arguments, CMake takes only the last one.
+    # Since -DCMAKE_<LANG>_FLAGS can be set in multiple places (e.g. in a default config for a specific platform or
+    # compiler, in a user project's config, in this Python module, etc.), we should merge language flags into one per
+    # language.
+    cmake_args = _merge_cmake_lang_flags(cmake_args)
+    print("=== _build_project: cmake_args: {}".format(cmake_args))
 
     # Allow caller to programmatically tweak the cmake_args,
     # as a last resort in case data merging wasn't working out
@@ -198,6 +232,7 @@ def _build_project(env, project, cmake_extra, build_tests=False, args_transforme
     # configure
     sh.exec(*toolchain.shell_env, cmake, cmake_args, working_dir=working_dir, check=True)
 
+    print("=== toolchain.host is {}".format(toolchain.host))
     # build & install
     sh.exec(*toolchain.shell_env, cmake, "--build", project_build_dir, "--config",
             build_config, "--target", "install", working_dir=working_dir, check=True)
