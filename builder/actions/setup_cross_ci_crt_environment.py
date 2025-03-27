@@ -19,10 +19,23 @@ ENABLE_WINDOWS_CERT_STORE_TEST = True
 
 
 class SetupCrossCICrtEnvironment(Action):
+    """ Setup Environment Variables for CI Unit Tests """
+
+    def __init__(self, use_xcodebuild=False):
+        # is_xcodebuild set to true if using Apple XCodebuild
+        self.is_xcodebuild = use_xcodebuild
 
     def _setenv(self, env, env_name, env_data, is_secret=False):
         # Kinda silly to have a function for this, but makes the API calls consistent and looks better
         # beside the other functions...
+
+        # We use xcodebuild, Apple's XCode commandline tool, to do iOS/tvOS simulation and tests.
+        # xcodebuild would pass in environment variables with prefix TEST_RUNNER_ for the tests. For example, if we would like to use environment
+        # variable FOO in the unit test, we would need set TEST_RUNNER_FOO=BAR. Then xcodebuild will pick up TEST_RUNNER_FOO and stripped
+        # TEST_RUNNER_ part, using FOO in it's final unit tests.
+        # For more details: https://developer.apple.com/documentation/xcode/environment-variable-reference
+        if self.is_xcodebuild:
+            env_name = "TEST_RUNNER_"+env_name
         env.shell.setenv(env_name, str(env_data), is_secret=is_secret)
         # Set it in the test environment as well, for C++
         env.project.config['test_env'][env_name] = env_data
