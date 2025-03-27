@@ -29,9 +29,11 @@ class SetupCrossCICrtEnvironment(Action):
         # Kinda silly to have a function for this, but makes the API calls consistent and looks better
         # beside the other functions...
 
-        # XCodebuild will passing env var with "TEST_RUNNER_" prefix into tests. Setup the builder to add
-        # "TEST_RUNNER_" to environment variables when use xcodebuild.
-        # (https://developer.apple.com/documentation/xcode/environment-variable-reference)
+        # We use xcodebuild, Apple's XCode commandline tool, to do iOS/tvOS simulation and tests. 
+        # xcodebuild would pass in environment variables with prefix TEST_RUNNER_ for the tests. For example, if we would like to use environment 
+        # variable FOO in the unit test, we would need set TEST_RUNNER_FOO=BAR. Then xcodebuild will pick up TEST_RUNNER_FOO and stripped 
+        # TEST_RUNNER_ part, using FOO in it's final unit tests.
+        # For more details: https://developer.apple.com/documentation/xcode/environment-variable-reference
         if self.is_xcodebuild:
             env_name = "TEST_RUNNER_"+env_name
         env.shell.setenv(env_name, str(env_data), is_secret=is_secret)
