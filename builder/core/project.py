@@ -453,7 +453,7 @@ class Project(object):
     search_dirs = []
 
     def __init__(self, **kwargs):
-        self.account = kwargs.get('account', 'awslabs')
+        self.account = kwargs.get('account', 'aws')
         self.name = kwargs.get('name', self.__class__.__name__.lower().replace('project', ''))
         assert self.name != 'project'
 
