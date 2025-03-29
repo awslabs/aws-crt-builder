@@ -453,7 +453,7 @@ class Project(object):
     search_dirs = []
 
     def __init__(self, **kwargs):
-        self.account = kwargs.get('account', 'aws')
+        self.account = kwargs.get('account', 'awslabs')
         self.name = kwargs.get('name', self.__class__.__name__.lower().replace('project', ''))
         assert self.name != 'project'
 
@@ -757,6 +757,7 @@ class Project(object):
     def _project_from_path(path='.', name_hint=None):
         path = os.path.abspath(path)
         project_config_file = os.path.join(path, "builder.json")
+        print("TRACK PROJECT: goes into _project_from_path")
         if os.path.exists(project_config_file):
             import json
             with open(project_config_file, 'r') as config_fp:
@@ -767,10 +768,12 @@ class Project(object):
                     sys.exit(1)
 
                 if name_hint is None or project_config.get('name', None) == name_hint:
+                    print("TRACK PROJECT: goes into _project_from_path, name hint, is account there? {}".format(project_config['account']))
                     print('    Found project: {} at {}'.format(project_config['name'], path))
                     project = Project._create_project(**project_config, path=path)
                     return Project._cache_project(project)
 
+        print("TRACK PROJECT: goes into _project_from_path, is account there? {}".format(project_config['account']))
         # load any builder scripts and check them
         Scripts.load()
         # only construct a new instance of the class if there isn't one already in the cache
