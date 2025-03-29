@@ -453,7 +453,7 @@ class Project(object):
     search_dirs = []
 
     def __init__(self, **kwargs):
-        self.account = kwargs.get('account', 'awslabs')
+        self.account = kwargs.get('account', 'aws')
         self.name = kwargs.get('name', self.__class__.__name__.lower().replace('project', ''))
         assert self.name != 'project'
 
@@ -476,6 +476,8 @@ class Project(object):
         for search_dir in self.config.get('search_dirs', []):
             Project.search_dirs.append(os.path.join(self.path, search_dir))
 
+        print("in project init, {}".format(self.config))
+
     def __repr__(self):
         return "{}: {}".format(self.name, self.url)
 
@@ -493,6 +495,7 @@ class Project(object):
         project_vars = replace_variables(self.config.get("variables", {}), replacements)
         replacements.update(project_vars)
         self.config = replace_variables(self.config, replacements)
+        print("in resolve, {}".format(self.config))
 
     def pre_build(self, env):
         imports = self.get_imports(env.spec)
