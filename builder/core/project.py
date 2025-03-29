@@ -769,12 +769,11 @@ class Project(object):
                         print('    Found project: {} at {}'.format(project_config['name'], path))
                         project = Project._create_project(**project_config, path=path)
                         return Project._cache_project(project)
-                        
+
                 except Exception as e:
                     print("Failed to parse config file", project_config_file, e)
                     sys.exit(1)
 
-        print("TRACK PROJECT: goes into _project_from_path, is account there? {}".format(project_config['account']))
         # load any builder scripts and check them
         Scripts.load()
         # only construct a new instance of the class if there isn't one already in the cache
@@ -811,6 +810,7 @@ class Project(object):
             dir_matches_name = (os.path.basename(search_dir) == name) and os.path.isdir(search_dir)
             if os.path.isfile(os.path.join(search_dir, 'builder.json')) or dir_matches_name:
                 project = Project._project_from_path(search_dir, name)
+                print("TRACK PROJECT: find project in the search dir.")
 
                 if project:
                     return project
