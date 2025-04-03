@@ -516,6 +516,9 @@ COMPILERS = {
             '3': {
                 'c': "clang-3.9",
                 'cxx': "clang++-3.9",
+                # specific version number in use
+                'releases': ['3.9'],
+                'cmake_args': ['-DAWS_WARNINGS_ARE_ERRORS=OFF'],
             },
             '6': {
                 'c': "clang-6.0",
