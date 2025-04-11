@@ -15,6 +15,7 @@ from builder.core.toolchain import Toolchain
 from builder.core import host
 from builder.core import util
 from builder.actions.setup_cross_ci_crt_environment import SetupCrossCICrtEnvironment
+from builder.actions.setup_event_stream_echo_server import SetupEventStreamEchoServer
 
 
 class Host(object):
@@ -51,5 +52,6 @@ class Builder(VirtualModule):
     InstallCompiler = InstallCompiler
     Script = Script
     SetupCrossCICrtEnvironment = SetupCrossCICrtEnvironment
+    SetupEventStreamEchoServer = SetupEventStreamEchoServer
 
     Util = Util
