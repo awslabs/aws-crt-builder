@@ -25,6 +25,7 @@ class SetupEventStreamEchoServer(Action):
 
             # maven is installed, so this is a configuration we can start an event stream echo server
             java_sdk_dir = env.shell.mktemp()
+            print(f"******************Cloning java device sdk into {java_sdk_dir}")
 
             env.shell.exec(["git", "clone", "https://github.com/aws/aws-iot-device-sdk-java-v2"], working_dir=java_sdk_dir, check=True)
 
@@ -44,7 +45,7 @@ class SetupEventStreamEchoServer(Action):
                 target_class_path = os.path.join(sdk_dir, "target", "classes")
                 directory_separator = os.pathsep
 
-                echo_server_command = ["java", "-classpath", f"{test_class_path}{directory_separator}{target_class_path}{directory_separator}{classpath}", "software.amazon.awssdk.eventstreamrpc.echotest.EchoTestServiceRunner", "127.0.0.1", "8033"]
+                echo_server_command = ["java", "-Daws.crt.log.level=Trace", "-Daws.crt.log.destination=File", "-Daws.crt.log.filename=/tmp/echo.txt", "-classpath", f"{test_class_path}{directory_separator}{target_class_path}{directory_separator}{classpath}", "software.amazon.awssdk.eventstreamrpc.echotest.EchoTestServiceRunner", "127.0.0.1", "8033"]
 
                 print(f'Echo server command: {echo_server_command}')
 
@@ -61,8 +62,8 @@ class SetupEventStreamEchoServer(Action):
             finally:
                 env.shell.popd()
 
-        except:
-            print('Failed to set up event stream server.  Eventstream CI tests will not be run.')
+        except Exception as ex:
+            print(f'Failed to set up event stream server: {ex}.  Eventstream CI tests will not be run.')
 
         return java_sdk_dir
 
