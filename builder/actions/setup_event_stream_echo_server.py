@@ -11,6 +11,7 @@ A builder action used by several CRT repositories to setup a set of common, cros
 environment variables, secrets, files, etc. that is used to build up the testing environment.
 """
 
+
 class SetupEventStreamEchoServer(Action):
     """ Set up an event stream echo server for testing eventstream bindings """
 
@@ -27,7 +28,8 @@ class SetupEventStreamEchoServer(Action):
             java_sdk_dir = env.shell.mktemp()
             print(f"******************Cloning java device sdk into {java_sdk_dir}")
 
-            env.shell.exec(["git", "clone", "https://github.com/aws/aws-iot-device-sdk-java-v2"], working_dir=java_sdk_dir, check=True)
+            env.shell.exec(["git", "clone", "https://github.com/aws/aws-iot-device-sdk-java-v2"],
+                           working_dir=java_sdk_dir, check=True)
 
             sdk_dir = os.path.join(java_sdk_dir, "aws-iot-device-sdk-java-v2", "sdk")
             env.shell.pushd(sdk_dir)
@@ -45,7 +47,8 @@ class SetupEventStreamEchoServer(Action):
                 target_class_path = os.path.join(sdk_dir, "target", "classes")
                 directory_separator = os.pathsep
 
-                echo_server_command = ["java", "-Daws.crt.log.level=Trace", "-Daws.crt.log.destination=File", "-Daws.crt.log.filename=/tmp/echo.txt", "-classpath", f"{test_class_path}{directory_separator}{target_class_path}{directory_separator}{classpath}", "software.amazon.awssdk.eventstreamrpc.echotest.EchoTestServiceRunner", "127.0.0.1", "8033"]
+                echo_server_command = ["java", "-Daws.crt.log.level=Trace", "-Daws.crt.log.destination=File", "-Daws.crt.log.filename=/tmp/echo.txt", "-classpath",
+                                       f"{test_class_path}{directory_separator}{target_class_path}{directory_separator}{classpath}", "software.amazon.awssdk.eventstreamrpc.echotest.EchoTestServiceRunner", "127.0.0.1", "8033"]
 
                 print(f'Echo server command: {echo_server_command}')
 
