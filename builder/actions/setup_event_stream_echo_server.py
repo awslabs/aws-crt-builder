@@ -7,8 +7,7 @@ import os
 import subprocess
 
 """
-A builder action used by several CRT repositories to setup a set of common, cross-repository
-environment variables, secrets, files, etc. that is used to build up the testing environment.
+A builder action used by device SDK repositories to set up an event stream echo server for CI testing.
 """
 
 
