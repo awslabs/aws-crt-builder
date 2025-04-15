@@ -46,7 +46,7 @@ class SetupEventStreamEchoServer(Action):
                 target_class_path = os.path.join(sdk_dir, "target", "classes")
                 directory_separator = os.pathsep
 
-                echo_server_command = ["java", "-Daws.crt.log.level=Trace", "-Daws.crt.log.destination=File", "-Daws.crt.log.filename=/tmp/echo.txt", "-classpath",
+                echo_server_command = ["java", "-classpath",
                                        f"{test_class_path}{directory_separator}{target_class_path}{directory_separator}{classpath}", "software.amazon.awssdk.eventstreamrpc.echotest.EchoTestServiceRunner", "127.0.0.1", "8033"]
 
                 print(f'Echo server command: {echo_server_command}')
