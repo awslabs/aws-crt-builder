@@ -18,7 +18,8 @@ CLASSES = (
     Builder.DownloadSource,
     Builder.InstallTools,
     Builder.Script,
-    Builder.SetupCrossCICrtEnvironment
+    Builder.SetupCrossCICrtEnvironment,
+    Builder.SetupEventStreamEchoServer,
 )
 
 print('Found API classes available:')
