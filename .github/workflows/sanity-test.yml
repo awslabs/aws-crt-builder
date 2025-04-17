@@ -169,46 +169,35 @@ jobs:
       fail-fast: false
       matrix:
         compiler:
-          # Note: 18.04 image is no longer supported by gh and 20.04 image does
-          # not have some of the old compilers we want. disable those for now
-          # until we figure out a way to test them.
-          - clang-6
-          # - clang-7 # this one actually has to be installed by the script
-          # - clang-8
-          - clang-9
-          - clang-10
-          - clang-11
-          # - gcc-4.8
-          # - gcc-5
-          # - gcc-6
-          - gcc-7
-          - gcc-8
+          # Note: The sanity checks don't necessarily have to check all supported compilers. The actual packages should
+          # cover this job.
+          # So, the versions of the compilers listed here are dictated by whatever is supported on GitHub runners.
+          # The current oldest supported image is Ubuntu 22.04. When GitHub obsoletes it, this list should be updated.
+          - clang-13
+          - clang-14
+          - clang-15
+          - clang-16
+          - clang-17
+          - clang-18
           - gcc-9
           - gcc-10
           - gcc-11
+          - gcc-12
+          - gcc-13
     needs: [package]
     runs-on: ubuntu-22.04
     steps:
-    - uses: aws-actions/configure-aws-credentials@v4
-      with:
-        role-to-assume: ${{ env.CRT_CI_ROLE }}
-        aws-region: ${{ env.AWS_DEFAULT_REGION }}
-
     - name: Checkout Source
       uses: actions/checkout@v4
 
-    - name: Get release tag
-      uses: ./.github/actions/release-tag
-      id: tag
+    - name: Install builder
+      uses: actions/download-artifact@v4
       with:
-        output: tag
+        name: builder
+        path: .
 
     - name: Build aws-c-common
-      run: |
-        aws ecr get-login-password --region us-east-1 | docker login ${{ secrets.AWS_ECR_REPO }} -u AWS --password-stdin
-        export DOCKER_IMAGE=${{ secrets.AWS_ECR_REPO }}/aws-crt-ubuntu-20-x64:${{ steps.tag.outputs.release_tag }}
-        docker pull $DOCKER_IMAGE
-        docker run --env GITHUB_REF $DOCKER_IMAGE build --project aws-c-common --compiler=${{ matrix.compiler }} run_tests=false
+      run: python3 builder.pyz build --project aws-c-common --compiler=${{ matrix.compiler }} run_tests=false
 
   # Make sure linux compilers + stdlibs are installing properly
   std-compat:
@@ -217,7 +206,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        compiler: [gcc-8, clang-9]
+        compiler: [gcc-9, clang-13]
         cxx-std: ["11", "14", "17", "20"]
     steps:
     - uses: aws-actions/configure-aws-credentials@v4
