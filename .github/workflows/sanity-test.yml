@@ -189,17 +189,26 @@ jobs:
     needs: [package]
     runs-on: ubuntu-22.04
     steps:
+    - uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ env.CRT_CI_ROLE }}
+        aws-region: ${{ env.AWS_DEFAULT_REGION }}
+
     - name: Checkout Source
       uses: actions/checkout@v4
 
-    - name: Install builder
-      uses: actions/download-artifact@v4
+    - name: Get release tag
+      uses: ./.github/actions/release-tag
+      id: tag
       with:
-        name: builder
-        path: .
+        output: tag
 
     - name: Build aws-c-common
-      run: python3 builder.pyz build --project aws-c-common --compiler=${{ matrix.compiler }} run_tests=false
+      run: |
+        aws ecr get-login-password --region us-east-1 | docker login ${{ secrets.AWS_ECR_REPO }} -u AWS --password-stdin
+        export DOCKER_IMAGE=${{ secrets.AWS_ECR_REPO }}/aws-crt-ubuntu-20-x64:${{ steps.tag.outputs.release_tag }}
+        docker pull $DOCKER_IMAGE
+        docker run --env GITHUB_REF $DOCKER_IMAGE build --project aws-c-common --compiler=${{ matrix.compiler }} run_tests=false
 
   # Make sure linux compilers + stdlibs are installing properly
   std-compat:
