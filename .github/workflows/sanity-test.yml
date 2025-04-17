@@ -169,25 +169,23 @@ jobs:
       fail-fast: false
       matrix:
         compiler:
-          # Note: 18.04 image is no longer supported by gh and 20.04 image does
-          # not have some of the old compilers we want. disable those for now
-          # until we figure out a way to test them.
-          # - clang-6
-          # - clang-7 # this one actually has to be installed by the script
-          # - clang-8
-          - clang-9
-          - clang-10
-          - clang-11
-          # - gcc-4.8
-          # - gcc-5
-          # - gcc-6
-          - gcc-7
-          - gcc-8
+          # Note: The sanity checks don't necessarily have to check all supported compilers. The actual packages should
+          # cover this job.
+          # So, the versions of the compilers listed here are dictated by whatever is supported on GitHub runners.
+          # The current oldest supported image is Ubuntu 22.04. When GitHub obsoletes it, this list should be updated.
+          - clang-13
+          - clang-14
+          - clang-15
+          - clang-16
+          - clang-17
+          - clang-18
           - gcc-9
           - gcc-10
           - gcc-11
+          - gcc-12
+          - gcc-13
     needs: [package]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
     - name: Checkout Source
       uses: actions/checkout@v4
@@ -204,11 +202,11 @@ jobs:
   # Make sure linux compilers + stdlibs are installing properly
   std-compat:
     needs: [package, sanity_test]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
       matrix:
-        compiler: [gcc-8, clang-9]
+        compiler: [gcc-9, clang-13]
         cxx-std: ["11", "14", "17", "20"]
     steps:
     - uses: aws-actions/configure-aws-credentials@v4
@@ -262,7 +260,7 @@ jobs:
           - aws-crt-nodejs
 
     needs: package
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
     - uses: aws-actions/configure-aws-credentials@v4
       with:
