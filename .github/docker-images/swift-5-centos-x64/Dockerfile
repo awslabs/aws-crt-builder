@@ -1,5 +1,5 @@
 # https://hub.docker.com/_/swift
-FROM swift:5.7.3-centos7
+FROM swift:5.9.2-centos7
 
 ###############################################################################
 # Install prereqs
