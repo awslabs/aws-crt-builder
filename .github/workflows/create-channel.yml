@@ -83,7 +83,6 @@ jobs:
         - name: ubuntu-22-x64
         - name: node-10-linux-x64
         - name: swift-5-al2-x64
-        - name: swift-5-centos-x64
         - name: swift-5-ubuntu-x64
         - name: rhel8-x64
         - name: opensuse-leap
