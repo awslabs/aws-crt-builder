@@ -1,5 +1,5 @@
 # https://hub.docker.com/_/swift
-FROM swift:5.7.3-amazonlinux2
+FROM swift:5.9.2-amazonlinux2
 
 ###############################################################################
 # Install prereqs
