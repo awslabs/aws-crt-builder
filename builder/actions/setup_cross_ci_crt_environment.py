@@ -19,10 +19,23 @@ ENABLE_WINDOWS_CERT_STORE_TEST = True
 
 
 class SetupCrossCICrtEnvironment(Action):
+    """ Setup Environment Variables for CI Unit Tests """
+
+    def __init__(self, use_xcodebuild=False):
+        # is_xcodebuild set to true if using Apple XCodebuild
+        self.is_xcodebuild = use_xcodebuild
 
     def _setenv(self, env, env_name, env_data, is_secret=False):
         # Kinda silly to have a function for this, but makes the API calls consistent and looks better
         # beside the other functions...
+
+        # We use xcodebuild, Apple's XCode commandline tool, to do iOS/tvOS simulation and tests.
+        # xcodebuild would pass in environment variables with prefix TEST_RUNNER_ for the tests. For example, if we would like to use environment
+        # variable FOO in the unit test, we would need set TEST_RUNNER_FOO=BAR. Then xcodebuild will pick up TEST_RUNNER_FOO and stripped
+        # TEST_RUNNER_ part, using FOO in it's final unit tests.
+        # For more details: https://developer.apple.com/documentation/xcode/environment-variable-reference
+        if self.is_xcodebuild:
+            env_name = "TEST_RUNNER_"+env_name
         env.shell.setenv(env_name, str(env_data), is_secret=is_secret)
         # Set it in the test environment as well, for C++
         env.project.config['test_env'][env_name] = env_data
@@ -216,6 +229,13 @@ class SetupCrossCICrtEnvironment(Action):
                             "ci/mqtt5/us/authorizer/signed/signature")
         self._setenv_secret(env, "AWS_TEST_MQTT5_IOT_CORE_SIGNING_AUTHORIZER_TOKEN_SIGNATURE_UNENCODED",
                             "ci/mqtt5/us/authorizer/signed/signature/unencoded")
+
+        # Fleet Provisoning
+        self._setenv_secret(env, "AWS_TEST_IOT_CORE_PROVISIONING_HOST", "unit-test/endpoint")
+        self._setenv_secret_file(env, "AWS_TEST_IOT_CORE_PROVISIONING_CERTIFICATE_PATH", "ci/mqtt5/us/Mqtt5Prod/cert")
+        self._setenv_secret_file(env, "AWS_TEST_IOT_CORE_PROVISIONING_KEY_PATH", "ci/mqtt5/us/Mqtt5Prod/key")
+        self._setenv(env, "AWS_TEST_IOT_CORE_PROVISIONING_TEMPLATE_NAME", "FleetProvisioningCi")
+        self._setenv_secret_file(env, "AWS_TEST_IOT_CORE_PROVISIONING_CSR_PATH", "ci/mqtt/fleet/provisioning/csr")
 
         # JAVA KEYSTORE (Java uses PKCS#8 keys internally, which currently only Linux supports ATM)
         if (self.is_linux == True):

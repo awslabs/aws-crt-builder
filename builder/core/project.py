@@ -254,10 +254,10 @@ def _pushenv(project, key, env):
     env.shell.pushenv()
     # set project env defaults
     for var, value in project.config.get('env', {}).items():
-        env.shell.setenv(var, value)
+        env.shell.setenv(var, value, is_secret=True)
     # specific env defaults
     for var, value in project.config.get(key, {}).items():
-        env.shell.setenv(var, value)
+        env.shell.setenv(var, value, is_secret=True)
 
 
 def _popenv(env):
@@ -553,7 +553,8 @@ class Project(object):
         for c in consumers:
             build_consumers += _build_project(c, env)
             # build consumer tests
-            build_consumers += to_list(c.test(env))
+            if c.needs_tests(env):
+                build_consumers += to_list(c.test(env))
         if len(build_consumers) == 0:
             return None
         return Script(build_consumers, name='build consumers of {}'.format(self.name))

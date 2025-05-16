@@ -1,26 +1,41 @@
-# https://hub.docker.com/_/swift
-FROM swift:5.7.3-centos7
+FROM amazonlinux:2023
+
 
 ###############################################################################
 # Install prereqs
-# any prereqs that appear to be missing are installed on base swift image i.e. tar, git
 ###############################################################################
-RUN yum -y install \
+RUN yum -y update \
+    && yum -y install \
+    tar \
+    git \
     sudo \
     # Python
     python3 \
+    python3-devel \
     python3-pip \
-    openssl-devel \
+    make \
+    gcc \
+    gcc-c++ \
+    which \
     && yum clean all \
     && rm -rf /var/cache/yum
-
 
 ###############################################################################
 # Python/AWS CLI
 ###############################################################################
-RUN python3 -m pip install --upgrade setuptools virtualenv \
+RUN python3 -m pip install setuptools virtualenv \
     && python3 -m pip install --upgrade awscli \
     && aws --version
+
+###############################################################################
+# Install pre-built CMake
+###############################################################################
+WORKDIR /tmp
+RUN curl -sSL https://d19elf31gohf1l.cloudfront.net/_binaries/cmake/cmake-3.13-manylinux1-x64.tar.gz -o cmake.tar.gz \
+    && tar xvzf cmake.tar.gz -C /usr/local \
+    && cmake --version \
+    && ctest --version \
+    && rm -f /tmp/cmake.tar.gz
 
 ###############################################################################
 # Install entrypoint

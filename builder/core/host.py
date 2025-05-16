@@ -25,15 +25,15 @@ def current_os():
 
 
 def current_arch():
-    if current_os() == 'linux':
+    if current_os() == 'linux' or current_os() == 'macos':
         machine_id = os.uname()[4]
-        m = re.match(r'^(aarch64|armv[6-8])', machine_id.strip())
+        m = re.match(r'^(aarch64|armv[6-8]|arm64)', machine_id.strip())
         if m:
             arch = m.group(1)
             if arch == 'aarch64':
                 arch = 'armv8'
             return arch
-    return ('x64' if sys.maxsize > 2**32 else 'x86')
+    return 'x64' if sys.maxsize > 2**32 else 'x86'
 
 
 def current_platform():
@@ -70,7 +70,11 @@ def current_host():
     def _discover_host():
         platform = current_os()
         if platform == 'linux':
-            if _file_contains('/etc/system-release', 'Amazon Linux release 2'):
+            # Note: that AL2 and AL2023 have the same substring. Check for AL2023 explicitly.
+            # And also check that AL2 has "2 (", which is common to all base distributions of AL2
+            if _file_contains('/etc/system-release', 'Amazon Linux release 2023'):
+                return 'al2023'
+            if _file_contains('/etc/system-release', 'Amazon Linux release 2 ('):
                 return 'al2'
             if _file_contains('/etc/system-release', 'Bare Metal') or _file_contains('/etc/system-release', 'Amazon Linux AMI'):
                 return 'al2012'

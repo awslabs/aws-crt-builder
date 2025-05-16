@@ -132,7 +132,7 @@ HOSTS = {
         'pkg_update': 'apt-get -qq update -y',
         'pkg_install': 'apt-get -qq install -y',
         'variables': {
-            'python': "python3.8",
+            'python': "python3.10",
         },
     },
     'debian': {
@@ -211,6 +211,15 @@ HOSTS = {
         'pkg_update': 'yum update -y',
         'pkg_install': 'yum install -y',
 
+        'variables': {
+            'python': "python3",
+        },
+    },
+    'al2023': {
+        'os': 'linux',
+        'pkg_tool': PKG_TOOLS.DNF,
+        'pkg_update': 'dnf update -y',
+        'pkg_install': 'dnf install -y',
         'variables': {
             'python': "python3",
         },
@@ -319,9 +328,6 @@ TARGETS = {
                 'run_tests': False
             },
             'armv7': {
-                'run_tests': False
-            },
-            'armv8': {
                 'run_tests': False
             },
             'mips': {
@@ -495,6 +501,8 @@ COMPILERS = {
             '13': {},
             '14': {},
             '15': {},
+            '16': {},
+            '17': {},
         },
     },
     'clang': {
@@ -542,7 +550,9 @@ COMPILERS = {
             '13': {},
             '14': {},
             '15': {},
-            '16': {}
+            '16': {},
+            '17': {},
+            '18': {},
         },
         'architectures': {
             # No fuzz tests on ARM
@@ -572,6 +582,12 @@ COMPILERS = {
         'yum_compiler_packages': ['gcc', 'gcc-c++'],
 
         'versions': {
+            'default': {
+                '!c': "gcc",
+                '!cxx': "g++",
+                '!compiler_packages': [],
+                '!apt_compiler_packages': [],
+            },
             '4.8': {
                 # ASan has been broken on 4.8 GCC version distributed on Ubuntu
                 # and will unlikely to get fixed upstream. so turn it off.
@@ -584,7 +600,9 @@ COMPILERS = {
             '9': {},
             '10': {},
             '11': {},
-            '12': {}
+            '12': {},
+            '13': {},
+            '14': {},
         },
 
         'architectures': {

@@ -19,6 +19,7 @@ URLs = {
     'windows-x64': 'https://github.com/AdoptOpenJDK/openjdk8-binaries/releases/download/jdk8u242-b08/OpenJDK8U-jdk_x64_windows_hotspot_8u242b08.zip',
     'windows-x86': 'https://github.com/AdoptOpenJDK/openjdk8-binaries/releases/download/jdk8u242-b08/OpenJDK8U-jdk_x86-32_windows_hotspot_8u242b08.zip',
     'macos-x64': 'https://github.com/AdoptOpenJDK/openjdk8-binaries/releases/download/jdk8u242-b08/OpenJDK8U-jdk_x64_mac_hotspot_8u242b08.tar.gz',
+    'macos-armv8': 'https://corretto.aws/downloads/resources/8.422.05.1/amazon-corretto-8.422.05.1-macosx-aarch64.tar.gz',
 }
 
 
@@ -95,7 +96,7 @@ class JDK8(Import):
         fetch_and_extract(url, filename, install_dir)
         os.remove(filename)
 
-        jdk_home = glob.glob(os.path.join(install_dir, 'jdk*'))[0]
+        jdk_home = glob.glob(os.path.join(install_dir, '*jdk*'))[0]
         assert jdk_home
 
         # OSX is special and has a Contents/Home folder inside the distro

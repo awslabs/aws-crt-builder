@@ -33,7 +33,7 @@ def run_action(action, env):
     # Set build environment from config
     env.shell.pushenv()
     for var, value in getattr(env, 'env', {}).items():
-        env.shell.setenv(var, value)
+        env.shell.setenv(var, value, is_secret=True)
 
     if isinstance(action, str):
         action_cls = Scripts.find_action(action)
@@ -73,7 +73,8 @@ def run_build(env):
         return env.project.post_build(env)
 
     def test(env):
-        return env.project.test(env)
+        if env.project.needs_tests(env):
+            return env.project.test(env)
 
     def install(env):
         return env.project.install(env)
