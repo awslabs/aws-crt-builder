@@ -185,7 +185,10 @@ class SetupCrossCICrtEnvironment(Action):
         self._setenv_secret_file(env, "AWS_TEST_MQTT5_IOT_CORE_RSA_CERT", "ci/mqtt5/us/Mqtt5Prod/cert")
         self._setenv_secret_file(env, "AWS_TEST_MQTT5_IOT_CORE_RSA_KEY", "ci/mqtt5/us/Mqtt5Prod/key")
         self._setenv_role_arn(env, "AWS_TEST_MQTT5_ROLE_CREDENTIAL",
-                              "arn:aws:iam::123124136734:role/assume_role_connect_iot")
+                              "arn:aws:iam::123124136734:role/assume_role_connect_iot"),
+        self._setenv_s3(env, "AWS_TEST_MQTT5_PKCS12_FILE",
+                            "s3://aws-crt-test-stuff/ci_mqtt5_prod_pkcs12.p12"),
+        self._setenv_secret(env, "AWS_TEST_MQTT5_PKCS12_PASSWORD", "ci/mqtt5/us/Mqtt5Prod/Pkcs12/Password")
 
         # Profile (uses AWS_TEST_MQTT5_ROLE_CREDENTIAL)
         self._setenv_profile_file(
