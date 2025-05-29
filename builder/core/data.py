@@ -550,6 +550,7 @@ COMPILERS = {
             '16': {},
             '17': {},
             '18': {},
+            '21': {}
         },
         'architectures': {
             # No fuzz tests on ARM
