@@ -146,7 +146,7 @@ def _build_project(env, project, cmake_extra, build_tests=False, args_transforme
         "-B{}".format(project_build_dir),
         "-H{}".format(project_source_dir),
         "-DAWS_WARNINGS_ARE_ERRORS=ON",
-        "-DAWS_CRT_DISABLE_DEPRECATION_WARNINGS",
+        "-DAWS_CRT_DISABLE_DEPRECATION_WARNINGS=ON",
         "-DPERFORM_HEADER_CHECK=ON",
         "-DCMAKE_VERBOSE_MAKEFILE=ON",  # shows all flags passed to compiler & linker
         "-DCMAKE_INSTALL_PREFIX=" + project_install_dir,
