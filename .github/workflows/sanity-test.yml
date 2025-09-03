@@ -4,11 +4,6 @@ on:
   push:
     branches-ignore:
       - 'main'
-    paths:
-      - '.github/workflows/sanity-test.yml'
-      - 'builder/**'
-      - 'tests/**'
-      - '.github/actions/**/*'
 
 env:
   AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
@@ -355,7 +350,6 @@ jobs:
       matrix:
         linux:
           - swift-5-ubuntu-x64
-          - swift-5-centos-x64
           - swift-5-al2-x64
 
     needs: package
