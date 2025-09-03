@@ -8,13 +8,10 @@ on:
       - 'main'
     paths:
       - '.github/workflows/create-channel.yml'
-      - '.github/workflows/sanity-test.yml'
       - '.github/actions/**'
-      - '.github/actions/**/*'
       - '.github/docker-images/**'
       - '.github/workflows/*.sh'
       - 'builder/**'
-      - 'tests/**'
   create:
 
 env:
@@ -81,7 +78,7 @@ jobs:
         - name: al2023-x64
         - name: ubuntu-18-x64
         - name: ubuntu-20-x64
-        - name: ubuntu-20-aarch64
+        - name: ubuntu-20-aarch64  
           extra-build-flag: --platform=linux/aarch64
         - name: ubuntu-22-x64
         - name: node-10-linux-x64
@@ -97,7 +94,7 @@ jobs:
         - name: alpine-3.16-armv7
         - name: alpine-3.16-armv6
         - name: openwrt-x64-openjdk8
-
+            
     steps:
     - uses: aws-actions/configure-aws-credentials@v4
       with:

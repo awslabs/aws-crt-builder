@@ -1,12 +1,14 @@
 name: Sanity Tests
 
 on:
-  workflow_run:
-    workflows: ["Create Channel"]
-    types:
-      - completed
+  push:
     branches-ignore:
       - 'main'
+    paths:
+      - '.github/workflows/sanity-test.yml'
+      - 'builder/**'
+      - 'tests/**'
+      - '.github/actions/**/*'
 
 env:
   AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
@@ -39,6 +41,7 @@ jobs:
   package:
     name: Package builder app
     runs-on: ubuntu-24.04
+
     steps:
     - uses: aws-actions/configure-aws-credentials@v4
       with:
