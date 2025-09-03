@@ -7,7 +7,7 @@ FROM quay.io/pypa/manylinux2014_x86_64
 ###############################################################################
 RUN yum -y install sudo cmake3 \
     # used in java release pipeline
-    maven \ 
+    maven \
     && yum clean all \
     && ln -s `which cmake3` /usr/bin/cmake \
     && ln -s `which ctest3` /usr/bin/ctest \
@@ -17,8 +17,8 @@ RUN yum -y install sudo cmake3 \
 ###############################################################################
 # Python/AWS CLI
 ###############################################################################
-RUN /opt/python/cp37-cp37m/bin/python -m pip install --upgrade setuptools virtualenv \
-    && /opt/python/cp37-cp37m/bin/python -m pip install --upgrade awscli \
+RUN /opt/python/cp38-cp38/bin/python -m pip install --upgrade setuptools virtualenv \
+    && /opt/python/cp38-cp38/bin/python -m pip install --upgrade awscli \
     && ln -s `find /opt -name aws` /usr/local/bin/aws \
     && which aws \
     && aws --version
