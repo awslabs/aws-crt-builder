@@ -7,14 +7,14 @@ FROM quay.io/pypa/manylinux2014_i686
 ###############################################################################
 RUN yum -y install sudo \
     # used in java release pipeline
-    maven \ 
+    maven \
     && yum clean all
 
 ###############################################################################
 # Python/AWS CLI
 ###############################################################################
-RUN /opt/python/cp37-cp37m/bin/python -m pip install --upgrade setuptools virtualenv \
-    && /opt/python/cp37-cp37m/bin/python -m pip install --upgrade awscli \
+RUN /opt/python/cp38-cp38/bin/python -m pip install --upgrade setuptools virtualenv \
+    && /opt/python/cp38-cp38/bin/python -m pip install --upgrade awscli \
     && ln -s `find /opt -name aws` /usr/local/bin/aws \
     && which aws \
     && aws --version
