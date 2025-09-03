@@ -289,8 +289,6 @@ jobs:
         - manylinux1-x64
         - manylinux2014-x86
         - manylinux2014-x64
-        - manylinux2014-aarch64
-        - musllinux-1-1-aarch64
         - musllinux-1-1-x64
 
     needs: package
@@ -310,9 +308,38 @@ jobs:
       with:
         output: tag
 
-    # Only aarch64 needs this, but it doesn't hurt anything
-    - name: Install qemu/docker
-      run: docker run --privileged --rm tonistiigi/binfmt --install arm64
+    - name: Build ${{ env.PACKAGE_NAME }}
+      run: |
+        aws ecr get-login-password --region us-east-1 | docker login ${{ secrets.AWS_ECR_REPO }} -u AWS --password-stdin
+        export DOCKER_IMAGE=${{ secrets.AWS_ECR_REPO }}/aws-crt-${{ matrix.linux }}:${{ steps.tag.outputs.release_tag }}
+        docker pull $DOCKER_IMAGE
+        docker run --env GITHUB_REF $DOCKER_IMAGE --version=${{ steps.tag.outputs.release_tag }} build -p aws-c-cal --spec=downstream run_tests=false
+
+  # This mostly tests that libcrypto and s2n resolve correctly on manylinux vs ubuntu
+  aws-c-cal-arm:
+    strategy:
+      fail-fast: false
+      matrix:
+        linux:
+        - manylinux2014-aarch64
+        - musllinux-1-1-aarch64
+
+    needs: package
+    runs-on: ubuntu-24.04-arm
+    steps:
+    - uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ env.CRT_CI_ROLE }}
+        aws-region: ${{ env.AWS_DEFAULT_REGION }}
+
+    - name: Checkout Source
+      uses: actions/checkout@v4
+
+    - name: Get release tag
+      uses: ./.github/actions/release-tag
+      id: tag
+      with:
+        output: tag
 
     - name: Build ${{ env.PACKAGE_NAME }}
       run: |
