@@ -24,8 +24,6 @@ RUN add-apt-repository -y ppa:deadsnakes/ppa \
 # Install Python 3.10 and Go
 RUN apt-get -y install \
     python3.10 \
-    python3.10-dev \
-    python3.10-venv \
     golang-go \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
@@ -38,7 +36,7 @@ WORKDIR /tmp
 
 RUN curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py \
     && python3.10 get-pip.py \
-    && python3.10 -m pip install setuptools \
+    && python3.10 -m pip install setuptools virtualenv \
     && curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o awscliv2.zip \
     && unzip awscliv2.zip \
     && sudo aws/install \
