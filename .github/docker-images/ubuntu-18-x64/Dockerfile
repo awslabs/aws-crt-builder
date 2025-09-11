@@ -13,23 +13,19 @@ RUN apt-get update -qq \
     unzip \
     # Ubuntu18's default python3 is python3.6, we will install Python 3.10
     software-properties-common \
+    build-essential \
+    ca-certificates \
     && add-apt-repository ppa:deadsnakes/ppa \
+    && add-apt-repository ppa:longsleep/golang-backports \
     && apt-get update \
     && apt-get -y install \
     python3.10-dev \
     python3.10-venv \
     python3.10-distutils \
-    build-essential \
-    apt-transport-https \
-    ca-certificates \
+    golang-go \
     && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* \
     && ln -sf /usr/bin/python3.10 /usr/bin/python3
-
-# Add the longsleep/golang-backports PPA
-RUN apt-get update && apt-get install -y software-properties-common && add-apt-repository ppa:longsleep/golang-backports && apt-get update
-
-# Install Go from the PPA
-RUN apt-get install -y golang-go
 
 ###############################################################################
 # Python/AWS CLI
@@ -42,15 +38,16 @@ RUN curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py \
     && curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o awscliv2.zip \
     && unzip awscliv2.zip \
     && sudo aws/install \
-    && aws --version
+    && aws --version \
+    && rm -rf get-pip.py awscliv2.zip aws
 
 ###############################################################################
 # Install pre-built CMake
 ###############################################################################
 RUN curl -sSL https://d19elf31gohf1l.cloudfront.net/_binaries/cmake/cmake-3.13-manylinux1-x64.tar.gz -o cmake.tar.gz \
-    && tar xvzf cmake.tar.gz -C /usr/local \
+    && tar xzf cmake.tar.gz -C /usr/local \
     && cmake --version \
-    && rm -f /tmp/cmake.tar.gz
+    && rm -f cmake.tar.gz
 
 ###############################################################################
 # Install entrypoint
