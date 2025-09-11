@@ -46,10 +46,11 @@ RUN cd /tmp \
     && ln -sf /usr/local/bin/python3.10 /usr/bin/python3 \
     && /usr/local/bin/python3.10 --version
 
-# Add Go PPA and install
-RUN add-apt-repository -y ppa:longsleep/golang-backports \
-    && apt-get update \
-    && apt-get -y install golang-go \
+# Install Go from default Ubuntu repository
+RUN apt-get update \
+    && apt-get -y install \
+    software-properties-common \
+    golang-go \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
