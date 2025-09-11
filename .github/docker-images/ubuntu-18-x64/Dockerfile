@@ -11,14 +11,18 @@ RUN apt-get update -qq \
     curl \
     sudo \
     unzip \
-    # Ubuntu18's default python3 is python3.6, we will install Python 3.10
     software-properties-common \
     build-essential \
     ca-certificates \
-    && add-apt-repository ppa:deadsnakes/ppa \
-    && add-apt-repository ppa:longsleep/golang-backports \
-    && apt-get update \
-    && apt-get -y install \
+    && apt-get clean
+
+# Add PPAs with retry
+RUN add-apt-repository -y ppa:deadsnakes/ppa \
+    && add-apt-repository -y ppa:longsleep/golang-backports \
+    && apt-get update
+
+# Install Python 3.10 and Go
+RUN apt-get -y install \
     python3.10-dev \
     python3.10-venv \
     python3.10-distutils \
