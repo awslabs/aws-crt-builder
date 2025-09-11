@@ -11,19 +11,19 @@ RUN apt-get update -qq \
     curl \
     sudo \
     unzip \
-    # Ubuntu18's default python3 is python3.6, which is EOL.
-    # So install python3.8 (latest version on this distro, circa Oct 2022)
-    python3.8-dev \
-    python3.8-venv \
-    # This installs pip for all python versions on the system
-    # (there is no "python3.8-pip")
+    # Ubuntu18's default python3 is python3.6, we will install Python 3.10
+    software-properties-common \
+    && add-apt-repository ppa:deadsnakes/ppa \
+    && apt-get update \
+    && apt-get -y install \
+    python3.10-dev \
+    python3.10-venv \
     python3-pip \
     build-essential \
-    # For PPAs
-    software-properties-common \
     apt-transport-https \
     ca-certificates \
-    && apt-get clean
+    && apt-get clean \
+    && ln -sf /usr/bin/python3.10 /usr/bin/python3
 
 # Add the longsleep/golang-backports PPA
 RUN apt-get update && apt-get install -y software-properties-common && add-apt-repository ppa:longsleep/golang-backports && apt-get update
@@ -36,7 +36,7 @@ RUN apt-get install -y golang-go
 ###############################################################################
 WORKDIR /tmp
 
-RUN python3.8 -m pip install setuptools \
+RUN python3 -m pip install setuptools \
     && curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o awscliv2.zip \
     && unzip awscliv2.zip \
     && sudo aws/install \
