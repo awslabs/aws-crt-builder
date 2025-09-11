@@ -18,7 +18,7 @@ RUN apt-get update -qq \
     && apt-get -y install \
     python3.10-dev \
     python3.10-venv \
-    python3-pip \
+    python3.10-distutils \
     build-essential \
     apt-transport-https \
     ca-certificates \
@@ -36,7 +36,9 @@ RUN apt-get install -y golang-go
 ###############################################################################
 WORKDIR /tmp
 
-RUN python3 -m pip install setuptools \
+RUN curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py \
+    && python3.10 get-pip.py \
+    && python3.10 -m pip install setuptools \
     && curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o awscliv2.zip \
     && unzip awscliv2.zip \
     && sudo aws/install \
