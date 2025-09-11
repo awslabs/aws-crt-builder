@@ -23,9 +23,9 @@ RUN add-apt-repository -y ppa:deadsnakes/ppa \
 
 # Install Python 3.10 and Go
 RUN apt-get -y install \
+    python3.10 \
     python3.10-dev \
     python3.10-venv \
-    python3.10-distutils \
     golang-go \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
