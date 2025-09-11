@@ -27,6 +27,8 @@ RUN apt-get -y install \
     golang-go \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
+    && ls -la /usr/bin/python* \
+    && /usr/bin/python3.10 --version \
     && ln -sf /usr/bin/python3.10 /usr/bin/python3
 
 ###############################################################################
@@ -35,8 +37,8 @@ RUN apt-get -y install \
 WORKDIR /tmp
 
 RUN curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py \
-    && python3.10 get-pip.py \
-    && python3.10 -m pip install setuptools virtualenv \
+    && /usr/bin/python3.10 get-pip.py \
+    && /usr/bin/python3.10 -m pip install setuptools virtualenv \
     && curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o awscliv2.zip \
     && unzip awscliv2.zip \
     && sudo aws/install \
