@@ -18,7 +18,7 @@ RUN yum -y update \
     gcc-c++ \
     which \
     && yum clean all \
-    && rm -rf /var/cache/yum
+    && rm -rf /var/cache/yum \
     # insure python3 and pip3 point to python3.8
     && ln -sf /usr/bin/python3.8 /usr/bin/python3 \
     && ln -sf /usr/bin/pip3.8 /usr/bin/pip3
