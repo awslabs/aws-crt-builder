@@ -5,20 +5,23 @@ FROM amazonlinux:2
 # Install prereqs
 ###############################################################################
 RUN yum -y update \
+    # We bumped min supported version of Python to 3.8.
+    # AL2 installs 3.7 when using python3-devel
+    && amazon-linux-extras install python3.8 -y \
     && yum -y install \
     tar \
     git \
-    sudo \
-    # Python
-    python3 \
-    python3-devel \
-    python3-pip \
+    sudo \ 
+    python38-devel \
     make \
     gcc \
     gcc-c++ \
     which \
     && yum clean all \
     && rm -rf /var/cache/yum
+    # insure python3 and pip3 point to python3.8
+    && ln -sf /usr/bin/python3.8 /usr/bin/python3 \
+    && ln -sf /usr/bin/pip3.8 /usr/bin/pip3
 
 ###############################################################################
 # Python/AWS CLI
