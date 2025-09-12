@@ -11,44 +11,68 @@ RUN apt-get update -qq \
     curl \
     sudo \
     unzip \
-    # Ubuntu18's default python3 is python3.6, which is EOL.
-    # So install python3.8 (latest version on this distro, circa Oct 2022)
-    python3.8-dev \
-    python3.8-venv \
-    # This installs pip for all python versions on the system
-    # (there is no "python3.8-pip")
-    python3-pip \
-    build-essential \
-    # For PPAs
     software-properties-common \
-    apt-transport-https \
+    build-essential \
     ca-certificates \
     && apt-get clean
 
-# Add the longsleep/golang-backports PPA
-RUN apt-get update && apt-get install -y software-properties-common && add-apt-repository ppa:longsleep/golang-backports && apt-get update
+# Install dependencies for building Python from source
+RUN apt-get update \
+    && apt-get -y install \
+    libssl-dev \
+    zlib1g-dev \
+    libbz2-dev \
+    libreadline-dev \
+    libsqlite3-dev \
+    libncursesw5-dev \
+    xz-utils \
+    tk-dev \
+    libxml2-dev \
+    libxmlsec1-dev \
+    libffi-dev \
+    liblzma-dev \
+    && apt-get clean
 
-# Install Go from the PPA
-RUN apt-get install -y golang-go
+# Build Python 3.10 from source
+RUN cd /tmp \
+    && curl -O https://www.python.org/ftp/python/3.10.12/Python-3.10.12.tgz \
+    && tar -xzf Python-3.10.12.tgz \
+    && cd Python-3.10.12 \
+    && ./configure --with-ensurepip=install \
+    && make -j$(nproc) \
+    && make altinstall \
+    && cd / \
+    && rm -rf /tmp/Python-3.10.12* \
+    && ln -sf /usr/local/bin/python3.10 /usr/bin/python3 \
+    && /usr/local/bin/python3.10 --version
+
+# Install Go from default Ubuntu repository
+RUN apt-get update \
+    && apt-get -y install \
+    software-properties-common \
+    golang-go \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
 ###############################################################################
 # Python/AWS CLI
 ###############################################################################
 WORKDIR /tmp
 
-RUN python3.8 -m pip install setuptools \
+RUN /usr/local/bin/python3.10 -m pip install --upgrade pip setuptools virtualenv \
     && curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o awscliv2.zip \
     && unzip awscliv2.zip \
     && sudo aws/install \
-    && aws --version
+    && aws --version \
+    && rm -rf awscliv2.zip aws
 
 ###############################################################################
 # Install pre-built CMake
 ###############################################################################
 RUN curl -sSL https://d19elf31gohf1l.cloudfront.net/_binaries/cmake/cmake-3.13-manylinux1-x64.tar.gz -o cmake.tar.gz \
-    && tar xvzf cmake.tar.gz -C /usr/local \
+    && tar xzf cmake.tar.gz -C /usr/local \
     && cmake --version \
-    && rm -f /tmp/cmake.tar.gz
+    && rm -f cmake.tar.gz
 
 ###############################################################################
 # Install entrypoint
