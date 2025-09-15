@@ -45,12 +45,12 @@ RUN cd /tmp \
     && ln -sf /usr/local/bin/python3.10 /usr/bin/python \
     && /usr/local/bin/python3.10 --version
 
-# Install Go and fix apt-add-repository for system Python
+# Install Go and setup Python 3.10 for system tools
 RUN apt-get update \
     && apt-get -y install \
-    python3-software-properties \
     golang-go \
-    && sed -i '1s|.*|#!/usr/bin/python3.6|' /usr/bin/apt-add-repository
+    && /usr/local/bin/python3.10 -m pip install python-apt \
+    && sed -i '1s|.*|#!/usr/local/bin/python3.10|' /usr/bin/apt-add-repository
 
 ###############################################################################
 # Python/AWS CLI
