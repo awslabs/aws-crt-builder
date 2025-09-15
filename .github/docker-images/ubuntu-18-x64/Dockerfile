@@ -49,7 +49,10 @@ RUN cd /tmp \
 RUN apt-get update \
     && apt-get -y install \
     python3-software-properties \
-    golang-go
+    golang-go \
+    && head -1 /usr/bin/apt-add-repository \
+    && python3 -c "import softwareproperties; print('softwareproperties found')" \
+    && ls -la /usr/bin/python*
 
 ###############################################################################
 # Python/AWS CLI
