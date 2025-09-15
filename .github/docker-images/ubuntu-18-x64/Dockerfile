@@ -42,12 +42,13 @@ RUN cd /tmp \
     && make altinstall \
     && cd / \
     && rm -rf /tmp/Python-3.10.12* \
-    && ln -sf /usr/local/bin/python3.10 /usr/bin/python3 \
+    && ln -sf /usr/local/bin/python3.10 /usr/bin/python \
     && /usr/local/bin/python3.10 --version
 
-# Install Go from default Ubuntu repository
+# Install Go and ensure system Python packages are available
 RUN apt-get update \
     && apt-get -y install \
+    python3-software-properties \
     golang-go
 
 ###############################################################################
