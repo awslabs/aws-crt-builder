@@ -30,6 +30,7 @@ RUN apt-get update \
     libxml2-dev \
     libxmlsec1-dev \
     libffi-dev \
+    software-properties-common \
     liblzma-dev
 
 # Build Python 3.10 from source
