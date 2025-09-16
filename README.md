@@ -299,7 +299,7 @@ debugging experience:
 * --build-dir=/path/to/other/git/repo - will jump to this directory before starting execution, helpful for debugging another project's
                                         configuration and build scripts
 
-When debugging builder from downstream CI (AWS common runtime repos), to use a branch of builder, you will need to change `BUILDER_VERSION` to the branch name of aws-crt-builder, and the `BUILDER_SOURCE` to be `channels` from `ci.yml`. Eg: for `aws-crt-java`, make those change to the [here](https://github.com/awslabs/aws-crt-java/blob/main/.github/workflows/ci.yml#L10-L11).
+When debugging builder from downstream CI (AWS common runtime repos), to use a branch of builder, you will need to change `BUILDER_VERSION` to the branch name of aws-crt-builder, and the `BUILDER_SOURCE` to be `channels` from `ci.yml`. Eg: for `aws-crt-java`, make those changes [here](https://github.com/awslabs/aws-crt-java/blob/eb3813e4da89709fe71611fd4fdf59a5eef40336/.github/workflows/ci.yml#L10-L11).
 
 ### Docker Images
 Each docker image has a script which will fetch the builder app baked into it, and will then call the builder with the arguments provided.

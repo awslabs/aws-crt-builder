@@ -30,8 +30,8 @@ RUN apt-get update \
     libxml2-dev \
     libxmlsec1-dev \
     libffi-dev \
-    liblzma-dev \
-    && apt-get clean
+    software-properties-common \
+    liblzma-dev
 
 # Build Python 3.10 from source
 RUN cd /tmp \
@@ -43,16 +43,15 @@ RUN cd /tmp \
     && make altinstall \
     && cd / \
     && rm -rf /tmp/Python-3.10.12* \
-    && ln -sf /usr/local/bin/python3.10 /usr/bin/python3 \
+    && ln -sf /usr/local/bin/python3.10 /usr/local/bin/python \
     && /usr/local/bin/python3.10 --version
 
-# Install Go from default Ubuntu repository
+# Install Go and ensure system Python tools work
 RUN apt-get update \
     && apt-get -y install \
-    software-properties-common \
-    golang-go \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+    python3-software-properties \
+    python3-apt \
+    golang-go
 
 ###############################################################################
 # Python/AWS CLI
