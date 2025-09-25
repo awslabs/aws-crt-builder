@@ -1,6 +1,10 @@
 name: Sanity Tests
 
 on:
+  workflow_run:
+    workflows: ["Create Channel"]
+    types:
+      - completed
   push:
     branches-ignore:
       - 'main'
