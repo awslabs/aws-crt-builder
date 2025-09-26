@@ -1,0 +1,69 @@
+name: Dispatcher Workflow
+
+permissions:
+  contents: read
+  actions: read
+  id-token: write
+
+on:
+  push:
+    branches-ignore:
+      - 'main'
+
+jobs:
+  decide:
+    runs-on: ubuntu-latest
+    outputs:
+      trigger_create: ${{ steps.set_trigger.outputs.trigger_create }}
+      trigger_sanity_test: ${{ steps.set_trigger.outputs.trigger_sanity_test }}
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set flags for create channel and sanity test
+        id: set_trigger
+        run: |
+          git fetch origin ${{ github.event.before }}
+          CHANGED="$(git diff --name-only ${{ github.event.before }} ${{ github.sha }})"
+
+          TRIGGER_CREATE=false
+          if echo "$CHANGED" | grep -E '(^.github/actions/.*)|(^.github/docker-images/.*)|(^.github/workflows/[^/]*\.sh$)|(^.github/workflows/create-channel.yml$)|(^builder/.*)'; then
+            TRIGGER_CREATE=true
+          fi
+
+          BRANCH="${GITHUB_REF##*/}"
+          RUNS=$(gh run list --workflow="create-channel.yml" --branch="$BRANCH" --json conclusion | jq '[.[] | select(.conclusion == "success")] | length')
+          if [ "$RUNS" -eq 0 ]; then
+            TRIGGER_CREATE=true
+          fi
+
+          echo "trigger_create=$TRIGGER_CREATE" >> $GITHUB_OUTPUT
+          echo "trigger_sanity_test=true" >> $GITHUB_OUTPUT
+
+  run_create:
+    needs: decide
+    if: ${{ needs.decide.outputs.trigger_create == 'true' }}
+    uses: ./.github/workflows/create-channel.yml
+    secrets:
+      AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
+      CRT_CI_ROLE_ARN: ${{ secrets.CRT_CI_ROLE_ARN }}
+      AWS_ECR_REPO: ${{ secrets.AWS_ECR_REPO }}
+
+  run_sanity_test:
+    needs: [decide, run_create]
+    if: ${{ needs.decide.outputs.trigger_sanity_test == 'true' && needs.decide.outputs.trigger_create == 'true' }}
+    uses: ./.github/workflows/sanity-test.yml
+    secrets:
+      AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
+      CRT_CI_ROLE_ARN: ${{ secrets.CRT_CI_ROLE_ARN }}
+      AWS_ECR_REPO: ${{ secrets.AWS_ECR_REPO }}
+
+  run_sanity_test_only:
+    needs: decide
+    if: ${{ needs.decide.outputs.trigger_sanity_test == 'true' && needs.decide.outputs.trigger_create != 'true' }}
+    uses: ./.github/workflows/sanity-test.yml
+    secrets:
+      AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
+      CRT_CI_ROLE_ARN: ${{ secrets.CRT_CI_ROLE_ARN }}
+      AWS_ECR_REPO: ${{ secrets.AWS_ECR_REPO }}
