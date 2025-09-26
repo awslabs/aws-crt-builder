@@ -24,6 +24,14 @@ jobs:
       - name: Set flags for create channel and sanity test
         id: set_trigger
         run: |
+          # Handle new branch creation (before SHA is all zeros)
+          if [[ "${{ github.event.before }}" =~ ^0+$ ]]; then
+            echo "New branch detected, running both workflows"
+            echo "trigger_create=true" >> $GITHUB_OUTPUT
+            echo "trigger_sanity_test=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
           git fetch origin ${{ github.event.before }}
           CHANGED="$(git diff --name-only ${{ github.event.before }} ${{ github.sha }})"
 
