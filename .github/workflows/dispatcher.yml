@@ -24,31 +24,34 @@ jobs:
       - name: Set flags for create channel and sanity test
         id: set_trigger
         run: |
-          # Handle new branch creation (before SHA is all zeros)
-          if [[ "${{ github.event.before }}" =~ ^0+$ ]]; then
-            echo "New branch detected, running both workflows"
+          # checks for previous successful runs on the branch
+          echo "trigger_sanity_test=true" >> $GITHUB_OUTPUT
+          BRANCH="${GITHUB_REF##*/}"
+          COMMIT_ID=$(gh run list -w="Dispatcher Workflow" --branch="$BRANCH" --json conclusion,headSha --jq 'first(.[] | select(.conclusion == "success")) | .headSha // empty')
+          if [[ -z "$COMMIT_ID" ]]; then
+            echo "Found no successful dispatch runs on this branch."
             echo "trigger_create=true" >> $GITHUB_OUTPUT
-            echo "trigger_sanity_test=true" >> $GITHUB_OUTPUT
             exit 0
+          else
+            echo "Found previous successful run for commit $COMMIT_ID"
           fi
-          
+          # check if new changes on push requires re-running the create-channel
           git fetch origin ${{ github.event.before }}
           CHANGED="$(git diff --name-only ${{ github.event.before }} ${{ github.sha }})"
-
-          TRIGGER_CREATE=false
-          if echo "$CHANGED" | grep -E '(^.github/actions/.*)|(^.github/docker-images/.*)|(^.github/workflows/[^/]*\.sh$)|(^.github/workflows/create-channel.yml$)|(^builder/.*)'; then
-            TRIGGER_CREATE=true
+          echo "---------------------"
+          echo "CHANGES"
+          echo "---------------------"
+          echo "$CHANGED"
+          NEEDED_CHANGES="$(echo "$CHANGED" | grep -E '(^.github/actions/.*)|(^.github/workflows/[^/]*\.sh$)|(^.github/workflows/create-channel.yml$)|(^builder/.*)|(^.github/workflows/dispatcher.yml)')"
+          echo "---------------------"
+          echo "CHANGES FOR CREATE"
+          echo "---------------------"
+          echo "$NEEDED_CHANGES"
+          if [ -n "$NEEDED_CHANGES" ]; then
+            echo "trigger_create=true" >> $GITHUB_OUTPUT
+          else
+            echo "trigger_create=false" >> $GITHUB_OUTPUT
           fi
-
-          BRANCH="${GITHUB_REF##*/}"
-          RUNS=$(gh run list --workflow="create-channel.yml" --branch="$BRANCH" --json conclusion | jq '[.[] | select(.conclusion == "success")] | length')
-          if [ "$RUNS" -eq 0 ]; then
-            TRIGGER_CREATE=true
-          fi
-
-          echo "trigger_create=$TRIGGER_CREATE" >> $GITHUB_OUTPUT
-          echo "trigger_sanity_test=true" >> $GITHUB_OUTPUT
-
   run_create:
     needs: decide
     if: ${{ needs.decide.outputs.trigger_create == 'true' }}
