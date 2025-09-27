@@ -24,9 +24,9 @@ echo "$CHANGED"
 
 CHANGES_THAT_TRIGGER_CREATE="(^\.github/actions/.*)|"\
 "(^\.github/workflows/[^/]*\.sh$)|"\
-"(^\.github/workflows/create-channel\.yml$)|"\
-"(^builder/.*)|"\
-"(^\.github/workflows/dispatcher\.yml$)"
+"(^\.github/workflows/(create-channel|dispatcher)\.yml$)|"\
+"(^\.github/docker-images/.*$)|"\
+"(^builder/.*)"
 
 CHANGES_THAT_TRIGGERED_CREATE=$(echo "$CHANGED" | grep -E "$CHANGES_THAT_TRIGGER_CREATE") || true # job should continue if no matches are found
 
