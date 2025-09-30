@@ -326,5 +326,3 @@ this shouldn't be a common operation, but it is automated.
 ## License
 
 This project is licensed under the Apache-2.0 License.
-
-#new addition
