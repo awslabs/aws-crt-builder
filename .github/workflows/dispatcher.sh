@@ -9,10 +9,6 @@ if [[ -z "$COMMIT_ID" ]]; then
     echo "trigger_create=true" >> $GITHUB_OUTPUT
     echo "trigger_sanity_test=true" >> $GITHUB_OUTPUT
     exit 0
-else
-    SHORT_HASH=$(git rev-parse --short $COMMIT_ID)
-    COMMIT_MESSAGE=$(git log --format="%s" -n 1 $COMMIT_ID)
-    echo "Found previous successful run for commit $SHORT_HASH: $COMMIT_MESSAGE"
 fi
 
 # check if new changes on push requires re-running the create-channel
@@ -24,6 +20,10 @@ if ! git fetch origin $COMMIT_ID; then
     echo "trigger_sanity_test=true" >> $GITHUB_OUTPUT
     exit 0
 fi
+
+SHORT_HASH=$(git rev-parse --short $COMMIT_ID)
+COMMIT_MESSAGE=$(git log --format="%s" -n 1 $COMMIT_ID)
+echo "Found previous successful run for commit $SHORT_HASH: $COMMIT_MESSAGE"
 
 CHANGED="$(git diff --name-only $COMMIT_ID $GITHUB_SHA)"
 
