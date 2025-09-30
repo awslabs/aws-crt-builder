@@ -5,12 +5,14 @@ set -e
 BRANCH="${GITHUB_REF##*/}"
 COMMIT_ID=$(gh run list -w="Dispatcher Workflow" --branch="$BRANCH" --json conclusion,headSha --jq 'first(.[] | select(.conclusion == "success")) | .headSha // empty')
 if [[ -z "$COMMIT_ID" ]]; then
-echo "Found no successful dispatch runs on this branch."
-echo "trigger_create=true" >> $GITHUB_OUTPUT
-echo "trigger_sanity_test=true" >> $GITHUB_OUTPUT
-exit 0
+    echo "Found no successful dispatch runs on this branch."
+    echo "trigger_create=true" >> $GITHUB_OUTPUT
+    echo "trigger_sanity_test=true" >> $GITHUB_OUTPUT
+    exit 0
 else
-echo "Found previous successful run for commit $COMMIT_ID"
+    SHORT_HASH=$(git rev-parse --short $COMMIT_ID)
+    COMMIT_MESSAGE=$(git log --format="%s" -n 1 $COMMIT_ID)
+    echo "Found previous successful run for commit $SHORT_HASH: $COMMIT_MESSAGE"
 fi
 
 # check if new changes on push requires re-running the create-channel
@@ -22,6 +24,7 @@ if ! git fetch origin $COMMIT_ID; then
     echo "trigger_sanity_test=true" >> $GITHUB_OUTPUT
     exit 0
 fi
+
 CHANGED="$(git diff --name-only $COMMIT_ID $GITHUB_SHA)"
 
 echo "---------------------"
