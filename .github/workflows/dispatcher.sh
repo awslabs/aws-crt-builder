@@ -14,8 +14,15 @@ echo "Found previous successful run for commit $COMMIT_ID"
 fi
 
 # check if new changes on push requires re-running the create-channel
-git fetch origin $GITHUB_BEFORE
-CHANGED="$(git diff --name-only $GITHUB_BEFORE $GITHUB_SHA)"
+# we look at diffs from the last successful workflow run to current commit
+if ! git fetch origin $COMMIT_ID; then
+    echo "Failed to fetch commit $COMMIT_ID."
+    echo "Setting create and sanity test to true because this might be a new branch with the same name."
+    echo "trigger_create=true" >> $GITHUB_OUTPUT
+    echo "trigger_sanity_test=true" >> $GITHUB_OUTPUT
+    exit 0
+fi
+CHANGED="$(git diff --name-only $COMMIT_ID $GITHUB_SHA)"
 
 echo "---------------------"
 echo "CHANGES"
