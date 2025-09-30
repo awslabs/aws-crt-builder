@@ -69,7 +69,7 @@ jobs:
       - name: Check all jobs succeeded
         run: |
           for result in "${{ needs.run_create.result }}" "${{ needs.run_sanity_test.result }}" "${{ needs.run_sanity_test_only.result }}"; do
-            if [[ "$result" != "success" && "$result" != "skipped" ]]; then
+            if [[ "$result" != "success" && "$result" != "cancelled" ]]; then
               echo "One or more jobs failed, were cancelled, or had errors (result: $result)"
               exit 1
             fi
