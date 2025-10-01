@@ -129,3 +129,4 @@ jobs:
       run: |
         export IMAGE_TAG=${{ steps.tag.outputs.release_tag }}
         docker push ${{ secrets.AWS_ECR_REPO }}/aws-crt-${{ matrix.variant.name }}:$IMAGE_TAG
+#test
