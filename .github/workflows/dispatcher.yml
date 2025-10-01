@@ -11,7 +11,7 @@ on:
       - 'main'
 
 jobs:
-  decide:
+  setup_dispatch: # This job sets up variables that determine if create and/or sanity test need to be run.
     runs-on: ubuntu-latest
     outputs:
       trigger_create: ${{ steps.set_trigger.outputs.trigger_create }}
@@ -35,8 +35,8 @@ jobs:
           echo "trigger_sanity_test: ${{ steps.set_trigger.outputs.trigger_sanity_test }}"
 
   run_create:
-    needs: decide
-    if: ${{ needs.decide.outputs.trigger_create == 'true' }}
+    needs: setup_dispatch
+    if: ${{ needs.setup_dispatch.outputs.trigger_create == 'true' }}
     uses: ./.github/workflows/create-channel.yml
     secrets:
       AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
@@ -44,8 +44,8 @@ jobs:
       AWS_ECR_REPO: ${{ secrets.AWS_ECR_REPO }}
 
   run_sanity_test:
-    needs: [decide, run_create]
-    if: ${{ needs.decide.outputs.trigger_sanity_test == 'true' && needs.decide.outputs.trigger_create == 'true' }}
+    needs: [setup_dispatch, run_create]
+    if: ${{ needs.setup_dispatch.outputs.trigger_sanity_test == 'true' && needs.setup_dispatch.outputs.trigger_create == 'true' }}
     uses: ./.github/workflows/sanity-test.yml
     secrets:
       AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
@@ -53,8 +53,8 @@ jobs:
       AWS_ECR_REPO: ${{ secrets.AWS_ECR_REPO }}
 
   run_sanity_test_only:
-    needs: decide
-    if: ${{ needs.decide.outputs.trigger_sanity_test == 'true' && needs.decide.outputs.trigger_create != 'true' }}
+    needs: setup_dispatch
+    if: ${{ needs.setup_dispatch.outputs.trigger_sanity_test == 'true' && needs.setup_dispatch.outputs.trigger_create != 'true' }}
     uses: ./.github/workflows/sanity-test.yml
     secrets:
       AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
@@ -62,7 +62,7 @@ jobs:
       AWS_ECR_REPO: ${{ secrets.AWS_ECR_REPO }}
 
   validate_tests_passed:
-    needs: [decide, run_create, run_sanity_test, run_sanity_test_only]
+    needs: [setup_dispatch, run_create, run_sanity_test, run_sanity_test_only]
     if: always()
     runs-on: ubuntu-latest
     steps:
