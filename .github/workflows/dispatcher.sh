@@ -3,7 +3,8 @@ set -e
 
 # checks for previous successful runs on the branch
 BRANCH="${GITHUB_REF_NAME}"
-COMMIT_ID=$(gh run list -w="Dispatcher Workflow" --branch="$BRANCH" --json conclusion,headSha --jq 'first(.[] | select(.conclusion == "success")) | .headSha // empty')
+echo "Checking for previous successful runs on this branch: $BRANCH"
+COMMIT_ID=$(gh run list -w="Dispatcher Workflow" --branch="$BRANCH" --json conclusion,headSha --jq 'first(.[] | select(.conclusion == "success")) | .headSha // empty' )
 if [[ -z "$COMMIT_ID" ]]; then
     echo "Found no successful dispatch runs on this branch."
     echo "trigger_create=true" >> $GITHUB_OUTPUT
