@@ -28,7 +28,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_SHA: ${{ github.sha }}
           GITHUB_REF: ${{ github.ref }}
-          GITHUB_BEFORE: ${{ github.event.before }}
 
       - name: results
         run: |
@@ -61,3 +60,18 @@ jobs:
       AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
       CRT_CI_ROLE_ARN: ${{ secrets.CRT_CI_ROLE_ARN }}
       AWS_ECR_REPO: ${{ secrets.AWS_ECR_REPO }}
+
+  validate_tests_passed:
+    needs: [decide, run_create, run_sanity_test, run_sanity_test_only]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check all jobs succeeded
+        run: |
+          for result in "${{ needs.run_create.result }}" "${{ needs.run_sanity_test.result }}" "${{ needs.run_sanity_test_only.result }}"; do
+            if [[ "$result" != "success" && "$result" != "skipped" ]]; then
+              echo "One or more jobs failed, were cancelled, or had errors (result: $result)"
+              exit 1
+            fi
+          done
+          echo "All required jobs have completed successfully"
