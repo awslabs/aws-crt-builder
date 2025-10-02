@@ -34,7 +34,7 @@ jobs:
           echo "trigger_create: ${{ steps.set_trigger.outputs.trigger_create }}"
           echo "trigger_sanity_test: ${{ steps.set_trigger.outputs.trigger_sanity_test }}"
 
-  run_create:
+  run_create_channel:
     needs: setup_dispatch
     if: ${{ needs.setup_dispatch.outputs.trigger_create == 'true' }}
     uses: ./.github/workflows/create-channel.yml
@@ -43,16 +43,16 @@ jobs:
       CRT_CI_ROLE_ARN: ${{ secrets.CRT_CI_ROLE_ARN }}
       AWS_ECR_REPO: ${{ secrets.AWS_ECR_REPO }}
 
-  run_sanity_test:
-    needs: [setup_dispatch, run_create]
-    if: ${{ needs.setup_dispatch.outputs.trigger_sanity_test == 'true' && needs.setup_dispatch.outputs.trigger_create == 'true' }}
+  sanity_test_after_create_channel:
+    needs: [run_create_channel]
+    if: ${{ needs.run_create_channel.outcomes.success }}
     uses: ./.github/workflows/sanity-test.yml
     secrets:
       AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
       CRT_CI_ROLE_ARN: ${{ secrets.CRT_CI_ROLE_ARN }}
       AWS_ECR_REPO: ${{ secrets.AWS_ECR_REPO }}
 
-  run_sanity_test_only:
+  sanity_test_skip_create_channel:
     needs: setup_dispatch
     if: ${{ needs.setup_dispatch.outputs.trigger_sanity_test == 'true' && needs.setup_dispatch.outputs.trigger_create != 'true' }}
     uses: ./.github/workflows/sanity-test.yml
@@ -62,13 +62,13 @@ jobs:
       AWS_ECR_REPO: ${{ secrets.AWS_ECR_REPO }}
 
   validate_tests_passed:
-    needs: [setup_dispatch, run_create, run_sanity_test, run_sanity_test_only]
+    needs: [setup_dispatch, run_create_channel, sanity_test_after_create_channel, sanity_test_skip_create_channel]
     if: always()
     runs-on: ubuntu-latest
     steps:
       - name: Check all jobs succeeded
         run: |
-          for result in "${{ needs.run_create.result }}" "${{ needs.run_sanity_test.result }}" "${{ needs.run_sanity_test_only.result }}"; do
+          for result in "${{ needs.run_create_channel.result }}" "${{ needs.sanity_test_after_create_channel.result }}" "${{ needs.sanity_test_skip_create_channel.result }}"; do
             if [[ "$result" != "success" && "$result" != "skipped" ]]; then
               echo "One or more jobs failed, were cancelled, or had errors (result: $result)"
               exit 1
