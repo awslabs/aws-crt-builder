@@ -1,9 +1,14 @@
 name: Sanity Tests
 
 on:
-  push:
-    branches-ignore:
-      - 'main'
+  workflow_call:
+    secrets:
+      AWS_S3_BUCKET:
+        required: true
+      CRT_CI_ROLE_ARN:
+        required: true
+      AWS_ECR_REPO:
+        required: true
 
 env:
   AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}

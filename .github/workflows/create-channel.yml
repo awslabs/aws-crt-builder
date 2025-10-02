@@ -1,18 +1,14 @@
 name: Create Channel
 
-# need images created at least once per branch, even if there are no docker changes
-# so that downstream projects can use the branch channel.
 on:
-  push:
-    branches-ignore:
-      - 'main'
-    paths:
-      - '.github/workflows/create-channel.yml'
-      - '.github/actions/**'
-      - '.github/docker-images/**'
-      - '.github/workflows/*.sh'
-      - 'builder/**'
-  create:
+  workflow_call:
+    secrets:
+      AWS_S3_BUCKET: 
+        required: true
+      CRT_CI_ROLE_ARN:
+        required: true
+      AWS_ECR_REPO: 
+        required: true
 
 env:
   AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
@@ -49,12 +45,6 @@ jobs:
         cp -r builder staging/.
         python3 -m zipapp --python="/usr/bin/env python3" -m "builder.main:main" --output=build/builder staging
         aws s3 cp build/builder s3://$AWS_S3_BUCKET/channels/$CHANNEL/builder.pyz
-
-    - name: Artifact builder
-      uses: actions/upload-artifact@v4
-      with:
-        name: builder
-        path: build/builder
 
     - name: Upload container CI script
       run: aws s3 cp ./.github/workflows/linux-container-ci.sh s3://aws-crt-test-stuff/ci/${{ steps.tag.outputs.release_tag }}/linux-container-ci.sh
