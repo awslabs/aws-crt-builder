@@ -44,8 +44,8 @@ jobs:
       AWS_ECR_REPO: ${{ secrets.AWS_ECR_REPO }}
 
   sanity_test_after_create_channel:
-    needs: [run_create_channel]
-    if: ${{ needs.run_create_channel.outcomes.success }}
+    needs: [setup_dispatch, run_create_channel]
+    if: ${{ needs.setup_dispatch.outputs.trigger_sanity_test == 'true' && needs.setup_dispatch.outputs.trigger_create == 'true' }}
     uses: ./.github/workflows/sanity-test.yml
     secrets:
       AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
