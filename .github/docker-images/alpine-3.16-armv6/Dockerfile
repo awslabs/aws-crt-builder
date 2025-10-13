@@ -21,7 +21,7 @@ RUN apk add \
     bash
 
 WORKDIR /tmp
-RUN python3 -m pip install awscli \
+RUN python3 -m pip install awscli --break-system-packages \
     && aws --version
 
 ###############################################################################
