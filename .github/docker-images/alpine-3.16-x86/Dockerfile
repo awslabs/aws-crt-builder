@@ -1,4 +1,4 @@
-FROM i386/alpine:3.19.0
+FROM i386/alpine:3.20.0
 
 ###############################################################################
 # Install prereqs
@@ -17,10 +17,11 @@ RUN apk add \
     linux-headers \
     ca-certificates \
     cmake \
-    bash \
-    aws-cli
+    bash
 
 WORKDIR /tmp
+RUN python3 -m pip install awscli \
+    && aws --version
 
 ###############################################################################
 # Install entrypoint

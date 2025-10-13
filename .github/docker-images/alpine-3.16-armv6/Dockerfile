@@ -1,4 +1,4 @@
-FROM arm32v6/alpine:3.19.0
+FROM arm32v6/alpine:3.20.0
 
 
 ###############################################################################
@@ -18,10 +18,11 @@ RUN apk add \
     linux-headers \
     ca-certificates \
     cmake \
-    bash \
-    aws-cli
+    bash
 
 WORKDIR /tmp
+RUN python3 -m pip install awscli \
+    && aws --version
 
 ###############################################################################
 # Install entrypoint
