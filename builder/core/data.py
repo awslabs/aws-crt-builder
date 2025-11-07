@@ -581,19 +581,12 @@ COMPILERS = {
                 'c': "clang-16",
                 'cxx': "clang++-16",
                 'cmake_args': ['-DENABLE_FUZZ_TESTS=ON'],
-                'apt_compiler_packages': ['llibc++abi-16-dev'],
+                'apt_compiler_packages': ['libc++abi-16-dev'],
             },
+            # the ubuntu instance doesn't have 17 and 18 yet. We can try to install from source. But, skip for now.
             '17': {
-                'c': "clang-17",
-                'cxx': "clang++-17",
-                'cmake_args': ['-DENABLE_FUZZ_TESTS=ON'],
-                'apt_compiler_packages': ['libc++abi-17-dev'],
             },
             '18': {
-                'c': "clang-18",
-                'cxx': "clang++-18",
-                'cmake_args': ['-DENABLE_FUZZ_TESTS=ON'],
-                'apt_compiler_packages': ['libc++abi-18-dev'],
             },
         },
         'architectures': {
