@@ -577,13 +577,9 @@ COMPILERS = {
                 'cmake_args': ['-DENABLE_FUZZ_TESTS=ON'],
                 'apt_compiler_packages': ['libc++abi-15-dev'],
             },
+            # Those version are not found. We can try to install from source. But, skip for now.
             '16': {
-                'c': "clang-16",
-                'cxx': "clang++-16",
-                'cmake_args': ['-DENABLE_FUZZ_TESTS=ON'],
-                'apt_compiler_packages': ['libc++abi-16-dev'],
             },
-            # the ubuntu instance doesn't have 17 and 18 yet. We can try to install from source. But, skip for now.
             '17': {
             },
             '18': {
