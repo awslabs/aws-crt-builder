@@ -148,7 +148,7 @@ def _build_project(env, project, cmake_extra, build_tests=False, args_transforme
     # For examp[le, ENABLE_SANITIZERS is set to OFF by default but ON by host config, if we want to turn it off again for
     # specific jobs, having a UniqueList would not allow that.
     # TODO: We need to take into account flags which can have key value pairs while trying to make a unique list and update
-    # keys with the latest 'value' based on priority instead of treating it as an element in the list. This would allow not 
+    # keys with the latest 'value' based on priority instead of treating it as an element in the list. This would allow not
     # duplicating flags.
     cmake_args = [
         "-B{}".format(project_build_dir),
