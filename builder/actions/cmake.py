@@ -142,7 +142,15 @@ def _build_project(env, project, cmake_extra, build_tests=False, args_transforme
             if value:
                 compiler_flags.append(
                     '-DCMAKE_{}_COMPILER={}'.format(opt.upper(), value))
-    cmake_args = UniqueList([
+
+    # Removed UniqueList to make an ordinary list instead. Having multiple arguments in different parts of the command
+    # is acceptable since it helps debug where and how flags are added and override previous definitions based on priority.
+    # For examp[le, ENABLE_SANITIZERS is set to OFF by default but ON by host config, if we want to turn it off again for
+    # specific jobs, having a UniqueList would not allow that.
+    # TODO: We need to take into account flags which can have key value pairs while trying to make a unique list and update
+    # keys with the latest 'value' based on priority instead of treating it as an element in the list. This would allow not 
+    # duplicating flags.
+    cmake_args = [
         "-B{}".format(project_build_dir),
         "-H{}".format(project_source_dir),
         "-DAWS_WARNINGS_ARE_ERRORS=ON",
@@ -155,13 +163,7 @@ def _build_project(env, project, cmake_extra, build_tests=False, args_transforme
         "-DBUILD_TESTING=" + ("ON" if build_tests else "OFF"),
         "--no-warn-unused-cli",
         *compiler_flags,
-    ])
-    # Merging in cmake_args from all upstream projects inevitably leads to duplicate arguments.
-    # Using a UniqueList seems to solve the problem well enough for now.
-    # TODO: this can lead to unpredictable results for cases where same flag is
-    # set on and off multiple times. ex. Flag A is added to args with value On,
-    # Off, On. With UniqueList last On will be removed and cmake will treat flag
-    # as off. Without UniqueList cmake will treat it as on.
+    ]
     cmake_args += project.cmake_args(env)
     cmake_args += cmake_extra
     if coverage:
