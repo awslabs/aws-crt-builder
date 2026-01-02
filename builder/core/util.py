@@ -328,3 +328,21 @@ class UniqueList(UserList):
         if hash not in self._hashes:
             self._hashes.add(hash)
             self.data.append(value)
+
+def unique_flags(args_list, *prefixes):
+    """Remove duplicate flags, keeping the last occurrence of each flag prefix"""
+    seen = set()
+    result = []
+
+    for arg in reversed(args_list):
+        key = arg
+        for prefix in prefixes:
+            if arg.startswith(prefix):
+                key = arg.split('=')[0] if '=' in arg else arg
+                break
+
+        if key not in seen:
+            seen.add(key)
+            result.append(arg)
+
+    return list(reversed(result))
