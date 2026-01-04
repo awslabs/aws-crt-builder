@@ -329,8 +329,10 @@ class UniqueList(UserList):
             self._hashes.add(hash)
             self.data.append(value)
 
+
 def unique_flags(args_list, *prefixes):
-    """Remove duplicate flags, keeping the last occurrence of each flag prefix"""
+    """ Remove duplicate flags, keeping the last occurrence of each flag prefix """
+
     seen = set()
     result = []
 
