@@ -337,13 +337,13 @@ def unique_flags(args_list, *prefixes):
     result = []
 
     for arg in reversed(args_list):
-        key = arg
+        key = None
         for prefix in prefixes:
             if arg.startswith(prefix):
                 key = prefix
                 break
 
-        if key not in seen:
+        if key is None or key not in seen:
             seen.add(key)
             result.append(arg)
 
