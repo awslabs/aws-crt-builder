@@ -331,7 +331,7 @@ class UniqueList(UserList):
 
 
 def unique_flags(args_list, *prefixes):
-    """ Remove duplicate flags, keeping the last occurrence of each flag prefix """
+    """ Remove duplicate instances of a particular flag keeping only the last occurrence """
 
     seen = set()
     result = []
@@ -340,7 +340,7 @@ def unique_flags(args_list, *prefixes):
         key = arg
         for prefix in prefixes:
             if arg.startswith(prefix):
-                key = arg.split('=')[0] if '=' in arg else arg
+                key = prefix
                 break
 
         if key not in seen:
