@@ -346,5 +346,7 @@ def unique_flags(args_list, *prefixes):
         if key is None or key not in seen:
             seen.add(key)
             result.append(arg)
+        else:
+            print('DEBUG: ' + arg + ' is being ignored since it is already present in the list.')
 
     return list(reversed(result))
