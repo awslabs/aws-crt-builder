@@ -197,6 +197,12 @@ def _build_project(env, project, cmake_extra, build_tests=False, args_transforme
 
     working_dir = env.root_dir if toolchain.cross_compile else os.getcwd()
 
+    # Previous use of UniqueList did not allow multiple appends to the list of the same key value pair.
+    # Adding a new method 'unique_flags' which allows all args to be appended, but in the final set, we remove
+    # multiple declarations of certain flags keeping the last occurrence.
+    # CMake inherently supports multiple arguments and traverses from left to right and constantly updates the
+    # flag value based on latest read. However, windows does not support some flags being duplicated ('-A'
+    # or '-T') which would cause windows CI to fail.
     cmake_args = unique_flags(cmake_args, '-A', '-T')
 
     # configure
