@@ -9,7 +9,7 @@ from pathlib import Path
 
 from builder.core.action import Action
 from builder.core.toolchain import Toolchain
-from builder.core.util import UniqueList, run_command
+from builder.core.util import UniqueList, run_command, unique_flags
 
 
 @lru_cache(1)
@@ -196,6 +196,12 @@ def _build_project(env, project, cmake_extra, build_tests=False, args_transforme
         sh.setenv('CMAKE_BUILD_PARALLEL_LEVEL', str(os.cpu_count()))
 
     working_dir = env.root_dir if toolchain.cross_compile else os.getcwd()
+
+    # Previous use of UniqueList did not allow multiple appends to the list of the same key value pair.
+    # CMake inherently supports multiple arguments and traverses from left to right and constantly updates the flag value based on latest read.
+    # However, windows does not support some flags being duplicated ('-A' or '-T') which would cause windows failed to build.
+    # Thus, adding a new method 'unique_flags' to remove multiple declarations of those flags keeping the last occurrence.
+    cmake_args = unique_flags(cmake_args, '-A', '-T')
 
     # configure
     sh.exec(*toolchain.shell_env, cmake, cmake_args, working_dir=working_dir, check=True)
