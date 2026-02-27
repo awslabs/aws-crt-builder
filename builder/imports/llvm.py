@@ -214,6 +214,8 @@ def _check_repo_exists(codename, version):
     url = 'https://apt.llvm.org/{}/dists/llvm-toolchain-{}-{}/Release'.format(
         codename, codename, version)
 
+    print('  Checking URL: {}'.format(url))
+
     # Use curl to check if the Release file exists
     try:
         result = subprocess.run(
@@ -222,23 +224,32 @@ def _check_repo_exists(codename, version):
             text=True,
             timeout=30
         )
+        http_code = result.stdout.strip()
+        print('  curl returned: {} (returncode={})'.format(http_code, result.returncode))
         if result.returncode == 0:
-            return result.stdout.strip() == '200'
-    except Exception:
-        pass
+            exists = http_code == '200'
+            print('  Repository exists: {}'.format(exists))
+            return exists
+    except Exception as e:
+        print('  curl failed: {}'.format(e))
 
     # Fallback to urllib
+    print('  Falling back to urllib...')
     try:
         req = urllib.request.Request(url, method='HEAD', headers={
             'User-Agent': 'aws-crt-builder'
         })
         with urllib.request.urlopen(req, timeout=10) as response:
-            return response.status == 200
-    except urllib.error.HTTPError:
+            exists = response.status == 200
+            print('  urllib returned status: {}, exists: {}'.format(response.status, exists))
+            return exists
+    except urllib.error.HTTPError as e:
+        print('  urllib HTTPError: {} {}'.format(e.code, e.reason))
         return False
-    except Exception:
-        pass
+    except Exception as e:
+        print('  urllib failed: {}'.format(e))
 
+    print('  Could not determine if repository exists, assuming no')
     return False
 
 
@@ -330,8 +341,10 @@ def get_latest_llvm_version():
 
 
 class LLVM(Import):
-    # Cache for the resolved latest version
-    _latest_version_cache = None
+    # Cache for the resolved latest version, keyed by codename
+    # This is important because the same process might run for different distributions
+    # (e.g., host vs container with different codenames)
+    _latest_version_cache = {}
 
     def __init__(self, **kwargs):
         super().__init__(
@@ -348,11 +361,17 @@ class LLVM(Import):
     @staticmethod
     def resolve_latest_version():
         """
-        Resolve 'latest' to an actual version number. We cache the result to avoid repeating this step.
+        Resolve 'latest' to an actual version number.
+        We cache the result per codename to avoid repeating this step,
+        but different codenames get different results.
         """
-        if LLVM._latest_version_cache is None:
-            LLVM._latest_version_cache = get_latest_llvm_version()
-        return LLVM._latest_version_cache
+        codename = _get_codename()
+        cache_key = codename or 'unknown'
+
+        if cache_key not in LLVM._latest_version_cache:
+            LLVM._latest_version_cache[cache_key] = get_latest_llvm_version()
+
+        return LLVM._latest_version_cache[cache_key]
 
     def install(self, env):
         if self.installed:
