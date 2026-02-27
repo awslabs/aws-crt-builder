@@ -10,8 +10,10 @@ from builder.actions.install import InstallPackages
 from builder.actions.script import Script
 
 import os
+import re
 import stat
 import tempfile
+import urllib.request
 
 # this is a copy of https://apt.llvm.org/llvm.sh modified to add support back in
 # for older versions of clang < 8, and removed the need for clangd, lldb
@@ -101,7 +103,179 @@ apt-get install -y clang$LLVM_VERSION_STRING
 """
 
 
+def _get_codename():
+    """
+    Get the distribution codename (e.g., 'noble', 'bookworm').
+    Works with Ubuntu and Debian.
+    We should probably only care about Ubuntu but may as well support both and older codename detection is possible.
+    Returns None if codename cannot be determined.
+    """
+    import subprocess
+
+    # Try lsb_release (works on Ubuntu, Debian)
+    try:
+        result = subprocess.run(['lsb_release', '-cs'], capture_output=True, text=True)
+        if result.returncode == 0 and result.stdout.strip():
+            return result.stdout.strip()
+    except (FileNotFoundError, Exception):
+        pass
+
+    # Try /etc/os-release
+    try:
+        with open('/etc/os-release', 'r') as f:
+            os_release = {}
+            for line in f:
+                if '=' in line:
+                    key, value = line.strip().split('=', 1)
+                    os_release[key] = value.strip('"')
+
+            # VERSION_CODENAME is the standard field
+            if 'VERSION_CODENAME' in os_release and os_release['VERSION_CODENAME']:
+                return os_release['VERSION_CODENAME']
+
+            # For Ubuntu, we can also check UBUNTU_CODENAME
+            if 'UBUNTU_CODENAME' in os_release and os_release['UBUNTU_CODENAME']:
+                return os_release['UBUNTU_CODENAME']
+    except (FileNotFoundError, Exception):
+        pass
+
+    # Try /etc/lsb-release (older Ubuntu systems)
+    try:
+        with open('/etc/lsb-release', 'r') as f:
+            for line in f:
+                if line.startswith('DISTRIB_CODENAME='):
+                    codename = line.strip().split('=', 1)[1].strip('"')
+                    if codename:
+                        return codename
+    except (FileNotFoundError, Exception):
+        pass
+
+    return None
+
+
+def _fetch_url_content(url):
+    """
+    Fetch content from a URL.
+    We use curl as a subprocess for compression handling.
+    Falls back to urllib if curl is not available.
+    """
+    import subprocess
+
+    # Use curl with --compressed flag (handles all compression types)
+    try:
+        result = subprocess.run(
+            ['curl', '-s', '--compressed', url],
+            capture_output=True,
+            text=True,
+            timeout=60
+        )
+        if result.returncode == 0 and result.stdout:
+            return result.stdout
+    except (FileNotFoundError, subprocess.TimeoutExpired, Exception) as e:
+        print('curl not available or failed, falling back to urllib: {}'.format(e))
+
+    # Fall back to urllib with gzip decompression.
+    # apt.llvm.org uses gzip encoding for the main page, no compression for llvm.sh
+    import gzip
+    try:
+        req = urllib.request.Request(url, headers={
+            'Accept-Encoding': 'gzip, identity',
+            'User-Agent': 'aws-crt-builder'
+        })
+        with urllib.request.urlopen(req, timeout=30) as response:
+            data = response.read()
+            encoding = response.info().get('Content-Encoding', '')
+
+            if encoding == 'gzip':
+                return gzip.decompress(data).decode('utf-8')
+            else:
+                # No compression
+                return data.decode('utf-8')
+
+    except Exception as e:
+        print('urllib fetch failed: {}'.format(e))
+
+    return None
+
+
+def get_latest_llvm_version():
+    """
+    Detect the latest available LLVM/Clang version from apt.llvm.org.
+    Prefers the qualification/RC branch (stable + 1), falls back to stable if not available.
+
+    Supported distributions:
+    - Ubuntu: bionic (18.04), focal (20.04), jammy (22.04), noble (24.04), plucky (25.04), questing (25.10)
+    - Debian: bullseye (11), bookworm (12), trixie (13)
+
+    Returns the version number as a string, or None if detection fails.
+    """
+    try:
+        # Download the llvm.sh script to get the stable version
+        llvm_sh_content = _fetch_url_content('https://apt.llvm.org/llvm.sh')
+        if not llvm_sh_content:
+            print('Warning: Could not download llvm.sh')
+            return None
+
+        # Extract CURRENT_LLVM_STABLE from the script
+        stable_match = re.search(r'CURRENT_LLVM_STABLE=(\d+)', llvm_sh_content)
+        if not stable_match:
+            print('Warning: Could not parse CURRENT_LLVM_STABLE from llvm.sh')
+            return None
+
+        stable_version = int(stable_match.group(1))
+        qualification_version = stable_version + 1
+
+        # Get the codename (works for Ubuntu and Debian)
+        codename = _get_codename()
+
+        if codename:
+            print('Detected distribution codename: {}'.format(codename))
+
+            # Parse the LLVM apt page to find available versions for this codename
+            apt_page = _fetch_url_content('https://apt.llvm.org/')
+            if apt_page:
+                # Look for llvm-toolchain-<codename>-<version> patterns
+                pattern = r'llvm-toolchain-{}-(\d+)'.format(re.escape(codename))
+                available_versions = set(re.findall(pattern, apt_page))
+
+                if available_versions:
+                    print('Available LLVM versions for {}: {}'.format(
+                        codename, ', '.join(sorted(available_versions, key=int))))
+
+                    if str(qualification_version) in available_versions:
+                        print('Latest LLVM: Using qualification/RC branch: clang-{}'.format(qualification_version))
+                        return str(qualification_version)
+                    elif str(stable_version) in available_versions:
+                        print('Latest LLVM: Qualification branch {} not available for {}, using stable: clang-{}'.format(
+                            qualification_version, codename, stable_version))
+                        return str(stable_version)
+                    else:
+                        # Use the highest available version for this codename
+                        highest = max(available_versions, key=int)
+                        print('Latest LLVM: Neither qualification ({}) nor stable ({}) available for {}, using highest available: clang-{}'.format(
+                            qualification_version, stable_version, codename, highest))
+                        return highest
+                else:
+                    print('Warning: No LLVM versions found for codename {} on apt.llvm.org'.format(codename))
+                    print('This distribution may not be supported by apt.llvm.org')
+            else:
+                print('Warning: Could not fetch apt.llvm.org page')
+        else:
+            print('Warning: Could not determine distribution codename')
+
+        # Fall back to stable version if we couldn't check availability
+        print('Latest LLVM: Falling back to stable version: clang-{}'.format(stable_version))
+        return str(stable_version)
+
+    except Exception as e:
+        print('Warning: Could not detect latest LLVM version: {}'.format(e))
+        return None
+
+
 class LLVM(Import):
+    # Cache for the resolved latest version
+    _latest_version_cache = None
+
     def __init__(self, **kwargs):
         super().__init__(
             compiler=True,
@@ -113,6 +287,15 @@ class LLVM(Import):
 
     def resolved(self):
         return True
+
+    @staticmethod
+    def resolve_latest_version():
+        """
+        Resolve 'latest' to an actual version number. We cache the result to avoid repeating this step.
+        """
+        if LLVM._latest_version_cache is None:
+            LLVM._latest_version_cache = get_latest_llvm_version()
+        return LLVM._latest_version_cache
 
     def install(self, env):
         if self.installed:
@@ -126,8 +309,18 @@ class LLVM(Import):
         Script([InstallPackages(packages)],
                name='Install compiler prereqs').run(env)
 
+        # Handle 'latest' version
+        version = env.toolchain.compiler_version
+        if version == 'latest':
+            version = LLVM.resolve_latest_version()
+            if version is None:
+                raise Exception("Could not determine latest LLVM version")
+            print('Resolved clang-latest to clang-{}'.format(version))
+            env.toolchain.compiler_version = version
+            env.spec.compiler_version = version
+
         installed_path, installed_version = Toolchain.find_compiler(
-            env.spec.compiler, env.spec.compiler_version)
+            env.spec.compiler, version)
         if installed_path:
             print('Compiler {} {} already exists at {}'.format(
                 env.spec.compiler, installed_version, installed_path))
@@ -138,7 +331,7 @@ class LLVM(Import):
         sudo = ['sudo'] if sudo else []
 
         # Strip minor version info
-        version = env.toolchain.compiler_version.replace(r'\..+', '')
+        version = version.replace(r'\..+', '')
 
         script = tempfile.NamedTemporaryFile(delete=False)
         script_path = script.name

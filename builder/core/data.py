@@ -513,6 +513,7 @@ COMPILERS = {
 
         'versions': {
             'default': {},
+            'latest': {},  # Latest stable/qualification version
             '3': {
                 'c': "clang-3.9",
                 'cxx': "clang++-3.9",

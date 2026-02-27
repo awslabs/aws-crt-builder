@@ -36,6 +36,9 @@ def _compiler_version(cc):
 
 
 def _find_compiler_tool(name, versions):
+    # Filter out 'latest' from versions list. It will be handled separately.
+    versions = [v for v in versions if v != 'latest']
+
     # look for the default tool, and see if the version is in the search set
     path = util.where(name, resolve_symlinks=False)
     if path:
@@ -180,8 +183,20 @@ class Toolchain(object):
     @staticmethod
     def find_llvm_tool(name, version=None):
         """ Finds clang, clang-tidy, lld, etc at a specific version, or the
-        latest one available """
-        versions = [version] if version else _clang_versions()
+        latest one available. If version is 'latest', resolves it dynamically. """
+        if version == 'latest':
+            # Import here to avoid circular dependency
+            from builder.imports.llvm import LLVM
+            resolved_version = LLVM.resolve_latest_version()
+            if resolved_version:
+                versions = [resolved_version]
+            else:
+                # Fall back to searching all known versions
+                versions = _clang_versions()
+        elif version:
+            versions = [version]
+        else:
+            versions = _clang_versions()
         return _find_compiler_tool(name, versions)
 
     @staticmethod
@@ -228,7 +243,8 @@ class Toolchain(object):
 
     @staticmethod
     def find_compiler(compiler, version=None):
-        """ Returns path, found_version for the requested compiler if it is installed """
+        """ Returns path, found_version for the requested compiler if it is installed.
+        If version is 'latest' for clang, it will be resolved dynamically. """
         if compiler == 'clang':
             if current_os() == "macos":
                 return Toolchain.find_apple_llvm_compiler(compiler, version)
@@ -329,7 +345,14 @@ class Toolchain(object):
 
     @staticmethod
     def is_compiler_installed(compiler, version):
-        """ Returns True if the specified compiler is already installed, False otherwise """
+        """ Returns True if the specified compiler is already installed, False otherwise.
+        For 'latest' version of 'clang' compiler, this will resolve the actual version first. """
+        if version == 'latest' and compiler == 'clang':
+            # Import here to avoid circular dependency
+            from builder.imports.llvm import LLVM
+            resolved_version = LLVM.resolve_latest_version()
+            if resolved_version:
+                version = resolved_version
         compiler_path, found_version = Toolchain.find_compiler(
             compiler, version)
         return compiler_path != None
