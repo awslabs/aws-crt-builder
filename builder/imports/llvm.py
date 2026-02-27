@@ -202,6 +202,46 @@ def _fetch_url_content(url):
     return None
 
 
+def _check_repo_exists(codename, version):
+    """
+    Check if an LLVM repository actually exists for a given codename and version.
+    The apt.llvm.org page seems to lists versions that don't have actual repositories...
+    This shouldn't be the case but it is so we'll have to deal with it by checking what actually
+    exists before trying to use it.
+    """
+    import subprocess
+
+    url = 'https://apt.llvm.org/{}/dists/llvm-toolchain-{}-{}/Release'.format(
+        codename, codename, version)
+
+    # Use curl to check if the Release file exists
+    try:
+        result = subprocess.run(
+            ['curl', '-sI', '-o', '/dev/null', '-w', '%{http_code}', url],
+            capture_output=True,
+            text=True,
+            timeout=30
+        )
+        if result.returncode == 0:
+            return result.stdout.strip() == '200'
+    except Exception:
+        pass
+
+    # Fallback to urllib
+    try:
+        req = urllib.request.Request(url, method='HEAD', headers={
+            'User-Agent': 'aws-crt-builder'
+        })
+        with urllib.request.urlopen(req, timeout=10) as response:
+            return response.status == 200
+    except urllib.error.HTTPError:
+        return False
+    except Exception:
+        pass
+
+    return False
+
+
 def get_latest_llvm_version():
     """
     Detect the latest available LLVM/Clang version from apt.llvm.org.
@@ -240,25 +280,38 @@ def get_latest_llvm_version():
             if apt_page:
                 # Look for llvm-toolchain-<codename>-<version> patterns
                 pattern = r'llvm-toolchain-{}-(\d+)'.format(re.escape(codename))
-                available_versions = set(re.findall(pattern, apt_page))
+                listed_versions = set(re.findall(pattern, apt_page))
 
-                if available_versions:
-                    print('Available LLVM versions for {}: {}'.format(
-                        codename, ', '.join(sorted(available_versions, key=int))))
+                if listed_versions:
+                    print('Listed LLVM versions for {}: {}'.format(
+                        codename, ', '.join(sorted(listed_versions, key=int))))
 
-                    if str(qualification_version) in available_versions:
-                        print('Latest LLVM: Using qualification/RC branch: clang-{}'.format(qualification_version))
-                        return str(qualification_version)
-                    elif str(stable_version) in available_versions:
-                        print('Latest LLVM: Qualification branch {} not available for {}, using stable: clang-{}'.format(
-                            qualification_version, codename, stable_version))
-                        return str(stable_version)
-                    else:
-                        # Use the highest available version for this codename
-                        highest = max(available_versions, key=int)
-                        print('Latest LLVM: Neither qualification ({}) nor stable ({}) available for {}, using highest available: clang-{}'.format(
-                            qualification_version, stable_version, codename, highest))
-                        return highest
+                    # Verify which versions ACTUALLY have repositories
+                    # Check from highest to lowest, starting with qualification version
+                    versions_to_check = sorted(listed_versions, key=int, reverse=True)
+
+                    # Prioritize qualification and stable versions
+                    priority_versions = []
+                    if str(qualification_version) in listed_versions:
+                        priority_versions.append(str(qualification_version))
+                    if str(stable_version) in listed_versions:
+                        priority_versions.append(str(stable_version))
+
+                    # Check priority versions first, then others
+                    for version in priority_versions + [v for v in versions_to_check if v not in priority_versions]:
+                        print('Checking if clang-{} repository exists for {}...'.format(version, codename))
+                        if _check_repo_exists(codename, version):
+                            if version == str(qualification_version):
+                                print('Latest LLVM: Using qualification/RC branch: clang-{}'.format(version))
+                            elif version == str(stable_version):
+                                print('Latest LLVM: Using stable branch: clang-{}'.format(version))
+                            else:
+                                print('Latest LLVM: Using highest available: clang-{}'.format(version))
+                            return version
+                        else:
+                            print('Repository for clang-{} does not exist for {}'.format(version, codename))
+
+                    print('Warning: No working LLVM repositories found for codename {}'.format(codename))
                 else:
                     print('Warning: No LLVM versions found for codename {} on apt.llvm.org'.format(codename))
                     print('This distribution may not be supported by apt.llvm.org')
