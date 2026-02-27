@@ -17,7 +17,7 @@ import urllib.request
 
 # This is a modified version of https://apt.llvm.org/llvm.sh that:
 # - Supports older versions of clang (3.9, 6.0, 7)
-# - Supports any future version dynamically (8+)
+# - Supports any future version (8+) dynamically
 # - Removes the need for clangd, lldb
 
 LLVM_SH = """\
