@@ -15,8 +15,10 @@ import stat
 import tempfile
 import urllib.request
 
-# this is a copy of https://apt.llvm.org/llvm.sh modified to add support back in
-# for older versions of clang < 8, and removed the need for clangd, lldb
+# This is a modified version of https://apt.llvm.org/llvm.sh that:
+# - Supports older versions of clang (3.9, 6.0, 7)
+# - Supports any future version dynamically (8+)
+# - Removes the need for clangd, lldb
 
 LLVM_SH = """\
 #!/bin/bash
@@ -46,28 +48,19 @@ if [[ $EUID -ne 0 ]]; then
    exit 1
 fi
 
-declare -A LLVM_VERSION_PATTERNS
-LLVM_VERSION_PATTERNS[3]="-3.9"
-LLVM_VERSION_PATTERNS[6]="-6.0"
-LLVM_VERSION_PATTERNS[7]="-7"
-LLVM_VERSION_PATTERNS[8]="-8"
-LLVM_VERSION_PATTERNS[9]="-9"
-LLVM_VERSION_PATTERNS[10]="-10"
-LLVM_VERSION_PATTERNS[11]="-11"
-LLVM_VERSION_PATTERNS[12]="-12"
-LLVM_VERSION_PATTERNS[13]="-13"
-LLVM_VERSION_PATTERNS[14]="-14"
-LLVM_VERSION_PATTERNS[15]="-15"
-LLVM_VERSION_PATTERNS[16]="-16"
-LLVM_VERSION_PATTERNS[17]="-17"
-LLVM_VERSION_PATTERNS[18]="-18"
+# Determine the version string suffix for package names
+# Old versions (3, 6, 7) have special suffixes and are explicitly set to hardcoded values.
+# 8+ use -VERSION format. This should be the case moving forward but may need to be changed
+# if llvm changes it in the future and `latest` fails.
+case "$LLVM_VERSION" in
+    3)  LLVM_VERSION_STRING="-3.9" ;;
+    6)  LLVM_VERSION_STRING="-6.0" ;;
+    7)  LLVM_VERSION_STRING="-7" ;;
+    *)  LLVM_VERSION_STRING="-${LLVM_VERSION}" ;;
+esac
 
-if [ ! ${LLVM_VERSION_PATTERNS[$LLVM_VERSION]+_} ]; then
-    echo "This script does not support LLVM version $LLVM_VERSION"
-    exit 3
-fi
-
-LLVM_VERSION_STRING=${LLVM_VERSION_PATTERNS[$LLVM_VERSION]}
+# Get the codename for the distribution
+CODENAME=$(lsb_release -cs)
 
 # find the right repository name for the distro and version
 case "$DIST_VERSION" in
@@ -75,21 +68,32 @@ case "$DIST_VERSION" in
     Debian_10* )      REPO_NAME="deb http://apt.llvm.org/buster/   llvm-toolchain-buster$LLVM_VERSION_STRING  main" ;;
     Debian_11* )      REPO_NAME="deb http://apt.llvm.org/bullseye/ llvm-toolchain-bullseye$LLVM_VERSION_STRING  main" ;;
     Debian_12* )      REPO_NAME="deb http://apt.llvm.org/bookworm/ llvm-toolchain-bookworm$LLVM_VERSION_STRING  main" ;;
+    Debian_13* )      REPO_NAME="deb http://apt.llvm.org/trixie/   llvm-toolchain-trixie$LLVM_VERSION_STRING  main" ;;
     Debian_unstable ) REPO_NAME="deb http://apt.llvm.org/unstable/ llvm-toolchain$LLVM_VERSION_STRING         main" ;;
     Debian_testing )  REPO_NAME="deb http://apt.llvm.org/unstable/ llvm-toolchain$LLVM_VERSION_STRING         main" ;;
     Ubuntu_16.04 )    REPO_NAME="deb http://apt.llvm.org/xenial/   llvm-toolchain-xenial$LLVM_VERSION_STRING  main" ;;
     Ubuntu_18.04 )    REPO_NAME="deb http://apt.llvm.org/bionic/   llvm-toolchain-bionic$LLVM_VERSION_STRING  main" ;;
     Ubuntu_18.10 )    REPO_NAME="deb http://apt.llvm.org/cosmic/   llvm-toolchain-cosmic$LLVM_VERSION_STRING  main" ;;
     Ubuntu_19.04 )    REPO_NAME="deb http://apt.llvm.org/disco/    llvm-toolchain-disco$LLVM_VERSION_STRING   main" ;;
-    Ubuntu_19.10 )   REPO_NAME="deb http://apt.llvm.org/eoan/      llvm-toolchain-eoan$LLVM_VERSION_STRING    main" ;;
-    Ubuntu_20.04 )   REPO_NAME="deb http://apt.llvm.org/focal/     llvm-toolchain-focal$LLVM_VERSION_STRING   main" ;;
-    Ubuntu_20.10 )   REPO_NAME="deb http://apt.llvm.org/groovy/    llvm-toolchain-groovy$LLVM_VERSION_STRING  main" ;;
-    Ubuntu_21.04 )   REPO_NAME="deb http://apt.llvm.org/hirsute/   llvm-toolchain-hirsute$LLVM_VERSION_STRING main" ;;
-    Ubuntu_22.04 )   REPO_NAME="deb http://apt.llvm.org/jammy/     llvm-toolchain-jammy$LLVM_VERSION_STRING main"   ;;
-    Ubuntu_24.04 )   REPO_NAME="deb http://apt.llvm.org/noble/     llvm-toolchain-noble$LLVM_VERSION_STRING main"   ;;
+    Ubuntu_19.10 )    REPO_NAME="deb http://apt.llvm.org/eoan/     llvm-toolchain-eoan$LLVM_VERSION_STRING    main" ;;
+    Ubuntu_20.04 )    REPO_NAME="deb http://apt.llvm.org/focal/    llvm-toolchain-focal$LLVM_VERSION_STRING   main" ;;
+    Ubuntu_20.10 )    REPO_NAME="deb http://apt.llvm.org/groovy/   llvm-toolchain-groovy$LLVM_VERSION_STRING  main" ;;
+    Ubuntu_21.04 )    REPO_NAME="deb http://apt.llvm.org/hirsute/  llvm-toolchain-hirsute$LLVM_VERSION_STRING main" ;;
+    Ubuntu_22.04 )    REPO_NAME="deb http://apt.llvm.org/jammy/    llvm-toolchain-jammy$LLVM_VERSION_STRING   main" ;;
+    Ubuntu_24.04 )    REPO_NAME="deb http://apt.llvm.org/noble/    llvm-toolchain-noble$LLVM_VERSION_STRING   main" ;;
+    Ubuntu_24.10 )    REPO_NAME="deb http://apt.llvm.org/oracular/ llvm-toolchain-oracular$LLVM_VERSION_STRING main" ;;
+    Ubuntu_25.04 )    REPO_NAME="deb http://apt.llvm.org/plucky/   llvm-toolchain-plucky$LLVM_VERSION_STRING  main" ;;
+    Ubuntu_25.10 )    REPO_NAME="deb http://apt.llvm.org/questing/ llvm-toolchain-questing$LLVM_VERSION_STRING main" ;;
     * )
-        echo "Distribution '$DISTRO' in version '$VERSION' is not supported by this script (${DIST_VERSION})."
-        exit 2
+        # Try to use the codename directly for unknown distributions
+        if [ -n "$CODENAME" ]; then
+            echo "Unknown distribution '$DIST_VERSION', trying codename '$CODENAME'"
+            REPO_NAME="deb http://apt.llvm.org/$CODENAME/ llvm-toolchain-$CODENAME$LLVM_VERSION_STRING main"
+        else
+            echo "Distribution '$DISTRO' in version '$VERSION' is not supported by this script (${DIST_VERSION})."
+            exit 2
+        fi
+        ;;
 esac
 
 
