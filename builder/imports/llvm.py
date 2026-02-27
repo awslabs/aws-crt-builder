@@ -253,6 +253,25 @@ def _check_repo_exists(codename, version):
     return False
 
 
+def _check_available_versions(codename, max_version, min_version=7):
+    """
+    Check for available LLVM versions by checking Release files directly.
+    This is used when the apt.llvm.org page doesn't list versions for a codename,
+    or when listed versions don't actually exist.
+
+    Returns the highest available version as a string, or None if none found.
+    """
+    print('Checking for available LLVM versions for {} (checking {}-{})...'.format(
+        codename, max_version, min_version))
+
+    for version in range(max_version, min_version - 1, -1):
+        if _check_repo_exists(codename, version):
+            print('Found available version: clang-{}'.format(version))
+            return str(version)
+
+    return None
+
+
 def get_latest_llvm_version():
     """
     Detect the latest available LLVM/Clang version from apt.llvm.org.
@@ -322,16 +341,33 @@ def get_latest_llvm_version():
                         else:
                             print('Repository for clang-{} does not exist for {}'.format(version, codename))
 
-                    print('Warning: No working LLVM repositories found for codename {}'.format(codename))
+                    # None of the listed versions exist
+                    print('Warning: None of the listed LLVM versions exist for {}'.format(codename))
+                    print('Checking for older versions that may still be available...')
+                    checked_version = _check_available_versions(codename, stable_version)
+                    if checked_version:
+                        print('Latest LLVM: Using checked version: clang-{}'.format(checked_version))
+                        return checked_version
                 else:
                     print('Warning: No LLVM versions found for codename {} on apt.llvm.org'.format(codename))
                     print('This distribution may not be supported by apt.llvm.org')
+                    # Try checking anyway - the page might not list older distributions
+                    checked_version = _check_available_versions(codename, stable_version)
+                    if checked_version:
+                        print('Latest LLVM: Using checked version: clang-{}'.format(prchecked_versionobed_version))
+                        return checked_version
             else:
                 print('Warning: Could not fetch apt.llvm.org page')
+                # Try checking directly
+                checked_version = _check_available_versions(codename, stable_version)
+                if checked_version:
+                    print('Latest LLVM: Using checked version: clang-{}'.format(checked_version))
+                    return checked_version
         else:
             print('Warning: Could not determine distribution codename')
 
         # Fall back to stable version if we couldn't check availability
+        # This is a last resort and may fail for older distributions
         print('Latest LLVM: Falling back to stable version: clang-{}'.format(stable_version))
         return str(stable_version)
 
