@@ -344,14 +344,7 @@ class Toolchain(object):
 
     @staticmethod
     def is_compiler_installed(compiler, version):
-        """ Returns True if the specified compiler is already installed, False otherwise.
-        For 'latest' version of 'clang' compiler, this will resolve the actual version first. """
-        if version == 'latest' and compiler == 'clang':
-            # Import here to avoid circular dependency
-            from builder.imports.llvm import LLVM
-            resolved_version = LLVM.resolve_latest_version()
-            if resolved_version:
-                version = resolved_version
+        """ Returns True if the specified compiler is already installed, False otherwise """
         compiler_path, found_version = Toolchain.find_compiler(
             compiler, version)
         return compiler_path != None
