@@ -55,7 +55,6 @@ fi
 case "$LLVM_VERSION" in
     3)  LLVM_VERSION_STRING="-3.9" ;;
     6)  LLVM_VERSION_STRING="-6.0" ;;
-    7)  LLVM_VERSION_STRING="-7" ;;
     *)  LLVM_VERSION_STRING="-${LLVM_VERSION}" ;;
 esac
 

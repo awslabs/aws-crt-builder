@@ -243,8 +243,7 @@ class Toolchain(object):
 
     @staticmethod
     def find_compiler(compiler, version=None):
-        """ Returns path, found_version for the requested compiler if it is installed.
-        If version is 'latest' for clang, it will be resolved dynamically. """
+        """ Returns path, found_version for the requested compiler if it is installed """
         if compiler == 'clang':
             if current_os() == "macos":
                 return Toolchain.find_apple_llvm_compiler(compiler, version)
