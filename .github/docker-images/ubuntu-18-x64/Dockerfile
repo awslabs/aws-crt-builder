@@ -43,6 +43,7 @@ RUN cd /tmp \
     && make altinstall \
     && cd / \
     && rm -rf /tmp/Python-3.10.12* \
+    && ln -sf /usr/local/bin/python3.10 /usr/local/bin/python3 \
     && ln -sf /usr/local/bin/python3.10 /usr/local/bin/python \
     && /usr/local/bin/python3.10 --version
 
