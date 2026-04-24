@@ -36,6 +36,9 @@ def _compiler_version(cc):
 
 
 def _find_compiler_tool(name, versions):
+    # Filter out 'latest' from versions list. It will be handled separately.
+    versions = [v for v in versions if v != 'latest']
+
     # look for the default tool, and see if the version is in the search set
     path = util.where(name, resolve_symlinks=False)
     if path:
@@ -179,9 +182,29 @@ class Toolchain(object):
 
     @staticmethod
     def find_llvm_tool(name, version=None):
-        """ Finds clang, clang-tidy, lld, etc at a specific version, or the
-        latest one available """
-        versions = [version] if version else _clang_versions()
+        """ Finds clang, clang-tidy, lld, etc at a specific version.
+
+        - If version is None (default): searches all known/hardcoded LLVM versions
+          (from COMPILERS data), highest first, and returns the first one installed
+          on the system. No network calls are made.
+        - If version is 'latest': dynamically resolves the newest available LLVM
+          version from apt.llvm.org (requires a network call), then searches for
+          that version. Falls back to the default (None) behavior if resolution fails.
+        - If version is a specific string (e.g. '18'): searches only for that version.
+        """
+        if version == 'latest':
+            # Import here to avoid circular dependency
+            from builder.imports.llvm import LLVM
+            resolved_version = LLVM.resolve_latest_version()
+            if resolved_version:
+                versions = [resolved_version]
+            else:
+                # Fall back to searching all known versions
+                versions = _clang_versions()
+        elif version:
+            versions = [version]
+        else:
+            versions = _clang_versions()
         return _find_compiler_tool(name, versions)
 
     @staticmethod
