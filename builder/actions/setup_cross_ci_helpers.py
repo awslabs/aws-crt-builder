@@ -219,7 +219,9 @@ def _get_token_slots(env):
 
 def _get_softhsm2_version(env):
     output = _exec_softhsm2_util(env, '--version').output
-    match = re.match(r'([0-9+])\.([0-9]+).([0-9]+)', output)
+    match = re.search(r'([0-9]+)\.([0-9]+)\.([0-9]+)', output)
+    if match is None:
+        raise Exception(f'Failed to parse SoftHSM2 version from: {output!r}')
     return (int(match.group(1)), int(match.group(2)), int(match.group(3)))
 
 ################################################################################
