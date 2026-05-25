@@ -710,7 +710,7 @@ PLATFORMS = {
 }
 
 # Windows
-for arch in ['x86', 'x64','armv8']:
+for arch in ['x86', 'x64', 'armv8']:
     canonical_windows = 'windows-{}'.format(arch)
     for alias in ARCHS[arch].get('aliases', []):
         alias_windows = 'windows-{}'.format(alias)
