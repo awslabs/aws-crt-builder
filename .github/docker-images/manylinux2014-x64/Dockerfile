@@ -17,8 +17,8 @@ RUN yum -y install sudo cmake3 \
 ###############################################################################
 # Python/AWS CLI
 ###############################################################################
-RUN /opt/python/cp38-cp38/bin/python -m pip install --upgrade setuptools virtualenv \
-    && /opt/python/cp38-cp38/bin/python -m pip install --upgrade awscli \
+RUN /opt/python/cp39-cp39/bin/python -m pip install --upgrade setuptools virtualenv \
+    && /opt/python/cp39-cp39/bin/python -m pip install --upgrade awscli \
     && ln -s `find /opt -name aws` /usr/local/bin/aws \
     && which aws \
     && aws --version
