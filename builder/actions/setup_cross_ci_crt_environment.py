@@ -181,6 +181,7 @@ class SetupCrossCICrtEnvironment(Action):
 
         # COMMON/FREQUENTLY USED (endpoint, mTLS with key and cert, etc.)
         self._setenv_secret(env, "AWS_TEST_MQTT5_IOT_CORE_HOST", "unit-test/endpoint")
+        self._setenv_secret(env, "AWS_TEST_MQTT5_IOT_CORE_TLS13_HOST", "unit-test/endpoint_tls13")
         self._setenv(env, "AWS_TEST_MQTT5_IOT_CORE_REGION", "us-east-1")
         self._setenv_secret_file(env, "AWS_TEST_MQTT5_IOT_CORE_RSA_CERT", "ci/mqtt5/us/Mqtt5Prod/cert")
         self._setenv_secret_file(env, "AWS_TEST_MQTT5_IOT_CORE_RSA_KEY", "ci/mqtt5/us/Mqtt5Prod/key")
