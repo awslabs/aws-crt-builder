@@ -645,6 +645,12 @@ COMPILERS = {
                     '-Tv143',
                 ],
             },
+            # 2026
+            '18': {
+                'cmake_args': [
+                    '-Tv144',
+                ],
+            },
         },
 
         'architectures': {
