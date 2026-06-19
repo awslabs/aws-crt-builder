@@ -4,6 +4,7 @@
 from builder.core.data import ARCHS, HOSTS, PKG_TOOLS
 
 import os
+import platform
 import re
 import sys
 
@@ -33,6 +34,10 @@ def current_arch():
             if arch == 'aarch64':
                 arch = 'armv8'
             return arch
+    elif current_os() == 'windows':
+        machine = platform.machine().lower()
+        if machine in ('arm64'):
+            return 'armv8'
     return 'x64' if sys.maxsize > 2**32 else 'x86'
 
 
