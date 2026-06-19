@@ -542,15 +542,49 @@ COMPILERS = {
                 'cmake_args': ['-DENABLE_FUZZ_TESTS=ON'],
                 'apt_compiler_packages': ['libstdc++-9-dev'],
             },
-            '10': {},
-            '11': {},
-            '12': {},
-            '13': {},
-            '14': {},
-            '15': {},
-            '16': {},
-            '17': {},
-            '18': {},
+            '10': {
+                'c': "clang-10",
+                'cxx': "clang++-10",
+                'cmake_args': ['-DENABLE_FUZZ_TESTS=ON'],
+                'apt_compiler_packages': ['libstdc++-10-dev'],
+            },
+            '11': {
+                'c': "clang-11",
+                'cxx': "clang++-11",
+                'cmake_args': ['-DENABLE_FUZZ_TESTS=ON'],
+                'apt_compiler_packages': ['libstdc++-11-dev'],
+            },
+            '12': {
+                'c': "clang-12",
+                'cxx': "clang++-12",
+                'cmake_args': ['-DENABLE_FUZZ_TESTS=ON'],
+                'apt_compiler_packages': ['libstdc++-12-dev'],
+            },
+            '13': {
+                'c': "clang-13",
+                'cxx': "clang++-13",
+                'cmake_args': ['-DENABLE_FUZZ_TESTS=ON'],
+                'apt_compiler_packages': ['libstdc++-13-dev'],
+            },
+            '14': {
+                'c': "clang-14",
+                'cxx': "clang++-14",
+                'cmake_args': ['-DENABLE_FUZZ_TESTS=ON'],
+                'apt_compiler_packages': ['libc++abi-14-dev'],
+            },
+            '15': {
+                'c': "clang-15",
+                'cxx': "clang++-15",
+                'cmake_args': ['-DENABLE_FUZZ_TESTS=ON'],
+                'apt_compiler_packages': ['libc++abi-15-dev'],
+            },
+            # Those version are not found. We can try to install from source. But, skip for now.
+            '16': {
+            },
+            '17': {
+            },
+            '18': {
+            },
         },
         'architectures': {
             # No fuzz tests on ARM
