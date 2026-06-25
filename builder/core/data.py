@@ -645,6 +645,14 @@ COMPILERS = {
                     '-Tv143',
                 ],
             },
+            # don't ask me why there is no v144 :)
+            # https://devblogs.microsoft.com/cppblog/msvc-toolset-minor-version-number-14-40-in-vs-2022-v17-10/
+            # 2026
+            '18': {
+                'cmake_args': [
+                    '-Tv145',
+                ],
+            },
         },
 
         'architectures': {
