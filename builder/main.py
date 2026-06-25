@@ -294,6 +294,7 @@ def main():
         sys.exit(1)
 
     if env.config.get('needs_compiler', True):
+        # Resolve the actual compiler from the system toolchain and update the spec.
         env.toolchain = Toolchain(spec=env.spec)
         env.spec.update_compiler(env.toolchain.compiler, env.toolchain.compiler_version)
         if env.spec.compiler == 'default' or env.spec.compiler_version == 'default':
