@@ -97,8 +97,7 @@ def run_build(env):
 def default_spec(env):
     target, arch = current_platform().split('-')
     host = current_host()
-    compiler, version = Toolchain.default_compiler(target, arch)
-    return BuildSpec(host=host, compiler=compiler, compiler_version='{}'.format(version), target=target, arch=arch)
+    return BuildSpec(host=host, target=target, arch=arch)
 
 
 def inspect_host(spec):
