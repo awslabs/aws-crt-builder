@@ -492,8 +492,10 @@ COMPILERS = {
     'appleclang': {
         'hosts': ['macos'],
         'targets': ['macos', 'ios', 'tvos', 'watchos'],
+
         'versions': {
             'default': {},
+
             '11': {},
             '12': {},
             '13': {},
