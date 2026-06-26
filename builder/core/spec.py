@@ -22,6 +22,9 @@ def _compiler_meets_minimum_version(compiler_version, compiler):
     # Sort compiler version keys and find the lowest (minimal) version
     versions = [v for v in compiler['versions'].keys() if (v != 'default' and v != 'latest')]
 
+    # Filter out versions that cannot be parsed
+    versions = [v for v in versions if _parse_version(v) is not None]
+
     # Versions are not specified or none are parseable, return True
     if not versions:
         return True
