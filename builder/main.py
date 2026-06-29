@@ -97,8 +97,7 @@ def run_build(env):
 def default_spec(env):
     target, arch = current_platform().split('-')
     host = current_host()
-    compiler, version = Toolchain.default_compiler(target, arch)
-    return BuildSpec(host=host, compiler=compiler, compiler_version='{}'.format(version), target=target, arch=arch)
+    return BuildSpec(host=host, target=target, arch=arch)
 
 
 def inspect_host(spec):
@@ -295,6 +294,7 @@ def main():
         sys.exit(1)
 
     if env.config.get('needs_compiler', True):
+        # Resolve the actual compiler from the system toolchain and update the spec.
         env.toolchain = Toolchain(spec=env.spec)
         env.spec.update_compiler(env.toolchain.compiler, env.toolchain.compiler_version)
         if env.spec.compiler == 'default' or env.spec.compiler_version == 'default':
