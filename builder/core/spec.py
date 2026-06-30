@@ -7,7 +7,51 @@ from builder.core.data import *
 from builder.core.host import current_host, current_os, current_arch, normalize_arch
 
 
-def validate_spec(build_spec):
+def _parse_version(version_str):
+    """Parse a version string into a list of integers for comparison.
+    The version string can be in format X, X.Y, X.Y.Z, etc."""
+    try:
+        return [int(x) for x in version_str.split('.')]
+    except (ValueError, AttributeError):
+        return None
+
+
+def _compiler_meets_minimum_version(compiler_version, compiler):
+    """Check if the compiler version meets the minimum supported version requirement.
+    Returns True if compiler_version >= minimum known version, False otherwise."""
+    # Sort compiler version keys and find the lowest (minimal) version
+    versions = [v for v in compiler['versions'].keys() if (v != 'default' and v != 'latest')]
+
+    # Filter out versions that cannot be parsed
+    versions = [_parse_version(v) for v in versions if _parse_version(v) is not None]
+
+    # Versions are not specified or none are parseable, return True
+    if not versions:
+        return True
+
+    # Sort and find the minimum version
+    versions.sort()
+    minimal_version = versions[0]
+
+    # Parse compiler_version
+    parsed_compiler = _parse_version(compiler_version)
+    if parsed_compiler is None:
+        return False
+
+    # Compare using Python's native list comparison
+    return parsed_compiler >= minimal_version
+
+
+def validate_spec(build_spec, allow_higher_version=False):
+    """Validate the build spec against known hosts, targets, architectures, and compilers.
+
+    Args:
+        allow_higher_version: If True, skip validation for compiler versions higher than
+            what's in the known versions list (e.g. when a newer compiler is detected on
+            the system), but still assert that the version is not lower than the minimum
+            supported version. If False, the compiler version must exactly match one of
+            the known versions.
+    """
 
     assert build_spec.host in HOSTS, "Host name {} is invalid".format(
         build_spec.host)
@@ -21,8 +65,15 @@ def validate_spec(build_spec):
         build_spec.compiler)
     compiler = COMPILERS[build_spec.compiler]
 
-    assert build_spec.compiler_version in compiler['versions'], "Compiler version {} is invalid for compiler {}".format(
-        build_spec.compiler_version, build_spec.compiler)
+    if not allow_higher_version:
+        assert build_spec.compiler_version in compiler['versions'], "Compiler version {} is invalid for compiler {}".format(
+            build_spec.compiler_version, build_spec.compiler)
+    else:
+        assert _compiler_meets_minimum_version(
+            build_spec.compiler_version, compiler), \
+            "Compiler version {} is lower than the minimum supported " \
+            "version for compiler {}".format(
+                build_spec.compiler_version, build_spec.compiler)
 
     supported_hosts = compiler['hosts']
     assert build_spec.host in supported_hosts or current_os() in supported_hosts, "Compiler {} does not support host {}".format(
@@ -81,6 +132,8 @@ class BuildSpec(object):
         if self.downstream:
             self.name += "-downstream"
 
+        # Strict validation at construction time: compiler version must exactly match
+        # a known version in the data dictionary.
         validate_spec(self)
 
     def __str__(self):
@@ -90,6 +143,13 @@ class BuildSpec(object):
         return self.name
 
     def update_compiler(self, compiler, compiler_version):
+        """Update the spec's compiler and version after resolving the system toolchain.
+
+        This is called after the Toolchain detects the actual compiler installed on the
+        system, and validates the detected compiler version.
+        The function allows the spec to be set to a higher version than what's in the
+        known versions list, but still rejects versions below the minimum supported.
+        """
         self.compiler = compiler
         self.compiler_version = compiler_version
 
@@ -98,4 +158,7 @@ class BuildSpec(object):
         if self.downstream:
             self.name += "-downstream"
 
-        validate_spec(self)
+        # Validate with allow_higher_version=True to allow system-detected compiler
+        # newer than what's in our known versions list. We still reject versions
+        # below the minimum supported version.
+        validate_spec(self, allow_higher_version=True)
