@@ -19,7 +19,7 @@ def _parse_version(version_str):
 def _compiler_meets_minimum_version(compiler_version, compiler):
     """Check if the compiler version meets the minimum supported version requirement.
     Returns True if compiler_version >= minimum known version, False otherwise."""
-    # If the compiler_version is a known version, it's always valid and should not be 
+    # If the compiler_version is a known version, it's always valid and should not be
     # subject to numeric comparison.
     if compiler_version in compiler['versions']:
         return True
