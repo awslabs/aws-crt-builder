@@ -1,0 +1,82 @@
+name: 'Check ABI Compliance'
+description: 'Dump and compare the ABI of a C shared library between the PR head and its base ref'
+
+inputs:
+  lib-name:
+    description: 'Library name (e.g. aws-c-s3). Determines the .so filename (libaws-c-s3.so).'
+    required: true
+  builder-version:
+    description: 'Builder version/channel used to build the library and its dependencies.'
+    required: false
+    default: 'v0.9.93'
+  builder-source:
+    description: 'Builder artifact source prefix (releases for tagged versions, channels for branch builds).'
+    required: false
+    default: 'releases'
+  builder-host:
+    description: 'Builder artifact host URL.'
+    required: false
+    default: 'https://d19elf31gohf1l.cloudfront.net'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Install ABI tools
+      shell: bash
+      run: |
+        sudo apt-get update -qq
+        sudo apt-get install -y --no-install-recommends \
+          cmake g++ libssl-dev abi-compliance-checker abi-dumper universal-ctags
+
+    - name: Download builder
+      shell: bash
+      env:
+        LIB_NAME: ${{ inputs.lib-name }}
+        BUILDER_VERSION: ${{ inputs.builder-version }}
+        BUILDER_SOURCE: ${{ inputs.builder-source }}
+        BUILDER_HOST: ${{ inputs.builder-host }}
+        RUN: ${{ github.run_id }}-${{ github.run_number }}
+      run: |
+        BUILDER_PYZ="${GITHUB_WORKSPACE}/builder.pyz"
+        python3 -c "from urllib.request import urlretrieve; urlretrieve('${BUILDER_HOST}/${BUILDER_SOURCE}/${BUILDER_VERSION}/builder.pyz?run=${RUN}', '${BUILDER_PYZ}')"
+        # printf (not echo) plus passing the input via the env block above (not
+        # raw template interpolation) prevents shell and newline injection
+        # through the lib-name input.
+        printf 'ABI_BUILDER_PYZ=%s\n' "$BUILDER_PYZ" >> "$GITHUB_ENV"
+        printf 'ABI_LIB_NAME=%s\n' "$LIB_NAME" >> "$GITHUB_ENV"
+
+    - name: Build base and head refs
+      shell: bash
+      run: bash "${GITHUB_ACTION_PATH}/scripts/build.sh"
+
+    - name: Dump ABI for base and head
+      shell: bash
+      run: bash "${GITHUB_ACTION_PATH}/scripts/dump.sh"
+
+    - name: Run compliance check
+      shell: bash
+      run: bash "${GITHUB_ACTION_PATH}/scripts/compare.sh"
+
+    - name: Publish report
+      if: always()
+      shell: bash
+      run: python3 "${GITHUB_ACTION_PATH}/scripts/report.py"
+
+    - name: Cleanup worktree
+      if: always()
+      shell: bash
+      run: |
+        if [[ -n "${ABI_BASE_WORKTREE:-}" ]]; then
+          git worktree remove --force "$ABI_BASE_WORKTREE" 2>/dev/null || true
+        fi
+        if [[ -n "${ABI_BASE_TMPDIR:-}" ]]; then
+          rm -rf "$ABI_BASE_TMPDIR"
+        fi
+
+    - name: Gate on result
+      # always() so the gate is the single source of pass/fail even when an
+      # earlier step (build/dump/compare) failed; gate.sh handles the
+      # no-verdict (ABI_RC unset/negative) case.
+      if: always()
+      shell: bash
+      run: bash "${GITHUB_ACTION_PATH}/scripts/gate.sh"
