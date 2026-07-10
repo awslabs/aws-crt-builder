@@ -84,6 +84,17 @@ RUN curl -sSL https://github.com/Kitware/CMake/releases/download/v3.29.6/cmake-3
 ENV LIBCXX_MSAN_ROOT=/opt/libcxx-msan
 
 ###############################################################################
+# MSan toolchain file (consumers pass -DCMAKE_TOOLCHAIN_FILE=/opt/msan-toolchain.cmake).
+# Keeps the MSan flags next to the libc++ they target. *_INIT lets the project
+# append its own flags.
+###############################################################################
+RUN printf '%s\n' \
+    'set(CMAKE_C_FLAGS_INIT "-fsanitize=memory -fsanitize-memory-track-origins=2")' \
+    'set(CMAKE_CXX_FLAGS_INIT "-fsanitize=memory -fsanitize-memory-track-origins=2 -nostdinc++ -isystem /opt/libcxx-msan/include/c++/v1")' \
+    'set(CMAKE_EXE_LINKER_FLAGS_INIT "-fsanitize=memory -nostdlib++ -L/opt/libcxx-msan/lib -Wl,-rpath,/opt/libcxx-msan/lib -lc++ -lc++abi -lgcc_s")' \
+    > /opt/msan-toolchain.cmake
+
+###############################################################################
 # Install entrypoint
 ###############################################################################
 ADD entrypoint.sh /usr/local/bin/builder
