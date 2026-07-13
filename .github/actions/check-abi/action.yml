@@ -6,7 +6,7 @@ inputs:
     description: 'Library name (e.g. aws-c-s3). Determines the .so filename (libaws-c-s3.so).'
     required: true
   builder-version:
-    description: 'Builder version/channel used to build the library and its dependencies.'
+    description: 'Builder version/channel used to build the library and its dependencies. Also the tag of the ABI docker image.'
     required: false
     default: 'v0.9.93'
   builder-source:
@@ -17,66 +17,71 @@ inputs:
     description: 'Builder artifact host URL.'
     required: false
     default: 'https://d19elf31gohf1l.cloudfront.net'
+  image-registry:
+    description: 'ECR registry hosting the aws-crt-ubuntu-22-abi-x64 image.'
+    required: false
+    default: '123124136734.dkr.ecr.us-east-1.amazonaws.com'
+  image-name:
+    description: 'ABI docker image name (baked with the abi-compliance-checker toolchain).'
+    required: false
+    default: 'aws-crt-ubuntu-22-abi-x64'
 
 runs:
   using: 'composite'
   steps:
-    - name: Install ABI tools
-      shell: bash
-      run: |
-        sudo apt-get update -qq
-        sudo apt-get install -y --no-install-recommends \
-          cmake g++ libssl-dev abi-compliance-checker abi-dumper universal-ctags
-
-    - name: Download builder
+    # The ABI toolchain (abi-compliance-checker, abi-dumper, ctags, cmake) is
+    # baked into the aws-crt-ubuntu-22-abi-x64 image, so there is no per-run
+    # apt-get install here. The consumer job must have configured AWS creds with
+    # ECR pull access (aws-actions/configure-aws-credentials) and checked out
+    # with fetch-depth: 0 before invoking this action.
+    - name: Pull ABI image
       shell: bash
       env:
+        IMAGE_REGISTRY: ${{ inputs.image-registry }}
+        IMAGE_NAME: ${{ inputs.image-name }}
+        BUILDER_VERSION: ${{ inputs.builder-version }}
+      run: |
+        aws ecr get-login-password | docker login "$IMAGE_REGISTRY" -u AWS --password-stdin
+        DOCKER_IMAGE="${IMAGE_REGISTRY}/${IMAGE_NAME}:${BUILDER_VERSION}"
+        docker pull "$DOCKER_IMAGE"
+        printf 'ABI_DOCKER_IMAGE=%s\n' "$DOCKER_IMAGE" >> "$GITHUB_ENV"
+
+    - name: Run ABI check in container
+      # always() is not needed here: this is the only work step. The container
+      # runs build -> dump -> compare -> report -> gate as one process (they
+      # chain state through an in-container GITHUB_ENV) and exits with the gate
+      # verdict, which fails this step on an unauthorized break.
+      shell: bash
+      env:
+        # printf/env-block (not raw template interpolation) prevents shell and
+        # newline injection through the lib-name input.
         LIB_NAME: ${{ inputs.lib-name }}
         BUILDER_VERSION: ${{ inputs.builder-version }}
         BUILDER_SOURCE: ${{ inputs.builder-source }}
         BUILDER_HOST: ${{ inputs.builder-host }}
-        RUN: ${{ github.run_id }}-${{ github.run_number }}
       run: |
-        BUILDER_PYZ="${GITHUB_WORKSPACE}/builder.pyz"
-        python3 -c "from urllib.request import urlretrieve; urlretrieve('${BUILDER_HOST}/${BUILDER_SOURCE}/${BUILDER_VERSION}/builder.pyz?run=${RUN}', '${BUILDER_PYZ}')"
-        # printf (not echo) plus passing the input via the env block above (not
-        # raw template interpolation) prevents shell and newline injection
-        # through the lib-name input.
-        printf 'ABI_BUILDER_PYZ=%s\n' "$BUILDER_PYZ" >> "$GITHUB_ENV"
-        printf 'ABI_LIB_NAME=%s\n' "$LIB_NAME" >> "$GITHUB_ENV"
-
-    - name: Build base and head refs
-      shell: bash
-      run: bash "${GITHUB_ACTION_PATH}/scripts/build.sh"
-
-    - name: Dump ABI for base and head
-      shell: bash
-      run: bash "${GITHUB_ACTION_PATH}/scripts/dump.sh"
-
-    - name: Run compliance check
-      shell: bash
-      run: bash "${GITHUB_ACTION_PATH}/scripts/compare.sh"
-
-    - name: Publish report
-      if: always()
-      shell: bash
-      run: python3 "${GITHUB_ACTION_PATH}/scripts/report.py"
-
-    - name: Cleanup worktree
-      if: always()
-      shell: bash
-      run: |
-        if [[ -n "${ABI_BASE_WORKTREE:-}" ]]; then
-          git worktree remove --force "$ABI_BASE_WORKTREE" 2>/dev/null || true
+        # Mount the checkout at the same path so GITHUB_WORKSPACE resolves inside
+        # the container, and mount the step-summary file so report.py can append
+        # the verdict to the host job summary.
+        SUMMARY_MOUNT=()
+        SUMMARY_ENV=()
+        if [[ -n "${GITHUB_STEP_SUMMARY:-}" ]]; then
+          SUMMARY_MOUNT=(-v "${GITHUB_STEP_SUMMARY}:${GITHUB_STEP_SUMMARY}")
+          SUMMARY_ENV=(--env "GITHUB_STEP_SUMMARY=${GITHUB_STEP_SUMMARY}")
         fi
-        if [[ -n "${ABI_BASE_TMPDIR:-}" ]]; then
-          rm -rf "$ABI_BASE_TMPDIR"
-        fi
-
-    - name: Gate on result
-      # always() so the gate is the single source of pass/fail even when an
-      # earlier step (build/dump/compare) failed; gate.sh handles the
-      # no-verdict (ABI_RC unset/negative) case.
-      if: always()
-      shell: bash
-      run: bash "${GITHUB_ACTION_PATH}/scripts/gate.sh"
+        docker run --rm \
+          -v "${GITHUB_WORKSPACE}:${GITHUB_WORKSPACE}" \
+          -v "${GITHUB_ACTION_PATH}:/opt/check-abi" \
+          "${SUMMARY_MOUNT[@]}" \
+          --env "GITHUB_WORKSPACE=${GITHUB_WORKSPACE}" \
+          --env "GITHUB_BASE_REF=${GITHUB_BASE_REF:-}" \
+          --env "GITHUB_RUN_ID=${GITHUB_RUN_ID:-}" \
+          --env "GITHUB_RUN_NUMBER=${GITHUB_RUN_NUMBER:-}" \
+          --env "ABI_LIB_NAME=${LIB_NAME}" \
+          --env "BUILDER_VERSION=${BUILDER_VERSION}" \
+          --env "BUILDER_SOURCE=${BUILDER_SOURCE}" \
+          --env "BUILDER_HOST=${BUILDER_HOST}" \
+          "${SUMMARY_ENV[@]}" \
+          --entrypoint bash \
+          "${ABI_DOCKER_IMAGE}" \
+          /opt/check-abi/scripts/abi_check.sh
