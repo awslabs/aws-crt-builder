@@ -79,6 +79,7 @@ jobs:
         - name: ubuntu-20-aarch64  
           extra-build-flag: --platform=linux/aarch64
         - name: ubuntu-22-x64
+        - name: ubuntu-22-msan-x64
         - name: node-10-linux-x64
         - name: swift-5-al2-x64
         - name: swift-5-ubuntu-x64
