@@ -85,7 +85,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        host: [ubuntu-22.04, macos-14, macos-15, windows-2025]
+        host: [ubuntu-22.04, macos-14, macos-15, macos-26, windows-2025]
     needs: package
     runs-on: ${{ matrix.host }}
     steps:
@@ -141,6 +141,34 @@ jobs:
       if: startsWith(matrix.host, 'windows')
       run: |
         python builder.pyz build --project aws-c-common
+
+  # If we explicitly set the compiler version, the compiler version should be in the version list.
+  compiler_version_explicit_out_of_list_fails:
+    name: Explicit non-existent appleclang fails
+    needs: package
+    runs-on: macos-26
+    env:
+      # A compiler version that is not in the builder's known-versions list, so it must be rejected.
+      # Use an absurd version that will never be enabled (or at least not in the foreseeable future).
+      UNSUPPORTED_COMPILER: appleclang-999
+    steps:
+    - name: Checkout Source
+      uses: actions/checkout@v4
+
+    - name: Install builder
+      uses: actions/download-artifact@v4
+      with:
+        name: builder
+        path: .
+
+    - name: Build with explicit ${{ env.UNSUPPORTED_COMPILER }} should fail
+      run: |
+        if python3 builder.pyz build --project tests --compiler=${{ env.UNSUPPORTED_COMPILER }}; then
+          echo "ERROR: Expected builder to fail with ${{ env.UNSUPPORTED_COMPILER }} but it succeeded"
+          exit 1
+        else
+          echo "PASSED: builder correctly rejected explicit ${{ env.UNSUPPORTED_COMPILER }} (not in known versions list)"
+        fi
 
   # Make sure cross compiling works
   cross_compile:
@@ -387,6 +415,7 @@ jobs:
     needs:
     - unit_test
     - sanity_test
+    - compiler_version_explicit_out_of_list_fails
     - cross_compile
     - compilers
     - release_notes
