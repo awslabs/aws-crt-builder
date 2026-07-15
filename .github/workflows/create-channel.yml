@@ -20,8 +20,28 @@ permissions:
 
 # nothing
 jobs:
+  check-channel-name:
+    name: Reject reserved channel name
+    runs-on: ubuntu-24.04
+
+    steps:
+    - name: Checkout Source
+      uses: actions/checkout@v4
+
+    - name: Get release tag
+      uses: ./.github/actions/release-tag
+      id: tag
+
+    - name: Fail if channel name is reserved
+      run: |
+        if [ "${{ steps.tag.outputs.release_tag }}" == "latest" ]; then
+          echo "::error::'latest' is reserved for releases and cannot be used as a channel name (branch name)." >&2
+          exit 1
+        fi
+
   package:
     name: Package builder app
+    needs: check-channel-name
     runs-on: ubuntu-24.04
 
     steps:
@@ -51,6 +71,7 @@ jobs:
 
   standard-images:
     name: ${{ matrix.variant.name }}
+    needs: check-channel-name
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
