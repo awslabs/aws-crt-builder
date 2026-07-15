@@ -12,8 +12,6 @@
 #
 # Outputs (appended to $GITHUB_ENV):
 #   ABI_OUT_DIR    report/work directory
-#   ABI_BASE_SO    resolved path to the base .so
-#   ABI_HEAD_SO    resolved path to the head .so
 #   ABI_BASE_DUMP  base ABI dump file
 #   ABI_HEAD_DUMP  head ABI dump file
 
@@ -49,8 +47,6 @@ rc_head=0; wait "$pid_head" || rc_head=$?
 
 {
   echo "ABI_OUT_DIR=${OUT_DIR}"
-  echo "ABI_BASE_SO=${BASE_SO}"
-  echo "ABI_HEAD_SO=${HEAD_SO}"
   echo "ABI_BASE_DUMP=${BASE_DUMP}"
   echo "ABI_HEAD_DUMP=${HEAD_DUMP}"
 } >> "$GITHUB_ENV"

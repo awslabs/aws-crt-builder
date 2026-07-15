@@ -1,28 +1,30 @@
 #!/usr/bin/env bash
 #
-# gate.sh - Interpret the recorded ABI verdict and fail the job if the change
-# is an unauthorized break.
+# gate.sh - Interpret the recorded ABI verdict, choose a semver label, and fail
+# the job ONLY when abi-compliance-checker could not produce a verdict.
+#
+# This check is informational, not pass/fail: a compatible or incompatible ABI
+# both succeed and are surfaced as a PR label. The job fails only when the check
+# itself could not run (so there is no trustworthy verdict to label with).
 #
 # abi-compliance-checker exit codes:
-#   0      compatible, ran clean                -> PASS
-#   1      incompatible, ran clean              -> PASS only if SOVERSION bumped
+#   0      compatible                -> label: patch
+#   1      incompatible (ran clean)  -> label: minor (ABI changed; next release
+#                                       is at least a minor bump)
 #   2-11   tool error (bad input, can't compile, empty symbol set, ...)
-#          -> always FAIL; a tool error means no trustworthy verdict, so it can
-#             never be masked by a SOVERSION bump.
+#          -> FAIL: the check could not run, no verdict was produced.
 #
-# Inputs (env): ABI_RC, ABI_PCT, ABI_BASE_SOVER, ABI_HEAD_SOVER, ABI_ACC_LOG
+# Inputs (env): ABI_RC, ABI_PCT, ABI_ACC_LOG, ABI_LABEL_FILE (optional)
+#
+# Outputs:
+#   Appends ABI_LABEL / ABI_LABEL_REMOVE to $GITHUB_ENV, and (if ABI_LABEL_FILE
+#   is set) writes the chosen label there. ABI_LABEL_FILE is a host-mounted file,
+#   so it is how the verdict escapes the container to the labeling step.
 
 set -uo pipefail
 
 RC="${ABI_RC:--1}"
 PCT="${ABI_PCT:-?}"
-BASE_SOVER="${ABI_BASE_SOVER:-}"
-HEAD_SOVER="${ABI_HEAD_SOVER:-}"
-
-# A genuine bump requires BOTH sovers to be readable and to differ. base->empty
-# is a packaging regression (lost SONAME), not a bump — it must not clear a break.
-BUMPED=false
-[[ -n "$BASE_SOVER" && -n "$HEAD_SOVER" && "$BASE_SOVER" != "$HEAD_SOVER" ]] && BUMPED=true
 
 if ! [[ "$RC" =~ ^-?[0-9]+$ ]]; then
   echo "FAIL: ABI_RC is not an integer ('$RC'); cannot determine a verdict."
@@ -45,15 +47,20 @@ if [[ "$RC" -ge 2 ]]; then
 fi
 
 if [[ "$RC" -eq 0 ]]; then
-  echo "PASS: ABI backward-compatible (${PCT}%)"
-  exit 0
+  LABEL=patch; REMOVE=minor
+  echo "PASS: ABI backward-compatible (${PCT}%) -> label: ${LABEL}"
+else
+  LABEL=minor; REMOVE=patch
+  echo "PASS: ABI incompatible (${PCT}%) -> label: ${LABEL}"
 fi
 
-# RC == 1: genuine incompatibility. A SOVERSION bump is the only valid escape.
-if [[ "$BUMPED" == true ]]; then
-  echo "PASS: ABI changed (${PCT}%) but SOVERSION bumped (${BASE_SOVER} -> ${HEAD_SOVER})"
-  exit 0
+{
+  echo "ABI_LABEL=${LABEL}"
+  echo "ABI_LABEL_REMOVE=${REMOVE}"
+} >> "$GITHUB_ENV"
+
+if [[ -n "${ABI_LABEL_FILE:-}" ]]; then
+  printf '%s\n' "$LABEL" > "$ABI_LABEL_FILE"
 fi
 
-echo "FAIL: ABI incompatible (${PCT}%) and SOVERSION unchanged (${BASE_SOVER:-none})"
-exit 1
+exit 0
