@@ -1,5 +1,5 @@
 name: 'Check ABI Compliance'
-description: 'Dump and compare the ABI of a C shared library between the PR head and its base ref'
+description: 'Dump and compare the ABI of a C shared library between the PR head and its base ref, and label the PR patch/minor'
 
 inputs:
   lib-name:
@@ -25,6 +25,18 @@ inputs:
     description: 'ABI docker image name (baked with the abi-compliance-checker toolchain).'
     required: false
     default: 'aws-crt-ubuntu-22-abi-x64'
+  github-token:
+    description: 'Token used to label the PR. Needs pull-requests: write. Defaults to the job token.'
+    required: false
+    default: ${{ github.token }}
+  patch-label:
+    description: 'Label applied when the ABI is backward-compatible.'
+    required: false
+    default: 'patch'
+  minor-label:
+    description: 'Label applied when the ABI changed (an incompatible but valid, semver-minor, change).'
+    required: false
+    default: 'minor'
 
 runs:
   using: 'composite'
@@ -47,10 +59,12 @@ runs:
         printf 'ABI_DOCKER_IMAGE=%s\n' "$DOCKER_IMAGE" >> "$GITHUB_ENV"
 
     - name: Run ABI check in container
-      # always() is not needed here: this is the only work step. The container
-      # runs build -> dump -> compare -> report -> gate as one process (they
-      # chain state through an in-container GITHUB_ENV) and exits with the gate
-      # verdict, which fails this step on an unauthorized break.
+      # The container runs build -> dump -> compare -> report -> gate as one
+      # process (they chain state through an in-container GITHUB_ENV). The gate
+      # exits non-zero ONLY when abi-compliance-checker could not produce a
+      # verdict (rc >= 2); a compatible (rc 0) or incompatible (rc 1) ABI both
+      # succeed here and are surfaced as a PR label by the next step. The chosen
+      # label is written to a host-mounted file so it escapes the container.
       shell: bash
       env:
         # printf/env-block (not raw template interpolation) prevents shell and
@@ -60,6 +74,10 @@ runs:
         BUILDER_SOURCE: ${{ inputs.builder-source }}
         BUILDER_HOST: ${{ inputs.builder-host }}
       run: |
+        # The label the container computes is read back by the labeling step.
+        ABI_LABEL_FILE="$(mktemp)"
+        printf 'ABI_LABEL_FILE=%s\n' "$ABI_LABEL_FILE" >> "$GITHUB_ENV"
+
         # Mount the checkout at the same path so GITHUB_WORKSPACE resolves inside
         # the container, and mount the step-summary file so report.py can append
         # the verdict to the host job summary.
@@ -72,12 +90,14 @@ runs:
         docker run --rm \
           -v "${GITHUB_WORKSPACE}:${GITHUB_WORKSPACE}" \
           -v "${GITHUB_ACTION_PATH}:/opt/check-abi" \
+          -v "${ABI_LABEL_FILE}:${ABI_LABEL_FILE}" \
           "${SUMMARY_MOUNT[@]}" \
           --env "GITHUB_WORKSPACE=${GITHUB_WORKSPACE}" \
           --env "GITHUB_BASE_REF=${GITHUB_BASE_REF:-}" \
           --env "GITHUB_RUN_ID=${GITHUB_RUN_ID:-}" \
           --env "GITHUB_RUN_NUMBER=${GITHUB_RUN_NUMBER:-}" \
           --env "ABI_LIB_NAME=${LIB_NAME}" \
+          --env "ABI_LABEL_FILE=${ABI_LABEL_FILE}" \
           --env "BUILDER_VERSION=${BUILDER_VERSION}" \
           --env "BUILDER_SOURCE=${BUILDER_SOURCE}" \
           --env "BUILDER_HOST=${BUILDER_HOST}" \
@@ -85,3 +105,41 @@ runs:
           --entrypoint bash \
           "${ABI_DOCKER_IMAGE}" \
           /opt/check-abi/scripts/abi_check.sh
+
+    - name: Label PR
+      # Runs only on pull_request events (needs a PR number) and only if the gate
+      # produced a verdict. Adds the semver label (patch|minor) and removes the
+      # other so a re-run flips the label cleanly. Requires pull-requests: write;
+      # on fork PRs the token is read-only and this is a no-op (labels are then
+      # informational via the job summary only).
+      if: ${{ github.event_name == 'pull_request' }}
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+        REPO: ${{ github.repository }}
+        PATCH_LABEL: ${{ inputs.patch-label }}
+        MINOR_LABEL: ${{ inputs.minor-label }}
+      run: |
+        if [[ -z "${ABI_LABEL_FILE:-}" || ! -s "$ABI_LABEL_FILE" ]]; then
+          echo "No ABI verdict was produced; skipping labeling."
+          exit 0
+        fi
+        LABEL="$(tr -d '[:space:]' < "$ABI_LABEL_FILE")"
+        case "$LABEL" in
+          "$PATCH_LABEL") REMOVE="$MINOR_LABEL" ;;
+          "$MINOR_LABEL") REMOVE="$PATCH_LABEL" ;;
+          *) echo "Unexpected ABI label '$LABEL'; skipping."; exit 0 ;;
+        esac
+        echo "Applying label '$LABEL' (removing '$REMOVE') on PR #${PR_NUMBER}"
+        # gh pr edit --add-label fails if the label does not exist in the repo
+        # (it will not create it), so ensure both labels exist first. --force
+        # makes create idempotent; ignore the failure when it already exists.
+        gh label create "$PATCH_LABEL" --repo "$REPO" --color 0e8a16 \
+          --description "ABI backward-compatible (patch release)" --force 2>/dev/null || true
+        gh label create "$MINOR_LABEL" --repo "$REPO" --color fbca04 \
+          --description "ABI changed (minor release)" --force 2>/dev/null || true
+        gh pr edit "$PR_NUMBER" --repo "$REPO" --add-label "$LABEL" \
+          || echo "WARNING: could not add label '$LABEL' (token may be read-only on fork PRs)."
+        # Remove the opposite label if present; ignore failure when it isn't.
+        gh pr edit "$PR_NUMBER" --repo "$REPO" --remove-label "$REMOVE" 2>/dev/null || true

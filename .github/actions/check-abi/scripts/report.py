@@ -17,13 +17,15 @@ def _env(name, default=''):
     return os.environ.get(name, default)
 
 
-def _verdict_note(rc, bumped):
+def _verdict_note(rc):
     if rc >= 2:
-        return ('**ABI check ERRORED. No verdict was produced — this is not a '
-                'pass and cannot be cleared by bumping SOVERSION. See acc.log.**')
-    if rc == 1 and not bumped:
-        return ('**ABI is incompatible and SOVERSION was not bumped. Either '
-                'revert the breaking change or bump SOVERSION in CMakeLists.txt.**')
+        return ('**ABI check ERRORED. No verdict was produced — the check could '
+                'not run, so no label was applied. See acc.log.**')
+    if rc == 1:
+        return ('**ABI changed.** This PR is labeled `minor`: the next release '
+                'must be at least a minor version bump.')
+    if rc == 0:
+        return ('**ABI is backward-compatible.** This PR is labeled `patch`.')
     return ''
 
 
@@ -64,8 +66,6 @@ def main():
 
     lib_name = _env('ABI_LIB_NAME', '(unknown)')
     pct = _env('ABI_PCT', '?')
-    base_sover = _env('ABI_BASE_SOVER')
-    head_sover = _env('ABI_HEAD_SOVER')
     rc_raw = _env('ABI_RC')
     report_html = _env('ABI_REPORT_HTML')
 
@@ -74,18 +74,16 @@ def main():
     except (TypeError, ValueError):
         rc = -1
 
-    # A genuine bump requires both sovers readable and differing — consistent
-    # with gate.sh. base->empty is a packaging regression, not a bump.
-    bumped = bool(base_sover and head_sover and base_sover != head_sover)
+    label = 'patch' if rc == 0 else ('minor' if rc == 1 else 'none')
 
     lines = [
         '## Check ABI compliance: `{}`'.format(lib_name),
         '',
         '- Binary compatibility: **{}%**'.format(pct),
-        '- SOVERSION: base `{}` -> head `{}`'.format(base_sover or 'none', head_sover or 'none'),
+        '- Semver label: **{}**'.format(label),
         '- abi-compliance-checker exit code: `{}`'.format(rc if rc >= 0 else 'n/a (failed early)'),
     ]
-    note = _verdict_note(rc, bumped)
+    note = _verdict_note(rc)
     if note:
         lines += ['', note]
 

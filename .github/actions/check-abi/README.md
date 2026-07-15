@@ -1,8 +1,13 @@
 # check-abi
 
 Dump and compare the ABI of a CRT C shared library between a pull request's head
-and its base ref, and fail the build on an unauthorized binary-incompatible
-change. This is intended for use with the CRT C libraries (ex: aws-c-s3, aws-c-io).
+and its base ref, and **label the PR** with the implied semver bump (`patch` if
+the ABI is backward-compatible, `minor` if it changed). This is intended for use
+with the CRT C libraries (ex: aws-c-s3, aws-c-io).
+
+This check is informational: a compatible or incompatible ABI both **succeed**
+and are surfaced as a label. The job fails **only** when abi-compliance-checker
+could not run (exit code ≥ 2), because then there is no trustworthy verdict.
 
 ## What it does
 
@@ -20,11 +25,15 @@ action pulls that image and runs the whole check inside it:
    3. **Dump ABI for base and head** in parallel — scoped to public headers via `-public-headers`.
    4. **Run compliance check** — `abi-compliance-checker -binary -ext -strict`.
    5. **Publish report** — appends the verdict and the report body to the job summary.
-   6. **Gate on result** — fails if the ABI is incompatible and SOVERSION was not bumped.
+   6. **Choose the label** — `patch` (exit 0), `minor` (exit 1), or fail (exit ≥ 2).
+      The chosen label is written to a host-mounted file so it escapes the container.
+3. **Label PR** — on the host (which has the PR context and token), add the
+   chosen label and remove the opposite one via `gh pr edit`.
 
-The stages run as a single in-container process because they chain state through
+The in-container stages run as a single process because they chain state through
 `$GITHUB_ENV`, which does not survive across a `docker run` boundary
-(`scripts/abi_check.sh` is the orchestrator that bridges it).
+(`scripts/abi_check.sh` is the orchestrator that bridges it). Labeling runs on
+the host because the container has neither the PR number nor a GitHub token.
 
 ## Consumer requirements
 
@@ -34,6 +43,9 @@ The consumer workflow must, before invoking this action:
   `aws-actions/configure-aws-credentials`), so the image can be pulled.
 - **Checkout with `fetch-depth: 0`** so the base branch history is available for
   the worktree and `git merge-base`.
+- **Grant `pull-requests: write`** so the action can label the PR. Note: on PRs
+  from forks GitHub forces the token read-only regardless of this setting, so
+  labeling is skipped (the verdict is still in the job summary).
 
 ## Usage
 
@@ -44,7 +56,8 @@ jobs:
   check-abi:
     runs-on: ubuntu-24.04
     permissions:
-      id-token: write # for configure-aws-credentials OIDC
+      id-token: write        # for configure-aws-credentials OIDC
+      pull-requests: write   # to label the PR patch/minor
     steps:
       - uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -71,15 +84,22 @@ jobs:
 | `builder-host` | no | CloudFront URL | Builder artifact host. |
 | `image-registry` | no | CRT ECR registry | ECR registry hosting the ABI image. |
 | `image-name` | no | `aws-crt-ubuntu-22-abi-x64` | ABI docker image name. |
+| `github-token` | no | `github.token` | Token used to label the PR (needs `pull-requests: write`). |
+| `patch-label` | no | `patch` | Label applied when the ABI is backward-compatible. |
+| `minor-label` | no | `minor` | Label applied when the ABI changed. |
 
-## The SOVERSION escape hatch
+## The label
 
-An intentional breaking change is allowed: bump `SOVERSION` in the library's
-`CMakeLists.txt`. The gate treats an incompatible result (abicc exit 1) as a
-pass only when **both** the base and head SONAME versions are readable and they
-differ. If the base SONAME cannot be read (or the head build lost its SONAME),
-the bump cannot be verified and the gate fails. Tool errors (exit ≥ 2) produce
-no trustworthy verdict and can never be cleared by a SOVERSION bump.
+The check maps the abi-compliance-checker result to a semver label:
+
+| abicc exit | Meaning | Result |
+|-----------|---------|--------|
+| `0` | ABI backward-compatible | job passes, PR labeled `patch` |
+| `1` | ABI changed (incompatible) | job passes, PR labeled `minor` |
+| `2`–`11` | tool error — check could not run | **job fails**, no label |
+
+The two labels are mutually exclusive: applying one removes the other, so a
+re-run after a code change flips the label cleanly.
 
 ## The docker image
 
@@ -92,13 +112,13 @@ is built + pushed to ECR (tagged with the builder version) by the
 
 ```
 check-abi/
-├── action.yml          # pull image + docker run the orchestrator
+├── action.yml          # pull image + docker run the orchestrator + label the PR
 ├── README.md
 └── scripts/
     ├── abi_check.sh    # in-container orchestrator (build->dump->compare->report->gate)
     ├── build.sh        # resolve base ref, worktree, build both refs (parallel)
     ├── dump.sh         # locate both .so, abi-dump both (parallel)
-    ├── compare.sh      # abi-compliance-checker; record rc/pct/sovers
+    ├── compare.sh      # abi-compliance-checker; record rc/pct
     ├── report.py       # write verdict + report body to the job summary
-    └── gate.sh         # pass/fail with the SOVERSION escape hatch
+    └── gate.sh         # map exit code -> patch/minor label; fail only on tool error
 ```
