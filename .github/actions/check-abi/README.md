@@ -12,7 +12,7 @@ could not run (exit code ≥ 2), because then there is no trustworthy verdict.
 ## What it does
 
 The ABI toolchain (`abi-compliance-checker`, `abi-dumper`, `universal-ctags`,
-`cmake`, `g++`, `libssl-dev`) is **baked into a docker image**
+`cmake`, `g++`) is **baked into a docker image**
 (`aws-crt-ubuntu-22-abi-x64`) instead of being installed on every CI run. The
 action pulls that image and runs the whole check inside it:
 

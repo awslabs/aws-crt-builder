@@ -7,8 +7,13 @@ ENV DEBIAN_FRONTEND=noninteractive
 #
 # Baking abi-compliance-checker / abi-dumper / universal-ctags into the image is
 # the whole point of this variant: the check-abi action used to apt-get install
-# them on every CI run. libssl-dev, cmake and build-essential are here because
-# building the CRT shared libs (via builder.pyz) needs them.
+# them on every CI run. cmake and build-essential are here because building the
+# CRT shared libs (via builder.pyz) needs them.
+#
+# libssl-dev is intentionally NOT installed: ubuntu:22.04 ships libssl3 (the
+# runtime .so) by default, just not the -dev headers/pkg-config. Untested
+# whether any lib-name build in check-abi actually needs the headers -- if a
+# build fails here looking for <openssl/*.h> or openssl.pc, add it back.
 ###############################################################################
 RUN apt-get update -qq \
     && apt-get -y install \
@@ -19,7 +24,6 @@ RUN apt-get update -qq \
     python3-dev \
     python3-pip \
     build-essential \
-    libssl-dev \
     # ABI toolchain
     abi-compliance-checker \
     abi-dumper \
