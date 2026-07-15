@@ -50,6 +50,7 @@ jobs:
         cp -r builder staging/.
         python3 -m zipapp --python="/usr/bin/env python3" -m "builder.main:main" --output=build/builder staging
         aws s3 cp build/builder s3://$AWS_S3_BUCKET/releases/${{ steps.tag.outputs.release_tag }}/builder.pyz
+        aws s3 cp build/builder s3://$AWS_S3_BUCKET/releases/latest/builder.pyz
 
     - name: Artifact builder
       uses: actions/upload-artifact@v4
@@ -167,4 +168,6 @@ jobs:
       id: tag
 
     - name: Upload script
-      run: aws s3 cp ./.github/workflows/linux-container-ci.sh s3://aws-crt-test-stuff/ci/${{ steps.tag.outputs.release_tag }}/linux-container-ci.sh
+      run: |
+        aws s3 cp ./.github/workflows/linux-container-ci.sh s3://aws-crt-test-stuff/ci/${{ steps.tag.outputs.release_tag }}/linux-container-ci.sh
+        aws s3 cp ./.github/workflows/linux-container-ci.sh s3://aws-crt-test-stuff/ci/latest/linux-container-ci.sh
