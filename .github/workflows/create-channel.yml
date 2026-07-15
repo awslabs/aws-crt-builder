@@ -33,8 +33,10 @@ jobs:
       id: tag
 
     - name: Fail if channel name is reserved
+      env:
+        RELEASE_TAG: ${{ steps.tag.outputs.release_tag }}
       run: |
-        if [ "${{ steps.tag.outputs.release_tag }}" == "latest" ]; then
+        if [ "$RELEASE_TAG" == "latest" ]; then
           echo "::error::'latest' is reserved for releases and cannot be used as a channel name (branch name)." >&2
           exit 1
         fi
