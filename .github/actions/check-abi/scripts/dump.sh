@@ -2,8 +2,11 @@
 #
 # dump.sh - Locate the built shared library for each ref and dump its ABI.
 #
-# cmake installs only public headers to the install tree, so we point
-# abi-dumper at <install>/include to scope the dump to the public API.
+# cmake installs only public headers to the install tree, so we point abidw's
+# --headers-dir at <install>/include to scope the dump to the public API
+# (abidw drops types not reachable from those headers; it does not filter
+# exported-but-undeclared functions -- not an issue for CRT libs, which use
+# -fvisibility=hidden + explicit _API export macros).
 #
 # Inputs (env):
 #   ABI_LIB_NAME      library name -> lib<name>.so
@@ -35,11 +38,9 @@ BASE_DUMP="${OUT_DIR}/base.dump"
 HEAD_DUMP="${OUT_DIR}/head.dump"
 
 echo "Dumping ABI for base ($BASE_SO) and head ($HEAD_SO) in parallel"
-abi-dumper "$BASE_SO" -o "$BASE_DUMP" -lver base \
-  -public-headers "${BASE_INSTALL}/include" &
+abidw --headers-dir "${BASE_INSTALL}/include" "$BASE_SO" --out-file "$BASE_DUMP" &
 pid_base=$!
-abi-dumper "$HEAD_SO" -o "$HEAD_DUMP" -lver head \
-  -public-headers "${HEAD_INSTALL}/include" &
+abidw --headers-dir "${HEAD_INSTALL}/include" "$HEAD_SO" --out-file "$HEAD_DUMP" &
 pid_head=$!
 
 rc_base=0; wait "$pid_base" || rc_base=$?
@@ -52,10 +53,10 @@ rc_head=0; wait "$pid_head" || rc_head=$?
 } >> "$GITHUB_ENV"
 
 if [[ "$rc_base" -ne 0 ]]; then
-  echo "ERROR: abi-dumper failed for base (exit $rc_base)" >&2
+  echo "ERROR: abidw failed for base (exit $rc_base)" >&2
   exit 1
 fi
 if [[ "$rc_head" -ne 0 ]]; then
-  echo "ERROR: abi-dumper failed for head (exit $rc_head)" >&2
+  echo "ERROR: abidw failed for head (exit $rc_head)" >&2
   exit 1
 fi

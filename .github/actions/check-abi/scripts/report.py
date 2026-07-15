@@ -2,14 +2,17 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0.
 #
-# report.py - Append the ABI verdict + the abi-compliance-checker report body
-# to $GITHUB_STEP_SUMMARY so the result is visible at a glance on the PR.
+# report.py - Append the ABI verdict + the abidiff output to
+# $GITHUB_STEP_SUMMARY so the result is visible at a glance on the PR.
 #
 # Reads state from the environment (set by the earlier steps). Runs with
 # `if: always()`, so every field is read defensively.
+#
+# Unlike abi-compliance-checker, abidiff has no HTML report mode -- its output
+# is plain text, so it is embedded as a fenced code block instead of an HTML
+# fragment.
 
 import os
-import re
 import sys
 
 
@@ -18,44 +21,15 @@ def _env(name, default=''):
 
 
 def _verdict_note(rc):
-    if rc >= 2:
+    if rc < 0:
+        return ''
+    if rc & 3:
         return ('**ABI check ERRORED. No verdict was produced — the check could '
-                'not run, so no label was applied. See acc.log.**')
-    if rc == 1:
-        return ('**ABI changed.** This PR is labeled `minor`: the next release '
-                'must be at least a minor version bump.')
-    if rc == 0:
-        return ('**ABI is backward-compatible.** This PR is labeled `patch`.')
-    return ''
-
-
-def _body_fragment(report_html):
-    """Return the contents between <body ...> and </body>.
-
-    GitHub step summary expects an HTML fragment, not a full document — sending
-    the DOCTYPE and outer <html>/<body> tags makes them render as visible text.
-    We strip everything outside <body>...</body> AND the opening <body ...> tag.
-    """
-    try:
-        with open(report_html, encoding='utf-8', errors='replace') as fh:
-            html = fh.read()
-    except OSError:
-        return ''
-
-    # Search after </head> so a stray '<body' token inside the <head>'s
-    # <style>/<script> can't be mistaken for the real opening tag.
-    head_end = html.find('</head>')
-    search_from = head_end if head_end != -1 else 0
-
-    m = re.search(r'<body\b[^>]*>', html[search_from:])
-    end = html.rfind('</body>')
-    if not m or end == -1:
-        return ''
-
-    content_start = search_from + m.end()
-    if end < content_start:
-        return ''
-    return html[content_start:end]
+                'not run, so no label was applied. See abidiff.log.**')
+    if rc & 8:
+        return ('**ABI changed incompatibly.** This PR is labeled `minor`: the '
+                'next release must be at least a minor version bump.')
+    return '**ABI is backward-compatible.** This PR is labeled `patch`.'
 
 
 def main():
@@ -65,35 +39,42 @@ def main():
         return 0
 
     lib_name = _env('ABI_LIB_NAME', '(unknown)')
-    pct = _env('ABI_PCT', '?')
     rc_raw = _env('ABI_RC')
-    report_html = _env('ABI_REPORT_HTML')
+    diff_log = _env('ABI_DIFF_LOG')
 
     try:
         rc = int(rc_raw)
     except (TypeError, ValueError):
         rc = -1
 
-    label = 'patch' if rc == 0 else ('minor' if rc == 1 else 'none')
+    label = 'none'
+    if rc >= 0 and not (rc & 3):
+        label = 'minor' if (rc & 8) else 'patch'
 
     lines = [
         '## Check ABI compliance: `{}`'.format(lib_name),
         '',
-        '- Binary compatibility: **{}%**'.format(pct),
         '- Semver label: **{}**'.format(label),
-        '- abi-compliance-checker exit code: `{}`'.format(rc if rc >= 0 else 'n/a (failed early)'),
+        '- abidiff exit code: `{}`'.format(rc if rc >= 0 else 'n/a (failed early)'),
     ]
     note = _verdict_note(rc)
     if note:
         lines += ['', note]
 
+    diff_text = ''
+    if diff_log:
+        try:
+            with open(diff_log, encoding='utf-8', errors='replace') as fh:
+                diff_text = fh.read()
+        except OSError:
+            diff_text = ''
+
     with open(summary_path, 'a', encoding='utf-8') as out:
         out.write('\n'.join(lines) + '\n')
-        fragment = _body_fragment(report_html) if report_html else ''
-        if fragment:
-            out.write('\n')
-            out.write(fragment)
-            out.write('\n')
+        if diff_text:
+            out.write('\n<details><summary>abidiff output</summary>\n\n')
+            out.write('```\n{}\n```\n'.format(diff_text.strip()))
+            out.write('\n</details>\n')
 
     return 0
 

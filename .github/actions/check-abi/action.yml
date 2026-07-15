@@ -22,7 +22,7 @@ inputs:
     required: false
     default: '123124136734.dkr.ecr.us-east-1.amazonaws.com'
   image-name:
-    description: 'ABI docker image name (baked with the abi-compliance-checker toolchain).'
+    description: 'ABI docker image name (baked with the libabigail toolchain).'
     required: false
     default: 'aws-crt-ubuntu-22-abi-x64'
   github-token:
@@ -41,11 +41,11 @@ inputs:
 runs:
   using: 'composite'
   steps:
-    # The ABI toolchain (abi-compliance-checker, abi-dumper, ctags, cmake) is
-    # baked into the aws-crt-ubuntu-22-abi-x64 image, so there is no per-run
-    # apt-get install here. The consumer job must have configured AWS creds with
-    # ECR pull access (aws-actions/configure-aws-credentials) and checked out
-    # with fetch-depth: 0 before invoking this action.
+    # The ABI toolchain (libabigail's abidw/abidiff, cmake) is baked into the
+    # aws-crt-ubuntu-22-abi-x64 image, so there is no per-run apt-get install
+    # here. The consumer job must have configured AWS creds with ECR pull
+    # access (aws-actions/configure-aws-credentials) and checked out with
+    # fetch-depth: 0 before invoking this action.
     - name: Pull ABI image
       shell: bash
       env:
@@ -60,11 +60,12 @@ runs:
 
     - name: Run ABI check in container
       # The container runs build -> dump -> compare -> report -> gate as one
-      # process (they chain state through an in-container GITHUB_ENV). The gate
-      # exits non-zero ONLY when abi-compliance-checker could not produce a
-      # verdict (rc >= 2); a compatible (rc 0) or incompatible (rc 1) ABI both
-      # succeed here and are surfaced as a PR label by the next step. The chosen
-      # label is written to a host-mounted file so it escapes the container.
+      # process (they chain state through an in-container GITHUB_ENV). abidiff's
+      # exit code is a bitmask; the gate exits non-zero ONLY when the tool/usage
+      # error bits are set (no trustworthy verdict). A compatible or
+      # incompatible ABI both succeed here and are surfaced as a PR label by
+      # the next step. The chosen label is written to a host-mounted file so it
+      # escapes the container.
       shell: bash
       env:
         # printf/env-block (not raw template interpolation) prevents shell and
