@@ -14,12 +14,15 @@
 #   bit 2 set only, or 0                -> label: patch (no change, or a
 #                                          reviewable-but-compatible change)
 #
-# Inputs (env): ABI_RC, ABI_DIFF_LOG, ABI_LABEL_FILE (optional)
+# Inputs (env): ABI_RC, ABI_DIFF_LOG
 #
 # Outputs:
-#   Appends ABI_LABEL / ABI_LABEL_REMOVE to $GITHUB_ENV, and (if ABI_LABEL_FILE
-#   is set) writes the chosen label there. ABI_LABEL_FILE is a host-mounted file,
-#   so it is how the verdict escapes the container to the labeling step.
+#   Appends ABI_LABEL / ABI_LABEL_REMOVE to $GITHUB_ENV (for stages within this
+#   container run), and prints "ABI_LABEL_RESULT::<label>" as the last stdout
+#   line on success. That line is how the verdict escapes the container: the
+#   composite action step captures this script's stdout via command
+#   substitution and greps out the marker -- no host-mounted file needed,
+#   since docker already streams stdout back to the host process.
 
 set -uo pipefail
 
@@ -58,19 +61,10 @@ fi
   echo "ABI_LABEL_REMOVE=${REMOVE}"
 } >> "$GITHUB_ENV"
 
-if [[ -n "${ABI_LABEL_FILE:-}" ]]; then
-  if ! printf '%s\n' "$LABEL" > "$ABI_LABEL_FILE"; then
-    echo "FAIL: could not write verdict to ABI_LABEL_FILE ('$ABI_LABEL_FILE')." >&2
-    exit 1
-  fi
-  # The write can succeed by shell's reckoning yet leave the file unreadable
-  # or empty on a mismatched-UID bind mount; verify what's actually on disk
-  # instead of trusting the write call's exit code.
-  WRITTEN="$(cat "$ABI_LABEL_FILE" 2>/dev/null || true)"
-  if [[ "$(tr -d '[:space:]' <<< "$WRITTEN")" != "$LABEL" ]]; then
-    echo "FAIL: verdict '${LABEL}' was not persisted to ABI_LABEL_FILE; read back '${WRITTEN}'." >&2
-    exit 1
-  fi
-fi
+# This marker line is the only channel the verdict needs out of the
+# container: action.yml captures this script's stdout (docker already
+# streams a container's stdout to the host process) and greps the marker
+# out of it. No host-mounted file, no cross-UID write, nothing to fail on.
+echo "ABI_LABEL_RESULT::${LABEL}"
 
 exit 0
