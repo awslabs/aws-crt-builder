@@ -63,8 +63,17 @@ runs:
       # process (they chain state through an in-container GITHUB_ENV). The gate
       # exits non-zero ONLY when abi-compliance-checker could not produce a
       # verdict (rc >= 2); a compatible (rc 0) or incompatible (rc 1) ABI both
-      # succeed here and are surfaced as a PR label by the next step. The chosen
-      # label is written to a host-mounted file so it escapes the container.
+      # succeed here and are surfaced as a PR label by the next step.
+      #
+      # The verdict escapes the container via stdout, not a bind-mounted file:
+      # `docker run` already streams the container's stdout back to this host
+      # process, so gate.sh just prints a marker line ("ABI_LABEL_RESULT::<label>")
+      # and we grep it out of the captured output below. A host-mounted file
+      # here was solving a problem that doesn't exist -- and it introduced a
+      # real one, since a file created by `mktemp` on the host is owned by the
+      # runner's UID, and the container (a different UID) can't reliably write
+      # to it.
+      id: run_check
       shell: bash
       env:
         # printf/env-block (not raw template interpolation) prevents shell and
@@ -74,10 +83,6 @@ runs:
         BUILDER_SOURCE: ${{ inputs.builder-source }}
         BUILDER_HOST: ${{ inputs.builder-host }}
       run: |
-        # The label the container computes is read back by the labeling step.
-        ABI_LABEL_FILE="$(mktemp)"
-        printf 'ABI_LABEL_FILE=%s\n' "$ABI_LABEL_FILE" >> "$GITHUB_ENV"
-
         # Mount the checkout at the same path so GITHUB_WORKSPACE resolves inside
         # the container, and mount the step-summary file so report.py can append
         # the verdict to the host job summary.
@@ -87,24 +92,36 @@ runs:
           SUMMARY_MOUNT=(-v "${GITHUB_STEP_SUMMARY}:${GITHUB_STEP_SUMMARY}")
           SUMMARY_ENV=(--env "GITHUB_STEP_SUMMARY=${GITHUB_STEP_SUMMARY}")
         fi
+
+        # Tee so the full build/dump/compare/gate log still streams live to the
+        # job log, while OUT also captures it (including gate.sh's marker line)
+        # for parsing below. PIPESTATUS[0] is docker's exit code, not tee's.
+        set -o pipefail
+        OUT="$(mktemp)"
         docker run --rm \
           -v "${GITHUB_WORKSPACE}:${GITHUB_WORKSPACE}" \
           -v "${GITHUB_ACTION_PATH}:/opt/check-abi" \
-          -v "${ABI_LABEL_FILE}:${ABI_LABEL_FILE}" \
           "${SUMMARY_MOUNT[@]}" \
           --env "GITHUB_WORKSPACE=${GITHUB_WORKSPACE}" \
           --env "GITHUB_BASE_REF=${GITHUB_BASE_REF:-}" \
           --env "GITHUB_RUN_ID=${GITHUB_RUN_ID:-}" \
           --env "GITHUB_RUN_NUMBER=${GITHUB_RUN_NUMBER:-}" \
           --env "ABI_LIB_NAME=${LIB_NAME}" \
-          --env "ABI_LABEL_FILE=${ABI_LABEL_FILE}" \
           --env "BUILDER_VERSION=${BUILDER_VERSION}" \
           --env "BUILDER_SOURCE=${BUILDER_SOURCE}" \
           --env "BUILDER_HOST=${BUILDER_HOST}" \
           "${SUMMARY_ENV[@]}" \
           --entrypoint bash \
           "${ABI_DOCKER_IMAGE}" \
-          /opt/check-abi/scripts/abi_check.sh
+          /opt/check-abi/scripts/abi_check.sh | tee "$OUT"
+        RC="${PIPESTATUS[0]}"
+
+        LABEL="$(grep -o 'ABI_LABEL_RESULT::[a-zA-Z0-9_-]*' "$OUT" | tail -n1 | cut -d: -f3)"
+        rm -f "$OUT"
+        if [[ -n "$LABEL" ]]; then
+          echo "label=${LABEL}" >> "$GITHUB_OUTPUT"
+        fi
+        exit "$RC"
 
     - name: Label PR
       # Runs only on pull_request events (needs a PR number) and only if the gate
@@ -120,12 +137,12 @@ runs:
         REPO: ${{ github.repository }}
         PATCH_LABEL: ${{ inputs.patch-label }}
         MINOR_LABEL: ${{ inputs.minor-label }}
+        LABEL: ${{ steps.run_check.outputs.label }}
       run: |
-        if [[ -z "${ABI_LABEL_FILE:-}" || ! -s "$ABI_LABEL_FILE" ]]; then
+        if [[ -z "${LABEL:-}" ]]; then
           echo "No ABI verdict was produced; skipping labeling."
           exit 0
         fi
-        LABEL="$(tr -d '[:space:]' < "$ABI_LABEL_FILE")"
         case "$LABEL" in
           "$PATCH_LABEL") REMOVE="$MINOR_LABEL" ;;
           "$MINOR_LABEL") REMOVE="$PATCH_LABEL" ;;

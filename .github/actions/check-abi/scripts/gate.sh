@@ -17,12 +17,19 @@
 #   2-11   tool error (bad input, can't compile, empty symbol set, ...)
 #          -> FAIL: the check could not run, no verdict was produced.
 #
-# Inputs (env): ABI_RC, ABI_PCT, ABI_SRC_PCT, ABI_ACC_LOG, ABI_LABEL_FILE (optional)
+# Inputs (env): ABI_RC, ABI_PCT, ABI_SRC_PCT, ABI_ACC_LOG
 #
 # Outputs:
-#   Appends ABI_LABEL / ABI_LABEL_REMOVE to $GITHUB_ENV, and (if ABI_LABEL_FILE
-#   is set) writes the chosen label there. ABI_LABEL_FILE is a host-mounted file,
-#   so it is how the verdict escapes the container to the labeling step.
+#   Appends ABI_LABEL / ABI_LABEL_REMOVE to $GITHUB_ENV (for stages within this
+#   container run), and prints "ABI_LABEL_RESULT::<label>" as the last stdout
+#   line on success. That line is how the verdict escapes the container: the
+#   composite action step captures this script's stdout via command
+#   substitution and greps out the marker -- no host-mounted file needed,
+#   since docker already streams stdout back to the host process. (A prior
+#   version wrote the label to a host-mounted file created by mktemp; that
+#   file defaults to mode 600 owned by the runner's UID, and the container
+#   -- a different UID -- couldn't reliably write to it, silently losing the
+#   verdict. Docker's stdout stream doesn't have that problem.)
 
 set -uo pipefail
 
@@ -63,8 +70,10 @@ fi
   echo "ABI_LABEL_REMOVE=${REMOVE}"
 } >> "$GITHUB_ENV"
 
-if [[ -n "${ABI_LABEL_FILE:-}" ]]; then
-  printf '%s\n' "$LABEL" > "$ABI_LABEL_FILE"
-fi
+# This marker line is the only channel the verdict needs out of the
+# container: action.yml captures this script's stdout (docker already
+# streams a container's stdout to the host process) and greps the marker
+# out of it. No host-mounted file, no cross-UID write, nothing to fail on.
+echo "ABI_LABEL_RESULT::${LABEL}"
 
 exit 0
