@@ -66,8 +66,10 @@ def main():
 
     lib_name = _env('ABI_LIB_NAME', '(unknown)')
     pct = _env('ABI_PCT', '?')
+    src_pct = _env('ABI_SRC_PCT', '?')
     rc_raw = _env('ABI_RC')
     report_html = _env('ABI_REPORT_HTML')
+    src_report_html = _env('ABI_SRC_REPORT_HTML')
 
     try:
         rc = int(rc_raw)
@@ -80,6 +82,7 @@ def main():
         '## Check ABI compliance: `{}`'.format(lib_name),
         '',
         '- Binary compatibility: **{}%**'.format(pct),
+        '- Source compatibility: **{}%**'.format(src_pct),
         '- Semver label: **{}**'.format(label),
         '- abi-compliance-checker exit code: `{}`'.format(rc if rc >= 0 else 'n/a (failed early)'),
     ]
@@ -91,9 +94,14 @@ def main():
         out.write('\n'.join(lines) + '\n')
         fragment = _body_fragment(report_html) if report_html else ''
         if fragment:
-            out.write('\n')
+            out.write('\n<details><summary>Binary compatibility report</summary>\n\n')
             out.write(fragment)
-            out.write('\n')
+            out.write('\n</details>\n')
+        src_fragment = _body_fragment(src_report_html) if src_report_html else ''
+        if src_fragment:
+            out.write('\n<details><summary>Source compatibility report</summary>\n\n')
+            out.write(src_fragment)
+            out.write('\n</details>\n')
 
     return 0
 

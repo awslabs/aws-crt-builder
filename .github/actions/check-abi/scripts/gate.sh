@@ -7,14 +7,17 @@
 # both succeed and are surfaced as a PR label. The job fails only when the check
 # itself could not run (so there is no trustworthy verdict to label with).
 #
-# abi-compliance-checker exit codes:
+# abi-compliance-checker exit codes (compare.sh runs -binary AND -source, so
+# "incompatible" below covers BOTH: a binary break (old compiled callers
+# misbehave) and a source break (callers fail to recompile, e.g. a renamed
+# public enum constant/macro/typedef -- invisible to -binary alone):
 #   0      compatible                -> label: patch
-#   1      incompatible (ran clean)  -> label: minor (ABI changed; next release
-#                                       is at least a minor bump)
+#   1      incompatible (ran clean)  -> label: minor (ABI or API changed; next
+#                                       release is at least a minor bump)
 #   2-11   tool error (bad input, can't compile, empty symbol set, ...)
 #          -> FAIL: the check could not run, no verdict was produced.
 #
-# Inputs (env): ABI_RC, ABI_PCT, ABI_ACC_LOG, ABI_LABEL_FILE (optional)
+# Inputs (env): ABI_RC, ABI_PCT, ABI_SRC_PCT, ABI_ACC_LOG, ABI_LABEL_FILE (optional)
 #
 # Outputs:
 #   Appends ABI_LABEL / ABI_LABEL_REMOVE to $GITHUB_ENV, and (if ABI_LABEL_FILE
@@ -25,6 +28,7 @@ set -uo pipefail
 
 RC="${ABI_RC:--1}"
 PCT="${ABI_PCT:-?}"
+SRC_PCT="${ABI_SRC_PCT:-?}"
 
 if ! [[ "$RC" =~ ^-?[0-9]+$ ]]; then
   echo "FAIL: ABI_RC is not an integer ('$RC'); cannot determine a verdict."
@@ -48,10 +52,10 @@ fi
 
 if [[ "$RC" -eq 0 ]]; then
   LABEL=patch; REMOVE=minor
-  echo "PASS: ABI backward-compatible (${PCT}%) -> label: ${LABEL}"
+  echo "PASS: ABI+API backward-compatible (binary: ${PCT}%, source: ${SRC_PCT}%) -> label: ${LABEL}"
 else
   LABEL=minor; REMOVE=patch
-  echo "PASS: ABI incompatible (${PCT}%) -> label: ${LABEL}"
+  echo "PASS: ABI or API incompatible (binary: ${PCT}%, source: ${SRC_PCT}%) -> label: ${LABEL}"
 fi
 
 {
