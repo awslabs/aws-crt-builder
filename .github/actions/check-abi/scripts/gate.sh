@@ -59,7 +59,18 @@ fi
 } >> "$GITHUB_ENV"
 
 if [[ -n "${ABI_LABEL_FILE:-}" ]]; then
-  printf '%s\n' "$LABEL" > "$ABI_LABEL_FILE"
+  if ! printf '%s\n' "$LABEL" > "$ABI_LABEL_FILE"; then
+    echo "FAIL: could not write verdict to ABI_LABEL_FILE ('$ABI_LABEL_FILE')." >&2
+    exit 1
+  fi
+  # The write can succeed by shell's reckoning yet leave the file unreadable
+  # or empty on a mismatched-UID bind mount; verify what's actually on disk
+  # instead of trusting the write call's exit code.
+  WRITTEN="$(cat "$ABI_LABEL_FILE" 2>/dev/null || true)"
+  if [[ "$(tr -d '[:space:]' <<< "$WRITTEN")" != "$LABEL" ]]; then
+    echo "FAIL: verdict '${LABEL}' was not persisted to ABI_LABEL_FILE; read back '${WRITTEN}'." >&2
+    exit 1
+  fi
 fi
 
 exit 0

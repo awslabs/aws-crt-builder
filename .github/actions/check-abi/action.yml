@@ -76,7 +76,13 @@ runs:
         BUILDER_HOST: ${{ inputs.builder-host }}
       run: |
         # The label the container computes is read back by the labeling step.
+        # mktemp defaults to mode 600 owned by the runner's UID; the container
+        # runs as a different (often root, but not always) UID, so without
+        # opening up permissions here the container's write silently fails --
+        # gate.sh has no -e and doesn't check the write, so it looks like the
+        # check passed while no verdict ever escapes the container.
         ABI_LABEL_FILE="$(mktemp)"
+        chmod 666 "$ABI_LABEL_FILE"
         printf 'ABI_LABEL_FILE=%s\n' "$ABI_LABEL_FILE" >> "$GITHUB_ENV"
 
         # Mount the checkout at the same path so GITHUB_WORKSPACE resolves inside
