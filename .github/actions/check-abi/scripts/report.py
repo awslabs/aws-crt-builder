@@ -12,6 +12,43 @@ import os
 import re
 import sys
 
+import nh3
+
+# abi-compliance-checker's HTML report embeds symbol, type, and enum-member
+# names taken directly from the PR's own source -- fully attacker-controlled.
+# Piping that into $GITHUB_STEP_SUMMARY unsanitized is an HTML/script
+# injection risk (a PR author can name a symbol anything, including
+# "<script>...</script>" or an onerror= payload, and it lands verbatim in the
+# report). nh3 (the maintained Rust-backed successor to the now-archived
+# bleach) strips everything not in this allowlist -- built from inspecting
+# abicc 2.3's actual report output, not guessed. In particular: no <script>,
+# no <style>, no inline event handlers (onclick etc used for abicc's
+# collapsible sections), no <iframe>/<object>/<img>. Losing the
+# show/hide-on-click JS behavior is an acceptable tradeoff -- GitHub's own
+# markdown renderer strips <script>/onclick from step summaries anyway, so
+# that interactivity never worked in this context to begin with.
+_ALLOWED_TAGS = {
+    'a', 'b', 'br', 'div', 'h1', 'h2', 'hr', 'i', 'span', 'table', 'tbody',
+    'td', 'th', 'thead', 'tr',
+}
+_ALLOWED_ATTRS = {
+    'a': {'name', 'class'},
+    'div': {'class', 'align', 'id'},
+    'span': {'class'},
+    'table': {'class'},
+    'td': {'class', 'rowspan'},
+    'th': {'class', 'rowspan'},
+}
+
+
+def _sanitize_report_html(fragment):
+    return nh3.clean(
+        fragment,
+        tags=_ALLOWED_TAGS,
+        attributes=_ALLOWED_ATTRS,
+        link_rel='noopener noreferrer',
+    )
+
 
 def _env(name, default=''):
     return os.environ.get(name, default)
@@ -95,12 +132,12 @@ def main():
         fragment = _body_fragment(report_html) if report_html else ''
         if fragment:
             out.write('\n<details><summary>Binary compatibility report</summary>\n\n')
-            out.write(fragment)
+            out.write(_sanitize_report_html(fragment))
             out.write('\n</details>\n')
         src_fragment = _body_fragment(src_report_html) if src_report_html else ''
         if src_fragment:
             out.write('\n<details><summary>Source compatibility report</summary>\n\n')
-            out.write(src_fragment)
+            out.write(_sanitize_report_html(src_fragment))
             out.write('\n</details>\n')
 
     return 0

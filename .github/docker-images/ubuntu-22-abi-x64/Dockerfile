@@ -39,7 +39,10 @@ RUN apt-get update -qq \
 ###############################################################################
 WORKDIR /tmp
 
-RUN python3 -m pip install setuptools \
+# nh3 sanitizes the abi-compliance-checker HTML report (which embeds
+# attacker-controlled symbol/type names from the PR's own source) before
+# report.py writes it into $GITHUB_STEP_SUMMARY -- see report.py.
+RUN python3 -m pip install setuptools nh3 \
     && curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o awscliv2.zip \
     && unzip awscliv2.zip \
     && sudo aws/install \
