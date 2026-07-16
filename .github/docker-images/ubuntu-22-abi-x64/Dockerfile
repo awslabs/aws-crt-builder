@@ -5,10 +5,10 @@ ENV DEBIAN_FRONTEND=noninteractive
 ###############################################################################
 # Install prereqs + the ABI toolchain.
 #
-# Baking abi-compliance-checker / abi-dumper / universal-ctags into the image is
-# the whole point of this variant: the check-abi action used to apt-get install
-# them on every CI run. cmake and build-essential are here because building the
-# CRT shared libs (via builder.pyz) needs them.
+# Baking abigail-tools (abidw/abidiff) into the image is the whole point of
+# this variant: the check-abi action used to apt-get install the ABI toolchain
+# on every CI run. cmake and build-essential are here because building the CRT
+# shared libs (via builder.pyz) needs them.
 #
 # libssl-dev is intentionally NOT installed: ubuntu:22.04 ships libssl3 (the
 # runtime .so) by default, just not the -dev headers/pkg-config. Untested
@@ -24,10 +24,8 @@ RUN apt-get update -qq \
     python3-dev \
     python3-pip \
     build-essential \
-    # ABI toolchain
-    abi-compliance-checker \
-    abi-dumper \
-    universal-ctags \
+    # ABI toolchain (libabigail: abidw + abidiff)
+    abigail-tools \
     # For PPAs
     software-properties-common \
     apt-transport-https \

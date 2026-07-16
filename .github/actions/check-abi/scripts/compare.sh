@@ -1,56 +1,52 @@
 #!/usr/bin/env bash
 #
-# compare.sh - Run abi-compliance-checker on the two ABI dumps and record the
-# verdict. This step never gates the build; it only captures state. The gate
-# step maps the recorded exit code to a patch/minor label.
+# compare.sh - Run abidiff on the two ABI dumps and record the verdict. This
+# step never gates the build; it only captures state. The gate step maps the
+# recorded exit code to a patch/minor label.
 #
-# Flags:
-#   -binary : gate on binary compatibility (old apps run against the new .so).
-#             Every break we care about (added/removed struct member, changed
-#             param/return type, removed symbol) is a binary break.
-#   -ext    : check ALL public data types, even those only reachable via a
-#             callback fn-ptr (e.g. aws_s3_meta_request_progress via
-#             progress_callback). Without it abicc's reachability filter would
-#             silently report adding a member to such a struct as compatible.
-#   -strict : treat low-severity issues as problems too.
+# abidiff's exit code is a bitmask (confirmed empirically -- see
+# https://sourceware.org/libabigail/manual/abidiff.html):
+#   bit 0 (1)  ABIDIFF_ERROR         - tool error
+#   bit 1 (2)  ABIDIFF_USAGE_ERROR   - bad invocation (implies bit 0)
+#   bit 2 (4)  ABIDIFF_ABI_CHANGE    - a reviewable ABI diff exists
+#   bit 3 (8)  ABIDIFF_ABI_INCOMPATIBLE_CHANGE (implies bit 2, so 4|8=12)
+# So: 0 = no change, 4 = compatible change, 12 = incompatible change, any
+# value with bit 0 or bit 1 set (odd, or >=2 with bit1) = tool error.
+#
+# Diffing the two abidw XML dumps (rather than the two .so files directly) is
+# deliberate: dumping first and diffing the dumps catches struct-layout
+# changes that a direct .so-to-.so abidiff can miss.
 #
 # Inputs (env):
-#   ABI_LIB_NAME   library name (abicc -l)
 #   ABI_OUT_DIR    work directory
 #   ABI_BASE_DUMP  base ABI dump
 #   ABI_HEAD_DUMP  head ABI dump
 #
 # Outputs (appended to $GITHUB_ENV):
-#   ABI_RC          abi-compliance-checker exit code
-#   ABI_PCT         parsed binary compatibility percentage (or '?')
+#   ABI_RC          abidiff exit code (bitmask)
+#   ABI_INCOMPATIBLE  1 if bit 3 (ABIDIFF_ABI_INCOMPATIBLE_CHANGE) is set, else 0
 
 set -uo pipefail
 
-LIB_NAME="${ABI_LIB_NAME:?ABI_LIB_NAME must be set}"
 OUT_DIR="${ABI_OUT_DIR:?ABI_OUT_DIR must be set}"
 BASE_DUMP="${ABI_BASE_DUMP:?ABI_BASE_DUMP must be set}"
 HEAD_DUMP="${ABI_HEAD_DUMP:?ABI_HEAD_DUMP must be set}"
 
-REPORT_HTML="${OUT_DIR}/compat_report.html"
-ACC_LOG="${OUT_DIR}/acc.log"
+DIFF_LOG="${OUT_DIR}/abidiff.log"
 
 echo "Comparing ABI"
 rc=0
-abi-compliance-checker -l "$LIB_NAME" \
-  -old "$BASE_DUMP" -new "$HEAD_DUMP" \
-  -report-path "$REPORT_HTML" \
-  -strict -ext -binary \
-  > "$ACC_LOG" 2>&1 || rc=$?
+abidiff "$BASE_DUMP" "$HEAD_DUMP" > "$DIFF_LOG" 2>&1 || rc=$?
 
-# abicc prints "Binary compatibility: N%" to stdout (captured in acc.log).
-PCT="$(grep -oP 'Binary compatibility: \K[0-9.]+' "$ACC_LOG" 2>/dev/null | head -n1)"
-[[ -n "$PCT" ]] || PCT='?'
+INCOMPATIBLE=0
+if (( (rc & 8) != 0 )); then
+  INCOMPATIBLE=1
+fi
 
-echo "abi-compliance-checker exit code: $rc (binary compatibility: ${PCT}%)"
+echo "abidiff exit code: $rc (incompatible: ${INCOMPATIBLE})"
 
 {
   echo "ABI_RC=${rc}"
-  echo "ABI_PCT=${PCT}"
-  echo "ABI_REPORT_HTML=${REPORT_HTML}"
-  echo "ABI_ACC_LOG=${ACC_LOG}"
+  echo "ABI_INCOMPATIBLE=${INCOMPATIBLE}"
+  echo "ABI_DIFF_LOG=${DIFF_LOG}"
 } >> "$GITHUB_ENV"

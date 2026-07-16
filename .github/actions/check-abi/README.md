@@ -6,15 +6,16 @@ the ABI is backward-compatible, `minor` if it changed). This is intended for use
 with the CRT C libraries (ex: aws-c-s3, aws-c-io).
 
 This check is informational: a compatible or incompatible ABI both **succeed**
-and are surfaced as a label. The job fails **only** when abi-compliance-checker
-could not run (exit code ≥ 2), because then there is no trustworthy verdict.
+and are surfaced as a label. The job fails **only** when abidiff could not
+produce a verdict (a tool/usage error), because then there is no trustworthy
+result to label with.
 
 ## What it does
 
-The ABI toolchain (`abi-compliance-checker`, `abi-dumper`, `universal-ctags`,
-`cmake`, `g++`) is **baked into a docker image**
-(`aws-crt-ubuntu-22-abi-x64`) instead of being installed on every CI run. The
-action pulls that image and runs the whole check inside it:
+The ABI toolchain (libabigail's `abidw`/`abidiff`, `cmake`, `g++`) is **baked
+into a docker image** (`aws-crt-ubuntu-22-abi-x64`) instead of being installed
+on every CI run. The action pulls that image and runs the whole check inside
+it:
 
 1. **Pull ABI image** — `docker login` to ECR and pull
    `aws-crt-ubuntu-22-abi-x64:<builder-version>`.
@@ -22,10 +23,13 @@ action pulls that image and runs the whole check inside it:
    1. **Download builder** — `builder.pyz`; building is the only part that needs
       builder, because builder owns the CRT dependency graph.
    2. **Build base and head refs** in parallel — both as shared libs with debug info.
-   3. **Dump ABI for base and head** in parallel — scoped to public headers via `-public-headers`.
-   4. **Run compliance check** — `abi-compliance-checker -binary -ext -strict`.
-   5. **Publish report** — appends the verdict and the report body to the job summary.
-   6. **Choose the label** — `patch` (exit 0), `minor` (exit 1), or fail (exit ≥ 2).
+   3. **Dump ABI for base and head** in parallel — `abidw --headers-dir <install>/include`,
+      scoped to public headers.
+   4. **Run abidiff** on the two ABI dumps (diffing dumps, not the raw `.so`s,
+      catches struct-layout changes a direct `.so`-to-`.so` abidiff can miss).
+   5. **Publish report** — appends the verdict and the abidiff text output to the job summary.
+   6. **Choose the label** — `patch` (no change / compatible change), `minor`
+      (incompatible change), or fail (tool/usage error — abidiff exit bit 0 or 1 set).
       The chosen label is written to a host-mounted file so it escapes the container.
 3. **Label PR** — on the host (which has the PR context and token), add the
    chosen label and remove the opposite one via `gh pr edit`.
@@ -90,13 +94,16 @@ jobs:
 
 ## The label
 
-The check maps the abi-compliance-checker result to a semver label:
+The check maps the abidiff bitmask exit code to a semver label:
 
-| abicc exit | Meaning | Result |
+| abidiff exit | Meaning | Result |
 |-----------|---------|--------|
-| `0` | ABI backward-compatible | job passes, PR labeled `patch` |
-| `1` | ABI changed (incompatible) | job passes, PR labeled `minor` |
-| `2`–`11` | tool error — check could not run | **job fails**, no label |
+| bit 0/1 set (odd, or usage error) | tool error — check could not run | **job fails**, no label |
+| bit 3 set (e.g. `12`) | ABI changed incompatibly | job passes, PR labeled `minor` |
+| otherwise (e.g. `0`, `4`) | no change, or a compatible change | job passes, PR labeled `patch` |
+
+See `scripts/compare.sh` for the full bit layout
+(`ABIDIFF_ERROR`/`ABIDIFF_USAGE_ERROR`/`ABIDIFF_ABI_CHANGE`/`ABIDIFF_ABI_INCOMPATIBLE_CHANGE`).
 
 The two labels are mutually exclusive: applying one removes the other, so a
 re-run after a code change flips the label cleanly.
@@ -117,8 +124,8 @@ check-abi/
 └── scripts/
     ├── abi_check.sh    # in-container orchestrator (build->dump->compare->report->gate)
     ├── build.sh        # resolve base ref, worktree, build both refs (parallel)
-    ├── dump.sh         # locate both .so, abi-dump both (parallel)
-    ├── compare.sh      # abi-compliance-checker; record rc/pct
-    ├── report.py       # write verdict + report body to the job summary
-    └── gate.sh         # map exit code -> patch/minor label; fail only on tool error
+    ├── dump.sh         # locate both .so, abidw both (parallel)
+    ├── compare.sh      # abidiff on the two dumps; record bitmask rc
+    ├── report.py       # write verdict + abidiff text output to the job summary
+    └── gate.sh         # map bitmask exit code -> patch/minor label; fail only on tool error
 ```
