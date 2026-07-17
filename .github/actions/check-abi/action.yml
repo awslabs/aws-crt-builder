@@ -159,10 +159,15 @@ runs:
           echo "No ABI verdict was produced; skipping labeling."
           exit 0
         fi
+        # gate.sh (running inside the container, with no access to the
+        # patch-label/minor-label inputs) always emits the fixed semantic
+        # token "patch" or "minor" -- it's the ABI/API verdict, not the
+        # configured label text. Translate that token to the actual
+        # configured label names here, on the host, where the inputs live.
         case "$LABEL" in
-          "$PATCH_LABEL") REMOVE="$MINOR_LABEL" ;;
-          "$MINOR_LABEL") REMOVE="$PATCH_LABEL" ;;
-          *) echo "Unexpected ABI label '$LABEL'; skipping."; exit 0 ;;
+          patch) LABEL="$PATCH_LABEL"; REMOVE="$MINOR_LABEL" ;;
+          minor) LABEL="$MINOR_LABEL"; REMOVE="$PATCH_LABEL" ;;
+          *) echo "Unexpected ABI verdict token '$LABEL'; skipping."; exit 0 ;;
         esac
         echo "Applying label '$LABEL' (removing '$REMOVE') on PR #${PR_NUMBER}"
         # gh pr edit --add-label fails if the label does not exist in the repo

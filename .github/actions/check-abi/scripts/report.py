@@ -32,7 +32,7 @@ _ALLOWED_TAGS = {
     'td', 'th', 'thead', 'tr',
 }
 _ALLOWED_ATTRS = {
-    'a': {'name', 'class'},
+    'a': {'name', 'class', 'href'},
     'div': {'class', 'align', 'id'},
     'span': {'class'},
     'table': {'class'},
@@ -47,6 +47,14 @@ def _sanitize_report_html(fragment):
         tags=_ALLOWED_TAGS,
         attributes=_ALLOWED_ATTRS,
         link_rel='noopener noreferrer',
+        # abicc's own report hrefs are same-page anchors (#Top, #Headers) or
+        # a single fixed link to its own GitHub page -- never derived from
+        # PR-controlled symbol/type names, so allowing href doesn't reopen
+        # the injection risk this sanitizer exists for. Restricting to
+        # http/https (fragment-only hrefs like "#Top" aren't scheme-prefixed
+        # and pass through regardless) still blocks a javascript: URL from
+        # ever landing here, in case abicc's report format ever changes.
+        url_schemes={'http', 'https'},
     )
 
 
