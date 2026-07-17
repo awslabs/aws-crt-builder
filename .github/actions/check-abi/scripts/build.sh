@@ -11,6 +11,10 @@
 #   ABI_BUILDER_PYZ   absolute path to the downloaded builder.pyz
 #   GITHUB_WORKSPACE  the PR head checkout (set by GitHub Actions)
 #   GITHUB_BASE_REF   target branch name on pull_request events (may be empty)
+#   ABI_BASE_REF      explicit base ref override (e.g. a previous release tag).
+#                      Takes precedence over GITHUB_BASE_REF/merge-base. Set by
+#                      the release workflow to diff "previous tag vs current
+#                      ref" instead of "PR base vs PR head".
 #
 # Outputs (appended to $GITHUB_ENV):
 #   ABI_BASE_WORKTREE  path to the base-ref git worktree
@@ -25,7 +29,9 @@ BUILDER_PYZ="${ABI_BUILDER_PYZ:?ABI_BUILDER_PYZ must be set}"
 HEAD_DIR="${GITHUB_WORKSPACE:?GITHUB_WORKSPACE must be set}"
 
 # --- Resolve the base ref ----------------------------------------------------
-if [[ -n "${GITHUB_BASE_REF:-}" ]]; then
+if [[ -n "${ABI_BASE_REF:-}" ]]; then
+  BASE_REF="${ABI_BASE_REF}"
+elif [[ -n "${GITHUB_BASE_REF:-}" ]]; then
   BASE_REF="origin/${GITHUB_BASE_REF}"
 else
   BASE_REF="$(git -C "$HEAD_DIR" merge-base HEAD origin/main 2>/dev/null)"

@@ -24,6 +24,11 @@ RUN apt-get update -qq \
     python3-dev \
     python3-pip \
     build-essential \
+    # cmake via apt (Ubuntu 22.04 ships 3.22.1, above aws-c-common's >=3.9
+    # floor) instead of a hand-downloaded tarball: apt verifies the package
+    # against Ubuntu's signed repo metadata, so there's no separate checksum
+    # to source, trust, or keep in sync ourselves.
+    cmake \
     # ABI toolchain
     abi-compliance-checker \
     abi-dumper \
@@ -47,14 +52,6 @@ RUN python3 -m pip install setuptools nh3 \
     && unzip awscliv2.zip \
     && sudo aws/install \
     && aws --version
-
-###############################################################################
-# Install pre-built CMake
-###############################################################################
-RUN curl -sSL https://d19elf31gohf1l.cloudfront.net/_binaries/cmake/cmake-3.13-manylinux1-x64.tar.gz -o cmake.tar.gz \
-    && tar xvzf cmake.tar.gz -C /usr/local \
-    && cmake --version \
-    && rm -f /tmp/cmake.tar.gz
 
 ###############################################################################
 # Install entrypoint

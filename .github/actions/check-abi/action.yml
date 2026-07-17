@@ -37,6 +37,10 @@ inputs:
     description: 'Label applied when the ABI changed (an incompatible but valid, semver-minor, change).'
     required: false
     default: 'minor'
+  base-ref:
+    description: 'Explicit base ref to diff against (e.g. a previous release tag), overriding the PR base ref. Set this only from a non-PR caller (e.g. a release workflow comparing "previous tag vs current ref"); PR workflows must leave this empty so the PR base ref is used and the PR gets labeled.'
+    required: false
+    default: ''
 
 runs:
   using: 'composite'
@@ -82,10 +86,21 @@ runs:
         BUILDER_VERSION: ${{ inputs.builder-version }}
         BUILDER_SOURCE: ${{ inputs.builder-source }}
         BUILDER_HOST: ${{ inputs.builder-host }}
+        ABI_BASE_REF: ${{ inputs.base-ref }}
       run: |
         # Mount the checkout at the same path so GITHUB_WORKSPACE resolves inside
         # the container, and mount the step-summary file so report.py can append
         # the verdict to the host job summary.
+        #
+        # GITHUB_ACTION_PATH (our own scripts) is mounted :ro -- nothing in the
+        # container ever needs to write there, so there's no reason to give a
+        # PR's build step write access to the very scripts that gate its label.
+        #
+        # GITHUB_WORKSPACE (the PR checkout) CANNOT be mounted :ro: build.sh
+        # runs `git worktree add` (writes worktree admin state under
+        # $GITHUB_WORKSPACE/.git/worktrees/) and the head build writes its
+        # build tree directly into $GITHUB_WORKSPACE/build/. Both are required,
+        # not incidental, so this mount stays read-write.
         SUMMARY_MOUNT=()
         SUMMARY_ENV=()
         if [[ -n "${GITHUB_STEP_SUMMARY:-}" ]]; then
@@ -100,10 +115,11 @@ runs:
         OUT="$(mktemp)"
         docker run --rm \
           -v "${GITHUB_WORKSPACE}:${GITHUB_WORKSPACE}" \
-          -v "${GITHUB_ACTION_PATH}:/opt/check-abi" \
+          -v "${GITHUB_ACTION_PATH}:/opt/check-abi:ro" \
           "${SUMMARY_MOUNT[@]}" \
           --env "GITHUB_WORKSPACE=${GITHUB_WORKSPACE}" \
           --env "GITHUB_BASE_REF=${GITHUB_BASE_REF:-}" \
+          --env "ABI_BASE_REF=${ABI_BASE_REF:-}" \
           --env "GITHUB_RUN_ID=${GITHUB_RUN_ID:-}" \
           --env "GITHUB_RUN_NUMBER=${GITHUB_RUN_NUMBER:-}" \
           --env "ABI_LIB_NAME=${LIB_NAME}" \
@@ -129,7 +145,7 @@ runs:
       # other so a re-run flips the label cleanly. Requires pull-requests: write;
       # on fork PRs the token is read-only and this is a no-op (labels are then
       # informational via the job summary only).
-      if: ${{ github.event_name == 'pull_request' }}
+      if: ${{ github.event_name == 'pull_request' && inputs.base-ref == '' }}
       shell: bash
       env:
         GH_TOKEN: ${{ inputs.github-token }}

@@ -23,10 +23,17 @@ action pulls that image and runs the whole check inside it:
       builder, because builder owns the CRT dependency graph.
    2. **Build base and head refs** in parallel — both as shared libs with debug info.
    3. **Dump ABI for base and head** in parallel — scoped to public headers via `-public-headers`.
-   4. **Run compliance check** — `abi-compliance-checker -binary -ext -strict`.
-   5. **Publish report** — appends the verdict and the report body to the job summary.
+   4. **Run compliance check** — `abi-compliance-checker -binary -source -ext -strict`
+      (both binary ABI *and* source/API compatibility — the latter catches
+      changes like a renamed public enum constant, which are 100%
+      binary-compatible but break compilation of any caller referencing the
+      old name).
+   5. **Publish report** — appends the verdict and the (sanitized) report body
+      to the job summary.
    6. **Choose the label** — `patch` (exit 0), `minor` (exit 1), or fail (exit ≥ 2).
-      The chosen label is written to a host-mounted file so it escapes the container.
+      The verdict escapes the container via a marker line on the container's
+      stdout (`ABI_LABEL_RESULT::<label>`), which the host greps out of the
+      captured `docker run` output — not a host-mounted file.
 3. **Label PR** — on the host (which has the PR context and token), add the
    chosen label and remove the opposite one via `gh pr edit`.
 
@@ -87,6 +94,7 @@ jobs:
 | `github-token` | no | `github.token` | Token used to label the PR (needs `pull-requests: write`). |
 | `patch-label` | no | `patch` | Label applied when the ABI is backward-compatible. |
 | `minor-label` | no | `minor` | Label applied when the ABI changed. |
+| `base-ref` | no | _(none)_ | Explicit base ref to diff against (e.g. a previous release tag), overriding the PR base ref. Only for non-PR callers (e.g. a release workflow); leave unset in PR workflows so the PR gets labeled. |
 
 ## The label
 

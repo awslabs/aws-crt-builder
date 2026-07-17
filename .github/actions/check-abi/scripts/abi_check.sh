@@ -20,6 +20,8 @@
 #   BUILDER_HOST       builder artifact host URL
 #   GITHUB_WORKSPACE   the PR head checkout (mounted into the container)
 #   GITHUB_BASE_REF    target branch on pull_request events (may be empty)
+#   ABI_BASE_REF       explicit base ref override (e.g. a release tag), passed
+#                      through as-is to build.sh; see action.yml's base-ref input
 #   GITHUB_STEP_SUMMARY  job summary file (mounted; optional)
 #   GITHUB_RUN_ID / GITHUB_RUN_NUMBER  cache-buster for the builder download
 
