@@ -77,10 +77,23 @@ BASE_INSTALL="${BASE_WORKTREE}/build/install"
 # both refs; each invocation is an independent process with its own source dir.
 build_ref() {
   local src_dir="$1"
+  # builder's default --config is RelWithDebInfo (builder/main.py), and CMake
+  # ALWAYS appends that build type's own CMAKE_C_FLAGS_RELWITHDEBINFO (default
+  # "-O2 -g -DNDEBUG") to the compile command AFTER whatever we pass via
+  # CMAKE_C_FLAGS -- so "-DCMAKE_C_FLAGS=-g -Og" alone does not work: the
+  # actual invocation ends up "... -g -Og -O2 -g -DNDEBUG ...", and gcc/clang
+  # honor the LAST -Ox flag on the command line, so -O2 silently wins. This is
+  # not a flag-ordering mistake on our side; it's inherent to how CMake layers
+  # CMAKE_<LANG>_FLAGS_<CONFIG> on top of CMAKE_<LANG>_FLAGS for every build
+  # type. Verified with -DCMAKE_VERBOSE_MAKEFILE=ON against a minimal project.
+  # Fix: override CMAKE_C_FLAGS_RELWITHDEBINFO directly (keeping -DNDEBUG,
+  # since builder's dependency graph may assume asserts are compiled out) so
+  # -Og is the only optimization flag and abi-dumper gets what it asked for
+  # ("required -Og for better analysis").
   ( cd "$src_dir" && python3 "$BUILDER_PYZ" build -p "$LIB_NAME" \
       --cmake-extra=-DBUILD_SHARED_LIBS=ON \
       --cmake-extra=-DBUILD_TESTING=OFF \
-      --cmake-extra="-DCMAKE_C_FLAGS=-g -Og" \
+      --cmake-extra="-DCMAKE_C_FLAGS_RELWITHDEBINFO=-g -Og -DNDEBUG" \
       run_tests=false )
 }
 

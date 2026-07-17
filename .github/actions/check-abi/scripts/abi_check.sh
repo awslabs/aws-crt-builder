@@ -10,8 +10,11 @@
 # This script is that process: it points GITHUB_ENV at a temp file and re-sources
 # it between stages, so the stage scripts keep working unmodified.
 #
-# Only two things escape the container: the step-summary file (mounted from the
-# host via GITHUB_STEP_SUMMARY) and this script's exit code (the gate verdict).
+# Three things escape the container: the step-summary file (mounted from the
+# host via GITHUB_STEP_SUMMARY), this script's exit code, and the chosen
+# label -- the latter via a "ABI_LABEL_RESULT::<label>" marker line that
+# gate.sh prints on stdout, which action.yml greps out of the captured
+# `docker run` output (not a host-mounted file).
 #
 # Inputs (env, set by action.yml and passed through `docker run --env`):
 #   ABI_LIB_NAME       library name (e.g. aws-c-s3)
@@ -32,8 +35,10 @@ LIB_NAME="${ABI_LIB_NAME:?ABI_LIB_NAME must be set}"
 HEAD_DIR="${GITHUB_WORKSPACE:?GITHUB_WORKSPACE must be set}"
 
 # The repo is bind-mounted from the host and owned by a different UID than the
-# container's root; git refuses to operate on it without this.
-git config --global --add safe.directory '*'
+# container's root; git refuses to operate on it without this. Scoped to the
+# exact mounted checkout (not '*') so this doesn't blanket-trust every
+# directory any other code path in the container might touch.
+git config --global --add safe.directory "$HEAD_DIR"
 
 # --- Download builder.pyz (building is the only stage that needs it) ----------
 BUILDER_HOST="${BUILDER_HOST:-https://d19elf31gohf1l.cloudfront.net}"
@@ -86,8 +91,9 @@ run_stage() {
   return "$rc"
 }
 
-run_stage build.sh   && \
-run_stage dump.sh    && \
+run_stage build.sh           && \
+run_stage check_constants.sh && \
+run_stage dump.sh            && \
 run_stage compare.sh
 # (intentionally not gating here — gate.sh is the single source of pass/fail)
 

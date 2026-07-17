@@ -37,6 +37,10 @@ inputs:
     description: 'Label applied when the ABI changed (an incompatible but valid, semver-minor, change).'
     required: false
     default: 'minor'
+  needs-review-label:
+    description: 'Label applied when source (API) compatibility is broken -- callers fail to recompile. Always applied regardless of the binary-compatibility result, since a compile break is never just a routine minor bump.'
+    required: false
+    default: 'needs-review'
   base-ref:
     description: 'Explicit base ref to diff against (e.g. a previous release tag), overriding the PR base ref. Set this only from a non-PR caller (e.g. a release workflow comparing "previous tag vs current ref"); PR workflows must leave this empty so the PR base ref is used and the PR gets labeled.'
     required: false
@@ -141,10 +145,10 @@ runs:
 
     - name: Label PR
       # Runs only on pull_request events (needs a PR number) and only if the gate
-      # produced a verdict. Adds the semver label (patch|minor) and removes the
-      # other so a re-run flips the label cleanly. Requires pull-requests: write;
-      # on fork PRs the token is read-only and this is a no-op (labels are then
-      # informational via the job summary only).
+      # produced a verdict. Adds the applicable label (patch|minor|needs-review)
+      # and removes the other two so a re-run flips the label cleanly. Requires
+      # pull-requests: write; on fork PRs the token is read-only and this is a
+      # no-op (labels are then informational via the job summary only).
       if: ${{ github.event_name == 'pull_request' && inputs.base-ref == '' }}
       shell: bash
       env:
@@ -153,6 +157,7 @@ runs:
         REPO: ${{ github.repository }}
         PATCH_LABEL: ${{ inputs.patch-label }}
         MINOR_LABEL: ${{ inputs.minor-label }}
+        NEEDS_REVIEW_LABEL: ${{ inputs.needs-review-label }}
         LABEL: ${{ steps.run_check.outputs.label }}
       run: |
         if [[ -z "${LABEL:-}" ]]; then
@@ -160,24 +165,36 @@ runs:
           exit 0
         fi
         # gate.sh (running inside the container, with no access to the
-        # patch-label/minor-label inputs) always emits the fixed semantic
-        # token "patch" or "minor" -- it's the ABI/API verdict, not the
-        # configured label text. Translate that token to the actual
-        # configured label names here, on the host, where the inputs live.
+        # patch-label/minor-label/needs-review-label inputs) always emits one
+        # of the fixed semantic tokens "patch"/"minor"/"needs-review" -- it's
+        # the ABI/API verdict, not the configured label text. Translate that
+        # token to the actual configured label name here, on the host, where
+        # the inputs live.
+        ALL_LABELS=("$PATCH_LABEL" "$MINOR_LABEL" "$NEEDS_REVIEW_LABEL")
         case "$LABEL" in
-          patch) LABEL="$PATCH_LABEL"; REMOVE="$MINOR_LABEL" ;;
-          minor) LABEL="$MINOR_LABEL"; REMOVE="$PATCH_LABEL" ;;
+          patch) LABEL="$PATCH_LABEL" ;;
+          minor) LABEL="$MINOR_LABEL" ;;
+          needs-review) LABEL="$NEEDS_REVIEW_LABEL" ;;
           *) echo "Unexpected ABI verdict token '$LABEL'; skipping."; exit 0 ;;
         esac
-        echo "Applying label '$LABEL' (removing '$REMOVE') on PR #${PR_NUMBER}"
+        echo "Applying label '$LABEL' on PR #${PR_NUMBER}"
         # gh pr edit --add-label fails if the label does not exist in the repo
-        # (it will not create it), so ensure both labels exist first. --force
-        # makes create idempotent; ignore the failure when it already exists.
+        # (it will not create it), so ensure all three labels exist first.
+        # --force makes create idempotent; ignore the failure when it exists.
         gh label create "$PATCH_LABEL" --repo "$REPO" --color 0e8a16 \
           --description "ABI backward-compatible (patch release)" --force 2>/dev/null || true
         gh label create "$MINOR_LABEL" --repo "$REPO" --color fbca04 \
-          --description "ABI changed (minor release)" --force 2>/dev/null || true
+          --description "ABI changed, source-compatible (minor release)" --force 2>/dev/null || true
+        # Bright red: source/API compatibility is broken -- callers fail to
+        # recompile. This is deliberately the most visually alarming of the
+        # three; a reviewer must look before deciding whether a minor bump
+        # (or a revert) is the right call.
+        gh label create "$NEEDS_REVIEW_LABEL" --repo "$REPO" --color d93f0b \
+          --description "ABI check: source/API compatibility broken, needs manual review" --force 2>/dev/null || true
         gh pr edit "$PR_NUMBER" --repo "$REPO" --add-label "$LABEL" \
           || echo "WARNING: could not add label '$LABEL' (token may be read-only on fork PRs)."
-        # Remove the opposite label if present; ignore failure when it isn't.
-        gh pr edit "$PR_NUMBER" --repo "$REPO" --remove-label "$REMOVE" 2>/dev/null || true
+        # Remove the other two labels if present; ignore failure when absent.
+        for other in "${ALL_LABELS[@]}"; do
+          [[ "$other" == "$LABEL" ]] && continue
+          gh pr edit "$PR_NUMBER" --repo "$REPO" --remove-label "$other" 2>/dev/null || true
+        done

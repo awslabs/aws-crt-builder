@@ -62,16 +62,73 @@ def _env(name, default=''):
     return os.environ.get(name, default)
 
 
-def _verdict_note(rc):
+def _verdict_field(report_html, field):
+    """Read one integer field out of a report's structured verdict comment.
+
+    e.g. <!-- verdict:incompatible;removed:1;type_problems_high:0;...  -->
+    Mirrors gate.sh's verdict_field() -- keep the two in sync; this is the
+    same three-way decision restated in Python since report.py can't easily
+    shell out to gate.sh's bash function (report.py runs after but its
+    ABI_LABEL_RESULT parsing already happened in gate.sh; this copy is just
+    for rendering the human-facing "why" note, not for choosing the label).
+    """
+    if not report_html:
+        return 0
+    try:
+        with open(report_html, encoding='utf-8', errors='replace') as fh:
+            first_line = fh.readline()
+    except OSError:
+        return 0
+    m = re.search(r'{}:(\d+)'.format(re.escape(field)), first_line)
+    return int(m.group(1)) if m else 0
+
+
+def _axis_has_real_problem(report_html):
+    return any(
+        _verdict_field(report_html, f) > 0
+        for f in (
+            'removed', 'type_problems_high', 'type_problems_medium',
+            'interface_problems_high', 'interface_problems_medium',
+            'changed_constants',
+        )
+    )
+
+
+def _compute_label(rc, report_html, src_report_html, removed_constants_count):
+    """Three-way label, mirroring gate.sh exactly -- see gate.sh for the full
+    rationale (abicc's own verdict/exit code conflates harmless Low-severity
+    renames with real breaks, and a source break is always unconditionally
+    reportable regardless of what the binary axis shows)."""
     if rc >= 2:
+        return None
+    src_broken = _axis_has_real_problem(src_report_html) or removed_constants_count > 0
+    bin_broken = _axis_has_real_problem(report_html)
+    if src_broken:
+        return 'needs-review'
+    if bin_broken:
+        return 'minor'
+    return 'patch'
+
+
+def _verdict_note(label, removed_constants_count):
+    if label is None:
         return ('**ABI check ERRORED. No verdict was produced — the check could '
                 'not run, so no label was applied. See acc.log.**')
-    if rc == 1:
-        return ('**ABI changed.** This PR is labeled `minor`: the next release '
-                'must be at least a minor version bump.')
-    if rc == 0:
-        return ('**ABI is backward-compatible.** This PR is labeled `patch`.')
-    return ''
+    if label == 'needs-review':
+        note = ('**Source (API) compatibility is broken.** Callers fail to '
+                'recompile against the new headers. This PR is labeled '
+                '`needs-review` -- a maintainer must confirm this is either an '
+                'intentional, acceptable break (and can be relabeled `minor`) '
+                'or should be reverted.')
+        if removed_constants_count > 0:
+            note += (' Includes {} removed macro/enum constant(s) that '
+                     'abi-compliance-checker does not detect on its own.'
+                     .format(removed_constants_count))
+        return note
+    if label == 'minor':
+        return ('**Binary compatibility changed, but source (API) compatibility '
+                'is intact.** This PR is labeled `minor`.')
+    return '**ABI and API are backward-compatible.** This PR is labeled `patch`.'
 
 
 def _body_fragment(report_html):
@@ -115,25 +172,38 @@ def main():
     rc_raw = _env('ABI_RC')
     report_html = _env('ABI_REPORT_HTML')
     src_report_html = _env('ABI_SRC_REPORT_HTML')
+    removed_constants_count = int(_env('ABI_REMOVED_CONSTANTS_COUNT', '0') or '0')
+    removed_constants_file = _env('ABI_REMOVED_CONSTANTS_FILE')
 
     try:
         rc = int(rc_raw)
     except (TypeError, ValueError):
         rc = -1
 
-    label = 'patch' if rc == 0 else ('minor' if rc == 1 else 'none')
+    label = _compute_label(rc, report_html, src_report_html, removed_constants_count)
+    label_display = label if label is not None else 'none'
 
     lines = [
         '## Check ABI compliance: `{}`'.format(lib_name),
         '',
         '- Binary compatibility: **{}%**'.format(pct),
         '- Source compatibility: **{}%**'.format(src_pct),
-        '- Semver label: **{}**'.format(label),
+        '- Semver label: **{}**'.format(label_display),
         '- abi-compliance-checker exit code: `{}`'.format(rc if rc >= 0 else 'n/a (failed early)'),
     ]
-    note = _verdict_note(rc)
+    note = _verdict_note(label, removed_constants_count)
     if note:
         lines += ['', note]
+
+    if removed_constants_count > 0 and removed_constants_file:
+        try:
+            with open(removed_constants_file, encoding='utf-8', errors='replace') as fh:
+                names = [n.strip() for n in fh if n.strip()]
+        except OSError:
+            names = []
+        if names:
+            lines += ['', '**Removed macro/enum constants:**']
+            lines += ['- `{}`'.format(n) for n in names]
 
     with open(summary_path, 'a', encoding='utf-8') as out:
         out.write('\n'.join(lines) + '\n')
