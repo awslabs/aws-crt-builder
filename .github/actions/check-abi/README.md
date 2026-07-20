@@ -54,6 +54,38 @@ The consumer workflow must, before invoking this action:
   from forks GitHub forces the token read-only regardless of this setting, so
   labeling is skipped (the verdict is still in the job summary).
 
+## Scope and limitations
+
+- **Linux (x86_64) API only.** The ABI image and toolchain are Ubuntu/apt-based,
+  so the check only builds and dumps the Linux ABI surface. Public API that's
+  guarded by `#if defined(_WIN32)`/Apple-only symbols (e.g. aws-c-io's
+  Windows-specific and Apple-specific TLS options) is never compiled, dumped,
+  or checked. A break confined to those platforms' code paths will not be
+  caught by this action. This was a deliberate scope decision (most CRT public
+  API is platform-agnostic), not an oversight, but it's worth knowing before
+  relying on this check for a platform-specific change.
+- **No submodules.** Both refs are built from a `git worktree`, which does not
+  populate submodules. This is a non-issue for the `aws-c-*` libraries this
+  action targets today (none use submodules for their public API surface), but
+  it means this action is **not** a drop-in fit for a repo like `aws-crt-cpp`
+  that does use them, without further work.
+- **Default branch must be reachable as `origin/main`.** When triggered outside
+  a `pull_request` event (and `base-ref` isn't set), the base ref is resolved
+  via `git merge-base HEAD origin/main`. A consumer repo whose default branch
+  isn't literally named `main` will hit a clear, actionable error (see
+  `scripts/build.sh`) rather than a silent misdetection, but this is a real
+  portability gap worth knowing about up front.
+- **Single-library scope.** Each run diffs one library's own ABI/API against
+  its own previous version. It cannot detect a break that only manifests when
+  a *different* library in the dependency graph is upgraded without a
+  matching redeploy (e.g. library A adds a symbol that library B starts
+  calling; A's own check is correctly clean, but a consumer who upgrades B
+  without upgrading A hits a runtime "undefined symbol" failure). This has
+  been researched and is treated as expected, not a tooling gap: each CRT
+  package versions independently, and the failure mode is a loud, immediate
+  load-time error pointing at the actual missing dependency, not a silent
+  misbehavior.
+
 ## Usage
 
 Add a workflow to the library repo (see `aws-c-s3/.github/workflows/check-abi.yml`):
@@ -76,6 +108,14 @@ jobs:
       - name: Check ABI
         # note: using "@main" because "@${{env.BUILDER_VERSION}}" doesn't work
         # https://github.com/actions/runner/issues/480
+        #
+        # @main tracks this action's default branch directly, so a breaking
+        # change pushed to aws-crt-builder's main affects every consumer's
+        # very next CI run with no version pin to roll back to. This is a
+        # known, currently-unmitigated risk (raised in PR review) -- there is
+        # no stable/"latest" tag for this action yet. If check-abi starts
+        # failing unexpectedly after no local change, check aws-crt-builder's
+        # recent history on main before assuming the consumer repo is at fault.
         uses: awslabs/aws-crt-builder/.github/actions/check-abi@main
         with:
           lib-name: aws-c-s3
