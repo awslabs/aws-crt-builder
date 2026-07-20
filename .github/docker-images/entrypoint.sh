@@ -9,14 +9,16 @@ if [ -e $HOME/.bashrc ]; then
     source $HOME/.bashrc
 fi
 
-version=LATEST
+version=latest
 if [[ "${args[0]}" == "--version="* ]]; then
     version=${args[0]}
     version=$(echo $version | cut -f2 -d=)
     args=(${args[@]:1})
 fi
 
-if [ $(echo $version | grep -E '^v[0-9\.]+$') ]; then
+if [[ "$version" == "latest" ]]; then
+    version=releases/latest
+elif [ $(echo $version | grep -E '^v[0-9\.]+$') ]; then
     version=releases/$version
 elif [[ $version != 'channels/'* ]]; then
     version=channels/$version
