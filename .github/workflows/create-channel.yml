@@ -84,6 +84,9 @@ jobs:
         - name: manylinux2014-x86
         - name: manylinux2014-x64
         - name: manylinux2014-aarch64
+        - name: manylinux_2_28-x86
+        - name: manylinux_2_28-x64
+        - name: manylinux_2_28-aarch64
         - name: musllinux-1-1-aarch64
         - name: musllinux-1-1-x64
         - name: al2012-x64
