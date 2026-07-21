@@ -90,10 +90,25 @@ build_ref() {
   # since builder's dependency graph may assume asserts are compiled out) so
   # -Og is the only optimization flag and abi-dumper gets what it asked for
   # ("required -Og for better analysis").
+  #
+  # -gdwarf-4: GCC 11+ (Ubuntu 22.04's default) emits DWARF5 by default, which
+  # replaced the old .debug_loc section with a differently-encoded
+  # .debug_loclists. abi-dumper's parser predates that change and can't
+  # resolve location-list cross-references against the new encoding, logging
+  # "ERROR: invalid debug_loc section of object, please fix your elf utils"
+  # (confirmed: github.com/lvc/abi-dumper/issues/33, closed not-planned).
+  # Verified this only drops Source/SourceLine debug-provenance metadata from
+  # the dump -- the function/type/struct-layout data abi-compliance-checker
+  # actually compares comes from .debug_info via an unrelated code path and is
+  # unaffected either way (confirmed by diffing dumps with and without this
+  # flag, and by confirming abicc still detects an injected struct-layout
+  # break identically with the warning present on both sides). Forcing
+  # -gdwarf-4 just silences the noise so a real CI failure isn't obscured by
+  # an unrelated, harmless warning in the log.
   ( cd "$src_dir" && python3 "$BUILDER_PYZ" build -p "$LIB_NAME" \
       --cmake-extra=-DBUILD_SHARED_LIBS=ON \
       --cmake-extra=-DBUILD_TESTING=OFF \
-      --cmake-extra="-DCMAKE_C_FLAGS_RELWITHDEBINFO=-g -Og -DNDEBUG" \
+      --cmake-extra="-DCMAKE_C_FLAGS_RELWITHDEBINFO=-g -Og -gdwarf-4 -DNDEBUG" \
       run_tests=false )
 }
 
