@@ -86,9 +86,8 @@ def current_host():
                 if os.path.exists('/opt/python/cp39-cp39'):
                     return 'manylinux'
                 return 'centos'
-            # AlmaLinux 8 is the base for manylinux_2_28 and other RHEL-compatible images
-            if _file_contains('/etc/redhat-release', 'AlmaLinux release 8.') \
-                    or _file_contains('/etc/os-release', 'ID="almalinux"'):
+            # AlmaLinux 8 is a RHEL rebuild hence reusing the 'rhel' host (same DNF).
+            if _file_contains('/etc/redhat-release', 'AlmaLinux release 8.'):
                 if os.path.exists('/opt/python/cp39-cp39'):
                     return 'manylinux'
                 return 'rhel'
