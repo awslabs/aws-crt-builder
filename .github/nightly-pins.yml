@@ -1,0 +1,17 @@
+# Nightly Version Pins
+#
+# Pin repos to specific commits when their main branch is broken.
+# Nightly builds will use the pinned commit instead of origin/main.
+# Remove pins once fixes land on main.
+#
+# Format:
+#   repo-name: <commit-sha>  # reason for pin
+#
+# Example:
+#   aws-c-s3: abc1234def5678  # main broken by PR #xyz, fix ETA 2026-07-25
+#
+# TODO: Add a nightly job that checks if pinned commits are still behind main.
+# If a pin has been active for >7 days, or if main has moved past the issue
+# that caused the pin, emit a warning (GitHub Actions annotation or Slack notification).
+
+pins: {}
