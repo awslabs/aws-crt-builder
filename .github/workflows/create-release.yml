@@ -70,6 +70,9 @@ jobs:
         - name: manylinux2014-x86
         - name: manylinux2014-x64
         - name: manylinux2014-aarch64
+        - name: manylinux_2_28-x86
+        - name: manylinux_2_28-x64
+        - name: manylinux_2_28-aarch64
         - name: musllinux-1-1-aarch64
         - name: musllinux-1-1-x64
         - name: al2012-x64
@@ -83,6 +86,7 @@ jobs:
         - name: ubuntu-22-abi-x64
         - name: ubuntu-22-msan-x64
         - name: node-10-linux-x64
+        - name: node-18-linux-x64
         - name: swift-5-al2-x64
         - name: swift-5-ubuntu-x64
         - name: rhel8-x64
