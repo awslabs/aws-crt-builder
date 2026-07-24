@@ -1,5 +1,5 @@
 name: 'Check ABI Compliance'
-description: 'Dump and compare the ABI of a C shared library between the PR head and its base ref, and label the PR patch/minor'
+description: 'Dump and compare the ABI of a C shared library between the PR head and its base ref, and label the PR patch/minor/needs-review'
 
 inputs:
   lib-name:
@@ -67,20 +67,15 @@ runs:
         printf 'ABI_DOCKER_IMAGE=%s\n' "$DOCKER_IMAGE" >> "$GITHUB_ENV"
 
     - name: Run ABI check in container
-      # The container runs build -> dump -> compare -> report -> gate as one
-      # process (they chain state through an in-container GITHUB_ENV). The gate
-      # exits non-zero ONLY when abi-compliance-checker could not produce a
-      # verdict (rc >= 2); a compatible (rc 0) or incompatible (rc 1) ABI both
-      # succeed here and are surfaced as a PR label by the next step.
+      # Runs build -> dump -> compare -> report -> gate as one in-container
+      # process (they chain state through an in-container GITHUB_ENV). Any
+      # real verdict (patch/minor/needs-review) is a passing run; only a tool
+      # error (no verdict produced) fails the job.
       #
-      # The verdict escapes the container via stdout, not a bind-mounted file:
-      # `docker run` already streams the container's stdout back to this host
-      # process, so gate.sh just prints a marker line ("ABI_LABEL_RESULT::<label>")
-      # and we grep it out of the captured output below. A host-mounted file
-      # here was solving a problem that doesn't exist -- and it introduced a
-      # real one, since a file created by `mktemp` on the host is owned by the
-      # runner's UID, and the container (a different UID) can't reliably write
-      # to it.
+      # The verdict escapes via stdout: gate.sh prints a marker line
+      # ("ABI_LABEL_RESULT::<label>") that we grep out of the captured
+      # `docker run` output below, since a host-mounted file would be owned by
+      # the runner's UID and the container's different UID can't write to it.
       id: run_check
       shell: bash
       env:
@@ -96,15 +91,10 @@ runs:
         # the container, and mount the step-summary file so report.py can append
         # the verdict to the host job summary.
         #
-        # GITHUB_ACTION_PATH (our own scripts) is mounted :ro -- nothing in the
-        # container ever needs to write there, so there's no reason to give a
-        # PR's build step write access to the very scripts that gate its label.
-        #
-        # GITHUB_WORKSPACE (the PR checkout) CANNOT be mounted :ro: build.sh
-        # runs `git worktree add` (writes worktree admin state under
-        # $GITHUB_WORKSPACE/.git/worktrees/) and the head build writes its
-        # build tree directly into $GITHUB_WORKSPACE/build/. Both are required,
-        # not incidental, so this mount stays read-write.
+        # GITHUB_ACTION_PATH (our own scripts) is read-only; nothing in the
+        # container writes there. GITHUB_WORKSPACE stays read-write: build.sh
+        # runs `git worktree add` (writes under $GITHUB_WORKSPACE/.git/worktrees/)
+        # and installs the head build into $GITHUB_WORKSPACE/build/.
         SUMMARY_MOUNT=()
         SUMMARY_ENV=()
         if [[ -n "${GITHUB_STEP_SUMMARY:-}" ]]; then
@@ -112,9 +102,8 @@ runs:
           SUMMARY_ENV=(--env "GITHUB_STEP_SUMMARY=${GITHUB_STEP_SUMMARY}")
         fi
 
-        # Tee so the full build/dump/compare/gate log still streams live to the
-        # job log, while OUT also captures it (including gate.sh's marker line)
-        # for parsing below. PIPESTATUS[0] is docker's exit code, not tee's.
+        # tee streams the log live and captures it in OUT for parsing below.
+        # PIPESTATUS[0] is docker's exit code, not tee's.
         set -o pipefail
         OUT="$(mktemp)"
         docker run --rm \
@@ -164,12 +153,8 @@ runs:
           echo "No ABI verdict was produced; skipping labeling."
           exit 0
         fi
-        # gate.sh (running inside the container, with no access to the
-        # patch-label/minor-label/needs-review-label inputs) always emits one
-        # of the fixed semantic tokens "patch"/"minor"/"needs-review" -- it's
-        # the ABI/API verdict, not the configured label text. Translate that
-        # token to the actual configured label name here, on the host, where
-        # the inputs live.
+        # Translate gate.sh's fixed verdict token ("patch"/"minor"/"needs-review")
+        # to the configured label name, since gate.sh has no access to these inputs.
         ALL_LABELS=("$PATCH_LABEL" "$MINOR_LABEL" "$NEEDS_REVIEW_LABEL")
         case "$LABEL" in
           patch) LABEL="$PATCH_LABEL" ;;

@@ -3,20 +3,13 @@
 # check_constants.sh - Detect removed #define macros and enum constants
 # between the base and head public headers, via ctags name extraction.
 #
-# WHY THIS EXISTS: abi-compliance-checker has a confirmed, narrow blind spot
-# for constants declared via an anonymous enum (`enum { X = 20 };`), which is
-# exactly the pattern aws-c-common uses for its length constants. Verified
-# directly: removing a #define is correctly caught by abicc's own
-# "changed_constants" field, but removing an anonymous-enum member produces
-# changed_constants:0 on BOTH the binary and source reports -- zero signal,
-# even though a caller referencing that name by name gets a real
-# "undeclared identifier" compile error (confirmed with a direct gcc test).
-# A NAMED enum's removed member also gets missed by "changed_constants" (that
-# field is #define-specific), but IS separately caught under
-# "Problems with Data Types" as a removed enumerator -- so this script's
-# ctags-based check is a deliberately narrow supplement for the one class
-# abicc gives literally no signal on, not a general replacement for its
-# type/interface diffing.
+# WHY THIS EXISTS: abicc's "changed_constants" field is #define-specific, so
+# a removed constant declared via an anonymous enum (`enum { X = 20 };` --
+# aws-c-common's own style for its length constants) produces zero signal on
+# either report, even though referencing it by name is a real compile error.
+# A named enum's removed member is caught separately under "Problems with
+# Data Types", so this script is a narrow supplement for the anonymous-enum
+# case specifically, not a general replacement for abicc's diffing.
 #
 # Method: ctags extracts macro ('d') and enumerator ('e') names directly from
 # the header text (independent of DWARF/binary analysis, so it can't miss

@@ -111,11 +111,10 @@ jobs:
         #
         # @main tracks this action's default branch directly, so a breaking
         # change pushed to aws-crt-builder's main affects every consumer's
-        # very next CI run with no version pin to roll back to. This is a
-        # known, currently-unmitigated risk (raised in PR review) -- there is
-        # no stable/"latest" tag for this action yet. If check-abi starts
-        # failing unexpectedly after no local change, check aws-crt-builder's
-        # recent history on main before assuming the consumer repo is at fault.
+        # very next CI run with no version pin to roll back to -- there is no
+        # stable/"latest" tag for this action yet. If check-abi starts failing
+        # unexpectedly after no local change, check aws-crt-builder's recent
+        # history on main before assuming the consumer repo is at fault.
         uses: awslabs/aws-crt-builder/.github/actions/check-abi@main
         with:
           lib-name: aws-c-s3

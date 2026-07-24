@@ -77,34 +77,17 @@ BASE_INSTALL="${BASE_WORKTREE}/build/install"
 # both refs; each invocation is an independent process with its own source dir.
 build_ref() {
   local src_dir="$1"
-  # builder's default --config is RelWithDebInfo (builder/main.py), and CMake
-  # ALWAYS appends that build type's own CMAKE_C_FLAGS_RELWITHDEBINFO (default
-  # "-O2 -g -DNDEBUG") to the compile command AFTER whatever we pass via
-  # CMAKE_C_FLAGS -- so "-DCMAKE_C_FLAGS=-g -Og" alone does not work: the
-  # actual invocation ends up "... -g -Og -O2 -g -DNDEBUG ...", and gcc/clang
-  # honor the LAST -Ox flag on the command line, so -O2 silently wins. This is
-  # not a flag-ordering mistake on our side; it's inherent to how CMake layers
-  # CMAKE_<LANG>_FLAGS_<CONFIG> on top of CMAKE_<LANG>_FLAGS for every build
-  # type. Verified with -DCMAKE_VERBOSE_MAKEFILE=ON against a minimal project.
-  # Fix: override CMAKE_C_FLAGS_RELWITHDEBINFO directly (keeping -DNDEBUG,
-  # since builder's dependency graph may assume asserts are compiled out) so
-  # -Og is the only optimization flag and abi-dumper gets what it asked for
-  # ("required -Og for better analysis").
+  # CMake appends CMAKE_C_FLAGS_RELWITHDEBINFO (default "-O2 -g -DNDEBUG")
+  # after CMAKE_C_FLAGS for builder's default --config RelWithDebInfo, so
+  # gcc's last -Ox flag (-O2) wins over a plain CMAKE_C_FLAGS override.
+  # Overriding CMAKE_C_FLAGS_RELWITHDEBINFO directly makes -Og the only
+  # optimization flag, which abi-dumper needs for accurate analysis.
   #
-  # -gdwarf-4: GCC 11+ (Ubuntu 22.04's default) emits DWARF5 by default, which
-  # replaced the old .debug_loc section with a differently-encoded
-  # .debug_loclists. abi-dumper's parser predates that change and can't
-  # resolve location-list cross-references against the new encoding, logging
-  # "ERROR: invalid debug_loc section of object, please fix your elf utils"
-  # (confirmed: github.com/lvc/abi-dumper/issues/33, closed not-planned).
-  # Verified this only drops Source/SourceLine debug-provenance metadata from
-  # the dump -- the function/type/struct-layout data abi-compliance-checker
-  # actually compares comes from .debug_info via an unrelated code path and is
-  # unaffected either way (confirmed by diffing dumps with and without this
-  # flag, and by confirming abicc still detects an injected struct-layout
-  # break identically with the warning present on both sides). Forcing
-  # -gdwarf-4 just silences the noise so a real CI failure isn't obscured by
-  # an unrelated, harmless warning in the log.
+  # -gdwarf-4: GCC 11+ defaults to DWARF5, whose .debug_loclists format
+  # abi-dumper's parser can't resolve (github.com/lvc/abi-dumper/issues/33),
+  # logging a harmless "invalid debug_loc section" warning that only affects
+  # dropped Source/SourceLine metadata, not the struct/type data
+  # abi-compliance-checker compares. Forcing DWARF4 just silences the noise.
   ( cd "$src_dir" && python3 "$BUILDER_PYZ" build -p "$LIB_NAME" \
       --cmake-extra=-DBUILD_SHARED_LIBS=ON \
       --cmake-extra=-DBUILD_TESTING=OFF \
