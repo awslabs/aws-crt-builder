@@ -99,7 +99,7 @@ def _compute_label(rc, report_html, src_report_html, removed_constants_count):
     rationale (abicc's own verdict/exit code conflates harmless Low-severity
     renames with real breaks, and a source break is always unconditionally
     reportable regardless of what the binary axis shows)."""
-    if rc >= 2:
+    if rc < 0 or rc >= 2:
         return None
     src_broken = _axis_has_real_problem(src_report_html) or removed_constants_count > 0
     bin_broken = _axis_has_real_problem(report_html)
