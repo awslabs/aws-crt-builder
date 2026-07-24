@@ -133,21 +133,24 @@ jobs:
 | `image-name` | no | `aws-crt-ubuntu-22-abi-x64` | ABI docker image name. |
 | `github-token` | no | `github.token` | Token used to label the PR (needs `pull-requests: write`). |
 | `patch-label` | no | `patch` | Label applied when the ABI is backward-compatible. |
-| `minor-label` | no | `minor` | Label applied when the ABI changed. |
+| `minor-label` | no | `minor` | Label applied when the ABI changed but the API is source-compatible. |
+| `needs-review-label` | no | `needs-review` | Label applied when source (API) compatibility is broken. |
 | `base-ref` | no | _(none)_ | Explicit base ref to diff against (e.g. a previous release tag), overriding the PR base ref. Only for non-PR callers (e.g. a release workflow); leave unset in PR workflows so the PR gets labeled. |
 
 ## The label
 
-The check maps the abi-compliance-checker result to a semver label:
+The label is not abicc's raw exit code -- it's a three-way verdict computed from
+each report's own structured fields (see `gate.sh`):
 
-| abicc exit | Meaning | Result |
-|-----------|---------|--------|
-| `0` | ABI backward-compatible | job passes, PR labeled `patch` |
-| `1` | ABI changed (incompatible) | job passes, PR labeled `minor` |
-| `2`–`11` | tool error — check could not run | **job fails**, no label |
+| Verdict | Meaning | Result |
+|---------|---------|--------|
+| `patch` | ABI and API are both backward-compatible | job passes, PR labeled `patch` |
+| `minor` | ABI changed, but API (source) is still compatible | job passes, PR labeled `minor` |
+| `needs-review` | API (source) compatibility is broken -- callers fail to recompile | job passes, PR labeled `needs-review` |
+| _(none)_ | abi-compliance-checker could not produce a verdict (tool error) | **job fails**, no label |
 
-The two labels are mutually exclusive: applying one removes the other, so a
-re-run after a code change flips the label cleanly.
+The three labels are mutually exclusive: applying one removes the other two, so
+a re-run after a code change flips the label cleanly.
 
 ## The docker image
 
