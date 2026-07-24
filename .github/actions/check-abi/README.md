@@ -151,6 +151,34 @@ each report's own structured fields (see `gate.sh`):
 The three labels are mutually exclusive: applying one removes the other two, so
 a re-run after a code change flips the label cleanly.
 
+### Blocking merges on `needs-review`
+
+`needs-review` is informational by itself -- `check-abi`'s own job still passes
+so the label doesn't get re-litigated on every push. To actually block merging
+until a maintainer reviews and removes the label, add a required status check
+that calls the reusable `block-needs-review-label.yml` workflow:
+
+```yaml
+# .github/workflows/block-needs-review.yml
+name: Block needs-review merges
+on:
+  pull_request:
+    types: [labeled, unlabeled]
+
+jobs:
+  gate:
+    uses: awslabs/aws-crt-builder/.github/workflows/block-needs-review-label.yml@main
+```
+
+Then mark this workflow's `gate` job as a **required status check** in the
+repo's branch protection settings. Triggering only on `labeled`/`unlabeled`
+(not `opened`/`synchronize`) is deliberate: the label is the only thing this
+check cares about, so a maintainer removing it re-runs the check immediately
+and unblocks the merge, without re-running the (slow) ABI build/dump/compare
+pipeline just to notice a label changed. The label name isn't configurable
+here -- it's hardcoded to `needs-review` to match `check-abi`'s own default,
+so there's no way for the two to drift out of sync.
+
 ## The docker image
 
 The image is defined at `.github/docker-images/ubuntu-22-abi-x64/Dockerfile` and
