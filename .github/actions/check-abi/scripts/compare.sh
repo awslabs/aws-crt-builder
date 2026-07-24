@@ -20,7 +20,12 @@
 #             callback fn-ptr (e.g. aws_s3_meta_request_progress via
 #             progress_callback). Without it abicc's reachability filter would
 #             silently report adding a member to such a struct as compatible.
-#   -strict : treat low-severity issues as problems too.
+#
+# No -strict: gate.sh parses the Low/Medium/High counts out of each report's
+# own verdict comment directly and deliberately ignores Low. -strict only
+# changes abicc's own exit code (folds Low into it); it does not touch any
+# field gate.sh reads, so keeping it just risks abicc's exit code disagreeing
+# with the label this script's caller computes.
 #
 # Inputs (env):
 #   ABI_LIB_NAME   library name (abicc -l)
@@ -51,7 +56,7 @@ abi-compliance-checker -l "$LIB_NAME" \
   -old "$BASE_DUMP" -new "$HEAD_DUMP" \
   -bin-report-path "$BIN_REPORT_HTML" \
   -src-report-path "$SRC_REPORT_HTML" \
-  -strict -ext -binary -source \
+  -ext -binary -source \
   > "$ACC_LOG" 2>&1 || rc=$?
 
 # abicc prints "Binary compatibility: N%" / "Source compatibility: N%" to
