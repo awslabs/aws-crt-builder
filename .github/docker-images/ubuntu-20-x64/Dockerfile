@@ -26,12 +26,43 @@ RUN apt-get update && apt-get install -y software-properties-common && add-apt-r
 # Install Go from the PPA
 RUN apt-get install -y golang-go
 
+# Install dependencies for building Python from source
+RUN apt-get update \
+    && apt-get -y install \
+    libssl-dev \
+    zlib1g-dev \
+    libbz2-dev \
+    libreadline-dev \
+    libsqlite3-dev \
+    libncursesw5-dev \
+    xz-utils \
+    tk-dev \
+    libxml2-dev \
+    libxmlsec1-dev \
+    libffi-dev \
+    software-properties-common \
+    liblzma-dev
+
+# Build Python 3.10 from source
+RUN cd /tmp \
+    && curl -O https://www.python.org/ftp/python/3.10.12/Python-3.10.12.tgz \
+    && tar -xzf Python-3.10.12.tgz \
+    && cd Python-3.10.12 \
+    && ./configure --with-ensurepip=install \
+    && make -j$(nproc) \
+    && make altinstall \
+    && cd / \
+    && rm -rf /tmp/Python-3.10.12* \
+    && ln -sf /usr/local/bin/python3.10 /usr/local/bin/python \
+    && ln -sf /usr/local/bin/python3.10 /usr/local/bin/python3 \
+    && /usr/local/bin/python3.10 --version
+
 ###############################################################################
 # Python/AWS CLI
 ###############################################################################
 WORKDIR /tmp
 
-RUN python3 -m pip install setuptools \
+RUN /usr/local/bin/python3.10 -m pip install --upgrade pip setuptools virtualenv \
     && curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o awscliv2.zip \
     && unzip awscliv2.zip \
     && sudo aws/install \
