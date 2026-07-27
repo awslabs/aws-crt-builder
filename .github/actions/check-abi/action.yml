@@ -46,6 +46,11 @@ inputs:
     required: false
     default: ''
 
+outputs:
+  label:
+    description: 'ABI verdict: patch | minor | needs-review. Empty if no verdict was produced (the run failed first).'
+    value: ${{ steps.run_check.outputs.label }}
+
 runs:
   using: 'composite'
   steps:
