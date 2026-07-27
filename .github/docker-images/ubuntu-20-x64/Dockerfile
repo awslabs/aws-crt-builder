@@ -27,6 +27,9 @@ RUN apt-get update && apt-get install -y software-properties-common && add-apt-r
 RUN apt-get install -y golang-go
 
 # Install dependencies for building Python from source
+# Ubuntu 20.04 ships Python 3.8 by default, but the builder requires Python 3.10
+# (builder/core/data.py maps every ubuntu host to the "python3.10" interpreter), so
+# we build 3.10 from source below.
 RUN apt-get update \
     && apt-get -y install \
     libssl-dev \
