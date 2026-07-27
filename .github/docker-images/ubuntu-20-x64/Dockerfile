@@ -35,12 +35,10 @@ RUN apt-get update \
     libreadline-dev \
     libsqlite3-dev \
     libncursesw5-dev \
-    xz-utils \
     tk-dev \
     libxml2-dev \
     libxmlsec1-dev \
     libffi-dev \
-    software-properties-common \
     liblzma-dev
 
 # Build Python 3.10 from source
