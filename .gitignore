@@ -673,3 +673,5 @@ node_modules/
 !.github/actions/check-submodules/dist/
 
 .DS_Store
+
+.worktrees/

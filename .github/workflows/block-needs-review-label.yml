@@ -1,0 +1,26 @@
+name: Block needs-review merges
+
+on:
+  workflow_call: {}
+
+jobs:
+  gate:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Fail if needs-review is present
+        # Hardcoded, not an input: this must always match check-abi's own
+        # needs-review-label default. Making it configurable would let a
+        # caller override the label here without also updating check-abi's
+        # own action.yml input, silently breaking the block (checking for a
+        # label check-abi never applies).
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          LABELS="$(gh pr view "$PR_NUMBER" --repo "$REPO" --json labels -q '.labels[].name')"
+          if grep -qxF 'needs-review' <<< "$LABELS"; then
+            echo "::error::PR is labeled 'needs-review' -- a maintainer must review and remove the label before this can merge."
+            exit 1
+          fi
+          echo "Label 'needs-review' not present."
