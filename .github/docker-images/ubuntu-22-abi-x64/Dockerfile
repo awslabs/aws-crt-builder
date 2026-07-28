@@ -39,6 +39,9 @@ RUN apt-get update -qq \
     ca-certificates \
     && apt-get clean
 
+# ubuntu-toolchain-r PPA provides newer gcc versions
+RUN apt-add-repository -y ppa:ubuntu-toolchain-r/test
+
 ###############################################################################
 # Python/AWS CLI
 ###############################################################################
