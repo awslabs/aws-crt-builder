@@ -127,7 +127,7 @@ HOSTS = {
         # need ld and make and such
         'packages': ['build-essential'],
         'pkg_setup': [
-            'bash -c "grep -q ubuntu-toolchain-r /etc/apt/sources.list.d/*.list 2>/dev/null || apt-add-repository -y ppa:ubuntu-toolchain-r/test"',
+            ['bash', '-c', 'grep -q ubuntu-toolchain-r /etc/apt/sources.list.d/*.list 2>/dev/null || apt-add-repository -y ppa:ubuntu-toolchain-r/test'],
         ],
         'pkg_update': 'apt-get -qq update -y',
         'pkg_install': 'apt-get -qq install -y',
