@@ -50,14 +50,25 @@ runs:
     - name: Resolve previous release tag
       id: resolve
       shell: bash
+      env:
+        VERSION_FILE: ${{ inputs.version-file }}
       run: |
-        TAG="$(git describe --tags --abbrev=0 2>/dev/null || true)"
-        if [[ -z "$TAG" ]]; then
-          echo "ERROR: no previous release tag found; cannot compute a release." >&2
-          exit 1
-        fi
-        echo "Previous release tag: $TAG"
-        echo "previous_tag=${TAG}" >> "$GITHUB_OUTPUT"
+        # Walk tags nearest-first and skip any whose VERSION isn't a plain
+        # major.minor.patch -- a manually-cut beta/rc tag (non-numeric
+        # suffix) must not block automated releases forever. The next run
+        # just looks past it to the last real stable release and bumps from
+        # there; the beta tag itself is left alone.
+        for TAG in $(git tag --sort=-creatordate --merged HEAD); do
+          VERSION="$(git show "${TAG}:${VERSION_FILE}" 2>/dev/null | tr -d '[:space:]')"
+          if [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Previous release tag: $TAG"
+            echo "previous_tag=${TAG}" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "Skipping tag '$TAG': '${VERSION_FILE}' is '${VERSION:-<unreadable>}', not major.minor.patch."
+        done
+        echo "ERROR: no previous release tag with a valid '${VERSION_FILE}' found; cannot compute a release." >&2
+        exit 1
 
     - name: Check ABI (previous release vs this ref)
       id: check_abi

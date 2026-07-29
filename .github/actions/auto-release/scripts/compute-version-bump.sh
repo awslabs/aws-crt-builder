@@ -62,6 +62,10 @@ prs_with_label() {
 }
 
 # --- Rule 1 -------------------------------------------------------------------
+# ABI_LABEL is a fresh diff of the previous tag against this ref, not a PR
+# label lookup -- a PR that was once flagged needs-review and later had the
+# label removed after human review does not bypass this: if its code still
+# diffs as an API break against the previous tag, this re-check still fails.
 if [[ "${ABI_LABEL:-}" == "needs-review" ]]; then
   echo "ERROR: the ABI check between ${PREVIOUS_TAG} and this ref returned 'needs-review'" >&2
   echo "       (an API break -- callers fail to recompile). Major version bumps are" >&2

@@ -6,7 +6,10 @@ only (`workflow_dispatch`) -- there is no per-merge automation.
 
 ## What it does
 
-1. **Resolve the previous release tag** via `git describe --tags --abbrev=0`.
+1. **Resolve the previous release tag** -- the nearest tag whose version file
+   is a plain `major.minor.patch`. A manually-cut beta/rc tag (e.g.
+   `0.7.5-beta`) is skipped rather than blocking automation: it's ignored and
+   the last real stable release is used instead.
 2. **Check ABI** between that tag and the current ref, via
    [`check-abi`](../check-abi)'s `base-ref` override (the same action/toolchain
    PRs use for labeling, just pointed at a tag instead of a PR base).
