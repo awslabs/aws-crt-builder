@@ -1,8 +1,16 @@
 # auto-release
 
 Cut a release for a CRT C library (aws-c-s3, aws-c-io, ...) with the version
-number computed automatically instead of chosen by hand. Manually triggered
-only (`workflow_dispatch`) -- there is no per-merge automation.
+number computed automatically instead of chosen by hand.
+
+A maintainer still triggers the workflow manually from the GitHub Actions UI
+(`workflow_dispatch`) -- this does not release on every merge, and does not
+remove the human decision of *when* to release. What it removes is manually
+deciding and typing the *version number*: today that's picked by hand and
+error-prone once ABI/API compatibility matters; this action derives it from
+the ABI check and PR labels instead, so the bump is consistent every time.
+Releasing automatically on every merge was considered and rejected -- that
+would produce far more releases than any of these libraries want.
 
 ## What it does
 
@@ -81,7 +89,7 @@ jobs:
 | `lib-name` | yes | — | Library name; maps to `lib<name>.so` for the ABI check. |
 | `version-file` | no | `VERSION` | Path to the file holding `major.minor.patch`. |
 | `minor-pr-label` | no | `minor` | PR label that forces a minor bump when the ABI is compatible. |
-| `builder-version` | no | `v0.9.93` | Builder version/channel; also the ABI docker image tag. |
+| `builder-version` | no | `latest` | Builder version/channel; also the ABI docker image tag. `latest` tracks the most recent published builder release. |
 | `dry-run` | no | `false` | Compute and summarize the bump/version but write/commit/tag/publish nothing. |
 | `github-token` | no | `github.token` | Token used to read PR labels, commit, tag, push, and create the release. |
 

@@ -14,9 +14,9 @@ inputs:
     required: false
     default: 'minor'
   builder-version:
-    description: 'Builder version/channel used to build the library and its dependencies. Also the tag of the ABI docker image.'
+    description: 'Builder version/channel used to build the library and its dependencies. Also the tag of the ABI docker image. "latest" tracks the most recent published builder release.'
     required: false
-    default: 'v0.9.93'
+    default: 'latest'
   dry-run:
     description: 'Compute and summarize the bump/version but do not commit, tag, or publish anything.'
     required: false
