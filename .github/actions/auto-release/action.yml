@@ -1,0 +1,105 @@
+name: 'Release'
+description: 'Compute the next semver for a CRT C library and cut the release: resolve the previous tag, diff ABI against it via check-abi, decide patch/minor from that verdict plus PR labels, then commit VERSION, tag, and publish.'
+
+inputs:
+  lib-name:
+    description: 'Library name (e.g. aws-c-s3). Determines the .so filename (lib<name>.so).'
+    required: true
+  version-file:
+    description: 'Path to the file holding the current released version as "major.minor.patch".'
+    required: false
+    default: 'VERSION'
+  minor-pr-label:
+    description: 'PR label that forces a minor bump when the ABI is compatible.'
+    required: false
+    default: 'minor'
+  builder-version:
+    description: 'Builder version/channel used to build the library and its dependencies. Also the tag of the ABI docker image. "latest" tracks the most recent published builder release.'
+    required: false
+    default: 'latest'
+  dry-run:
+    description: 'Compute and summarize the bump/version but do not commit, tag, or publish anything.'
+    required: false
+    default: 'false'
+  github-token:
+    description: 'Token used to read PR labels, commit, tag, push, and create the release. Needs contents: write. Defaults to the job token.'
+    required: false
+    default: ${{ github.token }}
+
+outputs:
+  skip:
+    description: '"true" if no release was cut (nothing to release, or the run failed before a version could be computed).'
+    value: ${{ steps.compute.outputs.skip }}
+  bump:
+    description: '"minor" | "patch". Empty if skipped.'
+    value: ${{ steps.compute.outputs.bump }}
+  new_version:
+    description: 'The released "major.minor.patch". Empty if skipped.'
+    value: ${{ steps.compute.outputs.new_version }}
+  new_soversion:
+    description: 'The released "major.minor". Empty if skipped.'
+    value: ${{ steps.compute.outputs.new_soversion }}
+
+runs:
+  using: 'composite'
+  steps:
+    # The consumer workflow must checkout with fetch-depth: 0 (all tags/history
+    # needed for git describe / the ABI diff / gh pr list) and configure AWS
+    # credentials with ECR pull access, same as check-abi's own consumer
+    # requirements -- this action calls check-abi as its ABI-diff step below.
+    - name: Resolve previous release tag
+      id: resolve
+      shell: bash
+      env:
+        VERSION_FILE: ${{ inputs.version-file }}
+      run: |
+        # Walk tags nearest-first and skip any whose VERSION isn't a plain
+        # major.minor.patch -- a manually-cut beta/rc tag (non-numeric
+        # suffix) must not block automated releases forever. The next run
+        # just looks past it to the last real stable release and bumps from
+        # there; the beta tag itself is left alone.
+        for TAG in $(git tag --sort=-creatordate --merged HEAD); do
+          VERSION="$(git show "${TAG}:${VERSION_FILE}" 2>/dev/null | tr -d '[:space:]')"
+          if [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Previous release tag: $TAG"
+            echo "previous_tag=${TAG}" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "Skipping tag '$TAG': '${VERSION_FILE}' is '${VERSION:-<unreadable>}', not major.minor.patch."
+        done
+        echo "ERROR: no previous release tag with a valid '${VERSION_FILE}' found; cannot compute a release." >&2
+        exit 1
+
+    - name: Check ABI (previous release vs this ref)
+      id: check_abi
+      uses: awslabs/aws-crt-builder/.github/actions/check-abi@main
+      with:
+        lib-name: ${{ inputs.lib-name }}
+        builder-version: ${{ inputs.builder-version }}
+        base-ref: ${{ steps.resolve.outputs.previous_tag }}
+
+    - name: Compute next version
+      id: compute
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+        REPO: ${{ github.repository }}
+        PREVIOUS_TAG: ${{ steps.resolve.outputs.previous_tag }}
+        ABI_LABEL: ${{ steps.check_abi.outputs.label }}
+        VERSION_FILE: ${{ inputs.version-file }}
+        MINOR_PR_LABEL: ${{ inputs.minor-pr-label }}
+      run: bash "${GITHUB_ACTION_PATH}/scripts/compute-version-bump.sh"
+
+    - name: Write version file, commit, tag, and publish
+      if: ${{ steps.compute.outputs.skip == 'false' }}
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+        REPO: ${{ github.repository }}
+        VERSION_FILE: ${{ inputs.version-file }}
+        NEW_VERSION: ${{ steps.compute.outputs.new_version }}
+        NEW_SOVERSION: ${{ steps.compute.outputs.new_soversion }}
+        PREVIOUS_TAG: ${{ steps.resolve.outputs.previous_tag }}
+        BUMP: ${{ steps.compute.outputs.bump }}
+        DRY_RUN: ${{ inputs.dry-run }}
+      run: bash "${GITHUB_ACTION_PATH}/scripts/cut-release.sh"
