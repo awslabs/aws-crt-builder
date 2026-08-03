@@ -22,9 +22,13 @@ inputs:
     required: false
     default: 'false'
   github-token:
-    description: 'Token used to read PR labels, commit, tag, push, and create the release. Needs contents: write. Defaults to the job token.'
+    description: 'Token used to read PR labels, push the version-bump branch, and create the release. Needs contents: write. Defaults to the job token.'
     required: false
     default: ${{ github.token }}
+  merge-token:
+    description: 'A personal access token with admin merge rights on the default branch, used only to merge the version-bump PR. Required when the default branch has required reviews/status checks: the job token alone cannot bypass those, the same reason aws-crt-cpp''s release workflow needs a second token for this one step. Leave empty to fall back to github-token, which only works if the default branch has no such protection.'
+    required: false
+    default: ''
 
 outputs:
   skip:
@@ -95,6 +99,10 @@ runs:
       shell: bash
       env:
         GH_TOKEN: ${{ inputs.github-token }}
+        # merge-token has no default expression referencing github-token
+        # (a composite action's inputs.*.default cannot reference another
+        # input), so the fallback is resolved here instead.
+        MERGE_TOKEN: ${{ inputs.merge-token != '' && inputs.merge-token || inputs.github-token }}
         REPO: ${{ github.repository }}
         VERSION_FILE: ${{ inputs.version-file }}
         NEW_VERSION: ${{ steps.compute.outputs.new_version }}
