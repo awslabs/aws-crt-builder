@@ -64,7 +64,7 @@ runs:
         # there; the beta tag itself is left alone.
         for TAG in $(git tag --sort=-creatordate --merged HEAD); do
           VERSION="$(git show "${TAG}:${VERSION_FILE}" 2>/dev/null | tr -d '[:space:]')"
-          if [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          if [[ "$VERSION" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
             echo "Previous release tag: $TAG"
             echo "previous_tag=${TAG}" >> "$GITHUB_OUTPUT"
             exit 0
@@ -94,17 +94,11 @@ runs:
         MINOR_PR_LABEL: ${{ inputs.minor-pr-label }}
       run: bash "${GITHUB_ACTION_PATH}/scripts/compute-version-bump.sh"
 
-    - name: Retrieve deploy key and set up SSH
-      if: ${{ steps.compute.outputs.skip == 'false' }}
-      shell: bash
-      env:
-        DEPLOY_KEY_SECRET_ID: ${{ inputs.deploy-key-secret-id }}
-      run: bash "${GITHUB_ACTION_PATH}/scripts/setup-deploy-key.sh"
-
     - name: Write version file, commit, tag, and publish
       if: ${{ steps.compute.outputs.skip == 'false' }}
       shell: bash
       env:
+        DEPLOY_KEY_SECRET_ID: ${{ inputs.deploy-key-secret-id }}
         GH_TOKEN: ${{ inputs.github-token }}
         REPO: ${{ github.repository }}
         VERSION_FILE: ${{ inputs.version-file }}

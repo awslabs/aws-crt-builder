@@ -28,6 +28,11 @@ set -uo pipefail
 PREVIOUS_TAG="${PREVIOUS_TAG:?PREVIOUS_TAG must be set}"
 VERSION_FILE="${VERSION_FILE:?VERSION_FILE must be set}"
 MINOR_PR_LABEL="${MINOR_PR_LABEL:?MINOR_PR_LABEL must be set}"
+REPO="${REPO:?REPO must be set}"
+[[ "$REPO" =~ ^[^/[:space:]]+/[^/[:space:]]+$ ]] || {
+  echo "ERROR: REPO ('$REPO') is not a valid 'owner/repo'." >&2
+  exit 1
+}
 
 summary() { [[ -n "${GITHUB_STEP_SUMMARY:-}" ]] && printf '%s\n' "$1" >> "$GITHUB_STEP_SUMMARY"; }
 
@@ -48,10 +53,18 @@ if [[ -z "$COMMITS_SINCE" ]]; then
   exit 0
 fi
 
-MERGE_BASE_DATE="$(git log -1 --format=%cI "$PREVIOUS_TAG")" || {
-  echo "ERROR: could not read the commit date of '${PREVIOUS_TAG}'." >&2
-  exit 1
-}
+# For an annotated tag, anchor on the tag's own creation date, not the
+# committer date of the commit it points at -- those can diverge (e.g. an
+# annotated tag cut well after its target commit was authored), which would
+# otherwise widen or narrow the "merged since" window incorrectly. Lightweight
+# tags have no tagger date, so fall back to the commit's date for those.
+MERGE_BASE_DATE="$(git for-each-ref --format='%(creatordate:iso-strict)' "refs/tags/${PREVIOUS_TAG}")"
+if [[ -z "$MERGE_BASE_DATE" ]]; then
+  MERGE_BASE_DATE="$(git log -1 --format=%cI "$PREVIOUS_TAG")" || {
+    echo "ERROR: could not read the date of '${PREVIOUS_TAG}'." >&2
+    exit 1
+  }
+fi
 
 # gh pr list can't filter by "merged after a tag" directly, so use --search
 # with a merged-date range instead.
@@ -78,6 +91,16 @@ if [[ "${ABI_LABEL:-}" == "needs-review" ]]; then
   exit 1
 fi
 
+# No verdict at all is never treated as "compatible" -- an empty or
+# unrecognized ABI_LABEL must not silently fall through to a patch bump.
+if [[ "${ABI_LABEL:-}" != "patch" && "${ABI_LABEL:-}" != "minor" ]]; then
+  echo "ERROR: unrecognized ABI check result '${ABI_LABEL:-<empty>}'; expected patch/minor/needs-review." >&2
+  summary ""
+  summary "**FAILED: unrecognized ABI check result \`${ABI_LABEL:-<empty>}\`.**"
+  echo "skip=true" >> "$GITHUB_OUTPUT"
+  exit 1
+fi
+
 # --- Read the previously released version -----------------------------------
 PREVIOUS_VERSION="$(git show "${PREVIOUS_TAG}:${VERSION_FILE}" 2>/dev/null | tr -d '[:space:]')"
 if [[ -z "$PREVIOUS_VERSION" ]]; then
@@ -86,7 +109,7 @@ if [[ -z "$PREVIOUS_VERSION" ]]; then
   summary "**FAILED: could not read \`${VERSION_FILE}\` at tag \`${PREVIOUS_TAG}\`.**"
   exit 1
 fi
-if ! [[ "$PREVIOUS_VERSION" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+if ! [[ "$PREVIOUS_VERSION" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
   echo "ERROR: '${VERSION_FILE}' at '${PREVIOUS_TAG}' is not major.minor.patch (got '${PREVIOUS_VERSION}')." >&2
   summary ""
   summary "**FAILED: \`${VERSION_FILE}\` at \`${PREVIOUS_TAG}\` is not major.minor.patch (got \`${PREVIOUS_VERSION}\`).**"

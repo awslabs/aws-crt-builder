@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
 #
-# cut-release.sh - Write the bumped VERSION file, push it straight to the
-# default branch over SSH using the deploy key setup-deploy-key.sh just
-# configured, then tag the new commit and create the GitHub Release. Same
-# mechanism as aws-crt-swift's update-version.yml: a repo-scoped deploy key
-# authorized to push directly, no PR/admin-merge needed.
+# cut-release.sh - Fetch a repo-scoped deploy key from AWS Secrets Manager,
+# use it to push the bumped VERSION file straight to the default branch over
+# SSH, then tag the new commit and create the GitHub Release. Same mechanism
+# as aws-crt-swift's update-version.yml: the key is fetched fresh each run
+# via the already-assumed CRT_CI_ROLE_ARN role, used once, never persisted
+# past the job, and authorized to push directly -- no PR/admin-merge needed.
 #
 # Inputs (env):
+#   DEPLOY_KEY_SECRET_ID  Secrets Manager secret ID holding the private key
 #   GH_TOKEN        token used to create the release (gh release create)
 #   REPO            "owner/repo"
 #   VERSION_FILE    path to the version file to write NEW_VERSION into
@@ -15,10 +17,12 @@
 #   PREVIOUS_TAG    the previous release tag (for the notes range)
 #   BUMP            "minor" | "patch" -- for the commit/release message
 #   DRY_RUN         "true" | "false" -- if true, log the plan and stop before
-#                    writing, committing, tagging, or publishing anything
+#                    touching the deploy key, writing, committing, tagging,
+#                    or publishing anything
 
 set -euo pipefail
 
+DEPLOY_KEY_SECRET_ID="${DEPLOY_KEY_SECRET_ID:?DEPLOY_KEY_SECRET_ID must be set}"
 VERSION_FILE="${VERSION_FILE:?VERSION_FILE must be set}"
 NEW_VERSION="${NEW_VERSION:?NEW_VERSION must be set}"
 NEW_SOVERSION="${NEW_SOVERSION:?NEW_SOVERSION must be set}"
@@ -37,7 +41,42 @@ if [[ "${DRY_RUN:-false}" == "true" ]]; then
   exit 0
 fi
 
-DEFAULT_BRANCH="$(git rev-parse --abbrev-ref HEAD)"
+# symbolic-ref (unlike rev-parse --abbrev-ref) fails loudly on a detached
+# HEAD instead of returning the literal string "HEAD", which would otherwise
+# be pushed as a real ref name.
+DEFAULT_BRANCH="$(git symbolic-ref --short HEAD)" || {
+  echo "ERROR: HEAD is not on a branch (detached); refusing to push." >&2
+  exit 1
+}
+
+# A tag that already exists means a previous run got at least this far --
+# never re-push a differing commit under the same tag. Fail clearly so a
+# partial-run recovery is a deliberate, informed human decision, not an
+# automatic retry that could double-bump or collide.
+if git ls-remote --exit-code --tags origin "refs/tags/v${NEW_VERSION}" > /dev/null 2>&1; then
+  echo "ERROR: tag 'v${NEW_VERSION}' already exists on origin; a previous run may have" >&2
+  echo "       partially completed. Inspect the remote before retrying." >&2
+  exit 1
+fi
+
+trap 'rm -f ~/.ssh/deploy_key' EXIT
+
+mkdir -p ~/.ssh
+aws secretsmanager get-secret-value --secret-id "$DEPLOY_KEY_SECRET_ID" \
+  --query SecretString --output text > ~/.ssh/deploy_key
+chmod 600 ~/.ssh/deploy_key
+
+ssh-keyscan -H github.com >> ~/.ssh/known_hosts
+
+cat > ~/.ssh/config << EOF
+Host github.com
+  HostName github.com
+  User git
+  IdentityFile ~/.ssh/deploy_key
+EOF
+chmod 600 ~/.ssh/config
+
+git remote set-url origin "git@github.com:${GITHUB_REPOSITORY}.git"
 
 git config user.name "aws-crt-bot"
 git config user.email "aws-sdk-common-runtime@amazon.com"

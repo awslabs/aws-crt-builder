@@ -116,10 +116,9 @@ jobs:
 
 ```
 auto-release/
-├── action.yml                       # resolve tag -> check-abi -> compute version -> deploy key -> write/commit/tag/publish
+├── action.yml                       # resolve tag -> check-abi -> compute version -> write/commit/tag/publish
 ├── README.md
 └── scripts/
     ├── compute-version-bump.sh       # the version-bump decision + job-summary explanation
-    ├── setup-deploy-key.sh           # fetch the deploy key from Secrets Manager, configure SSH
-    └── cut-release.sh                # write VERSION, commit, push, tag, gh release create
+    └── cut-release.sh                # deploy key -> write VERSION, commit, push, tag, gh release create
 ```
