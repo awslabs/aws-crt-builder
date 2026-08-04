@@ -33,14 +33,12 @@ would produce far more releases than any of these libraries want.
      bump.
    - Otherwise -> patch bump.
    - SOVERSION is always `major.minor` of the resulting version.
-4. **Write, merge, tag, and publish** -- overwrites the version file, commits
-   it to a new branch, opens a PR against the default branch, and merges it
-   with admin rights (bypassing required reviews/status checks, the same way
-   aws-crt-cpp's release automation does), then tags the merged commit and
-   creates the GitHub Release with notes generated from the PRs merged since
-   the previous tag. Skipped entirely if step 3 decided there was nothing to
-   release. Merging goes through a PR rather than a direct push because the
-   default branch is expected to require review -- see `merge-token` below.
+4. **Write, push, tag, and publish** -- overwrites the version file, commits
+   it, and pushes straight to the default branch over SSH using a deploy key
+   fetched fresh from AWS Secrets Manager (see `deploy-key-secret-id` below),
+   then tags the new commit and creates the GitHub Release with notes
+   generated from the PRs merged since the previous tag. Skipped entirely if
+   step 3 decided there was nothing to release.
 
 Every case above explains itself in the run's job summary.
 
@@ -48,17 +46,18 @@ Every case above explains itself in the run's job summary.
 
 Same as `check-abi` (this action calls it internally):
 
-- **Configure AWS credentials** with ECR pull access, so the ABI check's
-  docker image can be pulled.
+- **Configure AWS credentials** with ECR pull access and Secrets Manager read
+  access (`secretsmanager:GetSecretValue` on `deploy-key-secret-id`), so both
+  the ABI check's docker image can be pulled and the deploy key retrieved.
 - **Checkout with `fetch-depth: 0`** so tag history is available.
-- **Grant `contents: write` and `pull-requests: write`** so this action can
-  push the version-bump branch, open the PR, tag, and create the release.
-- **Provide a `merge-token`** if the default branch requires reviews or
-  status checks -- the job's own `github.token` cannot bypass those, only a
-  personal access token with admin merge rights can (same reason
-  aws-crt-cpp's release workflow needs a second token, `TAG_PR_TOKEN`, solely
-  to merge its version-bump PR). Without one, the version-bump PR is opened
-  but the merge step fails on any protected default branch.
+- **Grant `contents: write`** so this action can create the release.
+- **Register a deploy key with write access** on the repo (Settings -> Deploy
+  keys), and store its private half in AWS Secrets Manager at
+  `deploy-key-secret-id`. This is what actually authorizes the push to the
+  default branch -- the job's own `github.token` never touches it, avoiding a
+  standing broad-scope PAT (same approach as aws-crt-swift's
+  `update-version.yml`: a repo-scoped key fetched fresh each run, not a
+  long-lived secret sitting in a user/bot account).
 
 ## Usage
 
@@ -73,9 +72,9 @@ jobs:
   release:
     runs-on: ubuntu-24.04
     permissions:
-      id-token: write       # for configure-aws-credentials OIDC
-      contents: write       # to push the version-bump branch, tag, and publish
-      pull-requests: write  # to open the version-bump PR and scan merged PRs for the minor label
+      id-token: write      # for configure-aws-credentials OIDC
+      contents: write      # to create the release
+      pull-requests: read  # to scan merged PRs for the minor label
     steps:
       - uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -90,7 +89,6 @@ jobs:
         uses: awslabs/aws-crt-builder/.github/actions/auto-release@main
         with:
           lib-name: aws-c-s3
-          merge-token: ${{ secrets.RELEASE_MERGE_TOKEN }}
 ```
 
 ### Inputs
@@ -102,8 +100,8 @@ jobs:
 | `minor-pr-label` | no | `minor` | PR label that forces a minor bump when the ABI is compatible. |
 | `builder-version` | no | `latest` | Builder version/channel; also the ABI docker image tag. `latest` tracks the most recent published builder release. |
 | `dry-run` | no | `false` | Compute and summarize the bump/version but write/commit/tag/publish nothing. |
-| `github-token` | no | `github.token` | Token used to read PR labels, push the version-bump branch, and create the release. |
-| `merge-token` | no | _(falls back to `github-token`)_ | PAT with admin merge rights on the default branch, used only to merge the version-bump PR. Required if the default branch has required reviews/status checks. |
+| `github-token` | no | `github.token` | Token used to read PR labels and create the release. |
+| `deploy-key-secret-id` | no | `aws-crt-bot/deploy-key/privatekey` | AWS Secrets Manager secret ID holding the private half of the deploy key used to push the version-bump commit and tag. |
 
 ### Outputs
 
@@ -118,9 +116,10 @@ jobs:
 
 ```
 auto-release/
-├── action.yml                       # resolve tag -> check-abi -> compute version -> write/commit/tag/publish
+├── action.yml                       # resolve tag -> check-abi -> compute version -> deploy key -> write/commit/tag/publish
 ├── README.md
 └── scripts/
     ├── compute-version-bump.sh       # the version-bump decision + job-summary explanation
-    └── cut-release.sh                # write VERSION, commit, tag, gh release create
+    ├── setup-deploy-key.sh           # fetch the deploy key from Secrets Manager, configure SSH
+    └── cut-release.sh                # write VERSION, commit, push, tag, gh release create
 ```
