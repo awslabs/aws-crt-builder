@@ -11,10 +11,6 @@
 #   ABI_BUILDER_PYZ   absolute path to the downloaded builder.pyz
 #   GITHUB_WORKSPACE  the PR head checkout (set by GitHub Actions)
 #   GITHUB_BASE_REF   target branch name on pull_request events (may be empty)
-#   ABI_BASE_REF      explicit base ref override (e.g. a previous release tag).
-#                      Takes precedence over GITHUB_BASE_REF/merge-base. Set by
-#                      the release workflow to diff "previous tag vs current
-#                      ref" instead of "PR base vs PR head".
 #
 # Outputs (appended to $GITHUB_ENV):
 #   ABI_BASE_WORKTREE  path to the base-ref git worktree
@@ -29,9 +25,7 @@ BUILDER_PYZ="${ABI_BUILDER_PYZ:?ABI_BUILDER_PYZ must be set}"
 HEAD_DIR="${GITHUB_WORKSPACE:?GITHUB_WORKSPACE must be set}"
 
 # --- Resolve the base ref ----------------------------------------------------
-if [[ -n "${ABI_BASE_REF:-}" ]]; then
-  BASE_REF="${ABI_BASE_REF}"
-elif [[ -n "${GITHUB_BASE_REF:-}" ]]; then
+if [[ -n "${GITHUB_BASE_REF:-}" ]]; then
   BASE_REF="origin/${GITHUB_BASE_REF}"
 else
   BASE_REF="$(git -C "$HEAD_DIR" merge-base HEAD origin/main 2>/dev/null)"
@@ -77,21 +71,10 @@ BASE_INSTALL="${BASE_WORKTREE}/build/install"
 # both refs; each invocation is an independent process with its own source dir.
 build_ref() {
   local src_dir="$1"
-  # CMake appends CMAKE_C_FLAGS_RELWITHDEBINFO (default "-O2 -g -DNDEBUG")
-  # after CMAKE_C_FLAGS for builder's default --config RelWithDebInfo, so
-  # gcc's last -Ox flag (-O2) wins over a plain CMAKE_C_FLAGS override.
-  # Overriding CMAKE_C_FLAGS_RELWITHDEBINFO directly makes -Og the only
-  # optimization flag, which abi-dumper needs for accurate analysis.
-  #
-  # -gdwarf-4: GCC 11+ defaults to DWARF5, whose .debug_loclists format
-  # abi-dumper's parser can't resolve (github.com/lvc/abi-dumper/issues/33),
-  # logging a harmless "invalid debug_loc section" warning that only affects
-  # dropped Source/SourceLine metadata, not the struct/type data
-  # abi-compliance-checker compares. Forcing DWARF4 just silences the noise.
   ( cd "$src_dir" && python3 "$BUILDER_PYZ" build -p "$LIB_NAME" \
       --cmake-extra=-DBUILD_SHARED_LIBS=ON \
       --cmake-extra=-DBUILD_TESTING=OFF \
-      --cmake-extra="-DCMAKE_C_FLAGS_RELWITHDEBINFO=-g -Og -gdwarf-4 -DNDEBUG" \
+      --cmake-extra="-DCMAKE_C_FLAGS=-g -Og" \
       run_tests=false )
 }
 
