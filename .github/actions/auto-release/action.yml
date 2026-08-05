@@ -22,9 +22,13 @@ inputs:
     required: false
     default: 'false'
   github-token:
-    description: 'Token used to read PR labels, commit, tag, push, and create the release. Needs contents: write. Defaults to the job token.'
+    description: 'Token used to read PR labels and create the release. Defaults to the job token.'
     required: false
     default: ${{ github.token }}
+  deploy-key-secret-id:
+    description: 'AWS Secrets Manager secret ID holding the private half of a deploy key registered (with write access) on this repository. Used to push the version-bump commit and tag directly to the default branch, the same way aws-crt-swift''s update-version.yml does -- a repo-scoped SSH key fetched fresh via the already-assumed CRT_CI_ROLE_ARN role, rather than a standing broad-scope PAT.'
+    required: false
+    default: 'aws-crt-bot/deploy-key/privatekey'
 
 outputs:
   skip:
@@ -60,7 +64,7 @@ runs:
         # there; the beta tag itself is left alone.
         for TAG in $(git tag --sort=-creatordate --merged HEAD); do
           VERSION="$(git show "${TAG}:${VERSION_FILE}" 2>/dev/null | tr -d '[:space:]')"
-          if [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          if [[ "$VERSION" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
             echo "Previous release tag: $TAG"
             echo "previous_tag=${TAG}" >> "$GITHUB_OUTPUT"
             exit 0
@@ -94,6 +98,7 @@ runs:
       if: ${{ steps.compute.outputs.skip == 'false' }}
       shell: bash
       env:
+        DEPLOY_KEY_SECRET_ID: ${{ inputs.deploy-key-secret-id }}
         GH_TOKEN: ${{ inputs.github-token }}
         REPO: ${{ github.repository }}
         VERSION_FILE: ${{ inputs.version-file }}

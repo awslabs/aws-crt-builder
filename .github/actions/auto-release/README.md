@@ -33,8 +33,10 @@ would produce far more releases than any of these libraries want.
      bump.
    - Otherwise -> patch bump.
    - SOVERSION is always `major.minor` of the resulting version.
-4. **Write, commit, tag, and publish** -- overwrites the version file, commits
-   it, pushes, tags `v<version>`, and creates the GitHub Release with notes
+4. **Write, push, tag, and publish** -- overwrites the version file, commits
+   it, and pushes straight to the default branch over SSH using a deploy key
+   fetched fresh from AWS Secrets Manager (see `deploy-key-secret-id` below),
+   then tags the new commit and creates the GitHub Release with notes
    generated from the PRs merged since the previous tag. Skipped entirely if
    step 3 decided there was nothing to release.
 
@@ -44,11 +46,18 @@ Every case above explains itself in the run's job summary.
 
 Same as `check-abi` (this action calls it internally):
 
-- **Configure AWS credentials** with ECR pull access, so the ABI check's
-  docker image can be pulled.
+- **Configure AWS credentials** with ECR pull access and Secrets Manager read
+  access (`secretsmanager:GetSecretValue` on `deploy-key-secret-id`), so both
+  the ABI check's docker image can be pulled and the deploy key retrieved.
 - **Checkout with `fetch-depth: 0`** so tag history is available.
-- **Grant `contents: write`** so this action can commit, tag, push, and create
-  the release.
+- **Grant `contents: write`** so this action can create the release.
+- **Register a deploy key with write access** on the repo (Settings -> Deploy
+  keys), and store its private half in AWS Secrets Manager at
+  `deploy-key-secret-id`. This is what actually authorizes the push to the
+  default branch -- the job's own `github.token` never touches it, avoiding a
+  standing broad-scope PAT (same approach as aws-crt-swift's
+  `update-version.yml`: a repo-scoped key fetched fresh each run, not a
+  long-lived secret sitting in a user/bot account).
 
 ## Usage
 
@@ -64,7 +73,7 @@ jobs:
     runs-on: ubuntu-24.04
     permissions:
       id-token: write      # for configure-aws-credentials OIDC
-      contents: write      # to commit VERSION, tag, and publish
+      contents: write      # to create the release
       pull-requests: read  # to scan merged PRs for the minor label
     steps:
       - uses: aws-actions/configure-aws-credentials@v4
@@ -91,7 +100,8 @@ jobs:
 | `minor-pr-label` | no | `minor` | PR label that forces a minor bump when the ABI is compatible. |
 | `builder-version` | no | `latest` | Builder version/channel; also the ABI docker image tag. `latest` tracks the most recent published builder release. |
 | `dry-run` | no | `false` | Compute and summarize the bump/version but write/commit/tag/publish nothing. |
-| `github-token` | no | `github.token` | Token used to read PR labels, commit, tag, push, and create the release. |
+| `github-token` | no | `github.token` | Token used to read PR labels and create the release. |
+| `deploy-key-secret-id` | no | `aws-crt-bot/deploy-key/privatekey` | AWS Secrets Manager secret ID holding the private half of the deploy key used to push the version-bump commit and tag. |
 
 ### Outputs
 
@@ -110,5 +120,5 @@ auto-release/
 ├── README.md
 └── scripts/
     ├── compute-version-bump.sh       # the version-bump decision + job-summary explanation
-    └── cut-release.sh                # write VERSION, commit, tag, gh release create
+    └── cut-release.sh                # deploy key -> write VERSION, commit, push, tag, gh release create
 ```
