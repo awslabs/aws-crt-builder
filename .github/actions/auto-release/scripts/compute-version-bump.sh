@@ -16,10 +16,10 @@
 #                    never read from a file's content at that tag)
 #   ABI_LABEL        "patch" | "minor" | "needs-review" | "" -- output of the
 #                    check-abi action (see its gate.sh for how this is chosen)
-#   VERSION_FILE     path (relative to repo root) holding the current version
-#                    at HEAD. Must exist and match the previous tag's version
-#                    -- if it drifts, we bail rather than silently release from
-#                    an inconsistent state.
+#   VERSION_FILE     path (relative to repo root) where the current version
+#                    at HEAD is expected. If present, it must match the
+#                    previous tag's version (drift check). If absent, this
+#                    release creates it -- the file is not a hard prerequisite.
 #   MINOR_PR_LABEL   PR label that forces a minor bump
 #
 # Outputs (appended to $GITHUB_OUTPUT):
@@ -121,24 +121,23 @@ MINOR="${BASH_REMATCH[2]}"
 PATCH="${BASH_REMATCH[3]}"
 PREVIOUS_VERSION="${MAJOR}.${MINOR}.${PATCH}"
 
-# --- Drift check: VERSION_FILE at HEAD must match PREVIOUS_TAG's version -----
-# The tag is the source of truth for what was released. If the file on HEAD
-# says something else, someone edited it out of sync and we're one step away
-# from releasing from a state that misrepresents the previous version. Bail.
-if [[ ! -f "$VERSION_FILE" ]]; then
-  echo "ERROR: '${VERSION_FILE}' does not exist at HEAD; add it (matching '${PREVIOUS_VERSION}') and retry." >&2
-  summary ""
-  summary "**FAILED: \`${VERSION_FILE}\` does not exist at HEAD.**"
-  exit 1
-fi
-CURRENT_FILE_VERSION="$(tr -d '[:space:]' < "$VERSION_FILE")"
-if [[ "$CURRENT_FILE_VERSION" != "$PREVIOUS_VERSION" ]]; then
-  echo "ERROR: drift detected. '${VERSION_FILE}' at HEAD says '${CURRENT_FILE_VERSION}'," >&2
-  echo "       but the previous release tag '${PREVIOUS_TAG}' implies '${PREVIOUS_VERSION}'." >&2
-  echo "       Reconcile before releasing." >&2
-  summary ""
-  summary "**FAILED: \`${VERSION_FILE}\` (\`${CURRENT_FILE_VERSION}\`) drifted from the previous release tag \`${PREVIOUS_TAG}\` (\`${PREVIOUS_VERSION}\`). Reconcile before releasing.**"
-  exit 1
+# --- Drift check: if VERSION_FILE exists at HEAD, it must match PREVIOUS_TAG -
+# The tag is the source of truth for what was released. If the file exists on
+# HEAD but says something else, someone edited it out of sync and we're one
+# step away from releasing from a state that misrepresents the previous
+# version. If the file doesn't exist yet (this repo is adopting a VERSION
+# file for the first time via this release), that's fine -- cut-release.sh
+# will create it with the newly computed version.
+if [[ -f "$VERSION_FILE" ]]; then
+  CURRENT_FILE_VERSION="$(tr -d '[:space:]' < "$VERSION_FILE")"
+  if [[ "$CURRENT_FILE_VERSION" != "$PREVIOUS_VERSION" ]]; then
+    echo "ERROR: drift detected. '${VERSION_FILE}' at HEAD says '${CURRENT_FILE_VERSION}'," >&2
+    echo "       but the previous release tag '${PREVIOUS_TAG}' implies '${PREVIOUS_VERSION}'." >&2
+    echo "       Reconcile before releasing." >&2
+    summary ""
+    summary "**FAILED: \`${VERSION_FILE}\` (\`${CURRENT_FILE_VERSION}\`) drifted from the previous release tag \`${PREVIOUS_TAG}\` (\`${PREVIOUS_VERSION}\`). Reconcile before releasing.**"
+    exit 1
+  fi
 fi
 
 # --- Rule 2 -------------------------------------------------------------------
