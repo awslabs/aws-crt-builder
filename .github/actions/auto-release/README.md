@@ -24,10 +24,15 @@ would produce far more releases than any of these libraries want.
 3. **Compute the next version** (see
    [`scripts/compute-version-bump.sh`](scripts/compute-version-bump.sh) for the
    exact precedence):
-   - No commits since the previous tag -> skip, no release cut.
+   - No commits since the previous tag -> skip, no release cut (clean no-op,
+     not an error).
    - ABI check returned `needs-review` (an API break -- callers fail to
      recompile) -> **fail**. Major bumps are never automated; cut that tag by
      hand.
+   - Any merged PR since the previous tag carries the major PR label
+     (`needs-review` by default) -> **fail**. Defense-in-depth: those PRs
+     shouldn't have been merged; if one slipped through, the release refuses
+     to tag a repo whose history contains an unresolved API break.
    - ABI check returned `minor` (a binary-only break) -> minor bump, no debate.
    - Otherwise, a merged PR since the previous tag labeled `minor` -> minor
      bump.
@@ -98,6 +103,7 @@ jobs:
 |-------|----------|---------|-------------|
 | `lib-name` | yes | — | Library name; maps to `lib<name>.so` for the ABI check. |
 | `version-file` | no | `VERSION` | Path to the file holding `major.minor.patch`. |
+| `major-pr-label` | no | `needs-review` | PR label that hard-fails the release if any merged PR since the previous tag carries it. Defense-in-depth against a label that shouldn't be merged in the first place. |
 | `minor-pr-label` | no | `minor` | PR label that forces a minor bump when the ABI is compatible. |
 | `builder-version` | no | `latest` | Builder version/channel; also the ABI docker image tag. `latest` tracks the most recent published builder release. |
 | `dry-run` | no | `false` | Compute and summarize the bump/version but write/commit/tag/publish nothing. |

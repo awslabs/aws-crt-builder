@@ -9,6 +9,10 @@ inputs:
     description: 'Path to the file holding the current released version as "major.minor.patch".'
     required: false
     default: 'VERSION'
+  major-pr-label:
+    description: 'PR label that hard-fails the release. PRs with this label should never be merged (there is a separate gate for that); this scan is defense-in-depth in case one slipped through.'
+    required: false
+    default: 'needs-review'
   minor-pr-label:
     description: 'PR label that forces a minor bump when the ABI is compatible.'
     required: false
@@ -92,6 +96,7 @@ runs:
         PREVIOUS_TAG: ${{ steps.resolve.outputs.previous_tag }}
         ABI_LABEL: ${{ steps.check_abi.outputs.label }}
         VERSION_FILE: ${{ inputs.version-file }}
+        MAJOR_PR_LABEL: ${{ inputs.major-pr-label }}
         MINOR_PR_LABEL: ${{ inputs.minor-pr-label }}
       run: bash "${GITHUB_ACTION_PATH}/scripts/compute-version-bump.sh"
 
