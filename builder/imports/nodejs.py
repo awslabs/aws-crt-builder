@@ -168,3 +168,18 @@ class Node16(NodeJS):
 class Node18(NodeJS):
     def __init__(self, **kwargs):
         super().__init__(version='18', **kwargs)
+
+
+class Node20(NodeJS):
+    def __init__(self, **kwargs):
+        super().__init__(version='20', **kwargs)
+
+
+class Node22(NodeJS):
+    def __init__(self, **kwargs):
+        super().__init__(version='22', **kwargs)
+
+
+class Node24(NodeJS):
+    def __init__(self, **kwargs):
+        super().__init__(version='24', **kwargs)
