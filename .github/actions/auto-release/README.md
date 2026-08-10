@@ -52,12 +52,13 @@ Same as `check-abi` (this action calls it internally):
 - **Checkout with `fetch-depth: 0`** so tag history is available.
 - **Grant `contents: write`** so this action can create the release.
 - **Register a deploy key with write access** on the repo (Settings -> Deploy
-  keys), and store its private half in AWS Secrets Manager at
-  `deploy-key-secret-id`. This is what actually authorizes the push to the
-  default branch -- the job's own `github.token` never touches it, avoiding a
-  standing broad-scope PAT (same approach as aws-crt-swift's
-  `update-version.yml`: a repo-scoped key fetched fresh each run, not a
-  long-lived secret sitting in a user/bot account).
+  keys), and store its material in AWS Secrets Manager at
+  `deploy-key-secret-id`. The SecretString is expected to be a JSON blob
+  with a `.private_key` field (the PEM-encoded private half of the deploy
+  key), which this action reads. This is what actually authorizes the push
+  to the default branch -- the job's own `github.token` never touches it,
+  avoiding a standing broad-scope PAT: the repo-scoped key is fetched fresh
+  each run, not a long-lived secret sitting in a user/bot account.
 
 ## Usage
 
@@ -101,7 +102,7 @@ jobs:
 | `builder-version` | no | `latest` | Builder version/channel; also the ABI docker image tag. `latest` tracks the most recent published builder release. |
 | `dry-run` | no | `false` | Compute and summarize the bump/version but write/commit/tag/publish nothing. |
 | `github-token` | no | `github.token` | Token used to read PR labels and create the release. |
-| `deploy-key-secret-id` | no | `aws-crt-bot/deploy-key/privatekey` | AWS Secrets Manager secret ID holding the private half of the deploy key used to push the version-bump commit and tag. |
+| `deploy-key-secret-id` | no | `github-deploy-key/<owner>/<repo>` | AWS Secrets Manager secret ID holding the deploy key for this repo. SecretString is a JSON blob whose `.private_key` field holds the PEM. |
 
 ### Outputs
 

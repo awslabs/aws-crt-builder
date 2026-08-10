@@ -26,9 +26,9 @@ inputs:
     required: false
     default: ${{ github.token }}
   deploy-key-secret-id:
-    description: 'AWS Secrets Manager secret ID holding the private half of a deploy key registered (with write access) on this repository. Used to push the version-bump commit and tag directly to the default branch, the same way aws-crt-swift''s update-version.yml does -- a repo-scoped SSH key fetched fresh via the already-assumed CRT_CI_ROLE_ARN role, rather than a standing broad-scope PAT.'
+    description: 'AWS Secrets Manager secret ID holding the deploy key for this repository. The SecretString is expected to be a JSON blob with a `.private_key` field. Used to push the version-bump commit and tag directly to the default branch -- a repo-scoped SSH key fetched fresh via the already-assumed CRT_CI_ROLE_ARN role, rather than a standing broad-scope PAT.'
     required: false
-    default: 'aws-crt-bot/deploy-key/privatekey'
+    default: 'github-deploy-key/${{ github.repository }}'
 
 outputs:
   skip:

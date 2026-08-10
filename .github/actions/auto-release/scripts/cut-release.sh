@@ -2,13 +2,15 @@
 #
 # cut-release.sh - Fetch a repo-scoped deploy key from AWS Secrets Manager,
 # use it to push the bumped VERSION file straight to the default branch over
-# SSH, then tag the new commit and create the GitHub Release. Same mechanism
-# as aws-crt-swift's update-version.yml: the key is fetched fresh each run
-# via the already-assumed CRT_CI_ROLE_ARN role, used once, never persisted
-# past the job, and authorized to push directly -- no PR/admin-merge needed.
+# SSH, then tag the new commit and create the GitHub Release. The key is
+# fetched fresh each run via the already-assumed CRT_CI_ROLE_ARN role, used
+# once, never persisted past the job, and authorized to push directly -- no
+# PR/admin-merge needed and no standing broad-scope PAT.
 #
 # Inputs (env):
-#   DEPLOY_KEY_SECRET_ID  Secrets Manager secret ID holding the private key
+#   DEPLOY_KEY_SECRET_ID  Secrets Manager secret ID whose SecretString is a
+#                          JSON blob for this repo's deploy key
+#                          (`.private_key` extracted below)
 #   GH_TOKEN        token used to create the release (gh release create)
 #   REPO            "owner/repo"
 #   VERSION_FILE    path to the version file to write NEW_VERSION into
@@ -62,8 +64,13 @@ fi
 trap 'rm -f ~/.ssh/deploy_key' EXIT
 
 mkdir -p ~/.ssh
+# The secret's SecretString is a JSON blob; we want just the .private_key field.
 aws secretsmanager get-secret-value --secret-id "$DEPLOY_KEY_SECRET_ID" \
-  --query SecretString --output text > ~/.ssh/deploy_key
+  --query SecretString --output text | jq -r .private_key > ~/.ssh/deploy_key
+if [[ ! -s ~/.ssh/deploy_key ]] || ! head -1 ~/.ssh/deploy_key | grep -q "BEGIN"; then
+  echo "ERROR: '${DEPLOY_KEY_SECRET_ID}' did not yield a private key (jq .private_key produced no key material)." >&2
+  exit 1
+fi
 chmod 600 ~/.ssh/deploy_key
 
 ssh-keyscan -H github.com >> ~/.ssh/known_hosts
