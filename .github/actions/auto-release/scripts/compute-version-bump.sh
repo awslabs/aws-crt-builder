@@ -20,6 +20,9 @@
 #                    at HEAD is expected. If present, it must match the
 #                    previous tag's version (drift check). If absent, this
 #                    release creates it -- the file is not a hard prerequisite.
+#   MAJOR_PR_LABEL   PR label that hard-fails the release (major bumps are
+#                    never automated). Defense-in-depth: PRs with this label
+#                    are not supposed to be merged in the first place.
 #   MINOR_PR_LABEL   PR label that forces a minor bump
 #
 # Outputs (appended to $GITHUB_OUTPUT):
@@ -32,6 +35,7 @@ set -uo pipefail
 
 PREVIOUS_TAG="${PREVIOUS_TAG:?PREVIOUS_TAG must be set}"
 VERSION_FILE="${VERSION_FILE:?VERSION_FILE must be set}"
+MAJOR_PR_LABEL="${MAJOR_PR_LABEL:?MAJOR_PR_LABEL must be set}"
 MINOR_PR_LABEL="${MINOR_PR_LABEL:?MINOR_PR_LABEL must be set}"
 REPO="${REPO:?REPO must be set}"
 [[ "$REPO" =~ ^[^/[:space:]]+/[^/[:space:]]+$ ]] || {
@@ -90,6 +94,26 @@ if [[ "${ABI_LABEL:-}" == "needs-review" ]]; then
   echo "       never automated. Cut that tag yourself, then re-run this workflow." >&2
   summary ""
   summary "**FAILED: the ABI check returned \`needs-review\` -- an API break between \`${PREVIOUS_TAG}\` and this ref.**"
+  summary ""
+  summary "Major version bumps are never automated by this workflow. Cut the major tag manually, then re-run."
+  echo "skip=true" >> "$GITHUB_OUTPUT"
+  exit 1
+fi
+
+# --- Rule 1b ------------------------------------------------------------------
+# Defense-in-depth: PRs carrying the major PR label are gated from merging in
+# the first place, so this should never fire in practice. If it does (e.g. the
+# gate was bypassed), fail the release rather than tag a repo whose history
+# contains an API-breaking PR the maintainer hasn't manually resolved.
+MAJOR_PRS="$(prs_with_label "$MAJOR_PR_LABEL")" || {
+  echo "ERROR: 'gh pr list' failed while checking for '${MAJOR_PR_LABEL}'-labeled PRs." >&2
+  exit 1
+}
+if [[ -n "$MAJOR_PRS" ]]; then
+  echo "ERROR: PR(s) #${MAJOR_PRS} merged since ${PREVIOUS_TAG} carry the '${MAJOR_PR_LABEL}' label." >&2
+  echo "       Major version bumps are never automated. Cut that tag yourself, then re-run." >&2
+  summary ""
+  summary "**FAILED: PR(s) #${MAJOR_PRS} merged since \`${PREVIOUS_TAG}\` are labeled \`${MAJOR_PR_LABEL}\`.**"
   summary ""
   summary "Major version bumps are never automated by this workflow. Cut the major tag manually, then re-run."
   echo "skip=true" >> "$GITHUB_OUTPUT"
