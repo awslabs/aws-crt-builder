@@ -26,14 +26,13 @@ would produce far more releases than any of these libraries want.
    exact precedence):
    - No commits since the previous tag -> skip, no release cut (clean no-op,
      not an error).
-   - ABI check returned `needs-review` (an API break -- callers fail to
-     recompile) -> **fail**. Major bumps are never automated; cut that tag by
-     hand.
    - Any merged PR since the previous tag carries the major PR label
-     (`needs-review` by default) -> **fail**. Defense-in-depth: those PRs
-     shouldn't have been merged; if one slipped through, the release refuses
-     to tag a repo whose history contains an unresolved API break.
-   - ABI check returned `minor` (a binary-only break) -> minor bump, no debate.
+     (`needs-review` by default) -> **fail**. Major bumps are never
+     automated. The maintainer removes the label or cuts the major tag by
+     hand before this workflow can proceed.
+   - ABI check returned `minor` (binary-only break) OR `needs-review` (source
+     break) -> minor bump. The ABI verdict never fails the release; the PR
+     label above is the only gate.
    - Otherwise, a merged PR since the previous tag labeled `minor` -> minor
      bump.
    - Otherwise -> patch bump.

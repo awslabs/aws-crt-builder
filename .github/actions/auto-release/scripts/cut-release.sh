@@ -90,7 +90,7 @@ git config user.email "aws-sdk-common-runtime@amazon.com"
 
 printf '%s\n' "$NEW_VERSION" > "$VERSION_FILE"
 git add "$VERSION_FILE"
-git commit -m "Release ${NEW_VERSION} (${BUMP})"
+git commit -m "chore(release): bump VERSION to ${NEW_VERSION}"
 git push origin "$DEFAULT_BRANCH"
 
 git tag -a "$NEW_TAG" -m "Release ${NEW_VERSION}"

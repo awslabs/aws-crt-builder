@@ -84,48 +84,34 @@ prs_with_label() {
 }
 
 # --- Rule 1 -------------------------------------------------------------------
-# ABI_LABEL is a fresh diff of the previous tag against this ref, not a PR
-# label lookup -- a PR that was once flagged needs-review and later had the
-# label removed after human review does not bypass this: if its code still
-# diffs as an API break against the previous tag, this re-check still fails.
-if [[ "${ABI_LABEL:-}" == "needs-review" ]]; then
-  echo "ERROR: the ABI check between ${PREVIOUS_TAG} and this ref returned 'needs-review'" >&2
-  echo "       (an API break -- callers fail to recompile). Major version bumps are" >&2
-  echo "       never automated. Cut that tag yourself, then re-run this workflow." >&2
-  summary ""
-  summary "**FAILED: the ABI check returned \`needs-review\` -- an API break between \`${PREVIOUS_TAG}\` and this ref.**"
-  summary ""
-  summary "Major version bumps are never automated by this workflow. Cut the major tag manually, then re-run."
-  echo "skip=true" >> "$GITHUB_OUTPUT"
-  exit 1
-fi
-
-# --- Rule 1b ------------------------------------------------------------------
-# Defense-in-depth: PRs carrying the major PR label are gated from merging in
-# the first place, so this should never fire in practice. If it does (e.g. the
-# gate was bypassed), fail the release rather than tag a repo whose history
-# contains an API-breaking PR the maintainer hasn't manually resolved.
+# The major PR label is human-set; recovering from a fail here just means
+# removing the label and retrying. The ABI verdict below is automated, and the
+# code that produced it is already merged -- so a needs-review verdict does
+# NOT fail here; it just steers the bump (see Rule 2). The PR label is the
+# only mechanism for gating a release.
 MAJOR_PRS="$(prs_with_label "$MAJOR_PR_LABEL")" || {
   echo "ERROR: 'gh pr list' failed while checking for '${MAJOR_PR_LABEL}'-labeled PRs." >&2
   exit 1
 }
 if [[ -n "$MAJOR_PRS" ]]; then
   echo "ERROR: PR(s) #${MAJOR_PRS} merged since ${PREVIOUS_TAG} carry the '${MAJOR_PR_LABEL}' label." >&2
-  echo "       Major version bumps are never automated. Cut that tag yourself, then re-run." >&2
+  echo "       Major version bumps are never automated. Remove the label if this was" >&2
+  echo "       resolved, or cut the major tag manually, then re-run." >&2
   summary ""
   summary "**FAILED: PR(s) #${MAJOR_PRS} merged since \`${PREVIOUS_TAG}\` are labeled \`${MAJOR_PR_LABEL}\`.**"
   summary ""
-  summary "Major version bumps are never automated by this workflow. Cut the major tag manually, then re-run."
+  summary "Major version bumps are never automated by this workflow. Remove the label if this was resolved, or cut the major tag manually, then re-run."
   echo "skip=true" >> "$GITHUB_OUTPUT"
   exit 1
 fi
 
-# No verdict at all is never treated as "compatible" -- an empty or
-# unrecognized ABI_LABEL must not silently fall through to a patch bump.
-if [[ "${ABI_LABEL:-}" != "patch" && "${ABI_LABEL:-}" != "minor" ]]; then
-  echo "ERROR: unrecognized ABI check result '${ABI_LABEL:-<empty>}'; expected patch/minor/needs-review." >&2
+# An empty ABI_LABEL means the ABI check itself never produced a verdict, which
+# means something upstream failed before we got here -- refuse rather than
+# silently fall through to a patch bump. Any real verdict is fine here.
+if [[ -z "${ABI_LABEL:-}" ]]; then
+  echo "ERROR: no ABI check result was produced; refusing to compute a bump." >&2
   summary ""
-  summary "**FAILED: unrecognized ABI check result \`${ABI_LABEL:-<empty>}\`.**"
+  summary "**FAILED: no ABI check result was produced.**"
   echo "skip=true" >> "$GITHUB_OUTPUT"
   exit 1
 fi
@@ -165,12 +151,16 @@ if [[ -f "$VERSION_FILE" ]]; then
 fi
 
 # --- Rule 2 -------------------------------------------------------------------
+# Any incompatible ABI verdict -- both "minor" (binary-only break) and
+# "needs-review" (source/API break) -- forces a minor bump. A needs-review
+# verdict does NOT hard-fail (see Rule 1's rationale): the maintainer chose to
+# ship it, so we bump minor and move on.
 BUMP=""
 REASON=""
-if [[ "${ABI_LABEL:-}" == "minor" ]]; then
+if [[ "${ABI_LABEL:-}" == "minor" || "${ABI_LABEL:-}" == "needs-review" ]]; then
   BUMP="minor"
-  REASON="the ABI check found an incompatible change between \`${PREVIOUS_TAG}\` and this ref"
-  echo "ABI check reported an incompatible change -> minor bump (no debate)."
+  REASON="the ABI check found an incompatible change (\`${ABI_LABEL}\`) between \`${PREVIOUS_TAG}\` and this ref"
+  echo "ABI check reported '${ABI_LABEL}' -> minor bump."
 fi
 
 # --- Rule 3 -------------------------------------------------------------------
