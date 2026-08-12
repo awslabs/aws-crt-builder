@@ -79,7 +79,7 @@ jobs:
         PINS_FILE="_builder/.github/nightly-pins.yml"
         for dir in crt/aws-c-* crt/aws-checksums; do
           repo=$(basename "$dir")
-          pin=$(grep "^  $repo:" "$PINS_FILE" 2>/dev/null | awk '{print $2}' || true)
+          pin=$(grep -E "^\s+$repo:" "$PINS_FILE" 2>/dev/null | awk '{print $2}' || true)
           if [ -n "$pin" ]; then
             echo "PINNED: $dir -> $pin"
             (cd "$dir" && git fetch origin && git checkout "$pin")
@@ -124,7 +124,7 @@ jobs:
         PINS_FILE="_builder/.github/nightly-pins.yml"
         for dir in crt/aws-c-* crt/aws-checksums; do
           repo=$(basename "$dir")
-          pin=$(grep "^  $repo:" "$PINS_FILE" 2>/dev/null | awk '{print $2}' || true)
+          pin=$(grep -E "^\s+$repo:" "$PINS_FILE" 2>/dev/null | awk '{print $2}' || true)
           if [ -n "$pin" ]; then
             echo "PINNED: $dir -> $pin"
             (cd "$dir" && git fetch origin && git checkout "$pin")
@@ -162,7 +162,7 @@ jobs:
         PINS_FILE="_builder/.github/nightly-pins.yml"
         for dir in crt/aws-c-* crt/aws-checksums; do
           repo=$(basename "$dir")
-          pin=$(grep "^  $repo:" "$PINS_FILE" 2>/dev/null | awk '{print $2}' || true)
+          pin=$(grep -E "^\s+$repo:" "$PINS_FILE" 2>/dev/null | awk '{print $2}' || true)
           if [ -n "$pin" ]; then
             echo "PINNED: $dir -> $pin"
             (cd "$dir" && git fetch origin && git checkout "$pin")
@@ -215,7 +215,7 @@ jobs:
         PINS_FILE="_builder/.github/nightly-pins.yml"
         for dir in crt/aws-c-* crt/aws-checksums; do
           repo=$(basename "$dir")
-          pin=$(grep "^  $repo:" "$PINS_FILE" 2>/dev/null | awk '{print $2}' || true)
+          pin=$(grep -E "^\s+$repo:" "$PINS_FILE" 2>/dev/null | awk '{print $2}' || true)
           if [ -n "$pin" ]; then
             echo "PINNED: $dir -> $pin"
             (cd "$dir" && git fetch origin && git checkout "$pin")
@@ -254,7 +254,7 @@ jobs:
         PINS_FILE="_builder/.github/nightly-pins.yml"
         for dir in crt/aws-c-* crt/aws-checksums; do
           repo=$(basename "$dir")
-          pin=$(grep "^  $repo:" "$PINS_FILE" 2>/dev/null | awk '{print $2}' || true)
+          pin=$(grep -E "^\s+$repo:" "$PINS_FILE" 2>/dev/null | awk '{print $2}' || true)
           if [ -n "$pin" ]; then
             echo "PINNED: $dir -> $pin"
             (cd "$dir" && git fetch origin && git checkout "$pin")
@@ -292,7 +292,7 @@ jobs:
         PINS_FILE="_builder/.github/nightly-pins.yml"
         for dir in crt/aws-c-* crt/aws-checksums; do
           repo=$(basename "$dir")
-          pin=$(grep "^  $repo:" "$PINS_FILE" 2>/dev/null | awk '{print $2}' || true)
+          pin=$(grep -E "^\s+$repo:" "$PINS_FILE" 2>/dev/null | awk '{print $2}' || true)
           if [ -n "$pin" ]; then
             echo "PINNED: $dir -> $pin"
             (cd "$dir" && git fetch origin && git checkout "$pin")
@@ -329,7 +329,7 @@ jobs:
         PINS_FILE="_builder/.github/nightly-pins.yml"
         for dir in crt/aws-c-* crt/aws-checksums; do
           repo=$(basename "$dir")
-          pin=$(grep "^  $repo:" "$PINS_FILE" 2>/dev/null | awk '{print $2}' || true)
+          pin=$(grep -E "^\s+$repo:" "$PINS_FILE" 2>/dev/null | awk '{print $2}' || true)
           if [ -n "$pin" ]; then
             echo "PINNED: $dir -> $pin"
             (cd "$dir" && git fetch origin && git checkout "$pin")
@@ -370,7 +370,7 @@ jobs:
         PINS_FILE="_builder/.github/nightly-pins.yml"
         for dir in crt/aws-c-* crt/aws-checksums; do
           repo=$(basename "$dir")
-          pin=$(grep "^  $repo:" "$PINS_FILE" 2>/dev/null | awk '{print $2}' || true)
+          pin=$(grep -E "^\s+$repo:" "$PINS_FILE" 2>/dev/null | awk '{print $2}' || true)
           if [ -n "$pin" ]; then
             echo "PINNED: $dir -> $pin"
             (cd "$dir" && git fetch origin && git checkout "$pin")

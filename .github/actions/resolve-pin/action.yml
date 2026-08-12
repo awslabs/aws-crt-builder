@@ -1,0 +1,38 @@
+name: Resolve nightly pin
+description: >
+  Checks if a package is pinned in .github/nightly-pins.yml and outputs the
+  appropriate branch argument for the builder.
+
+inputs:
+  package:
+    description: Package name to look up in the pins file
+    required: true
+
+outputs:
+  branch_arg:
+    description: "'-b <sha>' if pinned, empty string otherwise"
+    value: ${{ steps.pin.outputs.branch_arg }}
+
+runs:
+  using: composite
+  steps:
+    - name: Checkout pins file
+      uses: actions/checkout@v4
+      with:
+        path: _pins
+        sparse-checkout: .github/nightly-pins.yml
+        sparse-checkout-cone-mode: false
+
+    - name: Look up pin for ${{ inputs.package }}
+      id: pin
+      shell: bash
+      run: |
+        PINS_FILE="_pins/.github/nightly-pins.yml"
+        pin=$(grep -E "^\s+${{ inputs.package }}:" "$PINS_FILE" 2>/dev/null | awk '{print $2}' || true)
+        if [ -n "$pin" ]; then
+          echo "PINNED: ${{ inputs.package }} -> $pin"
+          echo "branch_arg=-b $pin" >> "$GITHUB_OUTPUT"
+        else
+          echo "No pin for ${{ inputs.package }}, using main"
+          echo "branch_arg=" >> "$GITHUB_OUTPUT"
+        fi
