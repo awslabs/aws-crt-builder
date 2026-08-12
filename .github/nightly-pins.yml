@@ -14,4 +14,5 @@
 # If a pin has been active for >7 days, or if main has moved past the issue
 # that caused the pin, emit a warning (GitHub Actions annotation or Slack notification).
 
-pins: {}
+pins:
+  aws-c-common: f61b4db6a8f387f59cc2c5244e162d51bc68b7c6  # check msan fix
