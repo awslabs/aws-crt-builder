@@ -68,26 +68,10 @@ jobs:
       with:
         repository: awslabs/aws-crt-cpp
         submodules: true
-    - name: Checkout pins file
-      uses: actions/checkout@v4
+    - name: Update submodules from pins
+      uses: ./.github/actions/resolve-pin
       with:
-        path: _builder
-        sparse-checkout: .github/nightly-pins.yml
-        sparse-checkout-cone-mode: false
-    - name: Update submodules to main or pinned commit
-      run: |
-        PINS_FILE="_builder/.github/nightly-pins.yml"
-        for dir in crt/aws-c-* crt/aws-checksums; do
-          repo=$(basename "$dir")
-          pin=$(grep -E "^\s+$repo:" "$PINS_FILE" 2>/dev/null | awk '{print $2}' || true)
-          if [ -n "$pin" ]; then
-            echo "PINNED: $dir -> $pin"
-            (cd "$dir" && git fetch origin && git checkout "$pin")
-          else
-            echo "Updating $dir to main..."
-            (cd "$dir" && git fetch origin main && git checkout origin/main)
-          fi
-        done
+        submodule-dirs: "crt/aws-c-* crt/aws-checksums"
     - name: Build ${{ env.PACKAGE_NAME }}
       run: |
         aws s3 cp s3://aws-crt-test-stuff/ci/${{ env.BUILDER_VERSION }}/linux-container-ci.sh ./linux-container-ci.sh && chmod a+x ./linux-container-ci.sh
@@ -113,26 +97,10 @@ jobs:
       with:
         repository: awslabs/aws-crt-cpp
         submodules: true
-    - name: Checkout pins file
-      uses: actions/checkout@v4
+    - name: Update submodules from pins
+      uses: ./.github/actions/resolve-pin
       with:
-        path: _builder
-        sparse-checkout: .github/nightly-pins.yml
-        sparse-checkout-cone-mode: false
-    - name: Update submodules to main or pinned commit
-      run: |
-        PINS_FILE="_builder/.github/nightly-pins.yml"
-        for dir in crt/aws-c-* crt/aws-checksums; do
-          repo=$(basename "$dir")
-          pin=$(grep -E "^\s+$repo:" "$PINS_FILE" 2>/dev/null | awk '{print $2}' || true)
-          if [ -n "$pin" ]; then
-            echo "PINNED: $dir -> $pin"
-            (cd "$dir" && git fetch origin && git checkout "$pin")
-          else
-            echo "Updating $dir to main..."
-            (cd "$dir" && git fetch origin main && git checkout origin/main)
-          fi
-        done
+        submodule-dirs: "crt/aws-c-* crt/aws-checksums"
     - name: Build ${{ env.PACKAGE_NAME }}
       run: |
         aws s3 cp s3://aws-crt-test-stuff/ci/${{ env.BUILDER_VERSION }}/linux-container-ci.sh ./linux-container-ci.sh && chmod a+x ./linux-container-ci.sh
@@ -151,26 +119,10 @@ jobs:
       with:
         repository: awslabs/aws-crt-cpp
         submodules: true
-    - name: Checkout pins file
-      uses: actions/checkout@v4
+    - name: Update submodules from pins
+      uses: ./.github/actions/resolve-pin
       with:
-        path: _builder
-        sparse-checkout: .github/nightly-pins.yml
-        sparse-checkout-cone-mode: false
-    - name: Update submodules to main or pinned commit
-      run: |
-        PINS_FILE="_builder/.github/nightly-pins.yml"
-        for dir in crt/aws-c-* crt/aws-checksums; do
-          repo=$(basename "$dir")
-          pin=$(grep -E "^\s+$repo:" "$PINS_FILE" 2>/dev/null | awk '{print $2}' || true)
-          if [ -n "$pin" ]; then
-            echo "PINNED: $dir -> $pin"
-            (cd "$dir" && git fetch origin && git checkout "$pin")
-          else
-            echo "Updating $dir to main..."
-            (cd "$dir" && git fetch origin main && git checkout origin/main)
-          fi
-        done
+        submodule-dirs: "crt/aws-c-* crt/aws-checksums"
     - name: Install CMake 3.10 (effective min due to s2n dependency)
       run: |
         wget -q https://github.com/Kitware/CMake/releases/download/v3.10.3/cmake-3.10.3-Linux-x86_64.tar.gz
@@ -204,26 +156,10 @@ jobs:
       with:
         repository: awslabs/aws-crt-cpp
         submodules: true
-    - name: Checkout pins file
-      uses: actions/checkout@v4
+    - name: Update submodules from pins
+      uses: ./.github/actions/resolve-pin
       with:
-        path: _builder
-        sparse-checkout: .github/nightly-pins.yml
-        sparse-checkout-cone-mode: false
-    - name: Update submodules to main or pinned commit
-      run: |
-        PINS_FILE="_builder/.github/nightly-pins.yml"
-        for dir in crt/aws-c-* crt/aws-checksums; do
-          repo=$(basename "$dir")
-          pin=$(grep -E "^\s+$repo:" "$PINS_FILE" 2>/dev/null | awk '{print $2}' || true)
-          if [ -n "$pin" ]; then
-            echo "PINNED: $dir -> $pin"
-            (cd "$dir" && git fetch origin && git checkout "$pin")
-          else
-            echo "Updating $dir to main..."
-            (cd "$dir" && git fetch origin main && git checkout origin/main)
-          fi
-        done
+        submodule-dirs: "crt/aws-c-* crt/aws-checksums"
     - name: Build ${{ env.PACKAGE_NAME }} with sanitizers
       run: |
         aws s3 cp s3://aws-crt-test-stuff/ci/${{ env.BUILDER_VERSION }}/linux-container-ci.sh ./linux-container-ci.sh && chmod a+x ./linux-container-ci.sh
@@ -243,26 +179,10 @@ jobs:
       with:
         repository: awslabs/aws-crt-cpp
         submodules: true
-    - name: Checkout pins file
-      uses: actions/checkout@v4
+    - name: Update submodules from pins
+      uses: ./.github/actions/resolve-pin
       with:
-        path: _builder
-        sparse-checkout: .github/nightly-pins.yml
-        sparse-checkout-cone-mode: false
-    - name: Update submodules to main or pinned commit
-      run: |
-        PINS_FILE="_builder/.github/nightly-pins.yml"
-        for dir in crt/aws-c-* crt/aws-checksums; do
-          repo=$(basename "$dir")
-          pin=$(grep -E "^\s+$repo:" "$PINS_FILE" 2>/dev/null | awk '{print $2}' || true)
-          if [ -n "$pin" ]; then
-            echo "PINNED: $dir -> $pin"
-            (cd "$dir" && git fetch origin && git checkout "$pin")
-          else
-            echo "Updating $dir to main..."
-            (cd "$dir" && git fetch origin main && git checkout origin/main)
-          fi
-        done
+        submodule-dirs: "crt/aws-c-* crt/aws-checksums"
     - name: Build ${{ env.PACKAGE_NAME }} with MSan
       run: |
         aws s3 cp s3://aws-crt-test-stuff/ci/${{ env.BUILDER_VERSION }}/linux-container-ci.sh ./linux-container-ci.sh && chmod a+x ./linux-container-ci.sh
@@ -281,26 +201,10 @@ jobs:
       with:
         repository: awslabs/aws-crt-cpp
         submodules: true
-    - name: Checkout pins file
-      uses: actions/checkout@v4
+    - name: Update submodules from pins
+      uses: ./.github/actions/resolve-pin
       with:
-        path: _builder
-        sparse-checkout: .github/nightly-pins.yml
-        sparse-checkout-cone-mode: false
-    - name: Update submodules to main or pinned commit
-      run: |
-        PINS_FILE="_builder/.github/nightly-pins.yml"
-        for dir in crt/aws-c-* crt/aws-checksums; do
-          repo=$(basename "$dir")
-          pin=$(grep -E "^\s+$repo:" "$PINS_FILE" 2>/dev/null | awk '{print $2}' || true)
-          if [ -n "$pin" ]; then
-            echo "PINNED: $dir -> $pin"
-            (cd "$dir" && git fetch origin && git checkout "$pin")
-          else
-            echo "Updating $dir to main..."
-            (cd "$dir" && git fetch origin main && git checkout origin/main)
-          fi
-        done
+        submodule-dirs: "crt/aws-c-* crt/aws-checksums"
     - name: Build and test ${{ env.PACKAGE_NAME }}
       run: |
         aws s3 cp s3://aws-crt-test-stuff/ci/${{ env.BUILDER_VERSION }}/linux-container-ci.sh ./linux-container-ci.sh && chmod a+x ./linux-container-ci.sh
@@ -318,26 +222,10 @@ jobs:
       with:
         repository: awslabs/aws-crt-cpp
         submodules: true
-    - name: Checkout pins file
-      uses: actions/checkout@v4
+    - name: Update submodules from pins
+      uses: ./.github/actions/resolve-pin
       with:
-        path: _builder
-        sparse-checkout: .github/nightly-pins.yml
-        sparse-checkout-cone-mode: false
-    - name: Update submodules to main or pinned commit
-      run: |
-        PINS_FILE="_builder/.github/nightly-pins.yml"
-        for dir in crt/aws-c-* crt/aws-checksums; do
-          repo=$(basename "$dir")
-          pin=$(grep -E "^\s+$repo:" "$PINS_FILE" 2>/dev/null | awk '{print $2}' || true)
-          if [ -n "$pin" ]; then
-            echo "PINNED: $dir -> $pin"
-            (cd "$dir" && git fetch origin && git checkout "$pin")
-          else
-            echo "Updating $dir to main..."
-            (cd "$dir" && git fetch origin main && git checkout origin/main)
-          fi
-        done
+        submodule-dirs: "crt/aws-c-* crt/aws-checksums"
     - name: Build and test ${{ env.PACKAGE_NAME }}
       run: |
         python3 -m venv .venv
@@ -358,27 +246,10 @@ jobs:
       with:
         repository: awslabs/aws-crt-cpp
         submodules: true
-    - name: Checkout pins file
-      uses: actions/checkout@v4
+    - name: Update submodules from pins
+      uses: ./.github/actions/resolve-pin
       with:
-        path: _builder
-        sparse-checkout: .github/nightly-pins.yml
-        sparse-checkout-cone-mode: false
-    - name: Update submodules to main or pinned commit
-      shell: bash
-      run: |
-        PINS_FILE="_builder/.github/nightly-pins.yml"
-        for dir in crt/aws-c-* crt/aws-checksums; do
-          repo=$(basename "$dir")
-          pin=$(grep -E "^\s+$repo:" "$PINS_FILE" 2>/dev/null | awk '{print $2}' || true)
-          if [ -n "$pin" ]; then
-            echo "PINNED: $dir -> $pin"
-            (cd "$dir" && git fetch origin && git checkout "$pin")
-          else
-            echo "Updating $dir to main..."
-            (cd "$dir" && git fetch origin main && git checkout origin/main)
-          fi
-        done
+        submodule-dirs: "crt/aws-c-* crt/aws-checksums"
     - name: Build and test ${{ env.PACKAGE_NAME }}
       run: |
         python -c "from urllib.request import urlretrieve; urlretrieve('${{ env.BUILDER_HOST }}/${{ env.BUILDER_SOURCE }}/${{ env.BUILDER_VERSION }}/builder.pyz?run=${{ env.RUN }}', 'builder.pyz')"
