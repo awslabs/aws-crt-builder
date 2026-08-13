@@ -4,7 +4,7 @@
 
 from builder.core.fetch import fetch_script, fetch_and_extract
 from builder.core.host import current_os, current_arch
-from builder.core.project import Import
+from builder.core.project import Import, Project
 import builder.core.util as util
 from builder.actions.install import InstallPackages
 from builder.actions.script import Script
@@ -149,37 +149,25 @@ class NodeJS(Import):
         node_path = '{}/{}/bin'.format(extra_path, package_name)
         sh.setenv('PATH', '{}{}{}'.format(node_path, os.pathsep, sh.getenv('PATH')))
 
+# Matches import names like "node-20", "node20", "nodejs-22", etc.
+# The base "nodejs" import (no digits) is handled by the NodeJS class itself.
+_NODE_VERSION_RE = re.compile(r'^node(?:js)?-?(\d+)$')
 
-class Node12(NodeJS):
+
+def find_node(name):
+    """Dynamically create a NodeJS import for any requested node version.
+
+    """
+    match = _NODE_VERSION_RE.match(name.lower())
+    if not match:
+        return None
+    version = match.group(1)
+
     def __init__(self, **kwargs):
-        super().__init__(version='12', **kwargs)
+        NodeJS.__init__(self, version=version, **kwargs)
+
+    return type('Node{}'.format(version), (NodeJS,), {'__init__': __init__})
 
 
-class Node14(NodeJS):
-    def __init__(self, **kwargs):
-        super().__init__(version='14', **kwargs)
-
-
-class Node16(NodeJS):
-    def __init__(self, **kwargs):
-        super().__init__(version='16', **kwargs)
-
-
-class Node18(NodeJS):
-    def __init__(self, **kwargs):
-        super().__init__(version='18', **kwargs)
-
-
-class Node20(NodeJS):
-    def __init__(self, **kwargs):
-        super().__init__(version='20', **kwargs)
-
-
-class Node22(NodeJS):
-    def __init__(self, **kwargs):
-        super().__init__(version='22', **kwargs)
-
-
-class Node24(NodeJS):
-    def __init__(self, **kwargs):
-        super().__init__(version='24', **kwargs)
+# Let builder resolve any node version by name.
+Project.node_finders.append(find_node)

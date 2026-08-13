@@ -452,6 +452,10 @@ class Project(object):
 
     search_dirs = []
 
+    # Finders that build an import class by name when no class matches (e.g.
+    # node versions). Imports register their own by appending here.
+    node_finders = []
+
     def __init__(self, **kwargs):
         self.account = kwargs.get('account', 'awslabs')
         self.name = kwargs.get('name', self.__class__.__name__.lower().replace('project', ''))
@@ -724,6 +728,15 @@ class Project(object):
         return Scripts.find_import(name)
 
     @staticmethod
+    def get_node_class(name):
+        # Ask finder to build an import class by name; return the first.
+        for finder in Project.node_finders:
+            cls = finder(name)
+            if cls:
+                return cls
+        return None
+
+    @staticmethod
     def _create_project(name, **kwargs):
         if 'name' not in kwargs:
             kwargs['name'] = name
@@ -836,7 +849,7 @@ class Project(object):
 
         for h in hints:
             Scripts.load(h)
-        imp_cls = Project._find_import_class(name)
+        imp_cls = Project._find_import_class(name) or Project.get_node_class(name)
         if imp_cls:
             return Project._cache_import(imp_cls())
         return Import(name=name, resolved=False)
