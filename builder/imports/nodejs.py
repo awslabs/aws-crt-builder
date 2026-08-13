@@ -149,6 +149,7 @@ class NodeJS(Import):
         node_path = '{}/{}/bin'.format(extra_path, package_name)
         sh.setenv('PATH', '{}{}{}'.format(node_path, os.pathsep, sh.getenv('PATH')))
 
+
 # Matches import names like "node-20", "node20", "nodejs-22", etc.
 # The base "nodejs" import (no digits) is handled by the NodeJS class itself.
 _NODE_VERSION_RE = re.compile(r'^node(?:js)?-?(\d+)$')
