@@ -156,7 +156,6 @@ class Env(object):
             branches_unfiltered = [branch.strip() for branch in branch_output.splitlines()]
             print("Found branches:", branches_unfiltered)
 
-            branches = []
             star_branch = None
             for line in branches_unfiltered:
                 branch = line.lstrip('*').strip()
@@ -165,24 +164,23 @@ class Env(object):
                 if branch.startswith('('):
                     continue
 
+                # only the '*' entry tells us the branch we're actually on
                 if line.startswith('*'):
                     star_branch = branch
-
-                branches.append(branch)
+                    break
 
             # if git branch says we're on a branch, that's it
             if star_branch:
                 print('Working in branch: {}'.format(star_branch))
                 return star_branch
 
-            # pick the first one (it should be the only one, if it's a fresh sync)
-            for branch in branches:
-                origin_str = "remotes/origin/"
-                if branch.startswith(origin_str):
-                    branch = branch[len(origin_str):]
-
-                print('Working in branch: {}'.format(branch))
-                return branch
+            # Detached HEAD (a git worktree, a tag/sha checkout, or a CI merge
+            # ref): the commit can be contained by many branches and there is no
+            # reliable way to know which one we're "on". Do NOT guess by taking
+            # the first entry from `git branch --contains` -- an arbitrary pick
+            # silently drives cross-repo branch matching to the wrong dependency
+            # branch. Default to main instead of guessing.
+            print("Detached HEAD; can't determine branch reliably, defaulting to main")
         except:
             print("Current directory ({}) is not a git repository".format(os.getcwd()))
 
