@@ -61,6 +61,22 @@ if git ls-remote --exit-code --tags origin "refs/tags/v${NEW_VERSION}" > /dev/nu
   exit 1
 fi
 
+# Detect a half-completed prior release: tip of the default branch is a
+# "Release X" commit but no matching tag exists on origin. Refuse to layer a
+# new release on top of the broken state.
+git fetch origin --tags --quiet
+LATEST_MSG="$(git log -1 --format=%s "origin/$(git symbolic-ref --short HEAD)")"
+if [[ "$LATEST_MSG" =~ ^Release[[:space:]]+([0-9]+\.[0-9]+\.[0-9]+) ]]; then
+  ORPHAN_VER="${BASH_REMATCH[1]}"
+  if ! git ls-remote --exit-code --tags origin "refs/tags/v${ORPHAN_VER}" >/dev/null 2>&1; then
+    echo "ERROR: tip of default branch is 'Release ${ORPHAN_VER}' but tag 'v${ORPHAN_VER}' is absent on origin." >&2
+    echo "       A previous release run half-completed. Recover manually before re-running:" >&2
+    echo "         gh release create v${ORPHAN_VER} --repo ${REPO} --generate-notes --notes-start-tag <prev>" >&2
+    echo "       or revert the release commit if the release was abandoned." >&2
+    exit 1
+  fi
+fi
+
 trap 'rm -f ~/.ssh/deploy_key' EXIT
 
 mkdir -p ~/.ssh
@@ -91,10 +107,20 @@ git config user.email "aws-sdk-common-runtime@amazon.com"
 printf '%s\n' "$NEW_VERSION" > "$VERSION_FILE"
 git add "$VERSION_FILE"
 git commit -m "Release ${NEW_VERSION} (${BUMP})"
-git push origin "$DEFAULT_BRANCH"
-
 git tag -a "$NEW_TAG" -m "Release ${NEW_VERSION}"
-git push origin "$NEW_TAG"
+
+# --atomic: server updates both refs in a single receive-pack transaction, so
+# a mid-push failure leaves origin untouched (main and tag either both land or
+# neither does).
+PUSH_SUCCEEDED=0
+trap 'if [[ "$PUSH_SUCCEEDED" -eq 1 ]] && ! gh release view "$NEW_TAG" --repo "$REPO" >/dev/null 2>&1; then
+        echo "WARNING: commit + tag are pushed but the GitHub Release was not created." >&2
+        echo "         Recover with: gh release create $NEW_TAG --repo $REPO --title $NEW_VERSION --generate-notes --notes-start-tag $PREVIOUS_TAG" >&2
+      fi
+      rm -f ~/.ssh/deploy_key' EXIT
+
+git push --atomic origin "$DEFAULT_BRANCH" "$NEW_TAG"
+PUSH_SUCCEEDED=1
 
 gh release create "$NEW_TAG" \
   --repo "$REPO" \
