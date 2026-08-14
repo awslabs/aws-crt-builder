@@ -100,3 +100,23 @@ run_stage compare.sh
 # Publish the summary and gate, mirroring action.yml's always() steps.
 python3 "${SCRIPT_DIR}/report.py" || true
 bash "${SCRIPT_DIR}/gate.sh"
+GATE_RC=$?
+
+# --- Stage the ABI reports where the host can upload them --------------------
+# ABI_OUT_DIR lives on the container's tmpfs and disappears with the container.
+# Copy it under $GITHUB_WORKSPACE (bind-mounted from the host) so a downstream
+# upload-artifact step can grab it. Include the ABI dumps and the constants
+# report so a per-symbol diff is inspectable long after the run has ended --
+# without an artifact upload path the log only tells you "97.7%", not which
+# symbol drove that percentage.
+if [[ -n "${ABI_OUT_DIR:-}" && -d "$ABI_OUT_DIR" && -n "${GITHUB_WORKSPACE:-}" ]]; then
+  STAGE_DIR="${GITHUB_WORKSPACE}/abi-report"
+  mkdir -p "$STAGE_DIR"
+  cp -a "$ABI_OUT_DIR"/. "$STAGE_DIR/" 2>/dev/null || true
+  if [[ -n "${ABI_REMOVED_CONSTANTS_FILE:-}" && -f "$ABI_REMOVED_CONSTANTS_FILE" ]]; then
+    cp -a "$ABI_REMOVED_CONSTANTS_FILE" "$STAGE_DIR/removed-constants.txt" 2>/dev/null || true
+  fi
+  echo "ABI reports staged for artifact upload at ${STAGE_DIR}"
+fi
+
+exit "$GATE_RC"

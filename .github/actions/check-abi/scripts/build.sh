@@ -109,6 +109,60 @@ rc_base=0; wait "$pid_base" || rc_base=$?
   echo "ABI_BASE_INSTALL=${BASE_INSTALL}"
 } >> "$GITHUB_ENV"
 
+# --- Log the exact upstream dep SHAs each build resolved ---------------------
+# builder pulls upstream libs (aws-c-common, aws-c-io, ...) from HEAD of their
+# default branch at run time, so the two builds don't necessarily see the same
+# commit -- a push landing between the two clones would silently split them.
+# Emit each dep's resolved SHA + describe here for both refs, both in the log
+# (grep-friendly) and in the job summary (side-by-side compare) so a surprising
+# ABI verdict can be triaged against dep drift instead of guessed at.
+log_dep_shas() {
+  local label="$1" src_dir="$2"
+  local deps_dir="${src_dir}/build/deps" dep dep_name sha describe
+  echo "=== deps resolved for ${label} build (${src_dir}) ==="
+  if [[ ! -d "$deps_dir" ]]; then
+    echo "  (no build/deps dir found at ${deps_dir})"
+    return
+  fi
+  for dep in "$deps_dir"/*/; do
+    [[ -d "${dep}.git" ]] || continue
+    dep_name="$(basename "$dep")"
+    sha="$(git -C "$dep" rev-parse HEAD 2>/dev/null || echo '?')"
+    describe="$(git -C "$dep" describe --tags --always --long 2>/dev/null || echo '?')"
+    printf '  %-25s %s  (%s)\n' "$dep_name" "$sha" "$describe"
+  done
+}
+
+log_dep_shas "HEAD" "$HEAD_DIR"
+log_dep_shas "BASE (${BASE_REF})" "$BASE_WORKTREE"
+
+if [[ -n "${GITHUB_STEP_SUMMARY:-}" ]]; then
+  # Build a base<->head SHA table so mismatches jump out. Any dep whose SHA
+  # differs between the two builds is a candidate root cause for a surprising
+  # ABI verdict.
+  head_deps_dir="${HEAD_DIR}/build/deps"
+  base_deps_dir="${BASE_WORKTREE}/build/deps"
+  {
+    echo
+    echo "### Resolved dependency versions"
+    echo
+    echo "| Dep | Base SHA | Head SHA | Match |"
+    echo "|-----|----------|----------|-------|"
+    if [[ -d "$head_deps_dir" || -d "$base_deps_dir" ]]; then
+      # Union of dep names across both trees.
+      { ls "$head_deps_dir" 2>/dev/null; ls "$base_deps_dir" 2>/dev/null; } | sort -u | while read -r dep_name; do
+        [[ -z "$dep_name" ]] && continue
+        base_sha="$(git -C "${base_deps_dir}/${dep_name}" rev-parse HEAD 2>/dev/null || echo 'missing')"
+        head_sha="$(git -C "${head_deps_dir}/${dep_name}" rev-parse HEAD 2>/dev/null || echo 'missing')"
+        if [[ "$base_sha" == "$head_sha" ]]; then match=":white_check_mark:"; else match=":warning:"; fi
+        printf '| %s | `%s` | `%s` | %s |\n' "$dep_name" "${base_sha:0:12}" "${head_sha:0:12}" "$match"
+      done
+    else
+      echo "| (no build/deps dirs found) | - | - | - |"
+    fi
+  } >> "$GITHUB_STEP_SUMMARY"
+fi
+
 if [[ "$rc_head" -ne 0 ]]; then
   echo "ERROR: HEAD build failed (exit $rc_head)" >&2
   exit 1
