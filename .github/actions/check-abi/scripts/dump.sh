@@ -2,13 +2,22 @@
 #
 # dump.sh - Locate the built shared library for each ref and dump its ABI.
 #
-# cmake installs only public headers to the install tree, so we point
-# abi-dumper at <install>/include to scope the dump to the public API.
+# The install tree at <install>/include/aws/ is a UNION of every library in
+# the dep graph: aws-c-common/, aws-c-io/, aws-c-cal/, ... and finally the
+# target library's own headers. Pointing abi-dumper at <install>/include
+# would silently pull transitive dep types into this library's ABI dump, so
+# an aws-c-io struct change would surface as this library's ABI drift.
+# Scope -public-headers to just <install>/include/aws/<subdir>/ instead --
+# subdir derived from LIB_NAME (aws-c-X -> X, aws-X -> X), overridable via
+# ABI_HEADER_SUBDIR for outliers (aws-c-iot installs under aws/iotdevice/).
 #
 # Inputs (env):
-#   ABI_LIB_NAME      library name -> lib<name>.so
-#   ABI_HEAD_INSTALL  install prefix of the head build
-#   ABI_BASE_INSTALL  install prefix of the base build
+#   ABI_LIB_NAME       library name -> lib<name>.so
+#   ABI_HEAD_INSTALL   install prefix of the head build
+#   ABI_BASE_INSTALL   install prefix of the base build
+#   ABI_HEADER_SUBDIR  optional: subdir under include/aws/ containing this
+#                       library's public headers. Defaults to LIB_NAME with
+#                       the leading "aws-c-" (else "aws-") prefix stripped.
 #
 # Outputs (appended to $GITHUB_ENV):
 #   ABI_OUT_DIR    report/work directory
@@ -30,16 +39,28 @@ HEAD_SO="$(find_so "$HEAD_INSTALL")"
 [[ -n "$BASE_SO" ]] || { echo "ERROR: lib${LIB_NAME}.so not found under $BASE_INSTALL" >&2; exit 1; }
 [[ -n "$HEAD_SO" ]] || { echo "ERROR: lib${LIB_NAME}.so not found under $HEAD_INSTALL" >&2; exit 1; }
 
+# Derive the header subdir from the library name unless the caller overrode it.
+SUBDIR="${ABI_HEADER_SUBDIR:-}"
+if [[ -z "$SUBDIR" ]]; then
+  SUBDIR="${LIB_NAME#aws-c-}"
+  [[ "$SUBDIR" == "$LIB_NAME" ]] && SUBDIR="${LIB_NAME#aws-}"
+fi
+
+BASE_HEADERS="${BASE_INSTALL}/include/aws/${SUBDIR}"
+HEAD_HEADERS="${HEAD_INSTALL}/include/aws/${SUBDIR}"
+[[ -d "$BASE_HEADERS" ]] || { echo "ERROR: public headers not found at $BASE_HEADERS. Override with the check-abi action's 'header-subdir' input." >&2; exit 1; }
+[[ -d "$HEAD_HEADERS" ]] || { echo "ERROR: public headers not found at $HEAD_HEADERS. Override with the check-abi action's 'header-subdir' input." >&2; exit 1; }
+
 OUT_DIR="$(mktemp -d)" || { echo "ERROR: mktemp -d failed" >&2; exit 1; }
 BASE_DUMP="${OUT_DIR}/base.dump"
 HEAD_DUMP="${OUT_DIR}/head.dump"
 
-echo "Dumping ABI for base ($BASE_SO) and head ($HEAD_SO) in parallel"
+echo "Dumping ABI for base ($BASE_SO) and head ($HEAD_SO); headers scoped to aws/${SUBDIR}/"
 abi-dumper "$BASE_SO" -o "$BASE_DUMP" -lver base \
-  -public-headers "${BASE_INSTALL}/include" &
+  -public-headers "$BASE_HEADERS" &
 pid_base=$!
 abi-dumper "$HEAD_SO" -o "$HEAD_DUMP" -lver head \
-  -public-headers "${HEAD_INSTALL}/include" &
+  -public-headers "$HEAD_HEADERS" &
 pid_head=$!
 
 rc_base=0; wait "$pid_base" || rc_base=$?

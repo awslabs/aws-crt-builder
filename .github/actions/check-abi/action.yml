@@ -45,6 +45,10 @@ inputs:
     description: 'Explicit base ref to diff against (e.g. a previous release tag), overriding the PR base ref. Set this only from a non-PR caller (e.g. a release workflow comparing "previous tag vs current ref"); PR workflows must leave this empty so the PR base ref is used and the PR gets labeled.'
     required: false
     default: ''
+  header-subdir:
+    description: 'Subdirectory under <install>/include/aws/ that contains THIS library''s public headers. Scoping the ABI dump to just this dir prevents transitive dep headers (aws-c-common, aws-c-io, ...) that share the install tree from leaking into the diff. Defaults to lib-name with the leading "aws-c-" (or "aws-") prefix stripped; override when the header dir does not follow that convention (e.g. aws-c-iot installs under aws/iotdevice/).'
+    required: false
+    default: ''
 
 outputs:
   label:
@@ -91,6 +95,7 @@ runs:
         BUILDER_SOURCE: ${{ inputs.builder-source }}
         BUILDER_HOST: ${{ inputs.builder-host }}
         ABI_BASE_REF: ${{ inputs.base-ref }}
+        ABI_HEADER_SUBDIR: ${{ inputs.header-subdir }}
       run: |
         # Mount the checkout at the same path so GITHUB_WORKSPACE resolves inside
         # the container, and mount the step-summary file so report.py can append
@@ -121,6 +126,7 @@ runs:
           --env "GITHUB_RUN_ID=${GITHUB_RUN_ID:-}" \
           --env "GITHUB_RUN_NUMBER=${GITHUB_RUN_NUMBER:-}" \
           --env "ABI_LIB_NAME=${LIB_NAME}" \
+          --env "ABI_HEADER_SUBDIR=${ABI_HEADER_SUBDIR:-}" \
           --env "BUILDER_VERSION=${BUILDER_VERSION}" \
           --env "BUILDER_SOURCE=${BUILDER_SOURCE}" \
           --env "BUILDER_HOST=${BUILDER_HOST}" \
