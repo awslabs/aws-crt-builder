@@ -117,6 +117,8 @@ runs:
           "${SUMMARY_MOUNT[@]}" \
           --env "GITHUB_WORKSPACE=${GITHUB_WORKSPACE}" \
           --env "GITHUB_BASE_REF=${GITHUB_BASE_REF:-}" \
+          --env "GITHUB_HEAD_REF=${GITHUB_HEAD_REF:-}" \
+          --env "GITHUB_REF_NAME=${GITHUB_REF_NAME:-}" \
           --env "ABI_BASE_REF=${ABI_BASE_REF:-}" \
           --env "GITHUB_RUN_ID=${GITHUB_RUN_ID:-}" \
           --env "GITHUB_RUN_NUMBER=${GITHUB_RUN_NUMBER:-}" \

@@ -89,15 +89,22 @@ build_ref() {
   # dropped Source/SourceLine metadata, not the struct/type data
   # abi-compliance-checker compares. Forcing DWARF4 just silences the noise.
   #
-  # --branch main: ensure both sides clone the same dep branch regardless of
-  # the source project's current branch.
+  # Pass an explicit --branch so both builds resolve deps identically.
   ( cd "$src_dir" && python3 "$BUILDER_PYZ" build -p "$LIB_NAME" \
-      --branch main \
+      --branch "$DEP_BRANCH" \
       --cmake-extra=-DBUILD_SHARED_LIBS=ON \
       --cmake-extra=-DBUILD_TESTING=OFF \
       --cmake-extra="-DCMAKE_C_FLAGS_RELWITHDEBINFO=-g -Og -gdwarf-4 -DNDEBUG" \
       run_tests=false )
 }
+
+# On a PR event GITHUB_HEAD_REF is the PR's source branch (e.g. "ci-cd") --
+# use it so both builds honor the same coordinated feature branch on deps
+# (builder falls back to the dep's default if the branch doesn't exist).
+# Off a PR (workflow_dispatch, push), fall back to main.
+DEP_BRANCH="${GITHUB_HEAD_REF:-main}"
+[[ -z "$DEP_BRANCH" ]] && DEP_BRANCH=main
+echo "Dep branch for both builds: ${DEP_BRANCH}"
 
 echo "Building HEAD ($HEAD_DIR) and base ($BASE_WORKTREE) in parallel"
 build_ref "$HEAD_DIR" &
