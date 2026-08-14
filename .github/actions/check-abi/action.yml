@@ -137,19 +137,23 @@ runs:
         fi
         exit "$RC"
 
-    - name: Upload ABI report
+    - name: Upload ABI artifacts
       # Uploaded on every run (success or fail) so a surprising verdict can be
       # triaged symbol-by-symbol offline. abi_check.sh stages the abicc HTML
       # reports, the two .dump files, and the removed-constants list under
-      # $GITHUB_WORKSPACE/abi-report/ before exiting the container. The
-      # step is a no-op when the container exited before that stage ran.
+      # $GITHUB_WORKSPACE/abi-artifacts/ before exiting the container. The step
+      # is a no-op when the container exited before that stage ran.
+      #
+      # Retention: 7 days. Triage almost always happens within a few days of
+      # a surprising run; a stale artifact isn't useful anyway (dep HEADs have
+      # moved). Re-run the check-abi workflow to regenerate if needed later.
       if: always()
       uses: actions/upload-artifact@v4
       with:
-        name: abi-report-${{ github.event.pull_request.number || github.run_id }}
-        path: ${{ github.workspace }}/abi-report
+        name: abi-artifacts-${{ github.event.pull_request.number || github.run_id }}
+        path: ${{ github.workspace }}/abi-artifacts
         if-no-files-found: ignore
-        retention-days: 30
+        retention-days: 7
 
     - name: Label PR
       # Runs only on pull_request events (needs a PR number) and only if the gate
