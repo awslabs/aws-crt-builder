@@ -88,7 +88,19 @@ build_ref() {
   # logging a harmless "invalid debug_loc section" warning that only affects
   # dropped Source/SourceLine metadata, not the struct/type data
   # abi-compliance-checker compares. Forcing DWARF4 just silences the noise.
+  #
+  # --branch main: builder infers the branch to clone for each transitive dep
+  # from the source project's current branch, falling back to the dep's default
+  # only if that name doesn't exist. So if THIS repo is on a feature branch
+  # (say "ci-cd") and the same-named branch happens to exist on a dep (say
+  # aws-c-io/ci-cd -- which does happen when the fleet coordinates a rollout),
+  # the HEAD build would silently link against the dep's feature branch while
+  # the BASE build (on origin/main) would link against the dep's main. The two
+  # sides then diff against DIFFERENT dep code, which surfaces as this
+  # library's ABI drift even when its own source is unchanged. Pinning both
+  # builds to main forces apples-to-apples across the dep graph.
   ( cd "$src_dir" && python3 "$BUILDER_PYZ" build -p "$LIB_NAME" \
+      --branch main \
       --cmake-extra=-DBUILD_SHARED_LIBS=ON \
       --cmake-extra=-DBUILD_TESTING=OFF \
       --cmake-extra="-DCMAKE_C_FLAGS_RELWITHDEBINFO=-g -Og -gdwarf-4 -DNDEBUG" \
