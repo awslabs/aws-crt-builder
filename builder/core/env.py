@@ -164,10 +164,10 @@ class Env(object):
                 if branch.startswith('('):
                     continue
 
-                # only the '*' entry tells us the branch we're actually on
+                # only the '*' entry tells us the branch we're actually on;
+                # scan the whole list since the starred line may not be first
                 if line.startswith('*'):
                     star_branch = branch
-                    break
 
             # if git branch says we're on a branch, that's it
             if star_branch:
