@@ -134,29 +134,6 @@ log_dep_shas() {
 log_dep_shas "HEAD" "$HEAD_DIR"
 log_dep_shas "BASE (${BASE_REF})" "$BASE_WORKTREE"
 
-if [[ -n "${GITHUB_STEP_SUMMARY:-}" ]]; then
-  head_deps_dir="${HEAD_DIR}/build/deps"
-  base_deps_dir="${BASE_WORKTREE}/build/deps"
-  {
-    echo
-    echo "### Resolved dependency versions"
-    echo
-    echo "| Dep | Base SHA | Head SHA | Match |"
-    echo "|-----|----------|----------|-------|"
-    if [[ -d "$head_deps_dir" || -d "$base_deps_dir" ]]; then
-      { ls "$head_deps_dir" 2>/dev/null; ls "$base_deps_dir" 2>/dev/null; } | sort -u | while read -r dep_name; do
-        [[ -z "$dep_name" ]] && continue
-        base_sha="$(git -C "${base_deps_dir}/${dep_name}" rev-parse HEAD 2>/dev/null || echo 'missing')"
-        head_sha="$(git -C "${head_deps_dir}/${dep_name}" rev-parse HEAD 2>/dev/null || echo 'missing')"
-        if [[ "$base_sha" == "$head_sha" ]]; then match=":white_check_mark:"; else match=":warning:"; fi
-        printf '| %s | `%s` | `%s` | %s |\n' "$dep_name" "${base_sha:0:12}" "${head_sha:0:12}" "$match"
-      done
-    else
-      echo "| (no build/deps dirs found) | - | - | - |"
-    fi
-  } >> "$GITHUB_STEP_SUMMARY"
-fi
-
 if [[ "$rc_head" -ne 0 ]]; then
   echo "ERROR: HEAD build failed (exit $rc_head)" >&2
   exit 1
