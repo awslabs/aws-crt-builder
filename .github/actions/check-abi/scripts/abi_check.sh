@@ -102,13 +102,8 @@ python3 "${SCRIPT_DIR}/report.py" || true
 bash "${SCRIPT_DIR}/gate.sh"
 GATE_RC=$?
 
-# --- Stage the ABI artifacts where the host can upload them ------------------
-# ABI_OUT_DIR lives on the container's tmpfs and disappears with the container.
-# Copy it under $GITHUB_WORKSPACE (bind-mounted from the host) so a downstream
-# upload-artifact step can grab it. Include the abicc HTML reports, the two
-# .dump files, and the removed-constants list so a per-symbol diff is
-# inspectable long after the run has ended -- without this, the log only
-# tells you "97.7%", not which symbol drove that percentage.
+# --- Stage ABI artifacts for host-side upload --------------------------------
+# ABI_OUT_DIR is in-container tmpfs; copy to $GITHUB_WORKSPACE so upload-artifact can grab it.
 if [[ -n "${ABI_OUT_DIR:-}" && -d "$ABI_OUT_DIR" && -n "${GITHUB_WORKSPACE:-}" ]]; then
   STAGE_DIR="${GITHUB_WORKSPACE}/abi-artifacts"
   mkdir -p "$STAGE_DIR"

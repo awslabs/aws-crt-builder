@@ -89,16 +89,8 @@ build_ref() {
   # dropped Source/SourceLine metadata, not the struct/type data
   # abi-compliance-checker compares. Forcing DWARF4 just silences the noise.
   #
-  # --branch main: builder infers the branch to clone for each transitive dep
-  # from the source project's current branch, falling back to the dep's default
-  # only if that name doesn't exist. So if THIS repo is on a feature branch
-  # (say "ci-cd") and the same-named branch happens to exist on a dep (say
-  # aws-c-io/ci-cd -- which does happen when the fleet coordinates a rollout),
-  # the HEAD build would silently link against the dep's feature branch while
-  # the BASE build (on origin/main) would link against the dep's main. The two
-  # sides then diff against DIFFERENT dep code, which surfaces as this
-  # library's ABI drift even when its own source is unchanged. Pinning both
-  # builds to main forces apples-to-apples across the dep graph.
+  # --branch main: ensure both sides clone the same dep branch regardless of
+  # the source project's current branch.
   ( cd "$src_dir" && python3 "$BUILDER_PYZ" build -p "$LIB_NAME" \
       --branch main \
       --cmake-extra=-DBUILD_SHARED_LIBS=ON \
@@ -121,13 +113,7 @@ rc_base=0; wait "$pid_base" || rc_base=$?
   echo "ABI_BASE_INSTALL=${BASE_INSTALL}"
 } >> "$GITHUB_ENV"
 
-# --- Log the exact upstream dep SHAs each build resolved ---------------------
-# builder pulls upstream libs (aws-c-common, aws-c-io, ...) from HEAD of their
-# default branch at run time, so the two builds don't necessarily see the same
-# commit -- a push landing between the two clones would silently split them.
-# Emit each dep's resolved SHA + describe here for both refs, both in the log
-# (grep-friendly) and in the job summary (side-by-side compare) so a surprising
-# ABI verdict can be triaged against dep drift instead of guessed at.
+# --- Log resolved dep SHAs ---------------------------------------------------
 log_dep_shas() {
   local label="$1" src_dir="$2"
   local deps_dir="${src_dir}/build/deps" dep dep_name sha describe
@@ -149,9 +135,6 @@ log_dep_shas "HEAD" "$HEAD_DIR"
 log_dep_shas "BASE (${BASE_REF})" "$BASE_WORKTREE"
 
 if [[ -n "${GITHUB_STEP_SUMMARY:-}" ]]; then
-  # Build a base<->head SHA table so mismatches jump out. Any dep whose SHA
-  # differs between the two builds is a candidate root cause for a surprising
-  # ABI verdict.
   head_deps_dir="${HEAD_DIR}/build/deps"
   base_deps_dir="${BASE_WORKTREE}/build/deps"
   {
@@ -161,7 +144,6 @@ if [[ -n "${GITHUB_STEP_SUMMARY:-}" ]]; then
     echo "| Dep | Base SHA | Head SHA | Match |"
     echo "|-----|----------|----------|-------|"
     if [[ -d "$head_deps_dir" || -d "$base_deps_dir" ]]; then
-      # Union of dep names across both trees.
       { ls "$head_deps_dir" 2>/dev/null; ls "$base_deps_dir" 2>/dev/null; } | sort -u | while read -r dep_name; do
         [[ -z "$dep_name" ]] && continue
         base_sha="$(git -C "${base_deps_dir}/${dep_name}" rev-parse HEAD 2>/dev/null || echo 'missing')"
