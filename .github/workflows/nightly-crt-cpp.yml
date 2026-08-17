@@ -67,15 +67,26 @@ jobs:
       uses: actions/checkout@v4
       with:
         repository: awslabs/aws-crt-cpp
+        path: aws-crt-cpp
         submodules: true
-    - name: Update submodules from pins
-      uses: ./.github/actions/resolve-pin
-      with:
-        submodule-dirs: "crt/aws-c-* crt/aws-checksums"
+    - name: Update submodules to main
+      run: |
+        cd aws-crt-cpp
+        for dir in crt/aws-c-* crt/aws-checksums; do
+          echo "Updating $dir to main..."
+          (cd "$dir" && git fetch origin main && git checkout origin/main)
+        done
     - name: Build ${{ env.PACKAGE_NAME }}
       run: |
         aws s3 cp s3://aws-crt-test-stuff/ci/${{ env.BUILDER_VERSION }}/linux-container-ci.sh ./linux-container-ci.sh && chmod a+x ./linux-container-ci.sh
-        ./linux-container-ci.sh ${{ env.BUILDER_VERSION }} aws-crt-${{ env.LINUX_BASE_IMAGE }} build -p ${{ env.PACKAGE_NAME }} --compiler=${{ matrix.compiler }} ${{ env.NIGHTLY_CMAKE_ARGS }}
+        export DOCKER_IMAGE=123124136734.dkr.ecr.us-east-1.amazonaws.com/aws-crt-${{ env.LINUX_BASE_IMAGE }}:${{ env.BUILDER_VERSION }}
+        aws ecr get-login-password | docker login 123124136734.dkr.ecr.us-east-1.amazonaws.com -u AWS --password-stdin
+        docker run \
+          -v "$(pwd)/aws-crt-cpp:/root/aws-crt-cpp" \
+          --env GITHUB_REF --env GITHUB_HEAD_REF \
+          --env AWS_ACCESS_KEY_ID --env AWS_SECRET_ACCESS_KEY --env AWS_SESSION_TOKEN --env AWS_DEFAULT_REGION \
+          --env CXXFLAGS --env AWS_CRT_ARCH --env CTEST_PARALLEL_LEVEL \
+          $DOCKER_IMAGE --version=${{ env.BUILDER_VERSION }} build -p ${{ env.PACKAGE_NAME }} --compiler=${{ matrix.compiler }} ${{ env.NIGHTLY_CMAKE_ARGS }}
 
   linux-distro-compat:
     runs-on: ubuntu-24.04
@@ -96,16 +107,27 @@ jobs:
       uses: actions/checkout@v4
       with:
         repository: awslabs/aws-crt-cpp
+        path: aws-crt-cpp
         submodules: true
-    - name: Update submodules from pins
-      uses: ./.github/actions/resolve-pin
-      with:
-        submodule-dirs: "crt/aws-c-* crt/aws-checksums"
+    - name: Update submodules to main
+      run: |
+        cd aws-crt-cpp
+        for dir in crt/aws-c-* crt/aws-checksums; do
+          echo "Updating $dir to main..."
+          (cd "$dir" && git fetch origin main && git checkout origin/main)
+        done
     - name: Build ${{ env.PACKAGE_NAME }}
       run: |
         aws s3 cp s3://aws-crt-test-stuff/ci/${{ env.BUILDER_VERSION }}/linux-container-ci.sh ./linux-container-ci.sh && chmod a+x ./linux-container-ci.sh
+        export DOCKER_IMAGE=123124136734.dkr.ecr.us-east-1.amazonaws.com/aws-crt-${{ matrix.image }}:${{ env.BUILDER_VERSION }}
+        aws ecr get-login-password | docker login 123124136734.dkr.ecr.us-east-1.amazonaws.com -u AWS --password-stdin
         docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
-        ./linux-container-ci.sh ${{ env.BUILDER_VERSION }} aws-crt-${{ matrix.image }} build -p ${{ env.PACKAGE_NAME }} ${{ env.NIGHTLY_CMAKE_ARGS }}
+        docker run \
+          -v "$(pwd)/aws-crt-cpp:/root/aws-crt-cpp" \
+          --env GITHUB_REF --env GITHUB_HEAD_REF \
+          --env AWS_ACCESS_KEY_ID --env AWS_SECRET_ACCESS_KEY --env AWS_SESSION_TOKEN --env AWS_DEFAULT_REGION \
+          --env CXXFLAGS --env AWS_CRT_ARCH --env CTEST_PARALLEL_LEVEL \
+          $DOCKER_IMAGE --version=${{ env.BUILDER_VERSION }} build -p ${{ env.PACKAGE_NAME }} ${{ env.NIGHTLY_CMAKE_ARGS }}
 
   cmake-min-version:
     runs-on: ubuntu-24.04
@@ -118,11 +140,15 @@ jobs:
       uses: actions/checkout@v4
       with:
         repository: awslabs/aws-crt-cpp
+        path: aws-crt-cpp
         submodules: true
-    - name: Update submodules from pins
-      uses: ./.github/actions/resolve-pin
-      with:
-        submodule-dirs: "crt/aws-c-* crt/aws-checksums"
+    - name: Update submodules to main
+      run: |
+        cd aws-crt-cpp
+        for dir in crt/aws-c-* crt/aws-checksums; do
+          echo "Updating $dir to main..."
+          (cd "$dir" && git fetch origin main && git checkout origin/main)
+        done
     - name: Install CMake 3.10 (effective min due to s2n dependency)
       run: |
         wget -q https://github.com/Kitware/CMake/releases/download/v3.10.3/cmake-3.10.3-Linux-x86_64.tar.gz
@@ -132,12 +158,13 @@ jobs:
       run: cmake --version
     - name: Build with CMake 3.10
       run: |
+        cd aws-crt-cpp
         mkdir build && cd build
         cmake .. -DBUILD_DEPS=ON -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=RelWithDebInfo -DENFORCE_SUBMODULE_VERSIONS=OFF
         cmake --build .
     - name: Test
       run: |
-        cd build
+        cd aws-crt-cpp/build
         ctest --output-on-failure
 
   sanitizers:
@@ -155,15 +182,26 @@ jobs:
       uses: actions/checkout@v4
       with:
         repository: awslabs/aws-crt-cpp
+        path: aws-crt-cpp
         submodules: true
-    - name: Update submodules from pins
-      uses: ./.github/actions/resolve-pin
-      with:
-        submodule-dirs: "crt/aws-c-* crt/aws-checksums"
+    - name: Update submodules to main
+      run: |
+        cd aws-crt-cpp
+        for dir in crt/aws-c-* crt/aws-checksums; do
+          echo "Updating $dir to main..."
+          (cd "$dir" && git fetch origin main && git checkout origin/main)
+        done
     - name: Build ${{ env.PACKAGE_NAME }} with sanitizers
       run: |
         aws s3 cp s3://aws-crt-test-stuff/ci/${{ env.BUILDER_VERSION }}/linux-container-ci.sh ./linux-container-ci.sh && chmod a+x ./linux-container-ci.sh
-        ./linux-container-ci.sh ${{ env.BUILDER_VERSION }} aws-crt-${{ env.LINUX_BASE_IMAGE }} build -p ${{ env.PACKAGE_NAME }} --compiler=clang-17 --cmake-extra=-DENABLE_SANITIZERS=ON --cmake-extra=-DSANITIZERS="${{ matrix.sanitizers }}" ${{ env.NIGHTLY_CMAKE_ARGS }}
+        export DOCKER_IMAGE=123124136734.dkr.ecr.us-east-1.amazonaws.com/aws-crt-${{ env.LINUX_BASE_IMAGE }}:${{ env.BUILDER_VERSION }}
+        aws ecr get-login-password | docker login 123124136734.dkr.ecr.us-east-1.amazonaws.com -u AWS --password-stdin
+        docker run \
+          -v "$(pwd)/aws-crt-cpp:/root/aws-crt-cpp" \
+          --env GITHUB_REF --env GITHUB_HEAD_REF \
+          --env AWS_ACCESS_KEY_ID --env AWS_SECRET_ACCESS_KEY --env AWS_SESSION_TOKEN --env AWS_DEFAULT_REGION \
+          --env CXXFLAGS --env AWS_CRT_ARCH --env CTEST_PARALLEL_LEVEL \
+          $DOCKER_IMAGE --version=${{ env.BUILDER_VERSION }} build -p ${{ env.PACKAGE_NAME }} --compiler=clang-17 --cmake-extra=-DENABLE_SANITIZERS=ON --cmake-extra=-DSANITIZERS="${{ matrix.sanitizers }}" ${{ env.NIGHTLY_CMAKE_ARGS }}
 
   clang-msan:
     runs-on: ubuntu-24.04
@@ -178,15 +216,26 @@ jobs:
       uses: actions/checkout@v4
       with:
         repository: awslabs/aws-crt-cpp
+        path: aws-crt-cpp
         submodules: true
-    - name: Update submodules from pins
-      uses: ./.github/actions/resolve-pin
-      with:
-        submodule-dirs: "crt/aws-c-* crt/aws-checksums"
+    - name: Update submodules to main
+      run: |
+        cd aws-crt-cpp
+        for dir in crt/aws-c-* crt/aws-checksums; do
+          echo "Updating $dir to main..."
+          (cd "$dir" && git fetch origin main && git checkout origin/main)
+        done
     - name: Build ${{ env.PACKAGE_NAME }} with MSan
       run: |
         aws s3 cp s3://aws-crt-test-stuff/ci/${{ env.BUILDER_VERSION }}/linux-container-ci.sh ./linux-container-ci.sh && chmod a+x ./linux-container-ci.sh
-        ./linux-container-ci.sh ${{ env.BUILDER_VERSION }} aws-crt-ubuntu-22-msan-x64 build -p ${{ env.PACKAGE_NAME }} --compiler=${{ env.MSAN_COMPILER }} --cmake-extra=-DENABLE_SANITIZERS=ON --cmake-extra=-DSANITIZERS=memory --cmake-extra=-DCMAKE_TOOLCHAIN_FILE=/opt/msan-toolchain.cmake ${{ env.NIGHTLY_CMAKE_ARGS }}
+        export DOCKER_IMAGE=123124136734.dkr.ecr.us-east-1.amazonaws.com/aws-crt-ubuntu-22-msan-x64:${{ env.BUILDER_VERSION }}
+        aws ecr get-login-password | docker login 123124136734.dkr.ecr.us-east-1.amazonaws.com -u AWS --password-stdin
+        docker run \
+          -v "$(pwd)/aws-crt-cpp:/root/aws-crt-cpp" \
+          --env GITHUB_REF --env GITHUB_HEAD_REF \
+          --env AWS_ACCESS_KEY_ID --env AWS_SECRET_ACCESS_KEY --env AWS_SESSION_TOKEN --env AWS_DEFAULT_REGION \
+          --env CXXFLAGS --env AWS_CRT_ARCH --env CTEST_PARALLEL_LEVEL \
+          $DOCKER_IMAGE --version=${{ env.BUILDER_VERSION }} build -p ${{ env.PACKAGE_NAME }} --compiler=${{ env.MSAN_COMPILER }} --cmake-extra=-DENABLE_SANITIZERS=ON --cmake-extra=-DSANITIZERS=memory --cmake-extra=-DCMAKE_TOOLCHAIN_FILE=/opt/msan-toolchain.cmake ${{ env.NIGHTLY_CMAKE_ARGS }}
 
   # Integration: build + test aws-crt-cpp on all 3 platforms
   linux:
@@ -200,15 +249,26 @@ jobs:
       uses: actions/checkout@v4
       with:
         repository: awslabs/aws-crt-cpp
+        path: aws-crt-cpp
         submodules: true
-    - name: Update submodules from pins
-      uses: ./.github/actions/resolve-pin
-      with:
-        submodule-dirs: "crt/aws-c-* crt/aws-checksums"
+    - name: Update submodules to main
+      run: |
+        cd aws-crt-cpp
+        for dir in crt/aws-c-* crt/aws-checksums; do
+          echo "Updating $dir to main..."
+          (cd "$dir" && git fetch origin main && git checkout origin/main)
+        done
     - name: Build and test ${{ env.PACKAGE_NAME }}
       run: |
         aws s3 cp s3://aws-crt-test-stuff/ci/${{ env.BUILDER_VERSION }}/linux-container-ci.sh ./linux-container-ci.sh && chmod a+x ./linux-container-ci.sh
-        ./linux-container-ci.sh ${{ env.BUILDER_VERSION }} aws-crt-${{ env.LINUX_BASE_IMAGE }} build -p ${{ env.PACKAGE_NAME }} ${{ env.NIGHTLY_CMAKE_ARGS }}
+        export DOCKER_IMAGE=123124136734.dkr.ecr.us-east-1.amazonaws.com/aws-crt-${{ env.LINUX_BASE_IMAGE }}:${{ env.BUILDER_VERSION }}
+        aws ecr get-login-password | docker login 123124136734.dkr.ecr.us-east-1.amazonaws.com -u AWS --password-stdin
+        docker run \
+          -v "$(pwd)/aws-crt-cpp:/root/aws-crt-cpp" \
+          --env GITHUB_REF --env GITHUB_HEAD_REF \
+          --env AWS_ACCESS_KEY_ID --env AWS_SECRET_ACCESS_KEY --env AWS_SESSION_TOKEN --env AWS_DEFAULT_REGION \
+          --env CXXFLAGS --env AWS_CRT_ARCH --env CTEST_PARALLEL_LEVEL \
+          $DOCKER_IMAGE --version=${{ env.BUILDER_VERSION }} build -p ${{ env.PACKAGE_NAME }} ${{ env.NIGHTLY_CMAKE_ARGS }}
 
   macos:
     runs-on: macos-14
@@ -222,10 +282,12 @@ jobs:
       with:
         repository: awslabs/aws-crt-cpp
         submodules: true
-    - name: Update submodules from pins
-      uses: ./.github/actions/resolve-pin
-      with:
-        submodule-dirs: "crt/aws-c-* crt/aws-checksums"
+    - name: Update submodules to main
+      run: |
+        for dir in crt/aws-c-* crt/aws-checksums; do
+          echo "Updating $dir to main..."
+          (cd "$dir" && git fetch origin main && git checkout origin/main)
+        done
     - name: Build and test ${{ env.PACKAGE_NAME }}
       run: |
         python3 -m venv .venv
@@ -246,10 +308,13 @@ jobs:
       with:
         repository: awslabs/aws-crt-cpp
         submodules: true
-    - name: Update submodules from pins
-      uses: ./.github/actions/resolve-pin
-      with:
-        submodule-dirs: "crt/aws-c-* crt/aws-checksums"
+    - name: Update submodules to main
+      shell: bash
+      run: |
+        for dir in crt/aws-c-* crt/aws-checksums; do
+          echo "Updating $dir to main..."
+          (cd "$dir" && git fetch origin main && git checkout origin/main)
+        done
     - name: Build and test ${{ env.PACKAGE_NAME }}
       run: |
         python -c "from urllib.request import urlretrieve; urlretrieve('${{ env.BUILDER_HOST }}/${{ env.BUILDER_SOURCE }}/${{ env.BUILDER_VERSION }}/builder.pyz?run=${{ env.RUN }}', 'builder.pyz')"
