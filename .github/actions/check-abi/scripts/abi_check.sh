@@ -100,3 +100,18 @@ run_stage compare.sh
 # Publish the summary and gate, mirroring action.yml's always() steps.
 python3 "${SCRIPT_DIR}/report.py" || true
 bash "${SCRIPT_DIR}/gate.sh"
+GATE_RC=$?
+
+# --- Stage ABI artifacts for host-side upload --------------------------------
+# ABI_OUT_DIR is in-container tmpfs; copy to $GITHUB_WORKSPACE so upload-artifact can grab it.
+if [[ -n "${ABI_OUT_DIR:-}" && -d "$ABI_OUT_DIR" && -n "${GITHUB_WORKSPACE:-}" ]]; then
+  STAGE_DIR="${GITHUB_WORKSPACE}/abi-artifacts"
+  mkdir -p "$STAGE_DIR"
+  cp -a "$ABI_OUT_DIR"/. "$STAGE_DIR/" 2>/dev/null || true
+  if [[ -n "${ABI_REMOVED_CONSTANTS_FILE:-}" && -f "$ABI_REMOVED_CONSTANTS_FILE" ]]; then
+    cp -a "$ABI_REMOVED_CONSTANTS_FILE" "$STAGE_DIR/removed-constants.txt" 2>/dev/null || true
+  fi
+  echo "ABI artifacts staged for upload at ${STAGE_DIR}"
+fi
+
+exit "$GATE_RC"
