@@ -111,6 +111,7 @@ if [[ -n "${ABI_OUT_DIR:-}" && -d "$ABI_OUT_DIR" && -n "${GITHUB_WORKSPACE:-}" ]
   if [[ -n "${ABI_REMOVED_CONSTANTS_FILE:-}" && -f "$ABI_REMOVED_CONSTANTS_FILE" ]]; then
     cp -a "$ABI_REMOVED_CONSTANTS_FILE" "$STAGE_DIR/removed-constants.txt" 2>/dev/null || true
   fi
+  chmod -R a+rX "$STAGE_DIR"
   echo "ABI artifacts staged for upload at ${STAGE_DIR}"
 fi
 
