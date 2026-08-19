@@ -156,9 +156,7 @@ _NODE_VERSION_RE = re.compile(r'^node(?:js)?-?(\d+)$')
 
 
 def find_node(name):
-    """Dynamically create a NodeJS import for any requested node version.
-
-    """
+    """Dynamically create a NodeJS import for any requested node version."""
     match = _NODE_VERSION_RE.match(name.lower())
     if not match:
         return None
