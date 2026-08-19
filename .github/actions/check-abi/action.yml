@@ -117,6 +117,7 @@ runs:
           "${SUMMARY_MOUNT[@]}" \
           --env "GITHUB_WORKSPACE=${GITHUB_WORKSPACE}" \
           --env "GITHUB_BASE_REF=${GITHUB_BASE_REF:-}" \
+          --env "GITHUB_HEAD_REF=${GITHUB_HEAD_REF:-}" \
           --env "ABI_BASE_REF=${ABI_BASE_REF:-}" \
           --env "GITHUB_RUN_ID=${GITHUB_RUN_ID:-}" \
           --env "GITHUB_RUN_NUMBER=${GITHUB_RUN_NUMBER:-}" \
@@ -136,6 +137,15 @@ runs:
           echo "label=${LABEL}" >> "$GITHUB_OUTPUT"
         fi
         exit "$RC"
+
+    - name: Upload ABI artifacts
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: abi-artifacts-${{ github.event.pull_request.number || github.run_id }}
+        path: ${{ github.workspace }}/abi-artifacts
+        if-no-files-found: ignore
+        retention-days: 7
 
     - name: Label PR
       # Runs only on pull_request events (needs a PR number) and only if the gate

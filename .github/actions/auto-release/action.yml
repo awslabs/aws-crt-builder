@@ -9,6 +9,10 @@ inputs:
     description: 'Path to the file holding the current released version as "major.minor.patch".'
     required: false
     default: 'VERSION'
+  major-pr-label:
+    description: 'PR label that hard-fails the release. PRs with this label should never be merged (there is a separate gate for that); this scan is defense-in-depth in case one slipped through.'
+    required: false
+    default: 'needs-review'
   minor-pr-label:
     description: 'PR label that forces a minor bump when the ABI is compatible.'
     required: false
@@ -26,9 +30,9 @@ inputs:
     required: false
     default: ${{ github.token }}
   deploy-key-secret-id:
-    description: 'AWS Secrets Manager secret ID holding the private half of a deploy key registered (with write access) on this repository. Used to push the version-bump commit and tag directly to the default branch, the same way aws-crt-swift''s update-version.yml does -- a repo-scoped SSH key fetched fresh via the already-assumed CRT_CI_ROLE_ARN role, rather than a standing broad-scope PAT.'
+    description: 'AWS Secrets Manager secret ID holding the deploy key for this repository. The SecretString is expected to be a JSON blob with a `.private_key` field. Used to push the version-bump commit and tag directly to the default branch -- a repo-scoped SSH key fetched fresh via the already-assumed CRT_CI_ROLE_ARN role, rather than a standing broad-scope PAT.'
     required: false
-    default: 'aws-crt-bot/deploy-key/privatekey'
+    default: 'github-deploy-key/${{ github.repository }}'
 
 outputs:
   skip:
@@ -54,24 +58,25 @@ runs:
     - name: Resolve previous release tag
       id: resolve
       shell: bash
-      env:
-        VERSION_FILE: ${{ inputs.version-file }}
       run: |
-        # Walk tags nearest-first and skip any whose VERSION isn't a plain
-        # major.minor.patch -- a manually-cut beta/rc tag (non-numeric
-        # suffix) must not block automated releases forever. The next run
-        # just looks past it to the last real stable release and bumps from
-        # there; the beta tag itself is left alone.
+        # Walk tags nearest-first and skip any whose NAME isn't "vMAJOR.MINOR.PATCH"
+        # -- a manually-cut beta/rc tag (non-numeric suffix) must not block
+        # automated releases forever. The next run just looks past it to the
+        # last real stable release and bumps from there; the beta tag itself
+        # is left alone. The version comes from the TAG NAME, never from a
+        # file's content at that tag -- a previous release's VERSION file may
+        # not exist, may be stale, or may not even be the convention this repo
+        # used at the time; the tag is the one thing guaranteed to reflect
+        # what was actually released.
         for TAG in $(git tag --sort=-creatordate --merged HEAD); do
-          VERSION="$(git show "${TAG}:${VERSION_FILE}" 2>/dev/null | tr -d '[:space:]')"
-          if [[ "$VERSION" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+          if [[ "$TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
             echo "Previous release tag: $TAG"
             echo "previous_tag=${TAG}" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          echo "Skipping tag '$TAG': '${VERSION_FILE}' is '${VERSION:-<unreadable>}', not major.minor.patch."
+          echo "Skipping tag '$TAG': not of the form vMAJOR.MINOR.PATCH."
         done
-        echo "ERROR: no previous release tag with a valid '${VERSION_FILE}' found; cannot compute a release." >&2
+        echo "ERROR: no previous release tag of the form vMAJOR.MINOR.PATCH found; cannot compute a release." >&2
         exit 1
 
     - name: Check ABI (previous release vs this ref)
@@ -91,6 +96,7 @@ runs:
         PREVIOUS_TAG: ${{ steps.resolve.outputs.previous_tag }}
         ABI_LABEL: ${{ steps.check_abi.outputs.label }}
         VERSION_FILE: ${{ inputs.version-file }}
+        MAJOR_PR_LABEL: ${{ inputs.major-pr-label }}
         MINOR_PR_LABEL: ${{ inputs.minor-pr-label }}
       run: bash "${GITHUB_ACTION_PATH}/scripts/compute-version-bump.sh"
 

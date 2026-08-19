@@ -88,12 +88,23 @@ build_ref() {
   # logging a harmless "invalid debug_loc section" warning that only affects
   # dropped Source/SourceLine metadata, not the struct/type data
   # abi-compliance-checker compares. Forcing DWARF4 just silences the noise.
+  #
+  # Pass an explicit --branch so both builds resolve deps identically.
   ( cd "$src_dir" && python3 "$BUILDER_PYZ" build -p "$LIB_NAME" \
+      --branch "$DEP_BRANCH" \
       --cmake-extra=-DBUILD_SHARED_LIBS=ON \
       --cmake-extra=-DBUILD_TESTING=OFF \
       --cmake-extra="-DCMAKE_C_FLAGS_RELWITHDEBINFO=-g -Og -gdwarf-4 -DNDEBUG" \
       run_tests=false )
 }
+
+# On a PR event GITHUB_HEAD_REF is the PR's source branch (e.g. "ci-cd") --
+# use it so both builds honor the same coordinated feature branch on deps
+# (builder falls back to the dep's default if the branch doesn't exist).
+# Off a PR (workflow_dispatch, push), fall back to main.
+DEP_BRANCH="${GITHUB_HEAD_REF:-main}"
+[[ -z "$DEP_BRANCH" ]] && DEP_BRANCH=main
+echo "Dep branch for both builds: ${DEP_BRANCH}"
 
 echo "Building HEAD ($HEAD_DIR) and base ($BASE_WORKTREE) in parallel"
 build_ref "$HEAD_DIR" &
@@ -108,6 +119,27 @@ rc_base=0; wait "$pid_base" || rc_base=$?
   echo "ABI_HEAD_INSTALL=${HEAD_INSTALL}"
   echo "ABI_BASE_INSTALL=${BASE_INSTALL}"
 } >> "$GITHUB_ENV"
+
+# --- Log resolved dep SHAs ---------------------------------------------------
+log_dep_shas() {
+  local label="$1" src_dir="$2"
+  local deps_dir="${src_dir}/build/deps" dep dep_name sha describe
+  echo "=== deps resolved for ${label} build (${src_dir}) ==="
+  if [[ ! -d "$deps_dir" ]]; then
+    echo "  (no build/deps dir found at ${deps_dir})"
+    return
+  fi
+  for dep in "$deps_dir"/*/; do
+    [[ -d "${dep}.git" ]] || continue
+    dep_name="$(basename "$dep")"
+    sha="$(git -C "$dep" rev-parse HEAD 2>/dev/null || echo '?')"
+    describe="$(git -C "$dep" describe --tags --always --long 2>/dev/null || echo '?')"
+    printf '  %-25s %s  (%s)\n' "$dep_name" "$sha" "$describe"
+  done
+}
+
+log_dep_shas "HEAD" "$HEAD_DIR"
+log_dep_shas "BASE (${BASE_REF})" "$BASE_WORKTREE"
 
 if [[ "$rc_head" -ne 0 ]]; then
   echo "ERROR: HEAD build failed (exit $rc_head)" >&2

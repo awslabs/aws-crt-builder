@@ -11,10 +11,18 @@
 # Inputs (env):
 #   GH_TOKEN         token with pull-requests: read, used by `gh pr list`
 #   REPO             "owner/repo", for `gh pr list --repo`
-#   PREVIOUS_TAG     the previous release tag (comparison base)
+#   PREVIOUS_TAG     the previous release tag, "vMAJOR.MINOR.PATCH" (the
+#                    previously released version is parsed from this name,
+#                    never read from a file's content at that tag)
 #   ABI_LABEL        "patch" | "minor" | "needs-review" | "" -- output of the
 #                    check-abi action (see its gate.sh for how this is chosen)
-#   VERSION_FILE     path (relative to repo root) holding "major.minor.patch"
+#   VERSION_FILE     path (relative to repo root) where the current version
+#                    at HEAD is expected. If present, it must match the
+#                    previous tag's version (drift check). If absent, this
+#                    release creates it -- the file is not a hard prerequisite.
+#   MAJOR_PR_LABEL   PR label that hard-fails the release (major bumps are
+#                    never automated). Defense-in-depth: PRs with this label
+#                    are not supposed to be merged in the first place.
 #   MINOR_PR_LABEL   PR label that forces a minor bump
 #
 # Outputs (appended to $GITHUB_OUTPUT):
@@ -27,6 +35,7 @@ set -uo pipefail
 
 PREVIOUS_TAG="${PREVIOUS_TAG:?PREVIOUS_TAG must be set}"
 VERSION_FILE="${VERSION_FILE:?VERSION_FILE must be set}"
+MAJOR_PR_LABEL="${MAJOR_PR_LABEL:?MAJOR_PR_LABEL must be set}"
 MINOR_PR_LABEL="${MINOR_PR_LABEL:?MINOR_PR_LABEL must be set}"
 REPO="${REPO:?REPO must be set}"
 [[ "$REPO" =~ ^[^/[:space:]]+/[^/[:space:]]+$ ]] || {
@@ -91,6 +100,26 @@ if [[ "${ABI_LABEL:-}" == "needs-review" ]]; then
   exit 1
 fi
 
+# --- Rule 1b ------------------------------------------------------------------
+# Defense-in-depth: PRs carrying the major PR label are gated from merging in
+# the first place, so this should never fire in practice. If it does (e.g. the
+# gate was bypassed), fail the release rather than tag a repo whose history
+# contains an API-breaking PR the maintainer hasn't manually resolved.
+MAJOR_PRS="$(prs_with_label "$MAJOR_PR_LABEL")" || {
+  echo "ERROR: 'gh pr list' failed while checking for '${MAJOR_PR_LABEL}'-labeled PRs." >&2
+  exit 1
+}
+if [[ -n "$MAJOR_PRS" ]]; then
+  echo "ERROR: PR(s) #${MAJOR_PRS} merged since ${PREVIOUS_TAG} carry the '${MAJOR_PR_LABEL}' label." >&2
+  echo "       Major version bumps are never automated. Cut that tag yourself, then re-run." >&2
+  summary ""
+  summary "**FAILED: PR(s) #${MAJOR_PRS} merged since \`${PREVIOUS_TAG}\` are labeled \`${MAJOR_PR_LABEL}\`.**"
+  summary ""
+  summary "Major version bumps are never automated by this workflow. Cut the major tag manually, then re-run."
+  echo "skip=true" >> "$GITHUB_OUTPUT"
+  exit 1
+fi
+
 # No verdict at all is never treated as "compatible" -- an empty or
 # unrecognized ABI_LABEL must not silently fall through to a patch bump.
 if [[ "${ABI_LABEL:-}" != "patch" && "${ABI_LABEL:-}" != "minor" ]]; then
@@ -101,23 +130,39 @@ if [[ "${ABI_LABEL:-}" != "patch" && "${ABI_LABEL:-}" != "minor" ]]; then
   exit 1
 fi
 
-# --- Read the previously released version -----------------------------------
-PREVIOUS_VERSION="$(git show "${PREVIOUS_TAG}:${VERSION_FILE}" 2>/dev/null | tr -d '[:space:]')"
-if [[ -z "$PREVIOUS_VERSION" ]]; then
-  echo "ERROR: could not read '${VERSION_FILE}' at tag '${PREVIOUS_TAG}'." >&2
+# --- Derive the previously released version from the TAG NAME ---------------
+# Never from a file's content at that tag: an older release may predate
+# VERSION_FILE existing, or may have used a different convention. The tag
+# name is the one thing guaranteed to reflect what was actually released.
+if ! [[ "$PREVIOUS_TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+  echo "ERROR: '${PREVIOUS_TAG}' is not of the form vMAJOR.MINOR.PATCH." >&2
   summary ""
-  summary "**FAILED: could not read \`${VERSION_FILE}\` at tag \`${PREVIOUS_TAG}\`.**"
-  exit 1
-fi
-if ! [[ "$PREVIOUS_VERSION" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
-  echo "ERROR: '${VERSION_FILE}' at '${PREVIOUS_TAG}' is not major.minor.patch (got '${PREVIOUS_VERSION}')." >&2
-  summary ""
-  summary "**FAILED: \`${VERSION_FILE}\` at \`${PREVIOUS_TAG}\` is not major.minor.patch (got \`${PREVIOUS_VERSION}\`).**"
+  summary "**FAILED: \`${PREVIOUS_TAG}\` is not of the form \`vMAJOR.MINOR.PATCH\`.**"
   exit 1
 fi
 MAJOR="${BASH_REMATCH[1]}"
 MINOR="${BASH_REMATCH[2]}"
 PATCH="${BASH_REMATCH[3]}"
+PREVIOUS_VERSION="${MAJOR}.${MINOR}.${PATCH}"
+
+# --- Drift check: if VERSION_FILE exists at HEAD, it must match PREVIOUS_TAG -
+# The tag is the source of truth for what was released. If the file exists on
+# HEAD but says something else, someone edited it out of sync and we're one
+# step away from releasing from a state that misrepresents the previous
+# version. If the file doesn't exist yet (this repo is adopting a VERSION
+# file for the first time via this release), that's fine -- cut-release.sh
+# will create it with the newly computed version.
+if [[ -f "$VERSION_FILE" ]]; then
+  CURRENT_FILE_VERSION="$(tr -d '[:space:]' < "$VERSION_FILE")"
+  if [[ "$CURRENT_FILE_VERSION" != "$PREVIOUS_VERSION" ]]; then
+    echo "ERROR: drift detected. '${VERSION_FILE}' at HEAD says '${CURRENT_FILE_VERSION}'," >&2
+    echo "       but the previous release tag '${PREVIOUS_TAG}' implies '${PREVIOUS_VERSION}'." >&2
+    echo "       Reconcile before releasing." >&2
+    summary ""
+    summary "**FAILED: \`${VERSION_FILE}\` (\`${CURRENT_FILE_VERSION}\`) drifted from the previous release tag \`${PREVIOUS_TAG}\` (\`${PREVIOUS_VERSION}\`). Reconcile before releasing.**"
+    exit 1
+  fi
+fi
 
 # --- Rule 2 -------------------------------------------------------------------
 BUMP=""
