@@ -36,10 +36,10 @@ HEAD_DUMP="${OUT_DIR}/head.dump"
 
 echo "Dumping ABI for base ($BASE_SO) and head ($HEAD_SO) in parallel"
 abi-dumper "$BASE_SO" -o "$BASE_DUMP" -lver base \
-  -public-headers "${BASE_INSTALL}/include" &
+  -public-headers "${BASE_INSTALL}/include" 2>&1 | sed -u 's/^/[base] /' &
 pid_base=$!
 abi-dumper "$HEAD_SO" -o "$HEAD_DUMP" -lver head \
-  -public-headers "${HEAD_INSTALL}/include" &
+  -public-headers "${HEAD_INSTALL}/include" 2>&1 | sed -u 's/^/[head] /' &
 pid_head=$!
 
 rc_base=0; wait "$pid_base" || rc_base=$?
