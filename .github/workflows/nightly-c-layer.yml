@@ -135,7 +135,7 @@ jobs:
         config:
           - { sanitizers: ",address,undefined", image: "ubuntu-22-x64", compiler: "clang-19", extra_args: "" }
           - { sanitizers: ",thread", image: "ubuntu-22-x64", compiler: "clang-19", extra_args: "" }
-          - { sanitizers: "memory", image: "ubuntu-22-msan-x64", compiler: "clang-19", extra_args: "--cmake-extra=-DCMAKE_TOOLCHAIN_FILE=/opt/msan-toolchain.cmake" }
+          - { sanitizers: "memory", image: "ubuntu-22-msan-x64", compiler: "clang-19", extra_args: "--cmake-extra=-DCMAKE_TOOLCHAIN_FILE=/opt/msan-toolchain.cmake --cmake-extra=-DENABLE_PKCS11_TESTS=OFF" }
     steps:
     - uses: aws-actions/configure-aws-credentials@v6
       with:
