@@ -133,7 +133,7 @@ jobs:
           - aws-c-iot
           - aws-checksums
         config:
-          - { sanitizers: ",address,undefined", image: "ubuntu-22-x64", compiler: "clang-19", extra_args: "" }
+          - { sanitizers: ",address,undefined", image: "ubuntu-22-x64", compiler: "clang-19", extra_args: "--cmake-extra=-DCMAKE_C_FLAGS=-fno-sanitize-recover=all" }
           - { sanitizers: ",thread", image: "ubuntu-22-x64", compiler: "clang-19", extra_args: "" }
           - { sanitizers: "memory", image: "ubuntu-22-msan-x64", compiler: "clang-19", extra_args: "--cmake-extra=-DCMAKE_TOOLCHAIN_FILE=/opt/msan-toolchain.cmake --cmake-extra=-DENABLE_PKCS11_TESTS=OFF" }
     steps:
