@@ -116,6 +116,8 @@ jobs:
   # MSan requires the special instrumented-libc++ image and toolchain file.
   sanitizers:
     runs-on: ubuntu-24.04
+    env:
+      UBSAN_OPTIONS: exitcode=-1
     strategy:
       fail-fast: false
       matrix:
@@ -133,7 +135,7 @@ jobs:
           - aws-c-iot
           - aws-checksums
         config:
-          - { sanitizers: ",address,undefined", image: "ubuntu-22-x64", compiler: "clang-19", extra_args: "--cmake-extra=-DCMAKE_C_FLAGS=-fno-sanitize-recover=all" }
+          - { sanitizers: ",address,undefined", image: "ubuntu-22-x64", compiler: "clang-19", extra_args: "" }
           - { sanitizers: ",thread", image: "ubuntu-22-x64", compiler: "clang-19", extra_args: "" }
           - { sanitizers: "memory", image: "ubuntu-22-msan-x64", compiler: "clang-19", extra_args: "--cmake-extra=-DCMAKE_TOOLCHAIN_FILE=/opt/msan-toolchain.cmake --cmake-extra=-DENABLE_PKCS11_TESTS=OFF" }
     steps:
