@@ -172,9 +172,9 @@ runs:
         PR_NUMBER="${PR_FROM_EVENT:-}"
         if [[ -z "$PR_NUMBER" ]]; then
           # Push runs carry no pull_request object; find the PR whose head is
-          # this commit. --search matches the SHA server-side; the jq filter
-          # then requires it to be the head, not just present in the PR.
-          MATCHES="$(gh pr list --repo "$REPO" --state open --search "$HEAD_SHA" --limit 2 \
+          # this commit. --search matches any PR containing the commit, so the
+          # jq filter narrows to the one where it is the head.
+          MATCHES="$(gh pr list --repo "$REPO" --state open --search "$HEAD_SHA" --limit 10 \
               --json number,headRefOid,baseRefName \
               | jq -r --arg sha "$HEAD_SHA" --arg base "${DEFAULT_BRANCH:-main}" \
                   '[.[] | select(.headRefOid == $sha and .baseRefName == $base)]
