@@ -190,39 +190,52 @@ runs:
           fi
           PR_NUMBER="$MATCHES"
         fi
-        # Clear all three, then add at most one back.
         ALL_LABELS=("$PATCH_LABEL" "$MINOR_LABEL" "$NEEDS_REVIEW_LABEL")
-        for l in "${ALL_LABELS[@]}"; do
-          gh pr edit "$PR_NUMBER" --repo "$REPO" --remove-label "$l" 2>/dev/null || true
-        done
-        if [[ "${RUN_RC:-1}" != "0" || -z "${LABEL:-}" ]]; then
-          echo "No ABI verdict (rc=${RUN_RC:-?}); cleared verdict labels on #${PR_NUMBER}."
-          exit 0
-        fi
         # Translate gate.sh's fixed verdict token ("patch"/"minor"/"needs-review")
         # to the configured label name, since gate.sh has no access to these inputs.
-        case "$LABEL" in
-          patch) LABEL="$PATCH_LABEL" ;;
-          minor) LABEL="$MINOR_LABEL" ;;
-          needs-review) LABEL="$NEEDS_REVIEW_LABEL" ;;
-          *) echo "Unexpected ABI verdict token '$LABEL'; skipping."; exit 0 ;;
-        esac
-        echo "Applying label '$LABEL' on PR #${PR_NUMBER}"
-        # gh pr edit --add-label fails if the label does not exist in the repo
-        # (it will not create it), so ensure all three labels exist first.
-        # --force makes create idempotent; ignore the failure when it exists.
-        gh label create "$PATCH_LABEL" --repo "$REPO" --color 0e8a16 \
-          --description "ABI backward-compatible (patch release)" --force 2>/dev/null || true
-        gh label create "$MINOR_LABEL" --repo "$REPO" --color fbca04 \
-          --description "ABI changed, source-compatible (minor release)" --force 2>/dev/null || true
-        # Bright red: source/API compatibility is broken -- callers fail to
-        # recompile. This is deliberately the most visually alarming of the
-        # three; a reviewer must look before deciding whether a minor bump
-        # (or a revert) is the right call.
-        gh label create "$NEEDS_REVIEW_LABEL" --repo "$REPO" --color d93f0b \
-          --description "ABI check: source/API compatibility broken, needs manual review" --force 2>/dev/null || true
-        gh pr edit "$PR_NUMBER" --repo "$REPO" --add-label "$LABEL" \
-          || echo "WARNING: could not add label '$LABEL' (token may be read-only on fork PRs)."
+        TARGET=""
+        if [[ "${RUN_RC:-1}" == "0" && -n "${LABEL:-}" ]]; then
+          case "$LABEL" in
+            patch) TARGET="$PATCH_LABEL" ;;
+            minor) TARGET="$MINOR_LABEL" ;;
+            needs-review) TARGET="$NEEDS_REVIEW_LABEL" ;;
+            *) echo "Unexpected ABI verdict token '$LABEL'; treating as no verdict." ;;
+          esac
+        fi
+
+        CURRENT="$(gh pr view "$PR_NUMBER" --repo "$REPO" --json labels -q '.labels[].name')"
+        DROP=()
+        for l in "${ALL_LABELS[@]}"; do
+          [[ "$l" == "$TARGET" ]] && continue
+          grep -qxF "$l" <<< "$CURRENT" && DROP+=("$l")
+        done
+        ADD=""
+        if [[ -n "$TARGET" ]] && ! grep -qxF "$TARGET" <<< "$CURRENT"; then
+          ADD="$TARGET"
+        fi
+
+        if [[ -z "$ADD" && "${#DROP[@]}" -eq 0 ]]; then
+          echo "Labels on #${PR_NUMBER} already correct (${TARGET:-none}); nothing to do."
+          exit 0
+        fi
+
+        EDIT=()
+        if [[ -n "$ADD" ]]; then
+          # gh pr edit --add-label fails if the label does not exist in the repo.
+          case "$ADD" in
+            "$PATCH_LABEL") COLOR=0e8a16; DESC="ABI backward-compatible (patch release)" ;;
+            "$MINOR_LABEL") COLOR=fbca04; DESC="ABI changed, source-compatible (minor release)" ;;
+            *)              COLOR=d93f0b; DESC="ABI check: source/API compatibility broken, needs manual review" ;;
+          esac
+          gh label create "$ADD" --repo "$REPO" --color "$COLOR" --description "$DESC" --force 2>/dev/null || true
+          EDIT+=(--add-label "$ADD")
+        fi
+        if [[ "${#DROP[@]}" -gt 0 ]]; then
+          EDIT+=(--remove-label "$(IFS=,; echo "${DROP[*]}")")
+        fi
+        echo "Updating #${PR_NUMBER}: add='${ADD:-none}' remove='${DROP[*]:-none}'"
+        gh pr edit "$PR_NUMBER" --repo "$REPO" "${EDIT[@]}" \
+          || echo "WARNING: could not update labels (token may be read-only on fork PRs)."
 
     - name: Fail if the ABI check failed
       if: ${{ steps.run_check.outputs.rc != '0' }}
