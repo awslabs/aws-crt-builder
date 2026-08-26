@@ -153,21 +153,14 @@ runs:
         retention-days: 7
 
     - name: Label PR
-      # Adds the applicable label (patch|minor|needs-review) and removes the
-      # other two so a re-run flips the label cleanly. Requires
-      # pull-requests: write; on fork PRs the token is read-only and this is a
-      # no-op (labels are then informational via the job summary only).
-      #
-      # The PR number comes from the event on pull_request, and from a branch
-      # lookup otherwise -- push-triggered runs carry no pull_request object.
-      # The lookup is pinned to the default branch: only merges there need a
-      # label, and a branch may have other open PRs against other bases.
+      # Clears the three verdict labels, then applies the current one.
+      # Requires pull-requests: write.
       if: ${{ inputs.base-ref == '' }}
       shell: bash
       env:
         GH_TOKEN: ${{ inputs.github-token }}
         PR_FROM_EVENT: ${{ github.event.pull_request.number }}
-        BRANCH: ${{ github.head_ref || github.ref_name }}
+        HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         REPO: ${{ github.repository }}
         PATCH_LABEL: ${{ inputs.patch-label }}
@@ -181,12 +174,24 @@ runs:
         fi
         PR_NUMBER="${PR_FROM_EVENT:-}"
         if [[ -z "$PR_NUMBER" ]]; then
-          PR_NUMBER="$(gh pr list --repo "$REPO" --state open --head "$BRANCH" \
-              --base "$DEFAULT_BRANCH" --json number --jq '.[0].number // empty')"
-        fi
-        if [[ -z "$PR_NUMBER" ]]; then
-          echo "No open PR from '${BRANCH}' into '${DEFAULT_BRANCH}'; skipping labeling."
-          exit 0
+          # Push runs carry no pull_request object; find the PR whose head is
+          # this commit. --search matches the SHA server-side; the jq filter
+          # then requires it to be the head, not just present in the PR.
+          MATCHES="$(gh pr list --repo "$REPO" --state open --search "$HEAD_SHA" --limit 2 \
+              --json number,headRefOid,baseRefName \
+              | jq -r --arg sha "$HEAD_SHA" --arg base "${DEFAULT_BRANCH:-main}" \
+                  '[.[] | select(.headRefOid == $sha and .baseRefName == $base)]
+                   | map(.number) | join(" ")')"
+          COUNT="$(wc -w <<< "$MATCHES")"
+          if [[ "$COUNT" -eq 0 ]]; then
+            echo "No open PR into '${DEFAULT_BRANCH}' with head ${HEAD_SHA}; skipping labeling."
+            exit 0
+          fi
+          if [[ "$COUNT" -gt 1 ]]; then
+            echo "PRs ${MATCHES} all have head ${HEAD_SHA}; ambiguous, skipping labeling."
+            exit 0
+          fi
+          PR_NUMBER="$MATCHES"
         fi
         # Translate gate.sh's fixed verdict token ("patch"/"minor"/"needs-review")
         # to the configured label name, since gate.sh has no access to these inputs.
