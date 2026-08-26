@@ -155,12 +155,15 @@ runs:
       #
       # The PR number comes from the event on pull_request, and from a branch
       # lookup otherwise -- push-triggered runs carry no pull_request object.
+      # The lookup is pinned to the default branch: only merges there need a
+      # label, and a branch may have other open PRs against other bases.
       if: ${{ inputs.base-ref == '' }}
       shell: bash
       env:
         GH_TOKEN: ${{ inputs.github-token }}
         PR_FROM_EVENT: ${{ github.event.pull_request.number }}
         BRANCH: ${{ github.head_ref || github.ref_name }}
+        DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         REPO: ${{ github.repository }}
         PATCH_LABEL: ${{ inputs.patch-label }}
         MINOR_LABEL: ${{ inputs.minor-label }}
@@ -174,10 +177,10 @@ runs:
         PR_NUMBER="${PR_FROM_EVENT:-}"
         if [[ -z "$PR_NUMBER" ]]; then
           PR_NUMBER="$(gh pr list --repo "$REPO" --state open --head "$BRANCH" \
-              --json number --jq '.[0].number // empty')"
+              --base "$DEFAULT_BRANCH" --json number --jq '.[0].number // empty')"
         fi
         if [[ -z "$PR_NUMBER" ]]; then
-          echo "No open PR for branch '${BRANCH}'; skipping labeling."
+          echo "No open PR from '${BRANCH}' into '${DEFAULT_BRANCH}'; skipping labeling."
           exit 0
         fi
         # Translate gate.sh's fixed verdict token ("patch"/"minor"/"needs-review")
