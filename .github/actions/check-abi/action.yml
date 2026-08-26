@@ -167,11 +167,8 @@ runs:
         MINOR_LABEL: ${{ inputs.minor-label }}
         NEEDS_REVIEW_LABEL: ${{ inputs.needs-review-label }}
         LABEL: ${{ steps.run_check.outputs.label }}
+        RUN_RC: ${{ steps.run_check.outputs.rc }}
       run: |
-        if [[ -z "${LABEL:-}" ]]; then
-          echo "No ABI verdict was produced; skipping labeling."
-          exit 0
-        fi
         PR_NUMBER="${PR_FROM_EVENT:-}"
         if [[ -z "$PR_NUMBER" ]]; then
           # Push runs carry no pull_request object; find the PR whose head is
@@ -193,9 +190,17 @@ runs:
           fi
           PR_NUMBER="$MATCHES"
         fi
+        # Clear all three, then add at most one back.
+        ALL_LABELS=("$PATCH_LABEL" "$MINOR_LABEL" "$NEEDS_REVIEW_LABEL")
+        for l in "${ALL_LABELS[@]}"; do
+          gh pr edit "$PR_NUMBER" --repo "$REPO" --remove-label "$l" 2>/dev/null || true
+        done
+        if [[ "${RUN_RC:-1}" != "0" || -z "${LABEL:-}" ]]; then
+          echo "No ABI verdict (rc=${RUN_RC:-?}); cleared verdict labels on #${PR_NUMBER}."
+          exit 0
+        fi
         # Translate gate.sh's fixed verdict token ("patch"/"minor"/"needs-review")
         # to the configured label name, since gate.sh has no access to these inputs.
-        ALL_LABELS=("$PATCH_LABEL" "$MINOR_LABEL" "$NEEDS_REVIEW_LABEL")
         case "$LABEL" in
           patch) LABEL="$PATCH_LABEL" ;;
           minor) LABEL="$MINOR_LABEL" ;;
@@ -218,11 +223,6 @@ runs:
           --description "ABI check: source/API compatibility broken, needs manual review" --force 2>/dev/null || true
         gh pr edit "$PR_NUMBER" --repo "$REPO" --add-label "$LABEL" \
           || echo "WARNING: could not add label '$LABEL' (token may be read-only on fork PRs)."
-        # Remove the other two labels if present; ignore failure when absent.
-        for other in "${ALL_LABELS[@]}"; do
-          [[ "$other" == "$LABEL" ]] && continue
-          gh pr edit "$PR_NUMBER" --repo "$REPO" --remove-label "$other" 2>/dev/null || true
-        done
 
     - name: Fail if the ABI check failed
       if: ${{ steps.run_check.outputs.rc != '0' }}
