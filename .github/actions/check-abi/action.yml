@@ -148,16 +148,19 @@ runs:
         retention-days: 7
 
     - name: Label PR
-      # Runs only on pull_request events (needs a PR number) and only if the gate
-      # produced a verdict. Adds the applicable label (patch|minor|needs-review)
-      # and removes the other two so a re-run flips the label cleanly. Requires
+      # Adds the applicable label (patch|minor|needs-review) and removes the
+      # other two so a re-run flips the label cleanly. Requires
       # pull-requests: write; on fork PRs the token is read-only and this is a
       # no-op (labels are then informational via the job summary only).
-      if: ${{ github.event_name == 'pull_request' && inputs.base-ref == '' }}
+      #
+      # The PR number comes from the event on pull_request, and from a branch
+      # lookup otherwise -- push-triggered runs carry no pull_request object.
+      if: ${{ inputs.base-ref == '' }}
       shell: bash
       env:
         GH_TOKEN: ${{ inputs.github-token }}
-        PR_NUMBER: ${{ github.event.pull_request.number }}
+        PR_FROM_EVENT: ${{ github.event.pull_request.number }}
+        BRANCH: ${{ github.head_ref || github.ref_name }}
         REPO: ${{ github.repository }}
         PATCH_LABEL: ${{ inputs.patch-label }}
         MINOR_LABEL: ${{ inputs.minor-label }}
@@ -166,6 +169,15 @@ runs:
       run: |
         if [[ -z "${LABEL:-}" ]]; then
           echo "No ABI verdict was produced; skipping labeling."
+          exit 0
+        fi
+        PR_NUMBER="${PR_FROM_EVENT:-}"
+        if [[ -z "$PR_NUMBER" ]]; then
+          PR_NUMBER="$(gh pr list --repo "$REPO" --state open --head "$BRANCH" \
+              --json number --jq '.[0].number // empty')"
+        fi
+        if [[ -z "$PR_NUMBER" ]]; then
+          echo "No open PR for branch '${BRANCH}'; skipping labeling."
           exit 0
         fi
         # Translate gate.sh's fixed verdict token ("patch"/"minor"/"needs-review")
