@@ -110,8 +110,9 @@ runs:
 
         # tee streams the log live and captures it in OUT for parsing below.
         # PIPESTATUS[0] is docker's exit code, not tee's.
-        set -o pipefail
         OUT="$(mktemp)"
+        # -e would abort here before RC is read, so guard the pipeline.
+        set +e
         docker run --rm \
           -v "${GITHUB_WORKSPACE}:${GITHUB_WORKSPACE}" \
           -v "${GITHUB_ACTION_PATH}:/opt/check-abi:ro" \
@@ -132,13 +133,15 @@ runs:
           "${ABI_DOCKER_IMAGE}" \
           /opt/check-abi/scripts/abi_check.sh | tee "$OUT"
         RC="${PIPESTATUS[0]}"
+        set -e
 
-        LABEL="$(grep -o 'ABI_LABEL_RESULT::[a-zA-Z0-9_-]*' "$OUT" | tail -n1 | cut -d: -f3)"
+        # grep exits 1 when there is no verdict, which -e would treat as fatal.
+        LABEL="$(grep -o 'ABI_LABEL_RESULT::[a-zA-Z0-9_-]*' "$OUT" | tail -n1 | cut -d: -f3 || true)"
         rm -f "$OUT"
         if [[ -n "$LABEL" ]]; then
           echo "label=${LABEL}" >> "$GITHUB_OUTPUT"
         fi
-        exit "$RC"
+        echo "rc=${RC}" >> "$GITHUB_OUTPUT"
 
     - name: Upload ABI artifacts
       if: always()
@@ -215,3 +218,10 @@ runs:
           [[ "$other" == "$LABEL" ]] && continue
           gh pr edit "$PR_NUMBER" --repo "$REPO" --remove-label "$other" 2>/dev/null || true
         done
+
+    - name: Fail if the ABI check failed
+      if: ${{ steps.run_check.outputs.rc != '0' }}
+      shell: bash
+      run: |
+        echo "::error::ABI check exited ${{ steps.run_check.outputs.rc }}."
+        exit 1
