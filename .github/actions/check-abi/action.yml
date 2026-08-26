@@ -202,6 +202,12 @@ runs:
             *) echo "Unexpected ABI verdict token '$LABEL'; treating as no verdict." ;;
           esac
         fi
+        # A successful run with no parsable verdict is left alone; a failed run
+        # clears any stale verdict, since this commit's result is unknown.
+        if [[ "${RUN_RC:-1}" == "0" && -z "$TARGET" ]]; then
+          echo "No verdict parsed; leaving labels on #${PR_NUMBER} unchanged."
+          exit 0
+        fi
 
         CURRENT="$(gh pr view "$PR_NUMBER" --repo "$REPO" --json labels -q '.labels[].name')"
         DROP=()
@@ -210,9 +216,7 @@ runs:
           grep -qxF "$l" <<< "$CURRENT" && DROP+=("$l")
         done
         ADD=""
-        if [[ -n "$TARGET" ]] && ! grep -qxF "$TARGET" <<< "$CURRENT"; then
-          ADD="$TARGET"
-        fi
+        [[ -n "$TARGET" ]] && { grep -qxF "$TARGET" <<< "$CURRENT" || ADD="$TARGET"; }
 
         if [[ -z "$ADD" && "${#DROP[@]}" -eq 0 ]]; then
           echo "Labels on #${PR_NUMBER} already correct (${TARGET:-none}); nothing to do."
