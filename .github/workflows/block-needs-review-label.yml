@@ -7,12 +7,12 @@ jobs:
   gate:
     runs-on: ubuntu-24.04
     steps:
-      - name: Fail if needs-review is present
-        # Hardcoded, not an input: this must always match check-abi's own
-        # needs-review-label default. Making it configurable would let a
-        # caller override the label here without also updating check-abi's
-        # own action.yml input, silently breaking the block (checking for a
-        # label check-abi never applies).
+      - name: Require a clean ABI verdict
+        # Labels are hardcoded, not inputs: they must always match check-abi's
+        # own label defaults. Making them configurable would let a caller
+        # override them here without also updating check-abi's own action.yml
+        # input, silently breaking the block (checking for labels check-abi
+        # never applies).
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
@@ -23,4 +23,8 @@ jobs:
             echo "::error::PR is labeled 'needs-review' -- a maintainer must review and remove the label before this can merge."
             exit 1
           fi
-          echo "Label 'needs-review' not present."
+          if ! grep -qxE 'patch|minor' <<< "$LABELS"; then
+            echo "::error::PR has no 'patch' or 'minor' label -- the ABI check has not produced a verdict for this commit."
+            exit 1
+          fi
+          echo "ABI verdict present and not 'needs-review'."
