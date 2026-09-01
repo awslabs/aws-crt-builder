@@ -11,6 +11,8 @@
 #   ABI_BUILDER_PYZ   absolute path to the downloaded builder.pyz
 #   GITHUB_WORKSPACE  the PR head checkout (set by GitHub Actions)
 #   GITHUB_BASE_REF   target branch name on pull_request events (may be empty)
+#   ABI_DEFAULT_BRANCH  repo default branch, used for the merge-base fallback
+#                      on push events. Defaults to 'main' when unset.
 #   ABI_BASE_REF      explicit base ref override (e.g. a previous release tag).
 #                      Takes precedence over GITHUB_BASE_REF/merge-base. Set by
 #                      the release workflow to diff "previous tag vs current
@@ -34,12 +36,13 @@ if [[ -n "${ABI_BASE_REF:-}" ]]; then
 elif [[ -n "${GITHUB_BASE_REF:-}" ]]; then
   BASE_REF="origin/${GITHUB_BASE_REF}"
 else
-  BASE_REF="$(git -C "$HEAD_DIR" merge-base HEAD origin/main 2>/dev/null)"
+  DEFAULT_BRANCH="${ABI_DEFAULT_BRANCH:-main}"
+  BASE_REF="$(git -C "$HEAD_DIR" merge-base HEAD "origin/${DEFAULT_BRANCH}" 2>/dev/null)"
   if [[ -z "$BASE_REF" ]]; then
     echo "ERROR: cannot determine ABI base ref. GITHUB_BASE_REF is unset and" >&2
-    echo "       'git merge-base HEAD origin/main' failed. Trigger via a" >&2
-    echo "       pull_request event, or ensure the default branch is named" >&2
-    echo "       'main' and is fetchable (checkout with fetch-depth: 0)." >&2
+    echo "       'git merge-base HEAD origin/${DEFAULT_BRANCH}' failed. Trigger via a" >&2
+    echo "       pull_request event, or ensure 'origin/${DEFAULT_BRANCH}' is" >&2
+    echo "       fetchable (checkout with fetch-depth: 0)." >&2
     exit 1
   fi
 fi

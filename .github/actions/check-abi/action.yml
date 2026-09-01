@@ -91,6 +91,7 @@ runs:
         BUILDER_SOURCE: ${{ inputs.builder-source }}
         BUILDER_HOST: ${{ inputs.builder-host }}
         ABI_BASE_REF: ${{ inputs.base-ref }}
+        ABI_DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
       run: |
         # Mount the checkout at the same path so GITHUB_WORKSPACE resolves inside
         # the container, and mount the step-summary file so report.py can append
@@ -109,8 +110,9 @@ runs:
 
         # tee streams the log live and captures it in OUT for parsing below.
         # PIPESTATUS[0] is docker's exit code, not tee's.
-        set -o pipefail
         OUT="$(mktemp)"
+        # -e would abort here before RC is read, so guard the pipeline.
+        set +e
         docker run --rm \
           -v "${GITHUB_WORKSPACE}:${GITHUB_WORKSPACE}" \
           -v "${GITHUB_ACTION_PATH}:/opt/check-abi:ro" \
@@ -119,6 +121,7 @@ runs:
           --env "GITHUB_BASE_REF=${GITHUB_BASE_REF:-}" \
           --env "GITHUB_HEAD_REF=${GITHUB_HEAD_REF:-}" \
           --env "ABI_BASE_REF=${ABI_BASE_REF:-}" \
+          --env "ABI_DEFAULT_BRANCH=${ABI_DEFAULT_BRANCH:-}" \
           --env "GITHUB_RUN_ID=${GITHUB_RUN_ID:-}" \
           --env "GITHUB_RUN_NUMBER=${GITHUB_RUN_NUMBER:-}" \
           --env "ABI_LIB_NAME=${LIB_NAME}" \
@@ -130,13 +133,15 @@ runs:
           "${ABI_DOCKER_IMAGE}" \
           /opt/check-abi/scripts/abi_check.sh | tee "$OUT"
         RC="${PIPESTATUS[0]}"
+        set -e
 
-        LABEL="$(grep -o 'ABI_LABEL_RESULT::[a-zA-Z0-9_-]*' "$OUT" | tail -n1 | cut -d: -f3)"
+        # grep exits 1 when there is no verdict, which -e would treat as fatal.
+        LABEL="$(grep -o 'ABI_LABEL_RESULT::[a-zA-Z0-9_-]*' "$OUT" | tail -n1 | cut -d: -f3 || true)"
         rm -f "$OUT"
         if [[ -n "$LABEL" ]]; then
           echo "label=${LABEL}" >> "$GITHUB_OUTPUT"
         fi
-        exit "$RC"
+        echo "rc=${RC}" >> "$GITHUB_OUTPUT"
 
     - name: Upload ABI artifacts
       if: always()
@@ -148,53 +153,97 @@ runs:
         retention-days: 7
 
     - name: Label PR
-      # Runs only on pull_request events (needs a PR number) and only if the gate
-      # produced a verdict. Adds the applicable label (patch|minor|needs-review)
-      # and removes the other two so a re-run flips the label cleanly. Requires
-      # pull-requests: write; on fork PRs the token is read-only and this is a
-      # no-op (labels are then informational via the job summary only).
-      if: ${{ github.event_name == 'pull_request' && inputs.base-ref == '' }}
+      # Clears the three verdict labels, then applies the current one.
+      # Requires pull-requests: write.
+      if: ${{ inputs.base-ref == '' }}
       shell: bash
       env:
         GH_TOKEN: ${{ inputs.github-token }}
-        PR_NUMBER: ${{ github.event.pull_request.number }}
+        PR_FROM_EVENT: ${{ github.event.pull_request.number }}
+        HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         REPO: ${{ github.repository }}
         PATCH_LABEL: ${{ inputs.patch-label }}
         MINOR_LABEL: ${{ inputs.minor-label }}
         NEEDS_REVIEW_LABEL: ${{ inputs.needs-review-label }}
         LABEL: ${{ steps.run_check.outputs.label }}
+        RUN_RC: ${{ steps.run_check.outputs.rc }}
       run: |
-        if [[ -z "${LABEL:-}" ]]; then
-          echo "No ABI verdict was produced; skipping labeling."
-          exit 0
+        PR_NUMBER="${PR_FROM_EVENT:-}"
+        if [[ -z "$PR_NUMBER" ]]; then
+          # Push runs carry no pull_request object; find the PR whose head is
+          # this commit. --search matches any PR containing the commit, so the
+          # jq filter narrows to the one where it is the head.
+          MATCHES="$(gh pr list --repo "$REPO" --state open --search "$HEAD_SHA" --limit 10 \
+              --json number,headRefOid,baseRefName \
+              | jq -r --arg sha "$HEAD_SHA" --arg base "${DEFAULT_BRANCH:-main}" \
+                  '[.[] | select(.headRefOid == $sha and .baseRefName == $base)]
+                   | map(.number) | join(" ")')"
+          COUNT="$(wc -w <<< "$MATCHES")"
+          if [[ "$COUNT" -eq 0 ]]; then
+            echo "No open PR into '${DEFAULT_BRANCH}' with head ${HEAD_SHA}; skipping labeling."
+            exit 0
+          fi
+          if [[ "$COUNT" -gt 1 ]]; then
+            echo "PRs ${MATCHES} all have head ${HEAD_SHA}; ambiguous, skipping labeling."
+            exit 0
+          fi
+          PR_NUMBER="$MATCHES"
         fi
+        ALL_LABELS=("$PATCH_LABEL" "$MINOR_LABEL" "$NEEDS_REVIEW_LABEL")
         # Translate gate.sh's fixed verdict token ("patch"/"minor"/"needs-review")
         # to the configured label name, since gate.sh has no access to these inputs.
-        ALL_LABELS=("$PATCH_LABEL" "$MINOR_LABEL" "$NEEDS_REVIEW_LABEL")
-        case "$LABEL" in
-          patch) LABEL="$PATCH_LABEL" ;;
-          minor) LABEL="$MINOR_LABEL" ;;
-          needs-review) LABEL="$NEEDS_REVIEW_LABEL" ;;
-          *) echo "Unexpected ABI verdict token '$LABEL'; skipping."; exit 0 ;;
-        esac
-        echo "Applying label '$LABEL' on PR #${PR_NUMBER}"
-        # gh pr edit --add-label fails if the label does not exist in the repo
-        # (it will not create it), so ensure all three labels exist first.
-        # --force makes create idempotent; ignore the failure when it exists.
-        gh label create "$PATCH_LABEL" --repo "$REPO" --color 0e8a16 \
-          --description "ABI backward-compatible (patch release)" --force 2>/dev/null || true
-        gh label create "$MINOR_LABEL" --repo "$REPO" --color fbca04 \
-          --description "ABI changed, source-compatible (minor release)" --force 2>/dev/null || true
-        # Bright red: source/API compatibility is broken -- callers fail to
-        # recompile. This is deliberately the most visually alarming of the
-        # three; a reviewer must look before deciding whether a minor bump
-        # (or a revert) is the right call.
-        gh label create "$NEEDS_REVIEW_LABEL" --repo "$REPO" --color d93f0b \
-          --description "ABI check: source/API compatibility broken, needs manual review" --force 2>/dev/null || true
-        gh pr edit "$PR_NUMBER" --repo "$REPO" --add-label "$LABEL" \
-          || echo "WARNING: could not add label '$LABEL' (token may be read-only on fork PRs)."
-        # Remove the other two labels if present; ignore failure when absent.
-        for other in "${ALL_LABELS[@]}"; do
-          [[ "$other" == "$LABEL" ]] && continue
-          gh pr edit "$PR_NUMBER" --repo "$REPO" --remove-label "$other" 2>/dev/null || true
+        TARGET=""
+        if [[ "${RUN_RC:-1}" == "0" && -n "${LABEL:-}" ]]; then
+          case "$LABEL" in
+            patch) TARGET="$PATCH_LABEL" ;;
+            minor) TARGET="$MINOR_LABEL" ;;
+            needs-review) TARGET="$NEEDS_REVIEW_LABEL" ;;
+            *) echo "Unexpected ABI verdict token '$LABEL'; treating as no verdict." ;;
+          esac
+        fi
+        # A successful run with no parsable verdict is left alone; a failed run
+        # clears any stale verdict, since this commit's result is unknown.
+        if [[ "${RUN_RC:-1}" == "0" && -z "$TARGET" ]]; then
+          echo "No verdict parsed; leaving labels on #${PR_NUMBER} unchanged."
+          exit 0
+        fi
+
+        CURRENT="$(gh pr view "$PR_NUMBER" --repo "$REPO" --json labels -q '.labels[].name')"
+        DROP=()
+        for l in "${ALL_LABELS[@]}"; do
+          [[ "$l" == "$TARGET" ]] && continue
+          grep -qxF "$l" <<< "$CURRENT" && DROP+=("$l")
         done
+        ADD=""
+        [[ -n "$TARGET" ]] && { grep -qxF "$TARGET" <<< "$CURRENT" || ADD="$TARGET"; }
+
+        if [[ -z "$ADD" && "${#DROP[@]}" -eq 0 ]]; then
+          echo "Labels on #${PR_NUMBER} already correct (${TARGET:-none}); nothing to do."
+          exit 0
+        fi
+
+        EDIT=()
+        if [[ -n "$ADD" ]]; then
+          # gh pr edit --add-label fails if the label does not exist in the repo.
+          case "$ADD" in
+            "$PATCH_LABEL") COLOR=0e8a16; DESC="ABI backward-compatible (patch release)" ;;
+            "$MINOR_LABEL") COLOR=fbca04; DESC="ABI changed, source-compatible (minor release)" ;;
+            *)              COLOR=d93f0b; DESC="ABI check: source/API compatibility broken, needs manual review" ;;
+          esac
+          gh label create "$ADD" --repo "$REPO" --color "$COLOR" --description "$DESC" --force 2>/dev/null || true
+          EDIT+=(--add-label "$ADD")
+        fi
+        if [[ "${#DROP[@]}" -gt 0 ]]; then
+          EDIT+=(--remove-label "$(IFS=,; echo "${DROP[*]}")")
+        fi
+        echo "Updating #${PR_NUMBER}: add='${ADD:-none}' remove='${DROP[*]:-none}'"
+        gh pr edit "$PR_NUMBER" --repo "$REPO" "${EDIT[@]}" \
+          || echo "WARNING: could not update labels (token may be read-only on fork PRs)."
+
+    - name: Fail if the ABI check failed
+      if: ${{ steps.run_check.outputs.rc != '0' }}
+      shell: bash
+      run: |
+        echo "::error::ABI check exited ${{ steps.run_check.outputs.rc }}."
+        exit 1

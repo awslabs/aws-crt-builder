@@ -69,12 +69,11 @@ The consumer workflow must, before invoking this action:
   action targets today (none use submodules for their public API surface), but
   it means this action is **not** a drop-in fit for a repo like `aws-crt-cpp`
   that does use them, without further work.
-- **Default branch must be reachable as `origin/main`.** When triggered outside
-  a `pull_request` event (and `base-ref` isn't set), the base ref is resolved
-  via `git merge-base HEAD origin/main`. A consumer repo whose default branch
-  isn't literally named `main` will hit a clear, actionable error (see
-  `scripts/build.sh`) rather than a silent misdetection, but this is a real
-  portability gap worth knowing about up front.
+- **Default branch must be fetchable.** When triggered outside a
+  `pull_request` event (and `base-ref` isn't set), the base ref is resolved via
+  `git merge-base HEAD origin/<default-branch>`, taking the branch name from the
+  event payload and falling back to `main`. Check out with `fetch-depth: 0` so
+  it is reachable.
 - **Single-library scope.** Each run diffs one library's own ABI/API against
   its own previous version. It cannot detect a break that only manifests when
   a *different* library in the dependency graph is upgraded without a
