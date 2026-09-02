@@ -98,7 +98,10 @@ esac
 
 # install everything
 if [[ $LLVM_VERSION -ne 3 ]]; then
-    curl -sSL https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -
+    # Only fetch the key here if it isn't already present in the system.
+    if [ ! -f /etc/apt/trusted.gpg.d/apt.llvm.org.asc ]; then
+        curl -sSL https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -
+    fi
     add-apt-repository "${REPO_NAME}"
     apt-get update
 fi
