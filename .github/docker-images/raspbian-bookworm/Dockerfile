@@ -1,4 +1,4 @@
-FROM --platform=linux/arm/v7 dtcooper/raspberrypi-os:bullseye
+FROM --platform=linux/arm/v7 dtcooper/raspberrypi-os:bookworm
 
 ###############################################################################
 # Install prereqs
@@ -12,7 +12,7 @@ RUN apt-get update -qq \
     clang \
     cmake \
     # Python
-    python3.9 \
+    python3.11 \
     python3-dev \
     python3-pip \
     python3-venv \
@@ -26,8 +26,8 @@ RUN apt-get update -qq \
 ###############################################################################
 # Python/AWS CLI
 ###############################################################################
-RUN python3 -m pip install --upgrade setuptools virtualenv \
-    && python3 -m pip install --upgrade awscli \
+RUN python3 -m pip install --break-system-packages --upgrade setuptools virtualenv \
+    && python3 -m pip install --break-system-packages --upgrade awscli \
     && ln -s `find /opt -name aws` /usr/local/bin/aws \
     && which aws \
     && aws --version
