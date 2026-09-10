@@ -23,6 +23,12 @@ RUN apt-get update -qq \
 # ubuntu-toolchain-r PPA provides newer gcc versions
 RUN apt-add-repository -y ppa:ubuntu-toolchain-r/test
 
+# Bake the apt.llvm.org key so parallel CI jobs don't fetch it at runtime.
+RUN curl -fsSL --retry 5 --retry-delay 5 --retry-connrefused --connect-timeout 15 \
+        https://apt.llvm.org/llvm-snapshot.gpg.key \
+        -o /etc/apt/trusted.gpg.d/apt.llvm.org.asc \
+    && test -s /etc/apt/trusted.gpg.d/apt.llvm.org.asc
+
 # Add the longsleep/golang-backports PPA
 RUN apt-get update && apt-get install -y software-properties-common && add-apt-repository ppa:longsleep/golang-backports && apt-get update
 
