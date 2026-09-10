@@ -33,7 +33,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
     - name: Checkout Source
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
 
     - name: Run Tests
       run: python3 -m unittest discover tests --verbose
@@ -49,7 +49,7 @@ jobs:
         aws-region: ${{ env.AWS_DEFAULT_REGION }}
 
     - name: Checkout Source
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
 
     - name: Get release tag
       uses: ./.github/actions/release-tag
@@ -90,7 +90,7 @@ jobs:
     runs-on: ${{ matrix.host }}
     steps:
     - name: Checkout Source
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
 
     - name: Install builder
       uses: actions/download-artifact@v4
@@ -153,7 +153,7 @@ jobs:
       UNSUPPORTED_COMPILER: appleclang-999
     steps:
     - name: Checkout Source
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
 
     - name: Install builder
       uses: actions/download-artifact@v4
@@ -180,7 +180,7 @@ jobs:
 
     steps:
     - name: Checkout Source
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
 
     - name: Install builder
       uses: actions/download-artifact@v4
@@ -216,7 +216,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
     - name: Checkout Source
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
 
     - name: Install builder
       uses: actions/download-artifact@v4
@@ -242,7 +242,7 @@ jobs:
         role-to-assume: ${{ env.CRT_CI_ROLE }}
         aws-region: ${{ env.AWS_DEFAULT_REGION }}
     - name: Checkout Source
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
 
     - name: Install builder
       uses: actions/download-artifact@v4
@@ -296,7 +296,7 @@ jobs:
         aws-region: ${{ env.AWS_DEFAULT_REGION }}
 
     - name: Checkout Source
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
 
     - name: Install builder
       uses: actions/download-artifact@v4
@@ -328,7 +328,7 @@ jobs:
         aws-region: ${{ env.AWS_DEFAULT_REGION }}
 
     - name: Checkout Source
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
 
     - name: Get release tag
       uses: ./.github/actions/release-tag
@@ -361,7 +361,7 @@ jobs:
         aws-region: ${{ env.AWS_DEFAULT_REGION }}
 
     - name: Checkout Source
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
 
     - name: Get release tag
       uses: ./.github/actions/release-tag
@@ -394,7 +394,7 @@ jobs:
         aws-region: ${{ env.AWS_DEFAULT_REGION }}
 
     - name: Checkout Source
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
 
     - name: Get release tag
       uses: ./.github/actions/release-tag
