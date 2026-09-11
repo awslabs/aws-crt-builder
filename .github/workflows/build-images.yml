@@ -1,0 +1,182 @@
+name: Build Images
+
+# Reusable workflow that builds every docker image variant and pushes it to
+# ECR. Callers (create-release.yml, create-channel.yml) toggle the two
+# behaviors that differ between a release and a channel build:
+#   * publish-latest — also tag/push each image (and its family alias) as :latest
+#   * export-to-s3   — also save each image as a tarball to S3 releases/LATEST
+on:
+  workflow_call:
+    inputs:
+      publish-latest:
+        description: Also push the :latest tag for each image and family alias.
+        type: boolean
+        default: false
+      export-to-s3:
+        description: Also export each built image as a tarball to S3.
+        type: boolean
+        default: false
+    secrets:
+      AWS_S3_BUCKET:
+        required: true
+      CRT_CI_ROLE_ARN:
+        required: true
+      AWS_ECR_REPO:
+        required: true
+
+env:
+  AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
+  CRT_CI_ROLE: ${{ secrets.CRT_CI_ROLE_ARN }}
+  AWS_DEFAULT_REGION: us-east-1
+
+permissions:
+  id-token: write # This is required for requesting the JWT
+
+jobs:
+  build-images:
+    name: aws-crt-${{ matrix.variant.name }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        # `latest-alias` marks a variant as the current "newest" member of its family. When set, the built image is
+        # retagged and pushed as `aws-crt-<alias>`. Single-member families (e.g. raspbian, opensuse) get an alias too so
+        # consumers can always reference `<family>-latest-<arch>` without knowing the current version.
+        # The abi/msan variants are intentionally excluded since they are specialized CI images.
+        variant:
+        - name: manylinux1-x86
+        - name: manylinux1-x64
+        - name: manylinux2014-x86
+        - name: manylinux2014-x64
+        - name: manylinux2014-aarch64
+        - name: manylinux_2_28-x86
+          latest-alias: manylinux-latest-x86
+        - name: manylinux_2_28-x64
+          latest-alias: manylinux-latest-x64
+        - name: manylinux_2_28-aarch64
+          latest-alias: manylinux-latest-aarch64
+        - name: musllinux-1-1-aarch64
+          latest-alias: musllinux-latest-aarch64
+        - name: musllinux-1-1-x64
+          latest-alias: musllinux-latest-x64
+        - name: al2012-x64
+        - name: al2-x64
+        - name: al2023-x64
+          latest-alias: al-latest-x64
+        - name: ubuntu-18-x64
+        - name: ubuntu-20-x64
+        - name: ubuntu-20-aarch64
+          extra-build-flag: --platform=linux/aarch64
+          latest-alias: ubuntu-latest-aarch64
+        - name: ubuntu-22-x64
+          latest-alias: ubuntu-latest-x64
+        - name: ubuntu-22-abi-x64
+        - name: ubuntu-22-msan-x64
+        - name: node-10-linux-x64
+        - name: node-18-linux-x64
+        - name: swift-5-al2-x64
+        - name: swift-5-ubuntu-x64
+        - name: rhel8-x64
+          latest-alias: rhel-latest-x64
+        - name: opensuse-leap
+          latest-alias: opensuse-latest
+        - name: fedora-34-x64
+          latest-alias: fedora-latest-x64
+        - name: raspbian-bookworm
+          latest-alias: raspbian-latest
+        - name: alpine-3.16-x64
+          latest-alias: alpine-latest-x64
+        - name: alpine-3.16-x86
+          latest-alias: alpine-latest-x86
+        - name: alpine-3.16-arm64
+          latest-alias: alpine-latest-arm64
+        - name: alpine-3.16-armv7
+          latest-alias: alpine-latest-armv7
+        - name: alpine-3.16-armv6
+          latest-alias: alpine-latest-armv6
+        - name: openwrt-x64-openjdk8
+          latest-alias: openwrt-latest-x64
+
+    steps:
+    - uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ env.CRT_CI_ROLE }}
+        aws-region: ${{ env.AWS_DEFAULT_REGION }}
+
+    - name: Checkout Sources
+      uses: actions/checkout@v4
+
+    - name: Get release tag
+      uses: ./.github/actions/release-tag
+      id: tag
+
+    - name: Login to docker repo
+      run: aws ecr get-login-password --region us-east-1 | docker login ${{ secrets.AWS_ECR_REPO }} -u AWS --password-stdin
+
+    - name: Install entrypoint
+      run: cat .github/docker-images/entrypoint.sh | sed s/version=latest/version=${{ steps.tag.outputs.release_tag }}/ > .github/docker-images/${{ matrix.variant.name }}/entrypoint.sh
+
+    - name: Install qemu/docker
+      run: docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+
+    - name: Build aws-crt-${{ matrix.variant.name }} image
+      uses: whoan/docker-build-with-cache-action@v8
+      with:
+        registry: ${{ secrets.AWS_ECR_REPO }}
+        username: ${{ steps.creds.outputs.aws-access-key-id }}
+        password: ${{ steps.creds.outputs.aws-secret-access-key }}
+        session: ${{ steps.creds.outputs.aws-session-token }}
+        image_name: aws-crt-${{ matrix.variant.name }}
+        image_tag: ${{ steps.tag.outputs.release_tag }}
+        context: .github/docker-images/${{ matrix.variant.name }}
+        build_extra_args: --compress=true ${{ matrix.variant.extra-build-flag }}
+
+    - name: Create ECR repo if necessary
+      run: |
+        if ! aws --region us-east-1 ecr describe-repositories --repository-names aws-crt-${{ matrix.variant.name }} > /dev/null 2>&1; then \
+          aws --region us-east-1 ecr create-repository --repository-name aws-crt-${{ matrix.variant.name }}; \
+        fi
+
+    - name: Push aws-crt-${{ matrix.variant.name }} image
+      run: |
+        export IMAGE_TAG=${{ steps.tag.outputs.release_tag }}
+        export IMAGE=${{ secrets.AWS_ECR_REPO }}/aws-crt-${{ matrix.variant.name }}
+        docker push $IMAGE:$IMAGE_TAG
+        if [ "${{ inputs.publish-latest }}" == "true" ]; then
+          docker tag $IMAGE:$IMAGE_TAG $IMAGE:latest
+          docker push $IMAGE:latest
+        fi
+
+    - name: Export aws-crt-${{ matrix.variant.name }} image to S3
+      if: inputs.export-to-s3
+      run: |
+        export IMAGE_TAG=${{ steps.tag.outputs.release_tag }}
+        docker save ${{ secrets.AWS_ECR_REPO }}/aws-crt-${{ matrix.variant.name }}:$IMAGE_TAG \
+        | gzip \
+        | aws s3 cp - s3://${{env.AWS_S3_BUCKET}}/releases/$IMAGE_TAG/aws-crt-${{ matrix.variant.name }}.tar.gz
+        aws s3 cp s3://${{env.AWS_S3_BUCKET}}/releases/$IMAGE_TAG/aws-crt-${{ matrix.variant.name }}.tar.gz s3://${{env.AWS_S3_BUCKET}}/LATEST/aws-crt-${{ matrix.variant.name }}.tar.gz
+
+    - name: Publish family-latest alias aws-crt-${{ matrix.variant.latest-alias }}
+      # Retag the just-built image under its family-latest alias so consumers
+      # can pull e.g. aws-crt-ubuntu-latest-x64 without tracking the current
+      # ubuntu version. The alias mirrors whatever tags/exports this build made.
+      if: matrix.variant.latest-alias != ''
+      run: |
+        export IMAGE_TAG=${{ steps.tag.outputs.release_tag }}
+        export SRC=${{ secrets.AWS_ECR_REPO }}/aws-crt-${{ matrix.variant.name }}
+        export ALIAS=${{ secrets.AWS_ECR_REPO }}/aws-crt-${{ matrix.variant.latest-alias }}
+        if ! aws --region us-east-1 ecr describe-repositories --repository-names aws-crt-${{ matrix.variant.latest-alias }} > /dev/null 2>&1; then
+          aws --region us-east-1 ecr create-repository --repository-name aws-crt-${{ matrix.variant.latest-alias }}
+        fi
+        docker tag  $SRC:$IMAGE_TAG $ALIAS:$IMAGE_TAG
+        docker push $ALIAS:$IMAGE_TAG
+        if [ "${{ inputs.publish-latest }}" == "true" ]; then
+          docker tag  $SRC:$IMAGE_TAG $ALIAS:latest
+          docker push $ALIAS:latest
+        fi
+        if [ "${{ inputs.export-to-s3 }}" == "true" ]; then
+          docker save $ALIAS:$IMAGE_TAG \
+          | gzip \
+          | aws s3 cp - s3://${{env.AWS_S3_BUCKET}}/releases/$IMAGE_TAG/aws-crt-${{ matrix.variant.latest-alias }}.tar.gz
+          aws s3 cp s3://${{env.AWS_S3_BUCKET}}/releases/$IMAGE_TAG/aws-crt-${{ matrix.variant.latest-alias }}.tar.gz s3://${{env.AWS_S3_BUCKET}}/LATEST/aws-crt-${{ matrix.variant.latest-alias }}.tar.gz
+        fi
