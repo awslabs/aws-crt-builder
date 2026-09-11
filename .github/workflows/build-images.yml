@@ -42,58 +42,78 @@ jobs:
         # `latest-alias` marks a variant as the current "newest" member of its family. When set, the built image is
         # retagged and pushed as `aws-crt-<alias>`. Single-member families (e.g. raspbian, opensuse) get an alias too so
         # consumers can always reference `<family>-latest-<arch>` without knowing the current version.
-        # The abi/msan variants are intentionally excluded since they are specialized CI images.
+        # The specialized variants (abi, msan, swift) are intentionally excluded.
         variant:
+        # manylinux x86
         - name: manylinux1-x86
-        - name: manylinux1-x64
         - name: manylinux2014-x86
-        - name: manylinux2014-x64
-        - name: manylinux2014-aarch64
         - name: manylinux_2_28-x86
           latest-alias: manylinux-latest-x86
+        # manylinux x64
+        - name: manylinux1-x64
+        - name: manylinux2014-x64
         - name: manylinux_2_28-x64
           latest-alias: manylinux-latest-x64
+        # manylinux aarch64
+        - name: manylinux2014-aarch64
         - name: manylinux_2_28-aarch64
           latest-alias: manylinux-latest-aarch64
-        - name: musllinux-1-1-aarch64
-          latest-alias: musllinux-latest-aarch64
+        # musllinux x64
         - name: musllinux-1-1-x64
           latest-alias: musllinux-latest-x64
+        # musllinux aarch64
+        - name: musllinux-1-1-aarch64
+          latest-alias: musllinux-latest-aarch64
+        # amazonlinux x64
         - name: al2012-x64
         - name: al2-x64
         - name: al2023-x64
           latest-alias: al-latest-x64
+        # ubuntu x64
         - name: ubuntu-18-x64
         - name: ubuntu-20-x64
-        - name: ubuntu-20-aarch64
-          extra-build-flag: --platform=linux/aarch64
-          latest-alias: ubuntu-latest-aarch64
         - name: ubuntu-22-x64
           latest-alias: ubuntu-latest-x64
         - name: ubuntu-22-abi-x64
         - name: ubuntu-22-msan-x64
+        # ubuntu aarch64
+        - name: ubuntu-20-aarch64
+          extra-build-flag: --platform=linux/aarch64
+          latest-alias: ubuntu-latest-aarch64
+        # node x64
         - name: node-10-linux-x64
         - name: node-18-linux-x64
+        # swift x64
         - name: swift-5-al2-x64
         - name: swift-5-ubuntu-x64
+        # rhel x64
         - name: rhel8-x64
           latest-alias: rhel-latest-x64
+        # opensuse
         - name: opensuse-leap
           latest-alias: opensuse-latest
+        # fedora x64
         - name: fedora-34-x64
           latest-alias: fedora-latest-x64
+        # raspbian
         - name: raspbian-bookworm
           latest-alias: raspbian-latest
+        # alpine x64
         - name: alpine-3.16-x64
           latest-alias: alpine-latest-x64
+        # alpine x86
         - name: alpine-3.16-x86
           latest-alias: alpine-latest-x86
+        # alpine arm64
         - name: alpine-3.16-arm64
           latest-alias: alpine-latest-arm64
+        # alpine armv7
         - name: alpine-3.16-armv7
           latest-alias: alpine-latest-armv7
+        # alpine armv6
         - name: alpine-3.16-armv6
           latest-alias: alpine-latest-armv6
+        # openwrt x64
         - name: openwrt-x64-openjdk8
           latest-alias: openwrt-latest-x64
 
