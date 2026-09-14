@@ -13,8 +13,12 @@ on:
 # The builder checks out each repo and its dependencies from main.
 
 env:
-  BUILDER_VERSION: latest
-  BUILDER_SOURCE: releases
+  # TODO: Revert to BUILDER_VERSION=latest / BUILDER_SOURCE=releases before merging to main.
+  # While iterating on this branch we run the builder published to this branch's channel
+  # (by dispatcher.yml -> create-channel.yml on push) so CI picks up unreleased builder
+  # changes such as the UBSan report scan in builder/actions/cmake.py.
+  BUILDER_VERSION: add-nightly-builds
+  BUILDER_SOURCE: channels
   BUILDER_HOST: https://d19elf31gohf1l.cloudfront.net
   LINUX_BASE_IMAGE: ubuntu-22-x64
   RUN: ${{ github.run_id }}-${{ github.run_number }}
@@ -116,8 +120,6 @@ jobs:
   # MSan requires the special instrumented-libc++ image and toolchain file.
   sanitizers:
     runs-on: ubuntu-24.04
-    env:
-      UBSAN_OPTIONS: exitcode=-1
     strategy:
       fail-fast: false
       matrix:
