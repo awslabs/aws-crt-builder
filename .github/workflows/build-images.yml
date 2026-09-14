@@ -91,13 +91,13 @@ jobs:
           latest-alias: rhel-latest-x64
         # opensuse
         - name: opensuse-leap
-          latest-alias: opensuse-latest
+          latest-alias: opensuse-latest-x64
         # fedora x64
         - name: fedora-34-x64
           latest-alias: fedora-latest-x64
         # raspbian
         - name: raspbian-bookworm
-          latest-alias: raspbian-latest
+          latest-alias: raspbian-latest-armv7
         # alpine x64
         - name: alpine-3.16-x64
           latest-alias: alpine-latest-x64
