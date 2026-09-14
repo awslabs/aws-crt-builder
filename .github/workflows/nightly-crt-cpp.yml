@@ -277,7 +277,7 @@ jobs:
           $DOCKER_IMAGE --version=${{ env.BUILDER_VERSION }} build -p ${{ env.PACKAGE_NAME }} ${{ env.NIGHTLY_CMAKE_ARGS }}
 
   macos:
-    runs-on: macos-14
+    runs-on: macos-15
     steps:
     - uses: aws-actions/configure-aws-credentials@v6
       with:
