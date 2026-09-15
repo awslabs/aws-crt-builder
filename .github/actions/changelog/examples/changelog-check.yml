@@ -1,0 +1,42 @@
+# Example PR check — copy into consumer repo's .github/workflows/
+# Fails PR CI if a valid changelog fragment is missing for the PR.
+# Skips when `skip-changelog` label is applied OR when the PR touches only
+# infra-only paths.
+
+name: Changelog Check
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+
+jobs:
+  changelog-check:
+    runs-on: ubuntu-latest
+    if: ${{ !contains(github.event.pull_request.labels.*.name, 'skip-changelog') }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect infra-only PRs
+        id: infra
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          # Paths considered infra-only for changelog purposes. Tune per repo.
+          INFRA_RE='^(\.github/|\.gitignore$|\.gitattributes$|CODEOWNERS$|LICENSE$|NOTICE$|README\.md$|CONTRIBUTING\.md$|docs?/)'
+          NON_INFRA=$(git diff --name-only "$BASE_SHA...$HEAD_SHA" | grep -vE "$INFRA_RE" || true)
+          if [[ -z "$NON_INFRA" ]]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "PR touches only infra paths; changelog check skipped."
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Assert fragment present
+        if: steps.infra.outputs.skip != 'true'
+        uses: awslabs/aws-crt-builder/.github/actions/changelog@main
+        with:
+          mode: check
+          pr: ${{ github.event.pull_request.number }}

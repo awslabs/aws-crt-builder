@@ -1,0 +1,96 @@
+name: 'Changelog'
+description: 'Automated changelog: validate/check fragments on PR, render on merge (serialized), rollup on release. Fragments are author-created via scripts/new-change; no bot ever writes on the author''s behalf.'
+
+inputs:
+  mode:
+    description: 'One of: check | render | rollup | revert | validate | list'
+    required: true
+  changes-dir:
+    description: 'Directory holding fragments.'
+    required: false
+    default: '.changes'
+  changelog:
+    description: 'Path to CHANGELOG.md.'
+    required: false
+    default: 'CHANGELOG.md'
+  # check
+  pr:
+    description: 'PR number (check mode).'
+    required: false
+  # revert
+  original-pr:
+    description: 'Original PR number being reverted (revert mode).'
+    required: false
+  revert-pr:
+    description: 'PR number of the revert PR (revert mode).'
+    required: false
+  url:
+    description: 'PR URL (revert mode).'
+    required: false
+  # rollup
+  version:
+    description: 'Release version, x.y.z (rollup mode).'
+    required: false
+  date:
+    description: 'Release date, ISO-8601 (rollup mode).'
+    required: false
+  highlights:
+    description: 'One-line highlights string for the release header (rollup mode).'
+    required: false
+    default: ''
+  bump:
+    description: 'Optional: patch | minor | major. Inferred from version + current latest/ if omitted.'
+    required: false
+    default: ''
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Run changelog tool
+      shell: bash
+      env:
+        MODE: ${{ inputs.mode }}
+        CHANGES_DIR: ${{ inputs.changes-dir }}
+        CHANGELOG: ${{ inputs.changelog }}
+        PR: ${{ inputs.pr }}
+        ORIGINAL_PR: ${{ inputs.original-pr }}
+        REVERT_PR: ${{ inputs.revert-pr }}
+        URL: ${{ inputs.url }}
+        VERSION: ${{ inputs.version }}
+        DATE: ${{ inputs.date }}
+        HIGHLIGHTS: ${{ inputs.highlights }}
+        BUMP: ${{ inputs.bump }}
+      run: |
+        set -euo pipefail
+        SCRIPT="${GITHUB_ACTION_PATH}/scripts/changelog.py"
+        case "${MODE}" in
+          check)
+            python3 "${SCRIPT}" check --pr "${PR}" --changes-dir "${CHANGES_DIR}"
+            ;;
+          validate)
+            python3 "${SCRIPT}" validate "${CHANGES_DIR}/preview"
+            ;;
+          render)
+            python3 "${SCRIPT}" render \
+              --changes-dir "${CHANGES_DIR}" --changelog "${CHANGELOG}"
+            ;;
+          rollup)
+            EXTRA=()
+            if [[ -n "${BUMP}" ]]; then EXTRA+=(--bump "${BUMP}"); fi
+            python3 "${SCRIPT}" rollup \
+              --version "${VERSION}" --date "${DATE}" --highlights "${HIGHLIGHTS}" \
+              --changes-dir "${CHANGES_DIR}" --changelog "${CHANGELOG}" \
+              "${EXTRA[@]}"
+            ;;
+          revert)
+            python3 "${SCRIPT}" revert \
+              --original-pr "${ORIGINAL_PR}" --revert-pr "${REVERT_PR}" \
+              --url "${URL}" \
+              --changes-dir "${CHANGES_DIR}"
+            ;;
+          list)
+            python3 "${SCRIPT}" list --changes-dir "${CHANGES_DIR}"
+            ;;
+          *)
+            echo "ERROR: unknown mode '${MODE}'" >&2; exit 2 ;;
+        esac

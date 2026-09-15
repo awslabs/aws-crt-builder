@@ -1,0 +1,73 @@
+# Replay every merge on the docs branch so docs mirrors main. If the
+# merge added or modified a preview fragment, also regenerate CHANGELOG.md
+# and fold it into the same docs commit — one commit on docs per merge on
+# main. Main stays clean of bot commits.
+
+name: Changelog Render
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: changelog-docs
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ssh-key: ${{ secrets.CHANGELOG_DEPLOY_KEY }}
+
+      - name: Replay merge onto docs, refresh preview
+        env:
+          TRIGGER_SHA: ${{ github.sha }}
+          DOCS_BRANCH: docs
+        run: |
+          set -euo pipefail
+
+          git config user.name  "aws-sdk-common-runtime-bot"
+          git config user.email "aws-sdk-common-runtime@amazon.com"
+
+          # Ensure docs exists locally, tracking origin's copy if remote has it.
+          if git ls-remote --exit-code --heads origin "${DOCS_BRANCH}" >/dev/null 2>&1; then
+            git fetch origin "${DOCS_BRANCH}:${DOCS_BRANCH}"
+            git checkout "${DOCS_BRANCH}"
+          else
+            # First run: branch docs from main's parent of TRIGGER_SHA so the
+            # first cherry-pick is meaningful (it introduces the changes).
+            PARENT=$(git rev-parse "${TRIGGER_SHA}^")
+            git checkout -B "${DOCS_BRANCH}" "${PARENT}"
+          fi
+
+          # Replay the merge commit onto docs. -x records the origin sha in
+          # the message; --allow-empty tolerates identical trees;
+          # -Xno-renames avoids false renames when docs has moved fragments
+          # from preview/ to latest/ via a prior rollup.
+          if ! git cherry-pick -x --allow-empty \
+                 --strategy=recursive -Xno-renames "${TRIGGER_SHA}"; then
+            echo "ERROR: cherry-pick conflict. Manual intervention required." >&2
+            git cherry-pick --abort || true
+            exit 1
+          fi
+
+          # If any preview fragments changed on this commit, render and amend.
+          FRAGS=$(git diff-tree --no-commit-id --name-only -r -m \
+                    --diff-filter=AM "${TRIGGER_SHA}" \
+                  | grep -E '^\.changes/preview/.*\.json$' \
+                  | sort -u || true)
+
+          if [[ -n "$FRAGS" ]]; then
+            python3 .github/actions/changelog/scripts/changelog.py render
+            git add CHANGELOG.md
+            if ! git diff --cached --quiet; then
+              git commit --amend --no-edit
+            fi
+          fi
+
+          git push origin "${DOCS_BRANCH}"

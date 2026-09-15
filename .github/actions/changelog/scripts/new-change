@@ -1,0 +1,78 @@
+#!/usr/bin/env bash
+# new-change — interactive helper for authors to create a changelog fragment
+# locally, then commit it as part of their own PR. No bot involved.
+#
+# Usage:
+#   scripts/new-change                  # fully interactive
+#   scripts/new-change --pr 843         # skip PR-number prompt
+#   scripts/new-change --pr 843 --title "feat: add SSO sign-in"
+set -euo pipefail
+
+HERE="$(cd "$(dirname "$0")" && pwd)"
+CHANGELOG_PY="${HERE}/changelog.py"
+CHANGES_DIR=".changes"
+
+PR=""
+TITLE=""
+URL=""
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --pr)      PR="$2"; shift 2 ;;
+    --title)   TITLE="$2"; shift 2 ;;
+    --url)     URL="$2"; shift 2 ;;
+    -h|--help)
+      sed -n '2,20p' "$0"; exit 0 ;;
+    *) echo "unknown arg: $1" >&2; exit 2 ;;
+  esac
+done
+
+prompt() {
+  local __var="$1" msg="$2" default="${3:-}" reply
+  if [[ -n "${!__var}" ]]; then return; fi
+  if [[ -n "$default" ]]; then
+    read -rp "${msg} [${default}]: " reply
+    printf -v "$__var" '%s' "${reply:-$default}"
+  else
+    read -rp "${msg}: " reply
+    printf -v "$__var" '%s' "$reply"
+  fi
+}
+
+prompt PR "PR number (leave blank if not opened yet — use a placeholder like 0)"
+if [[ -z "$PR" ]]; then PR=0; fi
+
+DEFAULT_TITLE="$(git log -1 --pretty=%s 2>/dev/null || true)"
+REPO_SLUG="$(git config --get remote.origin.url 2>/dev/null \
+              | sed -E 's#(git@github\.com:|https://github\.com/)##; s#\.git$##' || true)"
+DEFAULT_URL=""
+if [[ -n "$REPO_SLUG" && "$PR" != "0" ]]; then
+  DEFAULT_URL="https://github.com/${REPO_SLUG}/pull/${PR}"
+fi
+
+prompt TITLE "PR title (conventional: 'feat: ...', 'fix: ...', 'doc: ...', 'chore: ...')" "$DEFAULT_TITLE"
+prompt URL   "PR URL" "$DEFAULT_URL"
+
+if [[ -z "$TITLE" ]]; then echo "title is required" >&2; exit 2; fi
+
+python3 "$CHANGELOG_PY" seed \
+  --pr "$PR" \
+  --title "$TITLE" \
+  --url "${URL:-unknown}" \
+  --changes-dir "$CHANGES_DIR" \
+  --force
+
+FRAG="${CHANGES_DIR}/preview/${PR}.json"
+cat <<EOF
+
+Fragment written: ${FRAG}
+
+Next steps (do this yourself — the bot will not commit for you):
+  1. Edit ${FRAG} to refine 'summary' and optionally fill 'notes'.
+  2. git add ${FRAG}
+  3. git commit -m "chore(changelog): fragment for #${PR}"
+  4. git push
+
+CI will fail your PR if this fragment is missing or invalid. Apply the
+'skip-changelog' label only for CI-only / pure-infra PRs.
+EOF

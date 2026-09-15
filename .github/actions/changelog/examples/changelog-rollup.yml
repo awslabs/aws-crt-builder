@@ -1,0 +1,56 @@
+# Cut a release: promote docs-branch preview → versioned section.
+# Called after auto-release computes the new version + bump.
+
+name: Changelog Rollup
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: 'New release version x.y.z'
+        required: true
+        type: string
+      bump:
+        description: 'patch | minor | major'
+        required: true
+        type: string
+      date:
+        description: 'Release date (ISO-8601 YYYY-MM-DD)'
+        required: true
+        type: string
+      highlights:
+        description: 'Optional one-line highlights for the release header'
+        required: false
+        type: string
+        default: ''
+
+permissions:
+  contents: write
+
+concurrency:
+  group: changelog-docs
+  cancel-in-progress: false
+
+jobs:
+  rollup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: docs
+          ssh-key: ${{ secrets.CHANGELOG_DEPLOY_KEY }}
+
+      - name: Rollup preview → ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          python3 .github/actions/changelog/scripts/changelog.py rollup \
+            --version "${{ inputs.version }}" \
+            --bump    "${{ inputs.bump }}" \
+            --date    "${{ inputs.date }}" \
+            --highlights "${{ inputs.highlights }}"
+
+          git config user.name  "aws-sdk-common-runtime-bot"
+          git config user.email "aws-sdk-common-runtime@amazon.com"
+          git add .changes CHANGELOG.md
+          git commit -m "Release ${{ inputs.version }}"
+          git push origin docs
