@@ -266,5 +266,55 @@ class CTestRun(Action):
             sh.exec(*toolchain.shell_env, ctest,
                     "-T", "coverage", working_dir=project_build_dir, check=True)
 
+        _check_ubsan_reports(env, project_build_dir)
+
     def __str__(self):
         return 'ctest {} @ {}'.format(self.project.name, self.project.path)
+
+
+def _ubsan_enabled(env):
+    """True if this build enabled the UndefinedBehaviorSanitizer via --cmake-extra."""
+    cmake_extra = ' '.join(env.args.cmake_extra or [])
+    return 'ENABLE_SANITIZERS=ON' in cmake_extra and 'undefined' in cmake_extra
+
+
+def _check_ubsan_reports(env, project_build_dir):
+    """Fail the build if UBSan reported undefined behavior.
+
+    UBSan runs in its recoverable default mode so every distinct finding is logged and
+    the run continues rather than aborting on the first. But that means the tests still
+    exit 0, so ctest's --output-on-failure hides their reports. ctest always writes the
+    full output of every test (passing included) to Testing/Temporary/LastTest.log, so we
+    scan that and print only the per-test blocks that contain a UBSan report (not the
+    whole log), then fail here.
+    """
+    if not _ubsan_enabled(env):
+        return
+
+    log_path = os.path.join(project_build_dir, 'Testing', 'Temporary', 'LastTest.log')
+    if not os.path.exists(log_path):
+        log_path = os.path.join(env.root_dir, project_build_dir,
+                                'Testing', 'Temporary', 'LastTest.log')
+    if not os.path.exists(log_path):
+        print('WARNING: could not find LastTest.log to scan for UBSan reports')
+        return
+
+    with open(log_path, 'r', errors='replace') as f:
+        log = f.read()
+
+    if 'runtime error:' not in log and 'SUMMARY: UndefinedBehaviorSanitizer' not in log:
+        return
+
+    # Split into per-test blocks so we can print just the offending ones. ctest starts
+    # each test's section with a "<n>/<m> Testing: <name>" header line.
+    blocks = re.split(r'(?=^\d+/\d+ Testing: )', log, flags=re.M)
+    offending = [b for b in blocks
+                 if 'runtime error:' in b or 'SUMMARY: UndefinedBehaviorSanitizer' in b]
+
+    print('UndefinedBehaviorSanitizer reported undefined behavior in '
+          '{} test(s):'.format(len(offending)))
+    # Fall back to the whole log only if block-splitting matched nothing (unexpected format).
+    for block in (offending or [log]):
+        print(block)
+    raise Exception(
+        'UBSan detected undefined behavior (see runtime error: reports above)')
