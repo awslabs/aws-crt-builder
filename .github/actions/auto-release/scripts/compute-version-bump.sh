@@ -14,8 +14,10 @@
 #   PREVIOUS_TAG     the previous release tag, "vMAJOR.MINOR.PATCH" (the
 #                    previously released version is parsed from this name,
 #                    never read from a file's content at that tag)
-#   ABI_LABEL        "patch" | "minor" | "needs-review" | "" -- output of the
-#                    check-abi action (see its gate.sh for how this is chosen)
+#   ABI_LABEL        "patch" | "minor" | "" -- semver axis of the check-abi
+#                    action's verdict (see its gate.sh for how it is chosen)
+#   ABI_SOURCE_BREAK "true" | "false" | "" -- source-compatibility axis of the
+#                    same verdict, independent of ABI_LABEL
 #   VERSION_FILE     path (relative to repo root) where the current version
 #                    at HEAD is expected. If present, it must match the
 #                    previous tag's version (drift check). If absent, this
@@ -84,16 +86,16 @@ prs_with_label() {
 }
 
 # --- Rule 1 -------------------------------------------------------------------
-# ABI_LABEL is a fresh diff of the previous tag against this ref, not a PR
-# label lookup -- a PR that was once flagged needs-review and later had the
-# label removed after human review does not bypass this: if its code still
+# The verdict is a fresh diff of the previous tag against this ref, not a PR
+# label lookup -- a PR that was once flagged as a source break and later had
+# the label removed after human review does not bypass this: if its code still
 # diffs as an API break against the previous tag, this re-check still fails.
-if [[ "${ABI_LABEL:-}" == "needs-review" ]]; then
-  echo "ERROR: the ABI check between ${PREVIOUS_TAG} and this ref returned 'needs-review'" >&2
+if [[ "${ABI_SOURCE_BREAK:-}" == "true" ]]; then
+  echo "ERROR: the ABI check between ${PREVIOUS_TAG} and this ref found a SOURCE break" >&2
   echo "       (an API break -- callers fail to recompile). Major version bumps are" >&2
   echo "       never automated. Cut that tag yourself, then re-run this workflow." >&2
   summary ""
-  summary "**FAILED: the ABI check returned \`needs-review\` -- an API break between \`${PREVIOUS_TAG}\` and this ref.**"
+  summary "**FAILED: the ABI check found a source break -- an API break between \`${PREVIOUS_TAG}\` and this ref.**"
   summary ""
   summary "Major version bumps are never automated by this workflow. Cut the major tag manually, then re-run."
   echo "skip=true" >> "$GITHUB_OUTPUT"
@@ -123,9 +125,9 @@ fi
 # No verdict at all is never treated as "compatible" -- an empty or
 # unrecognized ABI_LABEL must not silently fall through to a patch bump.
 if [[ "${ABI_LABEL:-}" != "patch" && "${ABI_LABEL:-}" != "minor" ]]; then
-  echo "ERROR: unrecognized ABI check result '${ABI_LABEL:-<empty>}'; expected patch/minor/needs-review." >&2
+  echo "ERROR: unrecognized ABI semver verdict '${ABI_LABEL:-<empty>}'; expected patch or minor." >&2
   summary ""
-  summary "**FAILED: unrecognized ABI check result \`${ABI_LABEL:-<empty>}\`.**"
+  summary "**FAILED: unrecognized ABI semver verdict \`${ABI_LABEL:-<empty>}\`.**"
   echo "skip=true" >> "$GITHUB_OUTPUT"
   exit 1
 fi

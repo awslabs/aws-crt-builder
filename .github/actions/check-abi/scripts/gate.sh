@@ -17,10 +17,24 @@
 # *_high/*_medium field is >0, or changed_constants>0 -- Low-severity-only
 # findings are excluded as semantic-only advisories, not actual breaks.
 #
-#   source has a real problem                -> needs-review (a compile
-#                                                break is never "just minor")
+# The verdict has TWO independent axes, reported separately:
+#
+#   axis                       | values          | meaning
+#   ---------------------------+-----------------+---------------------------
+#   semver bump                | patch | minor   | how the next release must
+#                              |                 | be numbered
+#   source compatibility break | true  | false   | callers fail to RECOMPILE,
+#                              |                 | so a human must look
+#
+#   source has a real problem                -> minor + source break
 #   binary has a real problem, source clean   -> minor
 #   neither                                   -> patch
+#
+# A source break is reported as `minor` on the semver axis rather than
+# suppressing the semver verdict: it is an incompatible API change, so the
+# smallest honest bump is minor, and a PR always carries a semver verdict.
+# That is what lets a reviewer who has accepted the break clear the
+# source-break label alone and leave the PR in a mergeable state.
 #
 # abicc's process exit code is used only to detect a tool failure (exit >= 2:
 # no verdict, no report to parse) -- never to choose the label.
@@ -34,7 +48,7 @@
 # Inputs (env): ABI_RC, ABI_PCT, ABI_SRC_PCT, ABI_ACC_LOG, ABI_REPORT_HTML,
 #               ABI_SRC_REPORT_HTML, ABI_REMOVED_CONSTANTS_COUNT
 #
-# Outputs: appends ABI_LABEL / ABI_LABEL_REMOVE to $GITHUB_ENV, and prints
+# Outputs: appends ABI_SEMVER / ABI_SOURCE_BREAK to $GITHUB_ENV, and prints
 # "ABI_LABEL_RESULT::<label>" as the last stdout line on success -- the
 # marker action.yml greps out of the captured `docker run` output.
 
@@ -97,9 +111,19 @@ if [[ "$REMOVED_CONSTANTS_COUNT" -gt 0 ]]; then
   SRC_BROKEN=1
 fi
 
+# Two INDEPENDENT axes (see the header): the semver bump this change implies,
+# and whether it also breaks source compatibility. They are reported
+# separately because they answer different questions and have different
+# audiences -- "how should the next release be numbered" is for the release
+# tooling, "must a human look at this" is for the reviewer.
 if [[ "$SRC_BROKEN" -eq 1 ]]; then
-  LABEL=needs-review; REMOVE=""
-  echo "FLAG: source compatibility broken (binary: ${PCT}%, source: ${SRC_PCT}%) -> label: ${LABEL}"
+  # A source break is an incompatible API change, so the smallest honest bump
+  # is minor -- never patch. Emitting a semver verdict here as well as the
+  # source-break flag is what lets a reviewer who has accepted the break
+  # unblock the PR by clearing one label, without leaving it with no semver
+  # verdict at all.
+  SEMVER=minor; SOURCE_BREAK=true
+  echo "FLAG: source compatibility broken (binary: ${PCT}%, source: ${SRC_PCT}%) -> ${SEMVER} + source break"
   echo "      A source break means callers fail to RECOMPILE -- this is always a real"
   echo "      API-contract violation regardless of what the binary axis shows."
   if [[ "$REMOVED_CONSTANTS_COUNT" -gt 0 ]]; then
@@ -110,18 +134,22 @@ if [[ "$SRC_BROKEN" -eq 1 ]]; then
     fi
   fi
 elif [[ "$BIN_BROKEN" -eq 1 ]]; then
-  LABEL=minor; REMOVE=patch
-  echo "PASS: binary compatibility broken, source clean (binary: ${PCT}%, source: ${SRC_PCT}%) -> label: ${LABEL}"
+  SEMVER=minor; SOURCE_BREAK=false
+  echo "PASS: binary compatibility broken, source clean (binary: ${PCT}%, source: ${SRC_PCT}%) -> ${SEMVER}"
 else
-  LABEL=patch; REMOVE=minor
-  echo "PASS: ABI+API backward-compatible (binary: ${PCT}%, source: ${SRC_PCT}%) -> label: ${LABEL}"
+  SEMVER=patch; SOURCE_BREAK=false
+  echo "PASS: ABI+API backward-compatible (binary: ${PCT}%, source: ${SRC_PCT}%) -> ${SEMVER}"
 fi
 
 {
-  echo "ABI_LABEL=${LABEL}"
-  echo "ABI_LABEL_REMOVE=${REMOVE}"
+  echo "ABI_SEMVER=${SEMVER}"
+  echo "ABI_SOURCE_BREAK=${SOURCE_BREAK}"
 } >> "$GITHUB_ENV"
 
-echo "ABI_LABEL_RESULT::${LABEL}"
+# Two marker lines, not one composite token: action.yml greps these with
+# `[a-zA-Z0-9_-]*`, which would truncate a value like "minor+needs-review" at
+# the "+" and silently drop the second axis.
+echo "ABI_LABEL_RESULT::${SEMVER}"
+echo "ABI_SOURCE_BREAK_RESULT::${SOURCE_BREAK}"
 
 exit 0

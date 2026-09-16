@@ -38,7 +38,7 @@ inputs:
     required: false
     default: 'minor'
   needs-review-label:
-    description: 'Label applied when source (API) compatibility is broken -- callers fail to recompile. Always applied regardless of the binary-compatibility result, since a compile break is never just a routine minor bump.'
+    description: 'Label applied when source (API) compatibility is broken -- callers fail to recompile. Additive: it is applied ALONGSIDE the semver label (a source break is reported as `minor`), so a reviewer who accepts the break can remove this label alone and leave the PR carrying its semver verdict.'
     required: false
     default: 'needs-review'
   base-ref:
@@ -48,8 +48,11 @@ inputs:
 
 outputs:
   label:
-    description: 'ABI verdict: patch | minor | needs-review. Empty if no verdict was produced (the run failed first).'
+    description: 'Semver axis of the ABI verdict: patch | minor. Empty if no verdict was produced (the run failed first). A source break reports `minor` here and sets `source-break`; it is never reported as a value of this output.'
     value: ${{ steps.run_check.outputs.label }}
+  source-break:
+    description: 'Source-compatibility axis: true when callers fail to recompile, false otherwise. Independent of `label`.'
+    value: ${{ steps.run_check.outputs.source-break }}
 
 runs:
   using: 'composite'
@@ -136,11 +139,17 @@ runs:
         set -e
 
         # grep exits 1 when there is no verdict, which -e would treat as fatal.
+        # Two separate markers, one per verdict axis: a single composite token
+        # would be truncated at any character outside [a-zA-Z0-9_-].
         LABEL="$(grep -o 'ABI_LABEL_RESULT::[a-zA-Z0-9_-]*' "$OUT" | tail -n1 | cut -d: -f3 || true)"
+        SOURCE_BREAK="$(grep -o 'ABI_SOURCE_BREAK_RESULT::[a-zA-Z]*' "$OUT" | tail -n1 | cut -d: -f3 || true)"
         rm -f "$OUT"
         if [[ -n "$LABEL" ]]; then
           echo "label=${LABEL}" >> "$GITHUB_OUTPUT"
         fi
+        # Absent marker (e.g. an older gate.sh) is reported as false rather
+        # than empty, so consumers get a definite boolean.
+        echo "source-break=${SOURCE_BREAK:-false}" >> "$GITHUB_OUTPUT"
         echo "rc=${RC}" >> "$GITHUB_OUTPUT"
 
     - name: Upload ABI artifacts
@@ -153,7 +162,8 @@ runs:
         retention-days: 7
 
     - name: Label PR
-      # Clears the three verdict labels, then applies the current one.
+      # Reconciles the verdict labels: exactly one semver label, plus the
+      # source-break label when that axis tripped. The two are additive.
       # Requires pull-requests: write.
       if: ${{ inputs.base-ref == '' }}
       shell: bash
@@ -166,7 +176,8 @@ runs:
         PATCH_LABEL: ${{ inputs.patch-label }}
         MINOR_LABEL: ${{ inputs.minor-label }}
         NEEDS_REVIEW_LABEL: ${{ inputs.needs-review-label }}
-        LABEL: ${{ steps.run_check.outputs.label }}
+        SEMVER: ${{ steps.run_check.outputs.label }}
+        SOURCE_BREAK: ${{ steps.run_check.outputs.source-break }}
         RUN_RC: ${{ steps.run_check.outputs.rc }}
       run: |
         PR_NUMBER="${PR_FROM_EVENT:-}"
@@ -191,53 +202,70 @@ runs:
           PR_NUMBER="$MATCHES"
         fi
         ALL_LABELS=("$PATCH_LABEL" "$MINOR_LABEL" "$NEEDS_REVIEW_LABEL")
-        # Translate gate.sh's fixed verdict token ("patch"/"minor"/"needs-review")
-        # to the configured label name, since gate.sh has no access to these inputs.
-        TARGET=""
-        if [[ "${RUN_RC:-1}" == "0" && -n "${LABEL:-}" ]]; then
-          case "$LABEL" in
-            patch) TARGET="$PATCH_LABEL" ;;
-            minor) TARGET="$MINOR_LABEL" ;;
-            needs-review) TARGET="$NEEDS_REVIEW_LABEL" ;;
-            *) echo "Unexpected ABI verdict token '$LABEL'; treating as no verdict." ;;
+
+        # The verdict has two independent axes, so the desired label set can
+        # hold TWO labels at once: exactly one semver label, plus the
+        # source-break label when that axis tripped. They are not mutually
+        # exclusive -- a source break still has a semver bump, and emitting
+        # both is what lets a reviewer who accepted the break remove only the
+        # source-break label and leave a PR that still carries its verdict.
+        DESIRED=()
+        if [[ "${RUN_RC:-1}" == "0" && -n "${SEMVER:-}" ]]; then
+          # Translate gate.sh's fixed token to the configured label name;
+          # gate.sh has no access to these inputs.
+          case "$SEMVER" in
+            patch) DESIRED+=("$PATCH_LABEL") ;;
+            minor) DESIRED+=("$MINOR_LABEL") ;;
+            *) echo "Unexpected ABI semver token '$SEMVER'; treating as no verdict." ;;
           esac
+          if [[ "${SOURCE_BREAK:-}" == "true" && "${#DESIRED[@]}" -gt 0 ]]; then
+            DESIRED+=("$NEEDS_REVIEW_LABEL")
+          fi
         fi
         # A successful run with no parsable verdict is left alone; a failed run
         # clears any stale verdict, since this commit's result is unknown.
-        if [[ "${RUN_RC:-1}" == "0" && -z "$TARGET" ]]; then
+        if [[ "${RUN_RC:-1}" == "0" && "${#DESIRED[@]}" -eq 0 ]]; then
           echo "No verdict parsed; leaving labels on #${PR_NUMBER} unchanged."
           exit 0
         fi
 
+        is_desired() {
+          local want="$1" d
+          for d in ${DESIRED[@]+"${DESIRED[@]}"}; do [[ "$d" == "$want" ]] && return 0; done
+          return 1
+        }
+
         CURRENT="$(gh pr view "$PR_NUMBER" --repo "$REPO" --json labels -q '.labels[].name')"
         DROP=()
         for l in "${ALL_LABELS[@]}"; do
-          [[ "$l" == "$TARGET" ]] && continue
+          is_desired "$l" && continue
           grep -qxF "$l" <<< "$CURRENT" && DROP+=("$l")
         done
-        ADD=""
-        [[ -n "$TARGET" ]] && { grep -qxF "$TARGET" <<< "$CURRENT" || ADD="$TARGET"; }
+        ADD=()
+        for l in ${DESIRED[@]+"${DESIRED[@]}"}; do
+          grep -qxF "$l" <<< "$CURRENT" || ADD+=("$l")
+        done
 
-        if [[ -z "$ADD" && "${#DROP[@]}" -eq 0 ]]; then
-          echo "Labels on #${PR_NUMBER} already correct (${TARGET:-none}); nothing to do."
+        if [[ "${#ADD[@]}" -eq 0 && "${#DROP[@]}" -eq 0 ]]; then
+          echo "Labels on #${PR_NUMBER} already correct (${DESIRED[*]:-none}); nothing to do."
           exit 0
         fi
 
         EDIT=()
-        if [[ -n "$ADD" ]]; then
+        for l in ${ADD[@]+"${ADD[@]}"}; do
           # gh pr edit --add-label fails if the label does not exist in the repo.
-          case "$ADD" in
+          case "$l" in
             "$PATCH_LABEL") COLOR=0e8a16; DESC="ABI backward-compatible (patch release)" ;;
             "$MINOR_LABEL") COLOR=fbca04; DESC="ABI changed, source-compatible (minor release)" ;;
             *)              COLOR=d93f0b; DESC="ABI check: source/API compatibility broken, needs manual review" ;;
           esac
-          gh label create "$ADD" --repo "$REPO" --color "$COLOR" --description "$DESC" --force 2>/dev/null || true
-          EDIT+=(--add-label "$ADD")
-        fi
+          gh label create "$l" --repo "$REPO" --color "$COLOR" --description "$DESC" --force 2>/dev/null || true
+          EDIT+=(--add-label "$l")
+        done
         if [[ "${#DROP[@]}" -gt 0 ]]; then
           EDIT+=(--remove-label "$(IFS=,; echo "${DROP[*]}")")
         fi
-        echo "Updating #${PR_NUMBER}: add='${ADD:-none}' remove='${DROP[*]:-none}'"
+        echo "Updating #${PR_NUMBER}: add='${ADD[*]:-none}' remove='${DROP[*]:-none}'"
         gh pr edit "$PR_NUMBER" --repo "$REPO" "${EDIT[@]}" \
           || echo "WARNING: could not update labels (token may be read-only on fork PRs)."
 

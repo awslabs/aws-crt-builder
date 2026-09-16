@@ -95,6 +95,7 @@ runs:
         REPO: ${{ github.repository }}
         PREVIOUS_TAG: ${{ steps.resolve.outputs.previous_tag }}
         ABI_LABEL: ${{ steps.check_abi.outputs.label }}
+        ABI_SOURCE_BREAK: ${{ steps.check_abi.outputs.source-break }}
         VERSION_FILE: ${{ inputs.version-file }}
         MAJOR_PR_LABEL: ${{ inputs.major-pr-label }}
         MINOR_PR_LABEL: ${{ inputs.minor-pr-label }}
