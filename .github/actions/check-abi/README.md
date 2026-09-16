@@ -69,11 +69,13 @@ The consumer workflow must, before invoking this action:
   action targets today (none use submodules for their public API surface), but
   it means this action is **not** a drop-in fit for a repo like `aws-crt-cpp`
   that does use them, without further work.
-- **Default branch must be fetchable.** When triggered outside a
-  `pull_request` event (and `base-ref` isn't set), the base ref is resolved via
-  `git merge-base HEAD origin/<default-branch>`, taking the branch name from the
-  event payload and falling back to `main`. Check out with `fetch-depth: 0` so
-  it is reachable.
+- **Base branch must be fetchable.** Unless `base-ref` is set, the baseline is
+  `git merge-base HEAD origin/<base-branch>`, where `<base-branch>` is
+  `GITHUB_BASE_REF` on a pull-request event and the repository's default branch
+  otherwise. Check out with `fetch-depth: 0` so it is reachable.
+  The merge base, not the branch tip: diffing against the tip attributes every
+  change that landed on the base branch since the PR forked to the PR itself,
+  which both misreports the verdict and makes it change as unrelated PRs merge.
 - **Single-library scope.** Each run diffs one library's own ABI/API against
   its own previous version. It cannot detect a break that only manifests when
   a *different* library in the dependency graph is upgraded without a

@@ -32,17 +32,24 @@ HEAD_DIR="${GITHUB_WORKSPACE:?GITHUB_WORKSPACE must be set}"
 
 # --- Resolve the base ref ----------------------------------------------------
 if [[ -n "${ABI_BASE_REF:-}" ]]; then
+  # Explicit override, used verbatim. The release path compares "previous tag
+  # vs current ref", where the tagged commit itself is the intended baseline;
+  # taking a merge base there would silently compare against something else.
   BASE_REF="${ABI_BASE_REF}"
-elif [[ -n "${GITHUB_BASE_REF:-}" ]]; then
-  BASE_REF="origin/${GITHUB_BASE_REF}"
 else
-  DEFAULT_BRANCH="${ABI_DEFAULT_BRANCH:-main}"
-  BASE_REF="$(git -C "$HEAD_DIR" merge-base HEAD "origin/${DEFAULT_BRANCH}" 2>/dev/null)"
+  BASE_BRANCH="${GITHUB_BASE_REF:-${ABI_DEFAULT_BRANCH:-main}}"
+  # The MERGE BASE, not the branch tip. Diffing head against the tip of the
+  # base branch attributes every change made on that branch since this branch
+  # forked to this branch, so a branch that is behind its base gets a verdict
+  # for commits it never contained -- and the verdict flips as unrelated PRs
+  # land. The merge base is the commit this branch actually diverged from, so
+  # the report covers exactly what this branch changed.
+  BASE_REF="$(git -C "$HEAD_DIR" merge-base HEAD "origin/${BASE_BRANCH}" 2>/dev/null)"
   if [[ -z "$BASE_REF" ]]; then
-    echo "ERROR: cannot determine ABI base ref. GITHUB_BASE_REF is unset and" >&2
-    echo "       'git merge-base HEAD origin/${DEFAULT_BRANCH}' failed. Trigger via a" >&2
-    echo "       pull_request event, or ensure 'origin/${DEFAULT_BRANCH}' is" >&2
-    echo "       fetchable (checkout with fetch-depth: 0)." >&2
+    echo "ERROR: cannot determine ABI base ref. 'git merge-base HEAD" >&2
+    echo "       origin/${BASE_BRANCH}' failed. Ensure 'origin/${BASE_BRANCH}'" >&2
+    echo "       is present in this checkout (fetch-depth: 0) and that the two" >&2
+    echo "       refs share history." >&2
     exit 1
   fi
 fi
