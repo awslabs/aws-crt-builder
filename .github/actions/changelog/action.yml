@@ -1,0 +1,92 @@
+name: 'Changelog'
+description: 'Automated changelog: validate/check fragments on PR, render on merge (serialized). Release rollup lives in the auto-release action, folded into the VERSION-bump commit. Fragments are author-created (JSON pasted into .changes/preview/<PR>.json); no bot writes on the author''s behalf.'
+
+inputs:
+  mode:
+    description: 'One of: check | render | revert | validate | list'
+    required: true
+  changes-dir:
+    description: 'Directory holding fragments.'
+    required: false
+    default: '.changes'
+  changelog:
+    description: 'Path to CHANGELOG.md.'
+    required: false
+    default: 'CHANGELOG.md'
+  # check
+  pr:
+    description: 'PR number (check mode).'
+    required: false
+  title:
+    description: 'PR title (check mode). Validated against the `<type>: summary` convention.'
+    required: false
+  require-fragment:
+    description: 'check mode: set false to validate only the title (infra-only PRs).'
+    required: false
+    default: 'true'
+  # revert
+  original-pr:
+    description: 'Original PR number being reverted (revert mode).'
+    required: false
+  revert-pr:
+    description: 'PR number of the revert PR (revert mode).'
+    required: false
+  url:
+    description: 'PR URL (revert mode).'
+    required: false
+  # render
+  no-preview:
+    description: 'Render without the [Preview] block (use on the default branch).'
+    required: false
+    default: 'false'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Run changelog tool
+      shell: bash
+      env:
+        MODE: ${{ inputs.mode }}
+        CHANGES_DIR: ${{ inputs.changes-dir }}
+        CHANGELOG: ${{ inputs.changelog }}
+        PR: ${{ inputs.pr }}
+        TITLE: ${{ inputs.title }}
+        REQUIRE_FRAGMENT: ${{ inputs.require-fragment }}
+        ORIGINAL_PR: ${{ inputs.original-pr }}
+        REVERT_PR: ${{ inputs.revert-pr }}
+        URL: ${{ inputs.url }}
+        NO_PREVIEW: ${{ inputs.no-preview }}
+      run: |
+        set -euo pipefail
+        SCRIPT="${GITHUB_ACTION_PATH}/scripts/changelog.py"
+        case "${MODE}" in
+          check)
+            # TITLE stays an env var; interpolating it here would be injectable.
+            EXTRA=()
+            if [[ -n "${TITLE}" ]]; then EXTRA+=(--title "${TITLE}"); fi
+            if [[ "${REQUIRE_FRAGMENT}" == "false" ]]; then EXTRA+=(--no-fragment); fi
+            python3 "${SCRIPT}" check --pr "${PR}" \
+              --changes-dir "${CHANGES_DIR}" "${EXTRA[@]}"
+            ;;
+          validate)
+            python3 "${SCRIPT}" validate "${CHANGES_DIR}/preview"
+            ;;
+          render)
+            EXTRA=()
+            if [[ "${NO_PREVIEW}" == "true" ]]; then EXTRA+=(--no-preview); fi
+            python3 "${SCRIPT}" render \
+              --changes-dir "${CHANGES_DIR}" --changelog "${CHANGELOG}" \
+              "${EXTRA[@]}"
+            ;;
+          revert)
+            python3 "${SCRIPT}" revert \
+              --original-pr "${ORIGINAL_PR}" --revert-pr "${REVERT_PR}" \
+              --url "${URL}" \
+              --changes-dir "${CHANGES_DIR}"
+            ;;
+          list)
+            python3 "${SCRIPT}" list --changes-dir "${CHANGES_DIR}"
+            ;;
+          *)
+            echo "ERROR: unknown mode '${MODE}'" >&2; exit 2 ;;
+        esac
