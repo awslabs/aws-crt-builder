@@ -1,0 +1,486 @@
+# Pre-merge checks -- the single PR gate for the CRT C libraries.
+#
+# Consumers call this from ONE `pull_request_target` workflow. It replaces
+# per-repo check-abi.yml and block-needs-review.yml, and (once enabled) absorbs
+# the changelog check that would otherwise be a third file.
+#
+# WHY ONE WORKFLOW
+#   * check-abi labels the PR with GITHUB_TOKEN, and a GITHUB_TOKEN-triggered
+#     `labeled` event creates NO workflow run -- so a separate label-gate
+#     workflow can never see the verdict it exists to read. Ordering must come
+#     from `needs:` inside one run.
+#   * one required context per repo instead of one per check, so folding more
+#     checks in later costs zero ruleset edits.
+#
+# WHY pull_request_target
+#   Every consumer's check-abi.yml is `on: push`, and a fork's push raises no
+#   event in the base repo, so a fork PR gets no run and no verdict at all.
+#   pull_request_target runs in the base repo's context with a writable token,
+#   which is what makes running and labelling a fork PR possible.
+#   The price: this run holds the base repo's token while looking at
+#   PR-authored code. Containing that is the `approval` job's entire job.
+#
+# SKIPPING RULE (load-bearing)
+#   Every skip below is a job-level `if:` or needs-propagation, which emits a
+#   check run with conclusion `skipped`. There is deliberately no
+#   workflow-level paths:/branches: filter anywhere: a workflow that never runs
+#   reports nothing and leaves a required context at "Expected", blocking the
+#   PR forever. Those are opposite failure modes.
+name: Pre-merge checks (reusable)
+
+# NO workflow-level `concurrency` here. The run that concurrency cancels is the
+# CALLER's run, and the same resolved group string on both sides makes a run
+# contend with a group its own parent holds. The group lives in the caller only.
+
+on:
+  workflow_call:
+    inputs:
+      lib-name:
+        description: >-
+          C library name for the ABI check, e.g. aws-c-common. Empty disables
+          the ABI job and, with it, the fork-approval gate.
+        required: false
+        type: string
+        default: ''
+      builder-version:
+        description: 'Builder version/channel, and the tag of the ABI docker image.'
+        required: false
+        type: string
+        default: 'latest'
+      builder-source:
+        description: 'Builder artifact source prefix (releases | channels).'
+        required: false
+        type: string
+        default: 'releases'
+      fork-review-environment:
+        description: >-
+          Environment whose "required reviewers" rule gates execution of
+          PR-authored code. Pass '' to run ungated. The CALLER decides, because
+          only the caller can see whether the PR came from a fork.
+        required: false
+        type: string
+        default: ''
+      aws-region:
+        description: 'Region for the OIDC role assumption / ECR pull.'
+        required: false
+        type: string
+        default: 'us-east-1'
+      changelog-enabled:
+        description: >-
+          Run the changelog check. DEFAULTS TO FALSE: the changelog action does
+          not exist on awslabs/aws-crt-builder@main yet (prod/main has only
+          auto-release, check-abi, check-submodules, release-tag), so enabling
+          this before that action lands makes the job fail with "Can't find
+          action.yml". Flip to true per repo AFTER the changelog action merges.
+        required: false
+        type: boolean
+        default: false
+      changes-dir:
+        description: 'Changelog fragment directory in the consumer repo.'
+        required: false
+        type: string
+        default: '.changes'
+      skip-changelog-label:
+        description: 'PR label that waives the changelog fragment+title check.'
+        required: false
+        type: string
+        default: 'skip-changelog'
+      infra-paths-regex:
+        description: >-
+          POSIX ERE of paths that need no changelog fragment. A PR touching only
+          these paths waives the FRAGMENT -- never the PR TITLE.
+        required: false
+        type: string
+        default: '^(\.github/|\.gitignore$|\.gitattributes$|CODEOWNERS$|LICENSE$|NOTICE$|README\.md$|CONTRIBUTING\.md$|docs?/)'
+      status-context:
+        description: >-
+          Commit-status context posted by the `required` job. THIS, not a check
+          run, is the string to put in the branch ruleset: the combined-status
+          API is documented as "success if the LATEST status for all contexts is
+          success", so a maintainer's relabel definitively clears an earlier red.
+          Check runs have no documented duplicate-name resolution, and two
+          conflicting same-named check runs demonstrably coexist on one SHA.
+          It is also independent of every job name, so renaming a job -- or
+          folding ci.yml in later -- cannot orphan the ruleset entry.
+          The slash keeps it unequal to any possible check-run name (those are
+          "<caller job id> / <callee job name>", with spaces around the slash).
+          That matters: "if a check and a commit status have the same name, both
+          must pass when that name is required".
+        required: false
+        type: string
+        default: 'pre-merge/gate'
+    secrets:
+      CRT_CI_ROLE_ARN:
+        description: 'Role assumed via OIDC to pull the ABI image from ECR.'
+        required: false
+
+jobs:
+  # ------------------------------------------------------------------ approval
+  # The one human gate in the run. `environment:` is illegal on a job that uses
+  # `uses:` (actionlint: "when a reusable workflow is called with 'uses',
+  # 'environment' is not available"), which is why this job lives here in the
+  # callee rather than in the 12 caller files.
+  #
+  # An empty environment name means "no environment, no gate". In-org precedent:
+  # awslabs/mountpoint-s3 integration_main.yml calls integration.yml WITHOUT
+  # passing `environment`, and its `approval` job (environment: ${{ inputs.environment }})
+  # completes in ~2s with no wait and creates no deployment.
+  #
+  # This job's `if:` is the SINGLE place the "could the code have changed?"
+  # predicate is written; `abi` inherits it through `needs:` rather than
+  # restating it, so the two cannot drift.
+  approval:
+    name: Fork approval
+    if: >-
+      inputs.lib-name != ''
+      && github.event.pull_request.draft == false
+      && (
+           contains(fromJSON('["opened","reopened","synchronize","ready_for_review"]'), github.event.action)
+           || (
+                github.event.action == 'edited'
+                && github.event.changes.base.ref.from
+                && github.event.changes.base.ref.from != github.event.pull_request.base.ref
+              )
+         )
+    runs-on: ubuntu-24.04
+    permissions: {}
+    environment: ${{ inputs.fork-review-environment }}
+    steps:
+      - name: Approved
+        run: echo "PR-authored code is approved to execute in this run."
+
+  # ----------------------------------------------------------------------- abi
+  abi:
+    name: ABI compatibility
+    # No `if:` on purpose: `needs: approval` already encodes "only when the code
+    # can have changed". One predicate, one place.
+    needs: approval
+    runs-on: ubuntu-24.04
+    permissions:
+      id-token: write
+      contents: read
+      pull-requests: write
+    steps:
+      # This callee derives the head SHA from the caller's event rather than
+      # taking it as an input, so a caller cannot pass head.ref by mistake
+      # (fork branches named `main` exist in this org). The cost is that the
+      # callee is PR-event-only, so assert that loudly instead of silently
+      # checking out the default branch and ABI-diffing main against itself.
+      - name: Assert a PR head SHA is resolvable
+        env:
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          if [[ -z "$HEAD_SHA" ]]; then
+            echo "::error::No github.event.pull_request.head.sha. This reusable"
+            echo "::error::workflow only supports pull_request / pull_request_target."
+            exit 1
+          fi
+          echo "Head SHA: ${HEAD_SHA}"
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.CRT_CI_ROLE_ARN }}
+          aws-region: ${{ inputs.aws-region }}
+
+      - name: Checkout the PR head
+        uses: actions/checkout@v4
+        with:
+          # head.sha, never head.ref: fork branches named `main` exist
+          # (aws-c-common#1221), and a bare ref resolves against the base repo.
+          # Under pull_request_target the DEFAULT checkout is the base repo's
+          # default branch, so omitting this would diff main against itself and
+          # always report `patch`.
+          ref: ${{ github.event.pull_request.head.sha }}
+          # build.sh resolves origin/<base ref> and exits 1 when it is absent,
+          # so a shallow clone breaks the ABI job outright.
+          fetch-depth: 0
+          # actions/checkout REFUSES to check out fork PR code under
+          # pull_request_target without this, at v4 (tag 11d5960a, input at
+          # action.yml:101, default: false) through v7. Pinning @v4 does not
+          # avoid it. The approval gate above is what makes it acceptable.
+          #
+          # actionlint <= 1.7.12 reports this input as undefined. That is a
+          # false positive from its bundled action metadata, which predates
+          # actions/checkout commit f9e715a9 (2026-06-16, "block checking out
+          # fork pr for pull_request_target and workflow_run"). Nothing in this
+          # repo runs actionlint in CI, so it cannot fail a build.
+          allow-unsafe-pr-checkout: true
+          # This checkout is bind-mounted into a container that then runs
+          # PR-authored CMake. Do not leave a usable credential in .git/config
+          # for it to find. build.sh performs no network git operations.
+          persist-credentials: false
+
+      - name: Check ABI
+        # `uses:` accepts no expressions, so this ref is literal -- the same
+        # convention auto-release/action.yml already uses for this action.
+        uses: awslabs/aws-crt-builder/.github/actions/check-abi@main
+        with:
+          lib-name: ${{ inputs.lib-name }}
+          builder-version: ${{ inputs.builder-version }}
+          builder-source: ${{ inputs.builder-source }}
+
+  # ----------------------------------------------------------------- changelog
+  changelog:
+    name: Changelog entry
+    # Deliberately NOT behind `approval`: this job holds no credentials and
+    # executes no PR-authored code, so a first-time fork contributor gets
+    # title/fragment feedback with no maintainer click. pull_request_target runs
+    # are exempt from the "approve fork workflows" setting, so it really is
+    # immediate.
+    #
+    # No activity-type condition: every subscribed type can change something
+    # this job reads -- the fragment (synchronize), the title (edited), the
+    # waiver (labeled/unlabeled) -- and the job takes seconds. Adding a
+    # same-SHA activity-type `if:` here would let an unrelated relabel replace a
+    # red conclusion with a passing `skipped` one.
+    if: >-
+      inputs.changelog-enabled
+      && !contains(github.event.pull_request.labels.*.name, inputs.skip-changelog-label)
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Decide whether a fragment is required
+        id: scope
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+          INFRA_RE: ${{ inputs.infra-paths-regex }}
+        run: |
+          set -euo pipefail
+          # FAIL CLOSED. There is deliberately no `|| true` in this job. The
+          # workflow this replaces derived the file list from
+          # `git diff ... || true`, so under pull_request_target (no head
+          # checkout) the diff failed, the list came back empty, and the
+          # fragment was waived for EVERY fork PR.
+          # Documented cap: this endpoint returns at most 3000 files.
+          FILES="$(gh api --paginate "repos/${REPO}/pulls/${PR}/files?per_page=100" \
+                     --jq '.[].filename')"
+          if [[ -z "$FILES" ]]; then
+            echo "::error::pulls/${PR}/files returned no files; refusing to guess."
+            exit 1
+          fi
+          # grep exits 1 when it filters everything out -- a legitimate answer
+          # here (infra-only PR) -- and >1 on a bad regex, which is not. Read
+          # the status instead of swallowing it.
+          set +e
+          NON_INFRA="$(grep -vE "$INFRA_RE" <<< "$FILES")"
+          GREP_RC=$?
+          set -e
+          if [[ "$GREP_RC" -gt 1 ]]; then
+            echo "::error::infra-paths-regex is not a valid POSIX ERE (grep rc=${GREP_RC})."
+            exit 1
+          fi
+          if [[ -n "$NON_INFRA" ]]; then
+            echo "require=true" >> "$GITHUB_OUTPUT"
+            echo "Non-infra paths changed; a changelog fragment is required:"
+            sed 's/^/  /' <<< "$NON_INFRA"
+          else
+            echo "require=false" >> "$GITHUB_OUTPUT"
+            echo "#${PR} touches only infra paths; the fragment is waived (the title is not)."
+          fi
+
+      - name: Fetch the changelog fragment at the PR head
+        if: ${{ steps.scope.outputs.require == 'true' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          CHANGES_DIR: ${{ inputs.changes-dir }}
+        run: |
+          set -euo pipefail
+          # The fragment exists only on the PR branch and this job has no
+          # checkout of it. The BASE repo's Contents API does resolve a fork
+          # head SHA, so read the blob rather than checking out fork code --
+          # which is what keeps allow-unsafe-pr-checkout confined to the ABI job.
+          BLOB_PATH="${CHANGES_DIR}/preview/${PR}.json"
+          DEST="${RUNNER_TEMP}/changes/preview"
+          mkdir -p "$DEST"
+          BODY="$(mktemp)"
+          set +e
+          gh api "repos/${REPO}/contents/${BLOB_PATH}?ref=${HEAD_SHA}" \
+            -H 'Accept: application/vnd.github.raw' > "$BODY" 2>/dev/null
+          RC=$?
+          set -e
+          if [[ "$RC" -eq 0 ]]; then
+            cp "$BODY" "${DEST}/${PR}.json"
+            echo "Read ${BLOB_PATH} at ${HEAD_SHA}."
+            exit 0
+          fi
+          # A 404 is ambiguous, so discriminate on the message. ONLY a bare
+          # "Not Found" means "the ref resolved and the file is absent".
+          # Verified live: missing file at a valid ref -> "Not Found";
+          # any file at a bogus SHA -> "No commit found for the ref <sha>".
+          # Anything else -- rate limit, 5xx, bad token -- is infrastructure,
+          # and reporting it as a missing fragment would be a fail-open.
+          MSG="$(jq -r '.message // "(unparsable response)"' < "$BODY" 2>/dev/null \
+                 || echo '(unparsable response)')"
+          if [[ "$MSG" != "Not Found" ]]; then
+            echo "::error::could not read ${BLOB_PATH} at ${HEAD_SHA}: ${MSG}"
+            exit 1
+          fi
+          echo "No fragment blob at ${BLOB_PATH}@${HEAD_SHA}; the next step reports it."
+
+      - name: Check the PR title and the fragment
+        uses: awslabs/aws-crt-builder/.github/actions/changelog@main
+        with:
+          mode: check
+          pr: ${{ github.event.pull_request.number }}
+          # Passed as an ACTION INPUT, which reaches the script as an env var.
+          # Never interpolate a PR title into a `run:` body -- ${{ }} is
+          # substituted before bash runs and a backslash does not escape it.
+          title: ${{ github.event.pull_request.title }}
+          require-fragment: ${{ steps.scope.outputs.require }}
+          changes-dir: ${{ runner.temp }}/changes
+
+  # ------------------------------------------------------------ release-impact
+  release-impact:
+    name: Release impact
+    # Ordered after the ABI job, in the SAME run: check-abi labels with
+    # GITHUB_TOKEN, and "events triggered by the GITHUB_TOKEN will not create a
+    # new workflow run" -- other pull_request activity types such as `labeled`
+    # "do not create workflow runs". A gate that does not wait here reads
+    # pre-verdict labels and is never re-run when the verdict lands.
+    #
+    # `!cancelled()` rather than a bare `needs:`: this job MUST still run when
+    # `abi` was skipped (relabel, draft, ABI disabled) or failed, because the
+    # relabel case is the entire point of the job.
+    needs: abi
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-24.04
+    permissions:
+      pull-requests: read
+    steps:
+      - name: Require a decided, undisputed release impact
+        # Label names are hardcoded, not inputs: they must match check-abi's own
+        # label defaults. Making them configurable would let a caller gate on
+        # labels check-abi never applies, silently disabling the gate.
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          # Read LIVE labels, not a job output, so a maintainer who reviewed an
+          # accepted API break and removed `needs-review` unblocks the PR
+          # without pushing a commit.
+          LABELS="$(gh pr view "$PR" --repo "$REPO" --json labels -q '.labels[].name')"
+          if grep -qxF 'needs-review' <<< "$LABELS"; then
+            echo "::error::This PR is labeled 'needs-review': the ABI check found a SOURCE break, so callers fail to recompile. A maintainer must review it and remove that label. The 'patch'/'minor' label stays, so removing 'needs-review' is by itself enough to unblock."
+            exit 1
+          fi
+          if ! grep -qxE 'patch|minor' <<< "$LABELS"; then
+            echo "::error::This PR has no 'patch' or 'minor' label, so the release impact of the change is undecided. Re-run the ABI check; do not hand-apply the label."
+            exit 1
+          fi
+          echo "Release impact decided (patch or minor) and no unreviewed source break."
+
+  # ------------------------------------------------------------------ required
+  # The single gate. It posts a COMMIT STATUS whose context is the one string
+  # that belongs in a branch ruleset -- not this job's check-run name.
+  #
+  # `!cancelled()` (not always()): a cancelled run must post NOTHING, so it
+  # cannot race a superseding run and leave a stale `failure` as the latest
+  # status. Cancellation therefore leaves the previous verdict untouched, and
+  # the last non-cancelled run in the concurrency group is always the authority.
+  required:
+    name: Required checks passed
+    needs: [approval, abi, changelog, release-impact]
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-24.04
+    permissions:
+      checks: read     # per-SHA ABI freshness assertion
+      statuses: write  # post the required commit status
+    steps:
+      - name: Triage every pre-merge result and post the gate status
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          CONTEXT: ${{ inputs.status-context }}
+          ABI_RESULT: ${{ needs.abi.result }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          # "Should this PR have an ABI verdict at all?" -- independent of which
+          # event this particular run handled.
+          ABI_EXPECTED: ${{ inputs.lib-name != '' && github.event.pull_request.draft == false }}
+        run: |
+          set -uo pipefail   # deliberately NOT -e: every exit path must post a
+                             # status, or must consciously choose not to.
+          printf '%s\n' "$RESULTS"
+
+          VERDICT=""; REASON=""
+
+          # 1. Any hard failure in this run fails the gate.
+          BAD="$(jq -r 'to_entries
+                        | map(select(.value.result == "failure"
+                                     or .value.result == "cancelled"))
+                        | map(.key + "=" + .value.result) | join(", ")' <<< "$RESULTS")"
+          if [[ -n "$BAD" ]]; then
+            VERDICT=failure
+            REASON="pre-merge check(s) did not pass: ${BAD}"
+          fi
+
+          # 2. `skipped` is how "do not re-run what cannot have changed" is
+          #    expressed, so it is tolerated -- but tolerating it unconditionally
+          #    is the hole that lets a verdict earned on commit A satisfy commit
+          #    B, because labels are per-PR while commits are not. When the ABI
+          #    job was skipped on THIS event but is expected for this PR, a
+          #    successful ABI check run must already exist for THIS head SHA.
+          #
+          #    Matched on the name SUFFIX: the full context is
+          #    "<caller job id> / ABI compatibility" and the caller's job id is
+          #    not visible from inside a called workflow. The suffix is this
+          #    file's own job name, so it cannot drift.
+          #
+          #    `?filter=all` goes in the URL, NOT as `-f filter=all`: gh
+          #    switches to POST as soon as any parameter is added, and POSTing
+          #    this endpoint returns 404 (verified with GH_DEBUG=api).
+          if [[ -z "$VERDICT" && "$ABI_RESULT" == "skipped" && "$ABI_EXPECTED" == "true" ]]; then
+            RUNS="$(gh api --paginate \
+                      "repos/${REPO}/commits/${HEAD_SHA}/check-runs?filter=all&per_page=100" \
+                      --jq '.check_runs[]
+                            | select(.name | endswith("ABI compatibility"))
+                            | "\(.status):\(.conclusion // "none")"')"
+            API_RC=$?
+            if [[ "$API_RC" -ne 0 ]]; then
+              # An API failure must never read as "no verdict needed".
+              VERDICT=failure
+              REASON="could not list check runs for ${HEAD_SHA} (gh rc=${API_RC})"
+            elif grep -q '^completed:success$' <<< "$RUNS"; then
+              echo "ABI verdict for ${HEAD_SHA} confirmed by a prior successful run."
+            elif grep -qE '^(queued|in_progress):' <<< "$RUNS"; then
+              # An ABI verdict for THIS commit is still being produced. Post
+              # nothing: the run that owns it will post the real verdict, and
+              # the required context stays pending (blocking) until it does.
+              # This is what stops a seconds-long relabel run from racing a
+              # minutes-long ABI run and leaving a stale status behind.
+              echo "::notice::An ABI check for ${HEAD_SHA} is still running; deferring the gate status to that run."
+              exit 0
+            else
+              VERDICT=failure
+              REASON="no successful ABI check run exists for ${HEAD_SHA}; re-run the ABI job or push again"
+            fi
+          fi
+
+          [[ -z "$VERDICT" ]] && { VERDICT=success; REASON="all pre-merge checks passed or were legitimately skipped"; }
+
+          echo "Gate verdict: ${VERDICT} -- ${REASON}"
+          # The combined-status API is documented as "success if the LATEST
+          # status for all contexts is success", so this post authoritatively
+          # supersedes any earlier status for the same context on this SHA.
+          gh api --method POST "repos/${REPO}/statuses/${HEAD_SHA}" \
+            -f "state=${VERDICT}" \
+            -f "context=${CONTEXT}" \
+            -f "description=${REASON:0:139}" \
+            -f "target_url=${RUN_URL}" >/dev/null || {
+              echo "::error::could not post the '${CONTEXT}' commit status."
+              exit 1
+            }
+
+          [[ "$VERDICT" == "success" ]] || { echo "::error::${REASON}"; exit 1; }

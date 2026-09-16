@@ -1,0 +1,92 @@
+# Pre-merge checks -- everything that must be true before a PR merges.
+#
+# This file is BYTE-IDENTICAL in all 12 consumer repos: `lib-name` is derived
+# from the event, and PACKAGE_NAME == repo name was verified in all 12. Keep it
+# identical -- drift in the job id `pre-merge` changes the check-run names.
+#
+# Replaces, in this repo:
+#   .github/workflows/check-abi.yml           (43 lines, on: push)
+#   .github/workflows/block-needs-review.yml  (12 lines, on: pull_request)
+name: Pre-merge checks
+
+on:
+  # pull_request_target, not pull_request. Three reasons, all load-bearing and
+  # all fork-only: a fork's push raises no event here (which is why the current
+  # `on: push` ABI workflow gives fork PRs no signal at all); only a base-repo
+  # token can label a PR, and the label IS the verdict; and the base repo's
+  # workflow file is used, so a stale head branch that predates these workflows
+  # still gets checked.
+  pull_request_target:
+    types:
+      # code (and the changelog fragment) may have changed
+      - opened
+      - reopened
+      - synchronize
+      # a draft became mergeable: the first real ABI run. Required because the
+      # ABI job is draft-gated -- without this a PR could be marked ready and
+      # merged on a draft-era `skipped` ABI conclusion.
+      - ready_for_review
+      # the ONLY signal for a PR title change, and the ONLY signal for a
+      # base-branch retarget (GitHub emits no `synchronize` for a retarget)
+      - edited
+      # skip-changelog toggled, or a maintainer overriding the release-impact
+      # labels the gate reads live
+      - labeled
+      - unlabeled
+      # Deliberately NOT subscribed -- nothing any job reads can change:
+      #   closed, converted_to_draft, assigned, unassigned, locked, unlocked,
+      #   milestoned, demilestoned, review_requested, review_request_removed,
+      #   auto_merge_enabled, auto_merge_disabled, enqueued, dequeued.
+
+# Keyed on the PR NUMBER: under pull_request_target `github.ref` is the base
+# repo's default branch for every PR, so a github.ref group would collapse all
+# open PRs into one.
+#
+# Split into two classes so a relabel can never cancel a run parked on a human
+# approval (approval is per job per run: cancel it and the maintainer approves
+# again from scratch). A `meta` run never references an environment, so it can
+# neither be parked nor park anything.
+#
+# Parenthesisation is load-bearing: `&&` binds tighter than `||`, so without the
+# outer parens `A || B && 'code' || 'meta'` yields the literal `true`.
+concurrency:
+  group: >-
+    pre-merge-${{ github.event.pull_request.number || github.run_id }}-${{
+    (contains(fromJSON('["opened","reopened","synchronize","ready_for_review"]'), github.event.action)
+    || (github.event.action == 'edited'
+    && github.event.changes.base.ref.from
+    && github.event.changes.base.ref.from != github.event.pull_request.base.ref))
+    && 'code' || 'meta' }}
+  cancel-in-progress: true
+
+jobs:
+  # DO NOT rename this job, and DO NOT give it a `name:`, an `if:` or a `needs:`.
+  # It must be structurally unskippable: a check context whose CALLER job is
+  # skipped is not reported as "skipped" -- it vanishes entirely and is replaced
+  # by the caller's bare name, which would leave any nested required context at
+  # "Expected" forever. All conditional logic lives inside the called workflow.
+  pre-merge:
+    # A caller must declare the UNION of what the called jobs request: the
+    # default token is read-only and a called workflow can only downgrade.
+    permissions:
+      contents: read        # checkout, and the fragment blob read
+      pull-requests: write  # the ABI job applies patch / minor / needs-review
+      id-token: write       # OIDC -> CRT_CI_ROLE_ARN -> ECR pull
+      checks: read          # per-SHA ABI freshness assertion
+      statuses: write       # the gate's required commit status
+    uses: awslabs/aws-crt-builder/.github/workflows/pre-merge-checks.yml@main
+    with:
+      # Identical in all 12: PACKAGE_NAME == repo name, verified. Under a PR
+      # event `github.event.repository` is the BASE repository, so a fork cannot
+      # influence this.
+      lib-name: ${{ github.event.repository.name }}
+      # Note the operand order. `X && '' || 'fork-review'` would ALWAYS yield
+      # 'fork-review', because '' is falsy and `||` returns the first truthy
+      # operand. The truthy branch must carry the NON-empty value.
+      fork-review-environment: ${{ github.event.pull_request.head.repo.full_name != github.repository && 'fork-review' || '' }}
+      # Leave false until the changelog action exists on aws-crt-builder@main.
+      changelog-enabled: false
+    secrets:
+      # Named, not `secrets: inherit`: inherit hands the called workflow every
+      # secret this repo can see, and it needs exactly one.
+      CRT_CI_ROLE_ARN: ${{ secrets.CRT_CI_ROLE_ARN }}
