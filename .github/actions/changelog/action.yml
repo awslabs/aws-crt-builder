@@ -3,7 +3,7 @@ description: 'Automated changelog: validate/check fragments on PR, render on mer
 
 inputs:
   mode:
-    description: 'One of: check | render | rollup | revert | validate | list'
+    description: 'One of: check | seed | render | rollup | revert | validate | list'
     required: true
   changes-dir:
     description: 'Directory holding fragments.'
@@ -17,6 +17,14 @@ inputs:
   pr:
     description: 'PR number (check mode).'
     required: false
+  # seed
+  title:
+    description: 'PR title (seed mode). The fragment type is derived from its `<type>:` prefix, falling back to chore.'
+    required: false
+  out:
+    description: 'Write the seeded fragment here instead of <changes-dir>/preview/<pr>.json (seed mode).'
+    required: false
+    default: ''
   # revert
   original-pr:
     description: 'Original PR number being reverted (revert mode).'
@@ -53,6 +61,8 @@ runs:
         CHANGES_DIR: ${{ inputs.changes-dir }}
         CHANGELOG: ${{ inputs.changelog }}
         PR: ${{ inputs.pr }}
+        TITLE: ${{ inputs.title }}
+        OUT: ${{ inputs.out }}
         ORIGINAL_PR: ${{ inputs.original-pr }}
         REVERT_PR: ${{ inputs.revert-pr }}
         URL: ${{ inputs.url }}
@@ -66,6 +76,15 @@ runs:
         case "${MODE}" in
           check)
             python3 "${SCRIPT}" check --pr "${PR}" --changes-dir "${CHANGES_DIR}"
+            ;;
+          seed)
+            # --url is shared with revert mode below; both mean "the PR's URL".
+            EXTRA=()
+            if [[ -n "${OUT}" ]]; then EXTRA+=(--out "${OUT}"); fi
+            # TITLE stays an env var: interpolating it into the command line
+            # would be a shell-injection vector.
+            python3 "${SCRIPT}" seed --pr "${PR}" --title "${TITLE}" \
+              --url "${URL}" --changes-dir "${CHANGES_DIR}" "${EXTRA[@]}"
             ;;
           validate)
             python3 "${SCRIPT}" validate "${CHANGES_DIR}/preview"
