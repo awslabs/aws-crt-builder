@@ -92,14 +92,16 @@ def test_validate_accepts_good_dir(tmp_path):
 def test_check_missing_fragment_fails(tmp_path):
     (tmp_path / ".changes" / "preview").mkdir(parents=True)
     assert cl.main([
-        "check", "--pr", "5", "--changes-dir", str(tmp_path / ".changes")
+        "check", "--pr", "5", "--title", "feat: hello",
+        "--changes-dir", str(tmp_path / ".changes")
     ]) == 1
 
 
 def test_check_passes_when_fragment_present(tmp_path):
     _seed(tmp_path, 5, "feat: hello")
     assert cl.main([
-        "check", "--pr", "5", "--changes-dir", str(tmp_path / ".changes")
+        "check", "--pr", "5", "--title", "feat: hello",
+        "--changes-dir", str(tmp_path / ".changes")
     ]) == 0
 
 
@@ -109,7 +111,8 @@ def test_check_fails_on_pr_mismatch(tmp_path):
     dst = tmp_path / ".changes" / "preview" / "7.json"
     src.rename(dst)
     assert cl.main([
-        "check", "--pr", "7", "--changes-dir", str(tmp_path / ".changes")
+        "check", "--pr", "7", "--title", "feat: hello",
+        "--changes-dir", str(tmp_path / ".changes")
     ]) == 1
 
 
@@ -127,16 +130,23 @@ def test_render_only_preview_when_no_releases(tmp_path):
 def test_render_groups_by_category_and_hides_chore(tmp_path):
     _seed(tmp_path, 843, "feat: Add SSO sign-in")
     _seed(tmp_path, 850, "fix: retry token drop")
-    _seed(tmp_path, 855, "doc: retry defaults")
+    _seed(tmp_path, 855, 'Revert "feat: something earlier"')
     _seed(tmp_path, 858, "chore: bump aws-lc to 1.34")
     text = _render(tmp_path)
 
     assert "### Features" in text
     assert "### Fixes" in text
-    assert "### Docs" in text
+    assert "### Reverts" in text
     assert "### Maintenance" not in text  # chore hidden from customer view
-    # Order: Features → Fixes → Docs
-    assert text.index("### Features") < text.index("### Fixes") < text.index("### Docs")
+    # Order: Features -> Fixes -> Reverts
+    assert text.index("### Features") < text.index("### Fixes") < text.index("### Reverts")
+
+
+def test_render_omits_reverts_section_when_none(tmp_path):
+    _seed(tmp_path, 1, "feat: a")
+    _seed(tmp_path, 2, "fix: b")
+    text = _render(tmp_path)
+    assert "### Reverts" not in text
 
 
 def test_render_is_idempotent(tmp_path):
@@ -426,7 +436,7 @@ def test_full_lifecycle_end_to_end(tmp_path):
     _rollup(tmp_path, "0.29.0", "2026-08-01", highlights="SSO sign-in")
 
     _seed(tmp_path, 867, "fix: leaking fd on socket teardown")
-    _seed(tmp_path, 870, "doc: clarify retry defaults")
+    _seed(tmp_path, 870, 'Revert "feat: clarify retry defaults"')
     _seed(tmp_path, 872, "fix: null-deref in event loop")
     _render(tmp_path)
 
@@ -453,3 +463,98 @@ def test_full_lifecycle_end_to_end(tmp_path):
     assert "## [0.30.0] — 2026-08-19" in root
     assert "## [0.29.1]" not in root and "## [0.29.0]" not in root
     assert cl.PREVIEW_START in root
+
+
+# ---------- type set, title forms, and the fragment waiver ----------
+
+def _changes(tmp_path):
+    d = tmp_path / ".changes" / "preview"
+    d.mkdir(parents=True, exist_ok=True)
+    return str(tmp_path / ".changes")
+
+
+def _write(tmp_path, pr, typ, summary="s", notes=""):
+    _changes(tmp_path)
+    (tmp_path / ".changes" / "preview" / f"{pr}.json").write_text(json.dumps(
+        {"pr": pr, "type": typ, "summary": summary,
+         "url": f"https://x/pull/{pr}", "notes": notes}) + "\n")
+
+
+def _check(tmp_path, pr, title, bot=""):
+    args = ["check", "--pr", str(pr), "--title", title,
+            "--changes-dir", _changes(tmp_path)]
+    if bot:
+        args += ["--bot-author", bot]
+    return cl.main(args)
+
+
+def test_valid_types_are_exactly_the_four():
+    assert cl.VALID_TYPES == {"feat", "fix", "chore", "revert"}
+
+
+def test_doc_is_no_longer_a_type(tmp_path):
+    # Neither the title form nor the fragment field accepts it any more.
+    assert cl.parse_title("doc: add a design doc") == (None, "doc: add a design doc")
+    assert cl.parse_title("docs: add a design doc") == (None, "docs: add a design doc")
+    _write(tmp_path, 1, "doc")
+    assert _check(tmp_path, 1, "feat: x") == 1
+
+
+def test_chore_needs_no_fragment(tmp_path):
+    _changes(tmp_path)
+    for title in ("chore: tidy", "chore(ci): bump runner", "chore(release): 1.2.3"):
+        assert _check(tmp_path, 1, title) == 0
+
+
+def test_feat_fix_and_revert_all_need_a_fragment(tmp_path):
+    _changes(tmp_path)
+    for title in ("feat: x", "fix: y", 'Revert "feat: z (#9)"'):
+        assert _check(tmp_path, 1, title) == 1
+
+
+def test_revert_button_title_is_accepted(tmp_path):
+    # GitHub's Revert button emits no `<type>:` prefix.
+    assert cl.parse_title('Revert "Fix CI issues (#538)"') == (
+        "revert", 'Fix CI issues (#538)')
+    _write(tmp_path, 4, "revert", summary='Revert "Fix CI issues".',
+           notes="Broke the macos job.")
+    assert _check(tmp_path, 4, 'Revert "Fix CI issues (#538)"') == 0
+
+
+def test_title_without_a_recognised_prefix_fails(tmp_path):
+    _changes(tmp_path)
+    assert _check(tmp_path, 1, "Add more getters for metrics") == 1
+    assert _check(tmp_path, 1, "perf: make it faster") == 1
+
+
+def test_type_mismatch_between_title_and_fragment_fails(tmp_path):
+    _write(tmp_path, 5, "chore")
+    assert _check(tmp_path, 5, "feat: a real feature") == 1
+
+
+def test_bot_author_waives_everything(tmp_path):
+    _changes(tmp_path)
+    assert _check(tmp_path, 6, "Bump actions/checkout from 4 to 7",
+                  bot="dependabot[bot]") == 0
+
+
+def test_missing_title_is_a_caller_error_not_an_author_error(tmp_path):
+    assert cl.main(["check", "--pr", "1", "--changes-dir", _changes(tmp_path)]) == 2
+
+
+def test_check_reason_is_emitted_for_each_outcome(tmp_path, capsys):
+    cases = [
+        ("chore: x", None, "exempt-type"),
+        ("feat: x", None, "missing-fragment"),
+        ("nonsense title", None, "bad-title"),
+    ]
+    for title, _frag, expected in cases:
+        _check(tmp_path, 1, title)
+        assert f"CHANGELOG_CHECK_REASON::{expected}" in capsys.readouterr().out
+
+
+def test_reverts_render_under_their_own_heading(tmp_path):
+    _write(tmp_path, 1, "revert", summary='Revert "feat: a".', notes="Broke X.")
+    text = _render(tmp_path)
+    assert "### Reverts" in text
+    assert "Broke X." in text

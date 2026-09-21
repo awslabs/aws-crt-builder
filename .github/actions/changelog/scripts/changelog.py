@@ -17,16 +17,28 @@ import re
 import sys
 from pathlib import Path
 
-VALID_TYPES = {"feat", "fix", "doc", "chore", "revert"}
-CATEGORIES = ["Features", "Fixes", "Docs", "Maintenance"]
+VALID_TYPES = {"feat", "fix", "chore", "revert"}
+# A section is emitted only when it has entries, so "Reverts" is absent from a
+# release that reverted nothing, and "Maintenance" is absent whenever `chore`
+# is hidden -- which it is for every customer-facing render.
+CATEGORIES = ["Features", "Fixes", "Reverts", "Maintenance"]
 HIDDEN_TYPES_CUSTOMER = {"chore"}
+
+# Types that need no fragment. A chore is internal by definition: it renders
+# nowhere, so requiring an entry would force authors to write invisible text.
+FRAGMENT_EXEMPT_TYPES = {"chore"}
 
 PREVIEW_START = "<!-- changelog:preview:start -->"
 PREVIEW_END = "<!-- changelog:preview:end -->"
 
 TITLE_RE = re.compile(
-    r"^(feat|fix|docs?|chore|revert)(?:\([^)]+\))?:\s*(.+)$", re.IGNORECASE
+    r"^(feat|fix|chore|revert)(?:\([^)]+\))?:\s*(.+)$", re.IGNORECASE
 )
+# GitHub's Revert button generates `Revert "<original title> (#<n>)"`, which
+# carries no `<type>:` prefix. Accepting it verbatim means a maintainer using
+# the button never has to retitle; the author still writes the fragment, since
+# only they can say WHY it was reverted.
+REVERT_TITLE_RE = re.compile(r'^revert\s+"(.+)"\s*$', re.IGNORECASE)
 SEMVER_RE = re.compile(r"^(\d+)\.(\d+)\.(\d+)$")
 MINOR_LINE_RE = re.compile(r"^(\d+)\.(\d+)\.x$")
 ISO_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
@@ -35,13 +47,14 @@ ISO_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 # ---------- parsing / schema ----------
 
 def parse_title(title):
-    m = TITLE_RE.match(title.strip())
-    if not m:
-        return None, title.strip()
-    t = m.group(1).lower()
-    if t == "docs":
-        t = "doc"
-    return t, m.group(2).strip()
+    title = title.strip()
+    m = TITLE_RE.match(title)
+    if m:
+        return m.group(1).lower(), m.group(2).strip()
+    m = REVERT_TITLE_RE.match(title)
+    if m:
+        return "revert", m.group(1).strip()
+    return None, title
 
 
 REQUIRED_FRAGMENT = {"pr", "type", "summary", "url"}
@@ -99,9 +112,8 @@ def categorize(frag):
     return {
         "feat": "Features",
         "fix": "Fixes",
-        "doc": "Docs",
+        "revert": "Reverts",
         "chore": "Maintenance",
-        "revert": "Maintenance",
     }.get(frag["type"], "Maintenance")
 
 
@@ -298,29 +310,93 @@ def cmd_validate(args):
 
 
 def cmd_check(args):
+    """CI gate. Exit 0 pass, 1 author-fixable, 2 caller error.
+
+    Two independent assertions:
+      * the PR title follows the convention, so a type can be derived at all;
+      * a fragment exists and agrees with that type -- unless the type is
+        exempt (chore), or the author is a bot we waive.
+    """
+    title = (args.title or "").strip()
     frag = Path(args.changes_dir) / "preview" / f"{args.pr}.json"
+
+    # A single machine-readable reason on stdout, so a caller can tell an
+    # author who does not know the convention (missing-fragment -> show them a
+    # template) from one who does (everything else -> just the diagnostic).
+    def reason(tag):
+        print(f"CHANGELOG_CHECK_REASON::{tag}")
+
+    if args.bot_author:
+        print(f"OK: #{args.pr} is authored by a bot ({args.bot_author}); "
+              "title convention and changelog fragment both waived")
+        reason("waived-bot")
+        return 0
+
+    if not title:
+        print("ERROR: --title is required to derive the change type", file=sys.stderr)
+        return 2
+
+    typ, _summary = parse_title(title)
+    if typ is None:
+        print(
+            f'ERROR: PR title does not follow the convention: "{title}"\n'
+            f"       expected `<type>: <summary>` with type one of "
+            f"{sorted(VALID_TYPES)}, an optional scope such as `chore(ci):`,\n"
+            f'       or the Revert button\'s `Revert "<original title>"`.',
+            file=sys.stderr,
+        )
+        reason("bad-title")
+        return 1
+
+    if typ in FRAGMENT_EXEMPT_TYPES and not frag.exists():
+        print(f"OK: #{args.pr} is a `{typ}` change; no changelog fragment required")
+        reason("exempt-type")
+        return 0
+
     if not frag.exists():
         print(
             f"ERROR: no changelog fragment for PR #{args.pr}.\n"
             f"       expected: {frag}\n"
+            f"       a `{typ}` change is customer-visible, so it needs an entry.\n"
             f"       run `.github/actions/changelog/scripts/new-change` locally and commit the file,\n"
             f"       or apply the `skip-changelog` label for CI-only / pure-infra PRs.",
             file=sys.stderr,
         )
+        reason("missing-fragment")
         return 1
+
     errs = validate_fragment(frag)
     if errs:
         for e in errs:
             print(e, file=sys.stderr)
+        reason("invalid-fragment")
         return 1
-    declared_pr = json.loads(frag.read_text()).get("pr")
+
+    data = json.loads(frag.read_text())
+    declared_pr = data.get("pr")
     if declared_pr != args.pr:
         print(
             f"ERROR: {frag} declares pr={declared_pr} but this PR is #{args.pr}",
             file=sys.stderr,
         )
+        reason("pr-mismatch")
         return 1
-    print(f"OK: fragment for #{args.pr} is present and valid")
+
+    # The title and the fragment are two statements about the same change; if
+    # they disagree the author has to decide which is right. Guessing here would
+    # file the entry under a section the title contradicts.
+    if data.get("type") != typ:
+        print(
+            f'ERROR: type mismatch. The PR title says `{typ}` but {frag} says '
+            f'`{data.get("type")}`.\n'
+            f"       Fix whichever is wrong -- they must agree.",
+            file=sys.stderr,
+        )
+        reason("type-mismatch")
+        return 1
+
+    print(f"OK: #{args.pr} title is `{typ}` and its fragment is present and valid")
+    reason("ok")
     return 0
 
 
@@ -588,8 +664,11 @@ def main(argv=None):
     v.add_argument("target")
     v.set_defaults(func=cmd_validate)
 
-    c = sub.add_parser("check", help="CI: assert a valid fragment exists for a given PR")
+    c = sub.add_parser("check", help="CI: assert the PR title and its fragment are valid")
     c.add_argument("--pr", type=int, required=True)
+    c.add_argument("--title", default="", help="PR title; the change type is derived from it")
+    c.add_argument("--bot-author", default="",
+                   help="login of the PR author when it is a bot; waives both checks")
     c.add_argument("--changes-dir", default=".changes")
     c.set_defaults(func=cmd_check)
 

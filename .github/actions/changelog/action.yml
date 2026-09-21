@@ -19,8 +19,17 @@ inputs:
     required: false
   # seed
   title:
-    description: 'PR title (seed mode). The fragment type is derived from its `<type>:` prefix, falling back to chore.'
+    description: >-
+      PR title. In check mode the change type is derived from it, which decides
+      whether a fragment is required at all; in seed mode it seeds the type,
+      falling back to chore.
     required: false
+  bot-author:
+    description: >-
+      Login of the PR author when it is a bot (check mode). Non-empty waives
+      both the title convention and the fragment requirement.
+    required: false
+    default: ''
   out:
     description: 'Write the seeded fragment here instead of <changes-dir>/preview/<pr>.json (seed mode).'
     required: false
@@ -51,10 +60,21 @@ inputs:
     required: false
     default: ''
 
+outputs:
+  rc:
+    description: 'check mode: 0 pass, 1 author-fixable, 2 caller error.'
+    value: ${{ steps.run.outputs.rc }}
+  reason:
+    description: >-
+      check mode: ok | exempt-type | waived-bot | missing-fragment |
+      invalid-fragment | pr-mismatch | type-mismatch | bad-title.
+    value: ${{ steps.run.outputs.reason }}
+
 runs:
   using: 'composite'
   steps:
     - name: Run changelog tool
+      id: run
       shell: bash
       env:
         MODE: ${{ inputs.mode }}
@@ -62,6 +82,7 @@ runs:
         CHANGELOG: ${{ inputs.changelog }}
         PR: ${{ inputs.pr }}
         TITLE: ${{ inputs.title }}
+        BOT_AUTHOR: ${{ inputs.bot-author }}
         OUT: ${{ inputs.out }}
         ORIGINAL_PR: ${{ inputs.original-pr }}
         REVERT_PR: ${{ inputs.revert-pr }}
@@ -75,7 +96,23 @@ runs:
         SCRIPT="${GITHUB_ACTION_PATH}/scripts/changelog.py"
         case "${MODE}" in
           check)
-            python3 "${SCRIPT}" check --pr "${PR}" --changes-dir "${CHANGES_DIR}"
+            # Does not fail the step. The caller reads `rc` and `reason` and
+            # decides -- a missing fragment gets a template comment first,
+            # every other failure only gets the diagnostic above.
+            # TITLE and BOT_AUTHOR stay env vars; interpolating a PR title into
+            # the command line would be a shell-injection vector.
+            OUT="$(mktemp)"
+            set +e
+            python3 "${SCRIPT}" check --pr "${PR}" --title "${TITLE}" \
+              --bot-author "${BOT_AUTHOR}" --changes-dir "${CHANGES_DIR}" | tee "${OUT}"
+            rc="${PIPESTATUS[0]}"
+            set -e
+            REASON="$(grep -o 'CHANGELOG_CHECK_REASON::[a-z-]*' "${OUT}" | tail -n1 | cut -d: -f3 || true)"
+            rm -f "${OUT}"
+            {
+              echo "rc=${rc}"
+              echo "reason=${REASON}"
+            } >> "${GITHUB_OUTPUT}"
             ;;
           seed)
             # --url is shared with revert mode below; both mean "the PR's URL".
