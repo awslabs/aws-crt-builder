@@ -1,0 +1,81 @@
+name: 'Apply ABI verdict label'
+description: >-
+  Reconcile a pull request's ABI verdict labels to the single label the check
+  produced. Lives here rather than in a workflow so every consumer applies
+  identical logic without copying it.
+
+inputs:
+  verdict:
+    description: 'patch | minor | needs-review, as emitted by check-abi.'
+    required: true
+  pr:
+    description: 'Pull request number.'
+    required: true
+  repo:
+    description: 'owner/repo.'
+    required: true
+  github-token:
+    description: 'Needs pull-requests: write.'
+    required: false
+    default: ${{ github.token }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Reconcile the verdict labels
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+        REPO: ${{ inputs.repo }}
+        PR: ${{ inputs.pr }}
+        VERDICT: ${{ inputs.verdict }}
+      run: |
+        set -euo pipefail
+        # The three verdicts are mutually exclusive, exactly as gate.sh
+        # emits them. `patch` and `minor` ARE the reviewed states, so pairing
+        # either with `needs-review` would assert two contradictory things at
+        # once -- and a merged PR carrying `minor` forces a minor release bump
+        # (auto-release's minor-pr-label), which would under-state a source
+        # break. To clear a source break a maintainer REPLACES needs-review
+        # with patch or minor, which records that a human decided the release
+        # impact. Merely deleting the label leaves the PR blocked, correctly:
+        # nothing has said what the impact is.
+        case "$VERDICT" in
+          patch)        WANT="patch" ;;
+          minor)        WANT="minor" ;;
+          needs-review) WANT="needs-review" ;;
+          *) echo "::error::unexpected ABI verdict '${VERDICT}'"; exit 1 ;;
+        esac
+
+        declare -A COLOR=( [patch]=0e8a16 [minor]=fbca04 [needs-review]=d93f0b )
+        declare -A DESC=(
+          [patch]="ABI backward-compatible (patch release)"
+          [minor]="ABI changed, source-compatible (minor release)"
+          [needs-review]="ABI check: source/API compatibility broken, needs manual review"
+        )
+
+        CURRENT="$(gh pr view "$PR" --repo "$REPO" --json labels -q '.labels[].name')"
+        ADD=() DROP=()
+        for l in patch minor needs-review; do
+          if [[ " $WANT " == *" $l "* ]]; then
+            grep -qxF "$l" <<< "$CURRENT" || ADD+=("$l")
+          else
+            grep -qxF "$l" <<< "$CURRENT" && DROP+=("$l")
+          fi
+        done
+
+        if [[ "${#ADD[@]}" -eq 0 && "${#DROP[@]}" -eq 0 ]]; then
+          echo "Labels already correct (${WANT}); nothing to do."
+          exit 0
+        fi
+
+        EDIT=()
+        for l in ${ADD[@]+"${ADD[@]}"}; do
+          # gh pr edit --add-label fails if the label does not exist yet.
+          gh label create "$l" --repo "$REPO" --color "${COLOR[$l]}" \
+            --description "${DESC[$l]}" --force >/dev/null 2>&1 || true
+          EDIT+=(--add-label "$l")
+        done
+        [[ "${#DROP[@]}" -gt 0 ]] && EDIT+=(--remove-label "$(IFS=,; echo "${DROP[*]}")")
+        echo "add='${ADD[*]:-none}' remove='${DROP[*]:-none}'"
+        gh pr edit "$PR" --repo "$REPO" "${EDIT[@]}"
