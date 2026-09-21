@@ -168,15 +168,19 @@ jobs:
           VERDICT: ${{ steps.check.outputs.label }}
         run: |
           set -euo pipefail
-          # The action reports one of patch | minor | needs-review. A
-          # needs-review verdict gets `minor` as well: it is an incompatible API
-          # change, so the smallest honest bump is minor, and without a semver
-          # label a reviewer who accepts the break and removes needs-review
-          # leaves a PR the gate below can never pass.
+          # The three verdicts are mutually exclusive, exactly as gate.sh
+          # emits them. `patch` and `minor` ARE the reviewed states, so pairing
+          # either with `needs-review` would assert two contradictory things at
+          # once -- and a merged PR carrying `minor` forces a minor release bump
+          # (auto-release's minor-pr-label), which would under-state a source
+          # break. To clear a source break a maintainer REPLACES needs-review
+          # with patch or minor, which records that a human decided the release
+          # impact. Merely deleting the label leaves the PR blocked, correctly:
+          # nothing has said what the impact is.
           case "$VERDICT" in
             patch)        WANT="patch" ;;
             minor)        WANT="minor" ;;
-            needs-review) WANT="minor needs-review" ;;
+            needs-review) WANT="needs-review" ;;
             *) echo "::error::unexpected ABI verdict '${VERDICT}'"; exit 1 ;;
           esac
 
@@ -225,9 +229,12 @@ jobs:
     runs-on: ${{ inputs.runs-on }}
     permissions:
       contents: read
-      pull-requests: read
+      # write, not read: a PR with no fragment gets one guidance comment
+      # carrying a ready-to-paste template. Nothing else here writes.
+      pull-requests: write
     steps:
       - name: Fetch the fragment at the PR head
+        id: fragment
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
@@ -246,6 +253,12 @@ jobs:
           if gh api "repos/${REPO}/contents/${CHANGES_DIR}/preview/${PR}.json?ref=${HEAD_SHA}" \
                -H 'Accept: application/vnd.github.raw' > "$BODY" 2>/dev/null; then
             cp "$BODY" "${DEST}/${PR}.json"
+            # present=true means "the author supplied a fragment". Whether it is
+            # VALID is the check step's business. The distinction drives whether
+            # a guidance comment is posted: a missing fragment means the author
+            # does not know the convention and gets a template; an invalid one
+            # means they do, and only need the validator's reason.
+            echo "present=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           # Only a bare "Not Found" means "the ref resolved, the file is absent".
@@ -256,16 +269,72 @@ jobs:
             echo "::error::could not read the changelog fragment at ${HEAD_SHA}: ${MSG}"
             exit 1
           fi
-          echo "No fragment present; the next step reports it."
+          echo "present=false" >> "$GITHUB_OUTPUT"
+          echo "No fragment present; a template comment and the check step follow."
 
-      - name: Check the PR title and the fragment
-        uses: awslabs/aws-crt-builder/.github/actions/changelog@main
+      # Builds the template the comment carries. Written OUTSIDE
+      # $RUNNER_TEMP/changes so the check step below cannot mistake it for a
+      # fragment the author supplied. `seed` derives the type from the PR title
+      # and falls back to chore, so the snippet is already tailored.
+      - name: Seed a fragment template
+        if: ${{ steps.fragment.outputs.present == 'false' }}
+        # TODO: pin back to @main once the changelog action is on main.
+        uses: awslabs/aws-crt-builder/.github/actions/changelog@feat/pre-merge-checks
+        with:
+          mode: seed
+          pr: ${{ github.event.pull_request.number }}
+          title: ${{ github.event.pull_request.title }}
+          url: ${{ github.event.pull_request.html_url }}
+          out: ${{ runner.temp }}/seed-template.json
+
+      - name: Comment with the template, once per pull request
+        if: ${{ steps.fragment.outputs.present == 'false' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+          CHANGES_DIR: ${{ inputs.changes-dir }}
+          TEMPLATE: ${{ runner.temp }}/seed-template.json
+        run: |
+          set -euo pipefail
+          # Idempotency is keyed on a hidden marker rather than on the comment
+          # text, so the wording can change later without the bot re-commenting
+          # on every pull request that already has one.
+          MARKER='<!-- pre-merge-checks:changelog-template -->'
+          if gh api --paginate "repos/${REPO}/issues/${PR}/comments" \
+               --jq '.[].body' | grep -qF "$MARKER"; then
+            echo "Template comment already present on #${PR}; not repeating it."
+            exit 0
+          fi
+          {
+            printf '%s\n\n' "$MARKER"
+            printf 'This pull request has no changelog entry.\n\n'
+            printf 'Add `%s/preview/%s.json` with this content, adjusting the summary to read as a release note:\n\n' \
+              "$CHANGES_DIR" "$PR"
+            printf '```json\n'
+            cat "$TEMPLATE"
+            printf '```\n\n'
+            printf '`type` is one of `feat`, `fix`, `doc`, `chore`, `revert`, and decides which section the entry lands in. '
+            printf '`notes` is optional free-form detail.\n\n'
+            printf 'Running `.github/actions/changelog/scripts/new-change` locally writes the file for you.\n\n'
+            printf 'For a CI-only or pure-infra change, apply the `skip-changelog` label instead.\n'
+          } > "${RUNNER_TEMP}/comment.md"
+          # jq builds the JSON body so the markdown is carried verbatim --
+          # newlines, backticks and quotes all survive, which -f/-F would not
+          # reliably do for a multi-line value.
+          jq -n --rawfile body "${RUNNER_TEMP}/comment.md" '{body: $body}' \
+            | gh api --method POST "repos/${REPO}/issues/${PR}/comments" --input - >/dev/null
+          echo "Posted the changelog template comment on #${PR}."
+
+      # Always runs, and is what fails the job. A missing fragment fails here
+      # too, after the comment above; a fragment that is present but malformed
+      # fails here with the validator's own reason and no comment.
+      - name: Check the fragment
+        # TODO: pin back to @main once the changelog action is on main.
+        uses: awslabs/aws-crt-builder/.github/actions/changelog@feat/pre-merge-checks
         with:
           mode: check
           pr: ${{ github.event.pull_request.number }}
-          # An action input, so the script receives it as an env var. Never
-          # interpolate a PR title into a run: body.
-          title: ${{ github.event.pull_request.title }}
           changes-dir: ${{ runner.temp }}/changes
 
   # The single gate, and the only job that is unconditionally reachable -- so
@@ -336,7 +405,7 @@ jobs:
             LABELS="$(gh pr view "$PR" --repo "$REPO" --json labels -q '.labels[].name')"
             if grep -qxF 'needs-review' <<< "$LABELS"; then
               VERDICT=failure
-              REASON="labeled needs-review: the ABI check found a source break, so callers fail to recompile. A maintainer must review it and remove that label; the semver label stays, so removing it is enough to unblock."
+              REASON="labeled needs-review: the ABI check found a source break, so callers fail to recompile. A maintainer must review it and REPLACE that label with patch or minor, which records the release impact they decided on. Deleting it without replacing leaves this blocked."
             elif ! grep -qxE 'patch|minor' <<< "$LABELS"; then
               VERDICT=failure
               REASON="no patch or minor label, so the release impact is undecided. Re-run the ABI check; do not hand-apply the label."
