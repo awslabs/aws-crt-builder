@@ -148,4 +148,5 @@ jobs:
     - name: Build and test ${{ matrix.package }} (${{ matrix.config.sanitizers }})
       run: |
         aws s3 cp s3://aws-crt-test-stuff/ci/${{ env.BUILDER_VERSION }}/linux-container-ci.sh ./linux-container-ci.sh && chmod a+x ./linux-container-ci.sh
-        ./linux-container-ci.sh ${{ env.BUILDER_VERSION }} aws-crt-${{ matrix.config.image }} build -p ${{ matrix.package }} --compiler=${{ matrix.config.compiler }} --cmake-extra=-DENABLE_SANITIZERS=ON --cmake-extra=-DSANITIZERS="${{ matrix.config.sanitizers }}" ${{ matrix.config.extra_args }}
+        # TODO: Remove --branch before merging.
+        ./linux-container-ci.sh ${{ env.BUILDER_VERSION }} aws-crt-${{ matrix.config.image }} build -p ${{ matrix.package }} --branch make-ubsan-useful --compiler=${{ matrix.config.compiler }} --cmake-extra=-DENABLE_SANITIZERS=ON --cmake-extra=-DSANITIZERS="${{ matrix.config.sanitizers }}" ${{ matrix.config.extra_args }}
