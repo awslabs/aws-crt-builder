@@ -75,12 +75,12 @@ runs:
         #    per-PR while commits are not, so on a relabel event confirm a
         #    successful ABI run exists for THIS head SHA before trusting the
         #    labels read below. Matched on the name suffix: the full context
-        #    is "<caller job id> / ABI compatibility" and the caller's job id
+        #    is "<caller job> / abi-compat" and the caller job name
         #    is not visible from here.
         if [[ -z "$VERDICT" && "$ABI_RESULT" == "skipped" ]]; then
           RUNS="$(gh api --paginate \
                     "repos/${REPO}/commits/${HEAD_SHA}/check-runs?filter=all&per_page=100" \
-                    --jq '.check_runs[] | select(.name | endswith("ABI compatibility"))
+                    --jq '.check_runs[] | select(.name | endswith("abi-compat"))
                           | "\(.status):\(.conclusion // "none")"')"
           if [[ $? -ne 0 ]]; then
             VERDICT=failure; REASON="could not list check runs for ${HEAD_SHA}"

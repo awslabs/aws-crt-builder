@@ -11,12 +11,16 @@
 # `needs:` inside one run.
 #
 # CHECK NAMES. A job that calls a reusable workflow reports as
-# "<caller job name> / <callee job name>"; neither segment can be suppressed
-# (verified: block-needs-review-label.yml's single `gate` job, called from a job
-# also named `gate`, reports as "gate / gate"). Consumers therefore name their
-# caller job `Pre-merge checks`, which makes the required-check contexts read
-# "Pre-merge checks / ABI compatibility", "Pre-merge checks / Validation", and so
-# on. Those strings go into branch rulesets, so do not rename these jobs lightly.
+# "<caller job> / <callee job>"; neither segment can be suppressed (verified:
+# block-needs-review-label.yml's single `gate` job, called from a job also named
+# `gate`, reports as "gate / gate"). Consumers name their caller job `upkeep`, so
+# the required-check contexts are "upkeep / approval", "upkeep / abi-compat",
+# "upkeep / changelog" and "upkeep / verdict-gate", displayed in the merge box as
+# "Pre-merge checks / upkeep / <job>".
+#
+# Those context strings go into 12 branch rulesets. Renaming a job here orphans
+# every entry, and `pre-merge-gate` matches the ABI check run by the `abi-compat`
+# suffix -- rename that job and the freshness assertion silently stops finding it.
 name: Pre-merge checks
 
 on:
@@ -71,7 +75,6 @@ jobs:
   # This job's `if:` is the only place the "could the code have changed?"
   # predicate is written; `abi` inherits it through `needs:`.
   approval:
-    name: Fork approval
     if: >-
       contains(fromJSON('["opened","reopened","synchronize"]'), github.event.action)
       || (github.event.action == 'edited' && github.event.changes.base != null)
@@ -84,8 +87,7 @@ jobs:
       - name: Approved
         run: echo "PR-authored code is approved to execute in this run."
 
-  abi:
-    name: ABI compatibility
+  abi-compat:
     needs: approval
     runs-on: ${{ inputs.runs-on }}
     permissions:
@@ -159,7 +161,6 @@ jobs:
   # click. No activity-type filter either -- the fragment, the title and the
   # waiver label can each change independently, and the job takes seconds.
   changelog:
-    name: Changelog entry
     if: ${{ !contains(github.event.pull_request.labels.*.name, 'skip-changelog') }}
     runs-on: ${{ inputs.runs-on }}
     permissions:
@@ -297,9 +298,8 @@ jobs:
 
   # The single gate, and the only job that is unconditionally reachable -- so the
   # only one that may become a required status check.
-  gate:
-    name: Validation
-    needs: [approval, abi, changelog]
+  verdict-gate:
+    needs: [approval, abi-compat, changelog]
     if: ${{ !cancelled() }}
     runs-on: ${{ inputs.runs-on }}
     permissions:
@@ -312,7 +312,7 @@ jobs:
         uses: awslabs/aws-crt-builder/.github/actions/pre-merge-gate@feat/pre-merge-checks
         with:
           needs: ${{ toJSON(needs) }}
-          abi-result: ${{ needs.abi.result }}
+          abi-result: ${{ needs['abi-compat'].result }}
           head-sha: ${{ github.event.pull_request.head.sha }}
           pr: ${{ github.event.pull_request.number }}
           repo: ${{ github.repository }}
