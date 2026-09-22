@@ -558,3 +558,68 @@ def test_reverts_render_under_their_own_heading(tmp_path):
     text = _render(tmp_path)
     assert "### Reverts" in text
     assert "Broke X." in text
+
+
+# ---------- exactly one fragment, at the right path, added ----------
+
+def _paths(tmp_path, *entries):
+    f = tmp_path / "paths.tsv"
+    f.write_text("".join(f"{st}\t{p}\n" for st, p in entries))
+    return str(f)
+
+
+def _check_paths(tmp_path, pr, title, paths_file):
+    return cl.main([
+        "check", "--pr", str(pr), "--title", title,
+        "--changes-dir", _changes(tmp_path),
+        "--changed-paths-file", paths_file,
+        "--changes-prefix", ".changes",
+    ])
+
+
+def test_one_added_fragment_at_the_expected_path_passes(tmp_path):
+    _write(tmp_path, 1259, "feat")
+    p = _paths(tmp_path, ("added", ".changes/preview/1259.json"))
+    assert _check_paths(tmp_path, 1259, "feat: x", p) == 0
+
+
+def test_a_stray_fragment_for_another_pr_fails(tmp_path):
+    # Would otherwise render an entry attributed to PR 9999.
+    _write(tmp_path, 1259, "feat")
+    _write(tmp_path, 9999, "feat")
+    p = _paths(tmp_path,
+               ("added", ".changes/preview/1259.json"),
+               ("added", ".changes/preview/9999.json"))
+    assert _check_paths(tmp_path, 1259, "feat: x", p) == 1
+
+
+def test_fragment_at_the_wrong_path_fails(tmp_path):
+    p = _paths(tmp_path, ("added", ".changes/1259.json"))
+    assert _check_paths(tmp_path, 1259, "feat: x", p) == 1
+
+
+def test_modifying_an_existing_fragment_fails(tmp_path):
+    _write(tmp_path, 1259, "feat")
+    p = _paths(tmp_path, ("modified", ".changes/preview/1259.json"))
+    assert _check_paths(tmp_path, 1259, "feat: x", p) == 1
+
+
+def test_touching_anything_else_under_changes_fails(tmp_path):
+    _write(tmp_path, 1259, "feat")
+    p = _paths(tmp_path,
+               ("added", ".changes/preview/1259.json"),
+               ("modified", ".changes/README.md"))
+    assert _check_paths(tmp_path, 1259, "feat: x", p) == 1
+
+
+def test_chore_ignores_fragment_shape_entirely(tmp_path):
+    p = _paths(tmp_path,
+               ("added", ".changes/preview/9999.json"),
+               ("modified", ".changes/README.md"))
+    assert _check_paths(tmp_path, 1259, "chore: x", p) == 0
+
+
+def test_no_changes_paths_still_reports_a_missing_fragment(tmp_path):
+    # Must stay `missing-fragment` so the author still gets a template.
+    p = _paths(tmp_path)
+    assert _check_paths(tmp_path, 1259, "feat: x", p) == 1

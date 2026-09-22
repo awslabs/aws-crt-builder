@@ -24,6 +24,17 @@ inputs:
       whether a fragment is required at all; in seed mode it seeds the type,
       falling back to chore.
     required: false
+  changed-paths-file:
+    description: >-
+      check mode: file of `status<TAB>path` lines for the pull request's changes
+      under the changes directory. When given, a customer-visible change must
+      add exactly one new fragment at exactly its own path.
+    required: false
+    default: ''
+  changes-prefix:
+    description: 'Repo-relative changes directory, for matching changed paths.'
+    required: false
+    default: '.changes'
   bot-author:
     description: >-
       Login of the PR author when it is a bot (check mode). Non-empty waives
@@ -83,6 +94,8 @@ runs:
         PR: ${{ inputs.pr }}
         TITLE: ${{ inputs.title }}
         BOT_AUTHOR: ${{ inputs.bot-author }}
+        CHANGED_PATHS_FILE: ${{ inputs.changed-paths-file }}
+        CHANGES_PREFIX: ${{ inputs.changes-prefix }}
         OUT: ${{ inputs.out }}
         ORIGINAL_PR: ${{ inputs.original-pr }}
         REVERT_PR: ${{ inputs.revert-pr }}
@@ -103,8 +116,14 @@ runs:
             # the command line would be a shell-injection vector.
             OUT="$(mktemp)"
             set +e
+            EXTRA=()
+            if [[ -n "${CHANGED_PATHS_FILE}" ]]; then
+              EXTRA+=(--changed-paths-file "${CHANGED_PATHS_FILE}"
+                      --changes-prefix "${CHANGES_PREFIX}")
+            fi
             python3 "${SCRIPT}" check --pr "${PR}" --title "${TITLE}" \
-              --bot-author "${BOT_AUTHOR}" --changes-dir "${CHANGES_DIR}" | tee "${OUT}"
+              --bot-author "${BOT_AUTHOR}" --changes-dir "${CHANGES_DIR}" \
+              "${EXTRA[@]}" | tee "${OUT}"
             rc="${PIPESTATUS[0]}"
             set -e
             REASON="$(grep -o 'CHANGELOG_CHECK_REASON::[a-z-]*' "${OUT}" | tail -n1 | cut -d: -f3 || true)"

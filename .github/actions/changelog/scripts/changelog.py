@@ -309,6 +309,60 @@ def cmd_validate(args):
     return 0
 
 
+def parse_changed_paths(path):
+    """Read `status<TAB>path` lines, keeping only entries under `.changes/`."""
+    out = []
+    for line in Path(path).read_text().splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        status, _, p = line.partition("\t")
+        out.append((status.strip(), p.strip()))
+    return out
+
+
+def check_fragment_changes(args, typ, reason):
+    """Assert the PR's changes under `.changes/` are exactly one new fragment.
+
+    Returns an exit code to stop on, or None to carry on with the usual checks.
+    """
+    expected = f"{args.changes_prefix.rstrip('/')}/preview/{args.pr}.json"
+    entries = parse_changed_paths(args.changed_paths_file)
+
+    if not entries:
+        # Nothing under .changes/ at all -- the normal "author forgot" case,
+        # which the fragment check below reports and which earns a template.
+        return None
+
+    wrong = [(st, p) for st, p in entries if p != expected]
+    if wrong:
+        listed = "\n".join(f"         {st:<10} {p}" for st, p in wrong)
+        print(
+            f"ERROR: a `{typ}` change may only add its own changelog fragment.\n"
+            f"       expected exactly one new file:\n"
+            f"         added      {expected}\n"
+            f"       but this pull request also changes:\n{listed}\n"
+            f"       A fragment named for another pull request renders under that\n"
+            f"       number; one at another path renders nowhere.",
+            file=sys.stderr,
+        )
+        reason("stray-fragment")
+        return 1
+
+    status = entries[0][0]
+    if status and status != "added":
+        print(
+            f"ERROR: {expected} is `{status}` in this pull request, not `added`.\n"
+            f"       A changelog entry belongs to the pull request that introduces\n"
+            f"       it; editing an existing one rewrites another PR's entry.",
+            file=sys.stderr,
+        )
+        reason("modified-fragment")
+        return 1
+
+    return None
+
+
 def cmd_check(args):
     """CI gate. Exit 0 pass, 1 author-fixable, 2 caller error.
 
@@ -348,10 +402,20 @@ def cmd_check(args):
         reason("bad-title")
         return 1
 
-    if typ in FRAGMENT_EXEMPT_TYPES and not frag.exists():
+    if typ in FRAGMENT_EXEMPT_TYPES:
+        # Exempt types skip every remaining assertion, including the shape of
+        # whatever they may have touched under the changes directory.
         print(f"OK: #{args.pr} is a `{typ}` change; no changelog fragment required")
         reason("exempt-type")
         return 0
+
+    # A customer-visible change must contribute exactly one changelog entry, and
+    # it must be its own: one NEW file at the one expected path. Anything else
+    # either renders under someone else's PR number or silently renders nothing.
+    if args.changed_paths_file:
+        rc = check_fragment_changes(args, typ, reason)
+        if rc is not None:
+            return rc
 
     if not frag.exists():
         print(
@@ -670,6 +734,10 @@ def main(argv=None):
     c.add_argument("--bot-author", default="",
                    help="login of the PR author when it is a bot; waives both checks")
     c.add_argument("--changes-dir", default=".changes")
+    c.add_argument("--changed-paths-file", default="",
+                   help="file of `status<TAB>path` lines for the PR's changes under .changes/")
+    c.add_argument("--changes-prefix", default=".changes",
+                   help="repo-relative changes directory, for matching changed paths")
     c.set_defaults(func=cmd_check)
 
     r = sub.add_parser("render", help="regenerate root CHANGELOG.md from preview/ + latest/")
