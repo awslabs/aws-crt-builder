@@ -684,7 +684,8 @@ def main(argv=None):
     r.add_argument("--changelog", default="CHANGELOG.md")
     r.set_defaults(func=cmd_render)
 
-    u = sub.add_parser("rollup", help="cut a release: patch accretes into latest/; minor/major freezes latest/ → M.N.x/")
+    u = sub.add_parser("rollup",
+                       help="cut a release: patch accretes into latest/; minor/major freezes it")
     u.add_argument("--version", required=True)
     u.add_argument("--date", required=True)
     u.add_argument("--highlights", default="")
