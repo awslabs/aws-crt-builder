@@ -689,3 +689,114 @@ def test_changes_outside_the_changes_dir_are_ignored(tmp_path):
 
 def test_validate_rejects_a_missing_target(tmp_path):
     assert cl.main(["validate", str(tmp_path / "nope")]) == 2
+
+
+# ---------- guards that only a hand-mangled tree can reach ----------
+
+def _release(tmp_path, line, version, meta=True, frag=True):
+    d = tmp_path / ".changes" / line / version
+    d.mkdir(parents=True, exist_ok=True)
+    if meta:
+        (d / "_meta.json").write_text(json.dumps({"version": version, "date": "2026-01-01"}))
+    if frag:
+        (d / "1.json").write_text(json.dumps(
+            {"pr": 1, "type": "feat", "summary": "A", "url": "u", "notes": ""}))
+    return d
+
+
+def test_rollup_refuses_a_version_belonging_to_a_frozen_line(tmp_path):
+    # latest/ empty beside a complete frozen line: reopening 0.29.x here would
+    # split it, since the root changelog only ever renders latest/.
+    _release(tmp_path, "0.29.x", "0.29.0")
+    (tmp_path / ".changes" / "0.29.x" / "CHANGELOG.md").write_text("# Changelog — 0.29.x\n")
+    _seed(tmp_path, 2, "fix: backport")
+    assert _rollup(tmp_path, "0.29.1", "2026-02-01") == 2
+
+
+def test_rollup_refuses_a_version_older_than_a_frozen_line(tmp_path):
+    _release(tmp_path, "0.29.x", "0.29.5")
+    (tmp_path / ".changes" / "0.29.x" / "CHANGELOG.md").write_text("# Changelog — 0.29.x\n")
+    _seed(tmp_path, 2, "fix: b")
+    assert _rollup(tmp_path, "0.28.9", "2026-02-01") == 2
+
+
+def test_rollup_refuses_when_the_freeze_target_already_exists(tmp_path):
+    _release(tmp_path, "latest", "0.29.0")
+    frozen = tmp_path / ".changes" / "0.29.x"
+    frozen.mkdir(parents=True)
+    (frozen / "CHANGELOG.md").write_text("# Changelog — 0.29.x\n")
+    _seed(tmp_path, 2, "feat: b")
+    assert _rollup(tmp_path, "0.30.0", "2026-02-01") == 2
+
+
+def test_rollup_reports_a_half_freeze(tmp_path):
+    _release(tmp_path, "0.29.x", "0.29.0")  # no CHANGELOG.md snapshot
+    _seed(tmp_path, 2, "feat: b")
+    assert _rollup(tmp_path, "0.30.0", "2026-02-01") == 2
+
+
+# ---------- degraded trees render rather than crash ----------
+
+def test_render_on_a_tree_with_no_changes_dir(tmp_path):
+    assert "## [Preview]" in _render(tmp_path)
+
+
+def test_render_skips_a_release_with_no_meta(tmp_path):
+    _release(tmp_path, "latest", "0.1.0", meta=False)
+    assert "## [0.1.0]" not in _render(tmp_path)
+
+
+def test_freeze_snapshot_of_an_empty_line(tmp_path):
+    (tmp_path / ".changes" / "0.1.x").mkdir(parents=True)
+    assert cl.main(["freeze-snapshot", "--line", "0.1.x",
+                    "--changes-dir", _changes(tmp_path)]) == 0
+    assert (tmp_path / ".changes" / "0.1.x" / "CHANGELOG.md").read_text() == "# Changelog\n"
+
+
+def test_freeze_snapshot_skips_a_release_with_no_meta(tmp_path):
+    _release(tmp_path, "0.1.x", "0.1.0")
+    _release(tmp_path, "0.1.x", "0.1.1", meta=False)
+    assert cl.main(["freeze-snapshot", "--line", "0.1.x",
+                    "--changes-dir", _changes(tmp_path)]) == 0
+    text = (tmp_path / ".changes" / "0.1.x" / "CHANGELOG.md").read_text()
+    assert "## [0.1.0]" in text and "## [0.1.1]" not in text
+
+
+def test_validate_on_an_empty_directory(tmp_path):
+    d = tmp_path / "empty"
+    d.mkdir()
+    assert cl.main(["validate", str(d)]) == 0
+
+
+def test_validate_rejects_malformed_json(tmp_path):
+    p = tmp_path / "x.json"
+    p.write_text("{ not json")
+    assert cl.main(["validate", str(p)]) == 1
+
+
+def test_validate_rejects_non_string_notes(tmp_path):
+    p = tmp_path / "x.json"
+    p.write_text(json.dumps({"pr": 1, "type": "feat", "summary": "s", "url": "u", "notes": 7}))
+    assert cl.main(["validate", str(p)]) == 1
+
+
+def test_render_skips_a_release_whose_meta_version_is_not_semver(tmp_path):
+    d = _release(tmp_path, "latest", "0.1.0")
+    (d / "_meta.json").write_text(json.dumps({"version": "one", "date": "2026-01-01"}))
+    assert "## [" in _render(tmp_path)  # preview heading only
+    assert "## [0.1.0]" not in _render(tmp_path)
+
+
+def test_list_shows_frozen_lines_and_an_absent_changes_dir(tmp_path, capsys):
+    # Deliberately not _changes(): that helper creates the directory.
+    assert cl.main(["list", "--changes-dir", str(tmp_path / ".changes")]) == 0
+    assert "[frozen lines]" in capsys.readouterr().out
+    _release(tmp_path, "0.1.x", "0.1.0")
+    assert cl.main(["list", "--changes-dir", str(tmp_path / ".changes")]) == 0
+    assert "0.1.x  (1 release(s))" in capsys.readouterr().out
+
+
+def test_render_skips_a_release_whose_meta_is_not_json(tmp_path):
+    d = _release(tmp_path, "latest", "0.1.0")
+    (d / "_meta.json").write_text("{ not json")
+    assert "## [0.1.0]" not in _render(tmp_path)
