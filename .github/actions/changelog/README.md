@@ -1,166 +1,113 @@
 # changelog action
 
-Automated changelog with a **two-branch model**:
+Release notes are assembled from per-pull-request fragments, not hand-edited.
 
-- `main` carries source code and the fragment JSON files
-  (`.changes/preview/<PR>.json`) authors add with their PR. No bot
-  commits ever land on `main`.
-- `docs` carries `.changes/` (the released state) and the rendered
-  `CHANGELOG.md`. Every merge to `main` produces one bot commit on
-  `docs` that syncs the new fragment(s) and re-renders `CHANGELOG.md`.
+- An author commits `.changes/preview/<PR>.json` with their own pull request.
+- `CHANGELOG.md` is generated from those fragments and regenerated end to end at
+  every release. Nothing appends to it by hand, and no bot commits on a branch an
+  author owns.
 
-Fragments are the human-editable source of truth. `CHANGELOG.md` is
-derived and always regenerated end-to-end from the fragments.
+Everything lives on the working branch. There is no separate docs branch.
 
 ## Modes
 
-| Mode              | Trigger                | What it does                                                                       |
-|-------------------|------------------------|------------------------------------------------------------------------------------|
-| `check`           | PR CI                  | Fail the PR if `.changes/preview/<PR>.json` is missing or invalid.                 |
-| `validate`        | ad-hoc                 | Validate every fragment under `.changes/preview/`.                                 |
-| `render`          | on `docs`, after merge | Regenerate `CHANGELOG.md` from `preview/` + `latest/`.                             |
-| `rollup`          | on `docs`, on release  | Patch: accrete into `latest/`. Minor/major: freeze `latest/` → `<M>.<N>.x/`.       |
-| `revert`          | revert PR opens        | Write a revert fragment; the original stays. Both entries appear in the log.       |
-| `freeze-snapshot` | recovery only          | Re-render a frozen line's `CHANGELOG.md` if it went missing.                       |
-| `list`            | ad-hoc                 | Print preview + latest + frozen lines for debugging.                               |
+The composite action exposes three:
 
-The docs-branch workflow serializes on a single concurrency group so
-concurrent merges never race on `CHANGELOG.md`:
+| Mode     | Runs                  | What it does                                                                       |
+|----------|-----------------------|------------------------------------------------------------------------------------|
+| `check`  | pull request          | Assert the title convention and the fragment. Sets `rc` and `reason`; never fails the step itself. |
+| `seed`   | pull request          | Write a template fragment, for the bot to paste into a comment.                    |
+| `rollup` | release               | Move `preview/` into the new version and regenerate `CHANGELOG.md`.                |
 
-```yaml
-concurrency:
-  group: changelog-docs
-  cancel-in-progress: false
-```
+`check` exit codes: `0` pass, `1` the author must fix something, `2` the caller
+passed bad arguments. `reason` is one of `ok`, `exempt-type`, `waived-bot`,
+`missing-fragment`, `invalid-fragment`, `pr-mismatch`, `type-mismatch`,
+`bad-title`, `stray-fragment`, `modified-fragment`. Only `missing-fragment`
+earns a comment — every other failure means the author already knows the
+convention and just needs the diagnostic.
 
-## Directory layout (on the docs branch)
+`scripts/changelog.py` additionally has `render`, `validate`, `list` and
+`freeze-snapshot` for local use and for recovery. Run it with `--help`.
+
+## What the checks require
+
+- The title follows `<type>: <summary>`, where type is `feat`, `fix`, `chore` or
+  `revert`. An optional scope (`fix(io):`) is accepted, as is the Revert
+  button's `Revert "<original title>"`.
+- A `feat`, `fix` or `revert` needs exactly one fragment, added at exactly
+  `.changes/preview/<PR>.json`. A fragment named for another pull request would
+  render under that number; one at another path renders nowhere.
+- A `chore` needs no fragment: it renders nowhere, so an entry would be
+  invisible.
+- The `skip-changelog` label waives the whole check, for CI-only and pure-infra
+  changes.
+- A bot author waives both the title convention and the fragment.
+
+## Directory layout
 
 ```
 .changes/
-├── preview/                        in-flight fragments awaiting the next release
-├── latest/                         active minor line
-│   ├── <version>/                  per-patch release
-│   │   ├── _meta.json              { version, date, highlights }
-│   │   └── <pr>.json               fragments
-│   └── …
-├── <M>.<N>.x/                      frozen previous minor line
+├── preview/                        fragments awaiting the next release
+├── latest/                         the active minor line
+│   └── <version>/
+│       ├── _meta.json              { version, date, highlights }
+│       └── <pr>.json               fragments
+├── <M>.<N>.x/                      a frozen previous minor line
 │   ├── <M>.<N>.<P>/                { _meta.json, *.json }
-│   └── CHANGELOG.md                frozen snapshot; never edited again
+│   └── CHANGELOG.md                snapshot; never edited again
 └── …
-CHANGELOG.md                        root render: [Preview] + current minor line
+CHANGELOG.md                        [Preview] + every release in latest/
 ```
 
-On the `main` branch the only changelog artefact is
-`.changes/preview/<PR>.json` for each unshipped PR. `CHANGELOG.md`,
-`latest/`, and frozen `<M>.<N>.x/` directories live only on `docs`.
+Root `CHANGELOG.md` covers `[Preview]` and the active minor line only, newest
+first. Frozen lines are deliberately excluded — each
+`.changes/<M>.<N>.x/CHANGELOG.md` is the immutable record for that line.
 
-Root `CHANGELOG.md` shows `[Preview]` + every patch inside `latest/`,
-newest first. Frozen minor lines are intentionally excluded from the
-root file — each `.changes/<M>.<N>.x/CHANGELOG.md` is the canonical,
-immutable record for that line.
-
-Directory sort caveat: filesystem lex sort orders `0.10.x/` before
-`0.2.x/`. This does not affect any customer-facing surface — renderers
-sort semver correctly. Only `ls .changes/` looks wrong to maintainers.
+Filesystem lex sort puts `0.10.x/` before `0.2.x/`. Only `ls` looks wrong;
+every renderer sorts semver properly.
 
 ## Contributor flow
 
-1. Open a PR against `main`.
-2. Locally, run the helper — it prompts and writes the fragment:
+Commit `.changes/preview/<PR>.json` with your pull request. Write `summary` so it
+reads as a release note, and use `notes` for detail — for a revert, say why. You
+never touch `CHANGELOG.md`.
 
-   ```
-   .github/actions/changelog/scripts/new-change
-   ```
+Forgetting is fine: the check comments a ready-to-paste template with the type
+and summary already derived from your title.
 
-3. Commit the generated `.changes/preview/<PR>.json` yourself and push
-   to your PR branch. CI runs `check` and fails if the fragment is
-   missing or invalid. Apply the `skip-changelog` label only for
-   CI-only / pure-infra PRs.
+In a clone of this repository, `scripts/new-change` writes the fragment
+interactively. Consumer repos do not vendor it, so the template comment is the
+path there.
 
-You never touch `CHANGELOG.md` or the `docs` branch.
+## Release flow
 
-## What happens after merge
+`rollup --version` decides the shape of the release, and `--bump` is only a
+cross-check that fails if it disagrees:
 
-The `changelog-render` workflow fires on merge to `main`:
+- **Same minor line as `latest/`** — a patch. The new version accretes beside
+  the existing ones in `latest/`.
+- **A new minor or major** — `latest/` is renamed to `<M>.<N>.x/`, a frozen
+  `CHANGELOG.md` is written inside it, and a fresh `latest/<version>/` opens.
 
-1. Checks out `docs` (creates it from `main` on first run).
-2. Cherry-picks the merge commit onto `docs` (with `-Xno-renames` so
-   post-rollup path changes don't confuse git).
-3. If the merge added or modified any `.changes/preview/*.json`, runs
-   `render` and folds the `CHANGELOG.md` update into the same commit
-   (`git commit --amend`).
-4. Pushes `docs`.
+A release refuses to proceed if any fragment in `preview/` is invalid, if the
+version is not newer than everything released so far, or if it belongs to a line
+that has already been frozen.
 
-Result: one commit on `docs` per merge on `main`, with the original PR
-title as the subject. `main` is never touched by the bot.
+## Adoption
 
-## What happens on release
-
-`changelog-rollup` runs on the `docs` branch:
-
-- **Patch bump**: fragments in `preview/` move into
-  `latest/<version>/`, root `CHANGELOG.md` is regenerated with a new
-  dated section under `[Preview]`.
-- **Minor / major bump**: `latest/` is renamed to `<M>.<N>.x/`, a
-  frozen `CHANGELOG.md` snapshot is written inside it, and a fresh
-  `latest/<version>/` opens with the current preview fragments.
-
-The `preview` section becomes the versioned section — no ceremony, no
-separate promotion step.
-
-## PR conventions
-
-The seed helper reads Conventional-Commit-style PR titles:
+A repo that already has hand-written `CHANGELOG.md` content must move it into
+`.changes/` before the first rollup, or the first generated file replaces it.
+For a single prior release, that is one directory:
 
 ```
-<type>: <customer-facing summary>
-  type ∈ { feat | fix | doc | chore | revert }
+.changes/latest/1.0.0/_meta.json     { "version": "1.0.0", "date": "…", "highlights": "Official release of 1.0.0." }
 ```
-
-Titles without a recognised prefix are treated as `chore`.
 
 ## Local testing
 
 ```
-python3 -m pip install --user pytest
 python3 -m pytest .github/actions/changelog/tests -v
 ```
-
-Ad-hoc CLI (operates on the current working tree):
-
-```
-python3 .github/actions/changelog/scripts/changelog.py seed \
-  --pr 843 --title "feat: Add SSO sign-in." --url https://x/pr/843
-python3 .github/actions/changelog/scripts/changelog.py render
-python3 .github/actions/changelog/scripts/changelog.py rollup \
-  --version 0.29.0 --date 2026-08-19 --bump minor --highlights "SSO sign-in"
-python3 .github/actions/changelog/scripts/changelog.py list
-```
-
-## Example workflows
-
-`examples/changelog-check.yml`, `examples/changelog-render.yml`,
-`examples/changelog-rollup.yml`. Copy into a consumer repo's
-`.github/workflows/`.
-
-## Reverts
-
-Revert PRs write a new fragment referencing both PRs; the original
-fragment is never deleted. Both entries appear in the changelog — the
-original change and its revert — so history is truthful.
-
-## Operational notes
-
-- **Signed-commits repos:** the bot identity used by the render and
-  rollup workflows must have a signing key configured, otherwise
-  pushes to `docs` will be rejected.
-- **Branch protection:** protect `docs` so the bot can only touch
-  `.changes/**` and `CHANGELOG.md`. Everything else on that branch is
-  a mistake.
-- **Bootstrap:** on first run the workflow creates `docs` from `main`.
-  If your repo has non-changelog content that should not appear on
-  `docs`, pre-create `docs` as an orphan branch with just the two
-  paths above before enabling the workflow.
 
 ## Fragment schema
 
@@ -169,10 +116,11 @@ original change and its revert — so history is truthful.
   "pr": 843,
   "type": "feat",
   "summary": "Add SSO sign-in for enterprise accounts.",
-  "url": "https://github.com/awslabs/aws-c-io/pull/843",
+  "url": "https://github.com/<org>/<repo>/pull/<PR>",
   "notes": ""
 }
 ```
 
-- `type`: `feat | fix | doc | chore | revert`
-- `notes`: optional free-form multi-line addendum, indented under the entry on render
+`pr` must match the filename. `type` is one of `feat | fix | chore | revert` and
+decides the section. `notes` is optional free-form multi-line text, indented
+under the entry on render.

@@ -1,0 +1,115 @@
+name: 'Pre-merge gate'
+description: >-
+  Decide whether a pull request may merge and publish the verdict as a commit
+  status. Reads the other pre-merge jobs' results, asserts an ABI verdict exists
+  for this exact commit, and reads the release-impact labels live.
+
+inputs:
+  needs:
+    description: 'toJSON(needs) from the calling job.'
+    required: true
+  abi-result:
+    description: 'needs.<abi job>.result.'
+    required: true
+  head-sha:
+    description: 'Pull request head SHA; the status is posted here.'
+    required: true
+  pr:
+    description: 'Pull request number.'
+    required: true
+  repo:
+    description: 'owner/repo.'
+    required: true
+  status-context:
+    description: 'Commit-status context. THIS is the string for a branch ruleset.'
+    required: false
+    default: 'pre-merge/gate'
+  github-token:
+    description: 'Needs statuses: write, checks: read, pull-requests: read.'
+    required: false
+    default: ${{ github.token }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Decide and publish the gate status
+      shell: bash
+      env:
+        RESULTS: ${{ inputs.needs }}
+        ABI_RESULT: ${{ inputs.abi-result }}
+        GH_TOKEN: ${{ inputs.github-token }}
+        REPO: ${{ inputs.repo }}
+        PR: ${{ inputs.pr }}
+        HEAD_SHA: ${{ inputs.head-sha }}
+        CONTEXT: ${{ inputs.status-context }}
+      run: |
+        # Not -e: every path must reach the status post.
+        set -uo pipefail
+        printf '%s\n' "$RESULTS"
+        VERDICT="" REASON=""
+
+        # 1. Any job that actually failed fails the gate.
+        BAD="$(jq -r 'to_entries
+                      | map(select(.value.result == "failure" or .value.result == "cancelled"))
+                      | map(.key + "=" + .value.result) | join(", ")' <<< "$RESULTS")"
+        if [[ -n "$BAD" ]]; then
+          VERDICT=failure; REASON="pre-merge check(s) did not pass: ${BAD}"
+        fi
+
+        # 2. `skipped` means "nothing that could change the verdict changed", so
+        #    it is accepted -- but labels are per-PR while commits are not, so
+        #    confirm a success exists for THIS sha before trusting them. Suffix
+        #    match: the caller's job name is not visible from here. filter=all is
+        #    load-bearing; the default would return only this run's own skipped
+        #    check and shadow the earlier success.
+        if [[ -z "$VERDICT" && "$ABI_RESULT" == "skipped" ]]; then
+          RUNS="$(gh api --paginate \
+                    "repos/${REPO}/commits/${HEAD_SHA}/check-runs?filter=all&per_page=100" \
+                    --jq '.check_runs[] | select(.name | endswith("abi-compat"))
+                          | select(.conclusion != "skipped")
+                          | "\(.started_at) \(.status):\(.conclusion // "none")"')"
+          if [[ $? -ne 0 ]]; then
+            VERDICT=failure; REASON="could not list check runs for ${HEAD_SHA}"
+          else
+            # The NEWEST attempt, not any attempt: retargeting the base re-runs
+            # the check against a different merge base on the same head sha, so
+            # an older success must not vouch for the new base. ISO-8601 sorts
+            # lexically, which also orders correctly across paginated pages.
+            LATEST="$(sort <<< "$RUNS" | tail -n1 | cut -d' ' -f2-)"
+            case "$LATEST" in
+              queued:*|in_progress:*)
+                # The run that owns this commit's verdict will post the status.
+                echo "::notice::an ABI check for ${HEAD_SHA} is still running; deferring to it."
+                exit 0 ;;
+              completed:success) ;;
+              *) VERDICT=failure
+                 REASON="no successful ABI check exists for ${HEAD_SHA}; re-run it or push again" ;;
+            esac
+          fi
+        fi
+
+        # 3. Read LIVE labels, not the ABI job's output, so a maintainer who
+        #    accepted an API break unblocks the PR without pushing a commit.
+        #    Every reason below stays under the 140-char status description.
+        if [[ -z "$VERDICT" ]]; then
+          if ! LABELS="$(gh pr view "$PR" --repo "$REPO" --json labels -q '.labels[].name')"; then
+            VERDICT=failure; REASON="could not read the labels on #${PR}"
+          elif grep -qxF 'needs-review' <<< "$LABELS"; then
+            VERDICT=failure
+            REASON="labeled needs-review: a maintainer must REPLACE it with patch or minor; deleting it leaves this blocked"
+          elif ! grep -qxE 'patch|minor' <<< "$LABELS"; then
+            VERDICT=failure
+            REASON="no patch or minor label, so the release impact is undecided; re-run the ABI check"
+          fi
+        fi
+
+        [[ -z "$VERDICT" ]] && { VERDICT=success; REASON="all pre-merge checks passed or were legitimately skipped"; }
+
+        echo "Gate: ${VERDICT} -- ${REASON}"
+        gh api --method POST "repos/${REPO}/statuses/${HEAD_SHA}" \
+          -f "state=${VERDICT}" -f "context=${CONTEXT}" -f "description=${REASON:0:140}" \
+          -f "target_url=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" \
+          >/dev/null || {
+            echo "::error::could not post the '${CONTEXT}' commit status."; exit 1; }
+
+        [[ "$VERDICT" == "success" ]] || { echo "::error::${REASON}"; exit 1; }

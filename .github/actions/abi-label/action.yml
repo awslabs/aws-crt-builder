@@ -1,0 +1,62 @@
+name: 'Apply ABI verdict label'
+description: >-
+  Reconcile a pull request's release-impact labels to the single verdict the ABI
+  check produced, so every consumer applies identical logic.
+
+inputs:
+  verdict:
+    description: 'patch | minor | needs-review, as emitted by check-abi.'
+    required: true
+  pr:
+    description: 'Pull request number.'
+    required: true
+  repo:
+    description: 'owner/repo.'
+    required: true
+  github-token:
+    description: 'Needs pull-requests: write.'
+    required: false
+    default: ${{ github.token }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Reconcile the verdict labels
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+        REPO: ${{ inputs.repo }}
+        PR: ${{ inputs.pr }}
+        VERDICT: ${{ inputs.verdict }}
+      run: |
+        set -euo pipefail
+        # Exactly one of the three. A merged PR carrying `minor` drives
+        # auto-release's minor-pr-label bump, so pairing it with needs-review
+        # would under-state a source break; clearing needs-review therefore
+        # means REPLACING it, which records the impact a human decided on.
+        case "$VERDICT" in
+          patch)        COLOR=0e8a16 DESC="ABI backward-compatible (patch release)" ;;
+          minor)        COLOR=fbca04 DESC="ABI changed, source-compatible (minor release)" ;;
+          needs-review) COLOR=d93f0b DESC="ABI check: source/API compatibility broken, needs manual review" ;;
+          *) echo "::error::unexpected ABI verdict '${VERDICT}'"; exit 1 ;;
+        esac
+
+        CURRENT="$(gh pr view "$PR" --repo "$REPO" --json labels -q '.labels[].name')"
+        EDIT=() DROP=()
+        if ! grep -qxF "$VERDICT" <<< "$CURRENT"; then
+          # gh pr edit --add-label fails if the label does not exist yet.
+          gh label create "$VERDICT" --repo "$REPO" --color "$COLOR" \
+            --description "$DESC" --force >/dev/null || true
+          EDIT+=(--add-label "$VERDICT")
+        fi
+        for l in patch minor needs-review; do
+          [[ "$l" == "$VERDICT" ]] && continue
+          grep -qxF "$l" <<< "$CURRENT" && DROP+=("$l")
+        done
+        [[ "${#DROP[@]}" -gt 0 ]] && EDIT+=(--remove-label "$(IFS=,; echo "${DROP[*]}")")
+        if [[ "${#EDIT[@]}" -eq 0 ]]; then
+          echo "Labels already correct (${VERDICT}); nothing to do."
+          exit 0
+        fi
+        echo "Reconciling to ${VERDICT}: gh pr edit ${EDIT[*]}"
+        gh pr edit "$PR" --repo "$REPO" "${EDIT[@]}"

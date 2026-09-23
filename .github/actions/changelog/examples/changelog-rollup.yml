@@ -1,20 +1,19 @@
-# Cut a release: promote docs-branch preview → versioned section.
-# Called after auto-release computes the new version + bump.
+# Cut a release: move .changes/preview/ into the new version's directory and
+# regenerate CHANGELOG.md, in one commit on the default branch.
+#
+# Reference wiring. The release job should ideally fold these file changes into
+# its own `chore(release)` commit rather than push a second one.
 
-name: Changelog Rollup
+name: Changelog rollup
 on:
   workflow_call:
     inputs:
       version:
-        description: 'New release version x.y.z'
-        required: true
-        type: string
-      bump:
-        description: 'patch | minor | major'
+        description: 'New release version, x.y.z'
         required: true
         type: string
       date:
-        description: 'Release date (ISO-8601 YYYY-MM-DD)'
+        description: 'Release date, ISO-8601 YYYY-MM-DD'
         required: true
         type: string
       highlights:
@@ -22,35 +21,40 @@ on:
         required: false
         type: string
         default: ''
+      bump:
+        description: >-
+          Optional cross-check: patch | minor | major. The version decides;
+          a value that disagrees with it fails the release.
+        required: false
+        type: string
+        default: ''
 
 permissions:
   contents: write
 
-concurrency:
-  group: changelog-docs
-  cancel-in-progress: false
-
 jobs:
   rollup:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          ref: docs
-          ssh-key: ${{ secrets.CHANGELOG_DEPLOY_KEY }}
 
-      - name: Rollup preview → ${{ inputs.version }}
+      - uses: awslabs/aws-crt-builder/.github/actions/changelog@main
+        with:
+          mode: rollup
+          version: ${{ inputs.version }}
+          date: ${{ inputs.date }}
+          highlights: ${{ inputs.highlights }}
+          bump: ${{ inputs.bump }}
+
+      - name: Commit the release notes
+        # Values reach the shell as env vars; interpolating them into the body
+        # would be an injection vector.
+        env:
+          VERSION: ${{ inputs.version }}
         run: |
           set -euo pipefail
-          python3 .github/actions/changelog/scripts/changelog.py rollup \
-            --version "${{ inputs.version }}" \
-            --bump    "${{ inputs.bump }}" \
-            --date    "${{ inputs.date }}" \
-            --highlights "${{ inputs.highlights }}"
-
-          git config user.name  "aws-sdk-common-runtime-bot"
+          git config user.name "aws-sdk-common-runtime-bot"
           git config user.email "aws-sdk-common-runtime@amazon.com"
           git add .changes CHANGELOG.md
-          git commit -m "Release ${{ inputs.version }}"
-          git push origin docs
+          git commit -m "chore(release): changelog for ${VERSION}"
+          git push

@@ -1,0 +1,297 @@
+# Everything that must be true before a pull request merges, in one workflow.
+#
+# Consumers call this from a single `pull_request_target` workflow; it replaces
+# their per-repo check-abi.yml and block-needs-review.yml.
+#
+# Ordering has to come from `needs:` inside one run: a label applied with
+# GITHUB_TOKEN raises no workflow run, so a separate gate workflow would never
+# re-run when the ABI verdict lands, and would read whatever the previous commit
+# left behind.
+#
+# The branch-ruleset entry is the `pre-merge/gate` commit status, not a job name:
+# it is posted on every reachable path and is independent of every job name. The
+# nested job names ("upkeep / abi-compat" and so on) are what a human reads in
+# the merge box. One of them is load-bearing: pre-merge-gate finds the ABI check
+# run by its `abi-compat` name suffix.
+name: Pre-merge checks
+
+on:
+  workflow_call:
+    inputs:
+      lib-name:
+        description: 'C library name for the ABI check, e.g. aws-c-common.'
+        required: true
+        type: string
+      approval-environment:
+        description: >-
+          Environment whose required reviewers gate execution of PR-authored
+          code. The caller passes a name for fork pull requests and '' otherwise;
+          '' means no environment and no wait.
+        required: false
+        type: string
+        default: ''
+      builder-version:
+        required: false
+        type: string
+        default: 'latest'
+      builder-source:
+        required: false
+        type: string
+        default: 'releases'
+      runs-on:
+        required: false
+        type: string
+        default: 'ubuntu-24.04'
+    secrets:
+      CRT_CI_ROLE_ARN:
+        required: false
+
+jobs:
+  # Holds the deployment environment and nothing else: naming an environment on
+  # the credential-minting job would change its OIDC `sub`.
+  #
+  # This job's `if:` is the only place the "could the code have changed?"
+  # predicate is written; abi-compat inherits it through `needs:`.
+  approval:
+    if: >-
+      contains(fromJSON('["opened","reopened","synchronize"]'), github.event.action)
+      || (github.event.action == 'edited' && github.event.changes.base != null)
+    runs-on: ${{ inputs.runs-on }}
+    permissions: {}
+    # Empty name means no environment and no wait.
+    environment: ${{ inputs.approval-environment }}
+    steps:
+      - name: Approved
+        env:
+          FORK: ${{ github.event.pull_request.head.repo.full_name != github.repository }}
+          ENVIRONMENT: ${{ inputs.approval-environment }}
+        run: |
+          # Fail closed. Referencing an environment that does not exist creates
+          # it with no protection rules, so a misconfigured caller looks gated
+          # in the run graph while running fork code unreviewed. This catches an
+          # empty name; that the environment has reviewers is a per-repo
+          # prerequisite to verify once, before adoption.
+          if [[ "$FORK" == "true" && -z "$ENVIRONMENT" ]]; then
+            echo "::error::a fork pull request reached this job with no approval environment; the caller must pass one."
+            exit 1
+          fi
+          echo "PR-authored code is approved to execute in this run."
+
+  abi-compat:
+    needs: approval
+    runs-on: ${{ inputs.runs-on }}
+    permissions:
+      id-token: write
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.CRT_CI_ROLE_ARN }}
+          # Not an input: check-abi hardcodes a us-east-1 ECR registry, and
+          # `docker login` would present a token scoped to the wrong region.
+          aws-region: us-east-1
+
+      - name: Checkout the PR head
+        uses: actions/checkout@v4
+        with:
+          # head.sha, not head.ref: a bare ref resolves against the base repo,
+          # and under pull_request_target the default checkout is the base
+          # branch, which would diff main with itself and always say `patch`.
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          # Needed from v4 onward to check out fork PR code under
+          # pull_request_target; the approval job is what makes it acceptable.
+          # actionlint <= 1.7.12 wrongly calls this input undefined.
+          allow-unsafe-pr-checkout: true
+          # This tree is bind-mounted into a container that runs PR-authored
+          # CMake; leave no usable credential in .git/config.
+          persist-credentials: false
+
+      - name: Resolve the commits to compare
+        id: refs
+        env:
+          BASE_BRANCH: ${{ github.event.pull_request.base.ref }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --quiet origin \
+            "+refs/heads/${BASE_BRANCH}:refs/remotes/origin/${BASE_BRANCH}"
+          # Merge base, not the base tip: diffing the tip attributes every
+          # commit that landed after this branch forked to this pull request, so
+          # the verdict would drift as unrelated pull requests merge.
+          BASE_SHA="$(git merge-base HEAD "origin/${BASE_BRANCH}")"
+          echo "Comparing ${BASE_SHA} (merge base) -> $(git rev-parse HEAD) (PR head)"
+          echo "base-sha=${BASE_SHA}" >> "$GITHUB_OUTPUT"
+
+      - name: Check ABI
+        id: check
+        uses: awslabs/aws-crt-builder/.github/actions/check-abi@main
+        with:
+          lib-name: ${{ inputs.lib-name }}
+          builder-version: ${{ inputs.builder-version }}
+          builder-source: ${{ inputs.builder-source }}
+          # Passing base-ref makes the action compare exactly these two commits
+          # and skip its own labelling, which the next step does instead.
+          base-ref: ${{ steps.refs.outputs.base-sha }}
+
+      - name: Apply the verdict label
+        # TODO: pin back to @main once this action is on main.
+        uses: awslabs/aws-crt-builder/.github/actions/abi-label@feat/pre-merge-checks
+        with:
+          verdict: ${{ steps.check.outputs.label }}
+          pr: ${{ github.event.pull_request.number }}
+          repo: ${{ github.repository }}
+
+  # Deliberately not behind `approval`: it holds no credentials and checks out
+  # no PR code, so a first-time fork contributor gets feedback with no
+  # maintainer click. No activity filter either -- title, fragment and waiver
+  # label each change independently.
+  changelog:
+    if: ${{ !contains(github.event.pull_request.labels.*.name, 'skip-changelog') }}
+    runs-on: ${{ inputs.runs-on }}
+    permissions:
+      contents: read
+      # write, not read: a missing fragment earns one guidance comment.
+      pull-requests: write
+    steps:
+      - name: Fetch the fragment at the PR head
+        id: fragment
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          # Read the blob, not a checkout: the base repo's Contents API resolves
+          # a fork head sha, keeping allow-unsafe-pr-checkout in the ABI job.
+          DEST="${RUNNER_TEMP}/changes/preview"
+          mkdir -p "$DEST"
+          BODY="$(mktemp)"
+          if gh api "repos/${REPO}/contents/.changes/preview/${PR}.json?ref=${HEAD_SHA}" \
+               -H 'Accept: application/vnd.github.raw' > "$BODY" 2>/dev/null; then
+            cp "$BODY" "${DEST}/${PR}.json"
+            exit 0
+          fi
+          # Only a bare "Not Found" means the ref resolved and the file is
+          # absent; treating anything else as missing would waive the check.
+          MSG="$(jq -r '.message // "unparsable response"' < "$BODY" 2>/dev/null || echo 'unparsable response')"
+          if [[ "$MSG" != "Not Found" ]]; then
+            echo "::error::could not read the changelog fragment at ${HEAD_SHA}: ${MSG}"
+            exit 1
+          fi
+          echo "No fragment present; the check step decides whether that matters."
+
+      - name: List the pull request's changes under .changes/
+        id: paths
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          # `status<TAB>path` per changed path, so the check can require exactly
+          # one new fragment at its own path. Endpoint caps out at 3000 files.
+          OUT="${RUNNER_TEMP}/changed-paths.tsv"
+          gh api --paginate "repos/${REPO}/pulls/${PR}/files?per_page=100" \
+            --jq '.[] | select(.filename | startswith(".changes/"))
+                  | "\(.status)\t\(.filename)"' > "$OUT"
+          echo "file=${OUT}" >> "$GITHUB_OUTPUT"
+          echo "Changed paths under .changes/:"
+          sed 's/^/  /' "$OUT"
+
+      # Before the comment step: only this step knows whether a fragment was
+      # required. It does not fail the job; the last step does.
+      - name: Check the PR title and the fragment
+        id: check
+        # TODO: pin back to @main once the changelog action is on main.
+        uses: awslabs/aws-crt-builder/.github/actions/changelog@feat/pre-merge-checks
+        with:
+          mode: check
+          pr: ${{ github.event.pull_request.number }}
+          title: ${{ github.event.pull_request.title }}
+          # Bots cannot be asked to retitle, and failing every dependency bump
+          # would train people to ignore the check.
+          bot-author: ${{ endsWith(github.event.pull_request.user.login, '[bot]') && github.event.pull_request.user.login || '' }}
+          changes-dir: ${{ runner.temp }}/changes
+          changed-paths-file: ${{ steps.paths.outputs.file }}
+          changes-prefix: .changes
+
+      - name: Seed a fragment template
+        if: ${{ steps.check.outputs.reason == 'missing-fragment' }}
+        # TODO: pin back to @main once the changelog action is on main.
+        uses: awslabs/aws-crt-builder/.github/actions/changelog@feat/pre-merge-checks
+        with:
+          mode: seed
+          pr: ${{ github.event.pull_request.number }}
+          title: ${{ github.event.pull_request.title }}
+          url: ${{ github.event.pull_request.html_url }}
+          # Outside $RUNNER_TEMP/changes, so it is never mistaken for the
+          # author's own fragment.
+          out: ${{ runner.temp }}/seed-template.json
+
+      - name: Comment with the template, once per pull request
+        if: ${{ steps.check.outputs.reason == 'missing-fragment' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+          TEMPLATE: ${{ runner.temp }}/seed-template.json
+        run: |
+          set -euo pipefail
+          # Keyed on a hidden marker, not the wording, so the text can change
+          # without the bot re-commenting everywhere.
+          MARKER='<!-- pre-merge-checks:changelog-template -->'
+          if gh api --paginate "repos/${REPO}/issues/${PR}/comments" \
+               --jq '.[].body' | grep -qF "$MARKER"; then
+            echo "Template comment already present on #${PR}; not repeating it."
+            exit 0
+          fi
+          {
+            printf '%s\n\n' "$MARKER"
+            printf 'This pull request has no changelog entry.\n\n'
+            printf 'Add `.changes/preview/%s.json` with this content, adjusting the summary to read as a release note:\n\n' "$PR"
+            printf '```json\n'
+            cat "$TEMPLATE"
+            printf '```\n\n'
+            printf '`type` is one of `feat`, `fix`, `chore`, `revert`, and decides which section the entry lands in. '
+            printf '`notes` is optional free-form detail -- for a revert, say why.\n\n'
+            printf 'A `chore` needs no entry at all. For a CI-only or pure-infra change, apply the `skip-changelog` label instead.\n'
+          } > "${RUNNER_TEMP}/comment.md"
+          # jq builds the body so the markdown survives verbatim.
+          jq -n --rawfile body "${RUNNER_TEMP}/comment.md" '{body: $body}' \
+            | gh api --method POST "repos/${REPO}/issues/${PR}/comments" --input - >/dev/null
+          echo "Posted the changelog template comment on #${PR}."
+
+      - name: Fail if the changelog check did not pass
+        if: ${{ steps.check.outputs.rc != '0' }}
+        env:
+          REASON: ${{ steps.check.outputs.reason }}
+        run: |
+          echo "::error::changelog check failed (${REASON:-unknown}); see the step above."
+          exit 1
+
+  # The single gate, and the only job reachable on every event -- so the only one
+  # whose verdict is safe to require. always(), not !cancelled(): a cancelled run
+  # must replace an earlier success rather than leave it standing.
+  verdict-gate:
+    # approval is in needs so a REJECTED approval fails outright, instead of
+    # reaching the skipped-ABI path and being vouched for by an older run.
+    needs: [approval, abi-compat, changelog]
+    if: ${{ always() }}
+    runs-on: ${{ inputs.runs-on }}
+    permissions:
+      pull-requests: read
+      checks: read
+      statuses: write
+    steps:
+      - name: Decide and publish the gate status
+        # TODO: pin back to @main once this action is on main.
+        uses: awslabs/aws-crt-builder/.github/actions/pre-merge-gate@feat/pre-merge-checks
+        with:
+          needs: ${{ toJSON(needs) }}
+          abi-result: ${{ needs['abi-compat'].result }}
+          head-sha: ${{ github.event.pull_request.head.sha }}
+          pr: ${{ github.event.pull_request.number }}
+          repo: ${{ github.repository }}
