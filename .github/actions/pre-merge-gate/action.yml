@@ -66,16 +66,25 @@ runs:
           RUNS="$(gh api --paginate \
                     "repos/${REPO}/commits/${HEAD_SHA}/check-runs?filter=all&per_page=100" \
                     --jq '.check_runs[] | select(.name | endswith("abi-compat"))
-                          | "\(.status):\(.conclusion // "none")"')"
+                          | select(.conclusion != "skipped")
+                          | "\(.started_at) \(.status):\(.conclusion // "none")"')"
           if [[ $? -ne 0 ]]; then
             VERDICT=failure; REASON="could not list check runs for ${HEAD_SHA}"
-          elif grep -qE '^(queued|in_progress):' <<< "$RUNS"; then
-            # The run that owns this commit's verdict will post the status.
-            echo "::notice::an ABI check for ${HEAD_SHA} is still running; deferring to it."
-            exit 0
-          elif ! grep -q '^completed:success$' <<< "$RUNS"; then
-            VERDICT=failure
-            REASON="no successful ABI check exists for ${HEAD_SHA}; re-run it or push again"
+          else
+            # The NEWEST attempt, not any attempt: retargeting the base re-runs
+            # the check against a different merge base on the same head sha, so
+            # an older success must not vouch for the new base. ISO-8601 sorts
+            # lexically, which also orders correctly across paginated pages.
+            LATEST="$(sort <<< "$RUNS" | tail -n1 | cut -d' ' -f2-)"
+            case "$LATEST" in
+              queued:*|in_progress:*)
+                # The run that owns this commit's verdict will post the status.
+                echo "::notice::an ABI check for ${HEAD_SHA} is still running; deferring to it."
+                exit 0 ;;
+              completed:success) ;;
+              *) VERDICT=failure
+                 REASON="no successful ABI check exists for ${HEAD_SHA}; re-run it or push again" ;;
+            esac
           fi
         fi
 
