@@ -556,6 +556,9 @@ def test_fragment_at_the_wrong_path_fails(tmp_path):
 
 
 def test_modifying_an_existing_fragment_fails(tmp_path):
+    # Only reachable when the path already exists on the base branch: the files
+    # API reports status against base, so a fragment added and then edited inside
+    # one pull request stays `added`. Verified against real GitHub.
     _write(tmp_path, 1259, "feat")
     p = _paths(tmp_path, ("modified", ".changes/preview/1259.json"))
     assert _check_paths(tmp_path, 1259, "feat: x", p) == 1

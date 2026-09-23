@@ -343,8 +343,9 @@ def check_fragment_changes(args, typ, reason):
     if status and status != "added":
         print(
             f"ERROR: {expected} is `{status}` in this pull request, not `added`.\n"
-            f"       A changelog entry belongs to the pull request that introduces\n"
-            f"       it; editing an existing one rewrites another PR's entry.",
+            f"       That path already exists on the base branch, so this pull\n"
+            f"       request is rewriting a released or in-flight entry rather than\n"
+            f"       contributing its own. Move the change to a new fragment.",
             file=sys.stderr,
         )
         reason("modified-fragment")
