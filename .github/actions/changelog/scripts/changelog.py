@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Changelog fragment tooling: seed, validate, check, render, rollup, revert.
+"""Changelog fragment tooling: seed, validate, check, render, rollup.
 
 Fragments (`.changes/preview/<pr>.json`) are the source of truth. CHANGELOG.md
 is fully regenerated from them — nothing appends manually.
@@ -18,18 +18,11 @@ import sys
 from pathlib import Path
 
 VALID_TYPES = {"feat", "fix", "chore", "revert"}
-# A section is emitted only when it has entries, so "Reverts" is absent from a
-# release that reverted nothing, and "Maintenance" is absent whenever `chore`
-# is hidden -- which it is for every customer-facing render.
 CATEGORIES = ["Features", "Fixes", "Reverts", "Maintenance"]
-HIDDEN_TYPES_CUSTOMER = {"chore"}
-
-# Types that need no fragment. A chore is internal by definition: it renders
-# nowhere, so requiring an entry would force authors to write invisible text.
+# chore is internal-only: it renders nowhere, so requiring a fragment would
+# force authors to write invisible text.
+HIDDEN_TYPES = {"chore"}
 FRAGMENT_EXEMPT_TYPES = {"chore"}
-
-PREVIEW_START = "<!-- changelog:preview:start -->"
-PREVIEW_END = "<!-- changelog:preview:end -->"
 
 TITLE_RE = re.compile(
     r"^(feat|fix|chore|revert)(?:\([^)]+\))?:\s*(.+)$", re.IGNORECASE
@@ -114,7 +107,7 @@ def categorize(frag):
         "fix": "Fixes",
         "revert": "Reverts",
         "chore": "Maintenance",
-    }.get(frag["type"], "Maintenance")
+    }[frag["type"]]
 
 
 SENTENCE_END = (".", "!", "?")
@@ -131,28 +124,26 @@ def render_entry(frag):
     return line
 
 
-def render_grouped(fragments, hidden_types=HIDDEN_TYPES_CUSTOMER):
+def render_grouped(fragments):
+    """Render visible fragments as `### Category` sections, or '' if none are."""
     grouped = {c: [] for c in CATEGORIES}
     for f in fragments:
-        if f["type"] in hidden_types:
-            continue
-        grouped[categorize(f)].append(f)
+        if f["type"] not in HIDDEN_TYPES:
+            grouped[categorize(f)].append(f)
     lines = []
     for cat in CATEGORIES:
         entries = sorted(grouped[cat], key=lambda f: f["pr"])
         if not entries:
             continue
         lines.append(f"### {cat}")
-        for e in entries:
-            lines.append(render_entry(e))
+        lines.extend(render_entry(e) for e in entries)
         lines.append("")
-    return "\n".join(lines).rstrip() + "\n" if lines else "_Nothing yet._\n"
+    return "\n".join(lines).rstrip() + "\n" if lines else ""
 
 
 # ---------- fragment / release IO ----------
 
 def _safe_load_json(path):
-    """Load a JSON file; on parse failure emit a warning and return None."""
     try:
         return json.loads(Path(path).read_text())
     except (OSError, ValueError) as e:
@@ -161,11 +152,13 @@ def _safe_load_json(path):
 
 
 def _load_valid_fragment(path):
-    """Load a fragment JSON; skip with warning if malformed or schema-invalid."""
     data = _safe_load_json(path)
     if data is None:
         return None
     errs = validate_fragment(path)
+    stem = Path(path).stem
+    if stem.isdigit() and data.get("pr") != int(stem):
+        errs.append(f"{path}: pr {data.get('pr')!r} does not match the filename")
     if errs:
         for e in errs:
             print(f"WARN: skipping {e}", file=sys.stderr)
@@ -216,27 +209,23 @@ def list_releases_in(line_dir):
     return sorted(dirs, key=lambda d: parse_semver(d.name), reverse=True)
 
 
-def render_release_section(meta, fragments, hidden_types=HIDDEN_TYPES_CUSTOMER):
+def render_release_section(meta, fragments):
     header = f"## [{meta['version']}] — {meta['date']}\n"
     if meta.get("highlights"):
         header += f"Highlights: {meta['highlights']}\n\n"
     else:
         header += "\n"
-    return header + render_grouped(fragments, hidden_types=hidden_types)
+    return header + render_grouped(fragments)
 
 
 def render_root_changelog(changes_dir):
     """Regenerate the whole root CHANGELOG.md content from preview/ + latest/."""
-    preview = load_preview(changes_dir)
-    preview_block = render_grouped(preview)
     body = [
         "# Changelog",
         "",
-        PREVIEW_START,
         "## [Preview]",
         "",
-        preview_block.rstrip(),
-        PREVIEW_END,
+        (render_grouped(load_preview(changes_dir)) or "_Nothing yet._\n").rstrip(),
         "",
     ]
     latest = Path(changes_dir) / "latest"
@@ -251,19 +240,16 @@ def render_root_changelog(changes_dir):
 
 def render_frozen_line(line_dir):
     """Render a self-contained CHANGELOG.md for a frozen minor line."""
-    line_dir = Path(line_dir)
-    # Derive minor label from constituent versions (they should all share major.minor).
     releases = list_releases_in(line_dir)
     if not releases:
         return "# Changelog\n"
-    first_version = releases[0].name
-    M, N, _ = parse_semver(first_version)
+    M, N, _ = parse_semver(releases[0].name)
     body = [f"# Changelog — {M}.{N}.x", ""]
     for rel_dir in releases:
         meta, frags = load_release(rel_dir)
         if meta is None:
             continue
-        body.append(render_release_section(meta, frags, hidden_types=set()).rstrip())
+        body.append(render_release_section(meta, frags).rstrip())
         body.append("")
     return "\n".join(body).rstrip() + "\n"
 
@@ -285,8 +271,9 @@ def cmd_seed(args):
     out = Path(args.out) if args.out else Path(args.changes_dir) / "preview" / f"{args.pr}.json"
     out.parent.mkdir(parents=True, exist_ok=True)
     if out.exists() and not args.force:
+        # Non-zero, so a caller cannot mistake "declined" for "wrote it".
         print(f"exists (use --force to overwrite): {out}", file=sys.stderr)
-        return 0
+        return 1
     out.write_text(json.dumps(frag, indent=2) + "\n")
     print(str(out))
     return 0
@@ -294,6 +281,9 @@ def cmd_seed(args):
 
 def cmd_validate(args):
     target = Path(args.target)
+    if not target.exists():
+        _err(f"{target}: no such file or directory")
+        return 2
     files = [target] if target.is_file() else sorted(target.glob("*.json"))
     if not files:
         print(f"no fragments found under {target}")
@@ -309,25 +299,25 @@ def cmd_validate(args):
     return 0
 
 
-def parse_changed_paths(path):
-    """Read `status<TAB>path` lines, keeping only entries under `.changes/`."""
+def parse_changed_paths(path, prefix):
+    """Read `status<TAB>path` lines, keeping only entries under `prefix`."""
     out = []
     for line in Path(path).read_text().splitlines():
-        line = line.strip()
-        if not line:
-            continue
-        status, _, p = line.partition("\t")
-        out.append((status.strip(), p.strip()))
+        status, _, p = line.strip().partition("\t")
+        p = p.strip()
+        if p.startswith(f"{prefix}/"):
+            out.append((status.strip(), p))
     return out
 
 
 def check_fragment_changes(args, typ, reason):
-    """Assert the PR's changes under `.changes/` are exactly one new fragment.
+    """Assert the PR's changes under `prefix` are exactly one new fragment.
 
     Returns an exit code to stop on, or None to carry on with the usual checks.
     """
-    expected = f"{args.changes_prefix.rstrip('/')}/preview/{args.pr}.json"
-    entries = parse_changed_paths(args.changed_paths_file)
+    prefix = args.changes_prefix.rstrip("/")
+    expected = f"{prefix}/preview/{args.pr}.json"
+    entries = parse_changed_paths(args.changed_paths_file, prefix)
 
     if not entries:
         # Nothing under .changes/ at all -- the normal "author forgot" case,
@@ -403,15 +393,10 @@ def cmd_check(args):
         return 1
 
     if typ in FRAGMENT_EXEMPT_TYPES:
-        # Exempt types skip every remaining assertion, including the shape of
-        # whatever they may have touched under the changes directory.
         print(f"OK: #{args.pr} is a `{typ}` change; no changelog fragment required")
         reason("exempt-type")
         return 0
 
-    # A customer-visible change must contribute exactly one changelog entry, and
-    # it must be its own: one NEW file at the one expected path. Anything else
-    # either renders under someone else's PR number or silently renders nothing.
     if args.changed_paths_file:
         rc = check_fragment_changes(args, typ, reason)
         if rc is not None:
@@ -446,9 +431,6 @@ def cmd_check(args):
         reason("pr-mismatch")
         return 1
 
-    # The title and the fragment are two statements about the same change; if
-    # they disagree the author has to decide which is right. Guessing here would
-    # file the entry under a section the title contradicts.
     if data.get("type") != typ:
         print(
             f'ERROR: type mismatch. The PR title says `{typ}` but {frag} says '
@@ -471,21 +453,16 @@ def cmd_render(args):
     return 0
 
 
-def _current_line_minor(latest_dir):
-    """Return (M, N) of the latest/ line by inspecting its release dirs."""
-    releases = list_releases_in(latest_dir)
-    if not releases:
-        return None
-    M, N, _ = parse_semver(releases[0].name)
-    return M, N
-
-
 def _latest_version_in_line(line_dir):
-    """Return the highest semver tuple in a line dir, or None if empty."""
+    """Highest semver tuple in a line dir, or None if it holds no release."""
     releases = list_releases_in(line_dir)
-    if not releases:
-        return None
-    return parse_semver(releases[0].name)
+    return parse_semver(releases[0].name) if releases else None
+
+
+def _current_line_minor(latest_dir):
+    """(M, N) of the active latest/ line, or None if it holds no release."""
+    v = _latest_version_in_line(latest_dir)
+    return v[:2] if v else None
 
 
 def _frozen_lines(changes_dir):
@@ -505,15 +482,20 @@ def _err(msg):
     print(f"ERROR: {msg}", file=sys.stderr)
 
 
-def _check_no_downgrade(changes, latest, new_tuple, new_version):
-    """Return an error string if new_version is not strictly newer than every prior release."""
-    highest = _latest_version_in_line(latest)
+def _check_version_is_next(changes, new_tuple, new_version):
+    """Error string if new_version is not strictly newer than every release so
+    far, or belongs to a minor line that has already been frozen."""
+    highest = _latest_version_in_line(changes / "latest")
     if highest is not None and new_tuple <= highest:
         return (
             f"{new_version} is not newer than the latest released "
             f"{'.'.join(str(x) for x in highest)} in latest/"
         )
     for frozen in _frozen_lines(changes):
+        # Reopening a frozen line would split it: its snapshot is already
+        # written and the root changelog only ever renders latest/.
+        if new_tuple[:2] == tuple(int(x) for x in MINOR_LINE_RE.match(frozen.name).groups()):
+            return f"{new_version} belongs to {frozen.name}/, which is already frozen"
         highest = _latest_version_in_line(frozen)
         if highest is not None and new_tuple <= highest:
             return (
@@ -524,6 +506,8 @@ def _check_no_downgrade(changes, latest, new_tuple, new_version):
 
 
 def _infer_bump(current_minor, new_tuple):
+    """The bump the version itself implies. minor and major both freeze the
+    current line and differ only in the message."""
     M_new, N_new, _ = new_tuple
     if current_minor is None:
         return "minor"
@@ -535,13 +519,9 @@ def _infer_bump(current_minor, new_tuple):
 
 
 def _freeze_current_line(changes, latest, current_minor):
-    """Rename latest/ → M.N.x/, write a frozen CHANGELOG.md, recreate empty latest/.
-
-    The two-step rename + write is not atomic. If interrupted between them,
-    the frozen directory exists without a CHANGELOG.md snapshot. That
-    half-state is detected by _check_no_half_freeze before rollup starts
-    (see cmd_rollup); this function assumes it starts clean.
-    """
+    """Rename latest/ → M.N.x/, snapshot its CHANGELOG.md, reopen an empty
+    latest/. Not atomic; a crash between the two is caught next run by
+    _check_no_half_freeze."""
     M_old, N_old = current_minor
     frozen_dir = changes / f"{M_old}.{N_old}.x"
     if frozen_dir.exists():
@@ -567,14 +547,11 @@ def _check_no_half_freeze(changes):
 def _open_release_dir(changes, latest, new_version, date, highlights):
     """Create latest/<version>/ with _meta.json and move preview fragments in."""
     release_dir = latest / new_version
-    if release_dir.exists():
-        return None, f"release dir {release_dir} already exists"
     release_dir.mkdir(parents=True)
     meta = {"version": new_version, "date": date, "highlights": highlights or ""}
     (release_dir / "_meta.json").write_text(json.dumps(meta, indent=2) + "\n")
     for f in (changes / "preview").glob("*.json"):
         f.rename(release_dir / f.name)
-    return release_dir, None
 
 
 def cmd_rollup(args):
@@ -588,10 +565,18 @@ def cmd_rollup(args):
         _err(half)
         return 2
 
-    preview = load_preview(changes)
-    if not preview:
+    preview_dir = changes / "preview"
+    on_disk = sorted(preview_dir.glob("*.json")) if preview_dir.exists() else []
+    if not on_disk:
         print("nothing to roll up (preview/ empty)", file=sys.stderr)
         return 1
+    preview = load_preview(changes)
+    if len(preview) != len(on_disk):
+        # Releasing anyway would move the rejected files into the release
+        # directory, where they render nowhere and are never looked at again.
+        _err(f"{len(on_disk) - len(preview)} of {len(on_disk)} fragment(s) in "
+             f"{preview_dir} are invalid (see the warnings above); fix them first")
+        return 2
 
     try:
         new_tuple = parse_semver(args.version)
@@ -603,23 +588,19 @@ def cmd_rollup(args):
         _err(f"--date must be YYYY-MM-DD, got {args.date!r}")
         return 2
 
-    err = _check_no_downgrade(changes, latest, new_tuple, args.version)
+    err = _check_version_is_next(changes, new_tuple, args.version)
     if err:
         _err(err)
         return 2
 
     current = _current_line_minor(latest)
-    bump = args.bump or _infer_bump(current, new_tuple)
-    if bump not in ("patch", "minor", "major"):
-        _err(f"--bump must be patch|minor|major, got {bump!r}")
-        return 2
-
-    M_new, N_new, _ = new_tuple
-    if bump == "patch" and current is not None and (M_new, N_new) != current:
-        _err(
-            f"--bump patch requires {args.version} to share a minor line with "
-            f"current {'.'.join(str(x) for x in current)}"
-        )
+    bump = _infer_bump(current, new_tuple)
+    if args.bump and args.bump != bump:
+        # The version decides; an explicit --bump is only a cross-check. Acting
+        # on a contradictory one freezes the active line under its own name,
+        # which wedges every later minor rollup with no way back.
+        _err(f"--bump {args.bump} contradicts --version {args.version}, which is a "
+             f"{bump} bump relative to latest/")
         return 2
 
     if bump in ("minor", "major") and current is not None:
@@ -628,52 +609,9 @@ def cmd_rollup(args):
             _err(err)
             return 2
 
-    _, err = _open_release_dir(changes, latest, args.version, args.date, args.highlights)
-    if err:
-        _err(err)
-        return 2
-
+    _open_release_dir(changes, latest, args.version, args.date, args.highlights)
     Path(args.changelog).write_text(render_root_changelog(changes))
     print(f"rolled up {len(preview)} fragment(s) into {args.version} ({bump})")
-    return 0
-
-
-def _find_original_fragment(changes_dir, pr):
-    """Locate a merged PR's fragment across preview/, latest/, and frozen lines."""
-    changes = Path(changes_dir)
-    candidates = [changes / "preview" / f"{pr}.json"]
-    latest = changes / "latest"
-    if latest.exists():
-        for rel_dir in list_releases_in(latest):
-            candidates.append(rel_dir / f"{pr}.json")
-    for line_dir in _frozen_lines(changes):
-        for rel_dir in list_releases_in(line_dir):
-            candidates.append(rel_dir / f"{pr}.json")
-    for c in candidates:
-        if c.exists():
-            return c
-    return None
-
-
-def cmd_revert(args):
-    orig_summary = ""
-    orig_path = _find_original_fragment(args.changes_dir, args.original_pr)
-    if orig_path is not None:
-        data = _safe_load_json(orig_path)
-        if data:
-            orig_summary = (data.get("summary") or "").strip()
-    frag = {
-        "pr": args.revert_pr,
-        "type": "revert",
-        "summary": f"Revert #{args.original_pr}"
-        + (f": {orig_summary}" if orig_summary else ""),
-        "url": args.url,
-        "notes": f"Reverts #{args.original_pr}.",
-    }
-    out = Path(args.changes_dir) / "preview" / f"{args.revert_pr}.json"
-    out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(json.dumps(frag, indent=2) + "\n")
-    print(str(out))
     return 0
 
 
@@ -754,13 +692,6 @@ def main(argv=None):
     u.add_argument("--changes-dir", default=".changes")
     u.add_argument("--changelog", default="CHANGELOG.md")
     u.set_defaults(func=cmd_rollup)
-
-    rv = sub.add_parser("revert", help="create a revert fragment (never deletes original)")
-    rv.add_argument("--original-pr", type=int, required=True)
-    rv.add_argument("--revert-pr", type=int, required=True)
-    rv.add_argument("--url", required=True)
-    rv.add_argument("--changes-dir", default=".changes")
-    rv.set_defaults(func=cmd_revert)
 
     ls = sub.add_parser("list", help="show preview, latest/, and frozen lines")
     ls.add_argument("--changes-dir", default=".changes")
