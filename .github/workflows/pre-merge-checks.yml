@@ -101,10 +101,9 @@ jobs:
           # branch, which would diff main with itself and always say `patch`.
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
-          # Required from v4 onward to check out fork PR code under
+          # Needed from v4 onward to check out fork PR code under
           # pull_request_target; the approval job is what makes it acceptable.
-          # actionlint <= 1.7.12 reports this input as undefined; its bundled
-          # metadata predates actions/checkout f9e715a9 (2026-06-16).
+          # actionlint <= 1.7.12 wrongly calls this input undefined.
           allow-unsafe-pr-checkout: true
           # This tree is bind-mounted into a container that runs PR-authored
           # CMake; leave no usable credential in .git/config.
@@ -144,17 +143,16 @@ jobs:
           pr: ${{ github.event.pull_request.number }}
           repo: ${{ github.repository }}
 
-  # Deliberately not behind `approval`: holds no credentials and checks out no
-  # PR code, so a first-time fork contributor gets feedback with no maintainer
-  # click. No activity-type filter either -- the fragment, the title and the
-  # waiver label can each change independently, and the job takes seconds.
+  # Deliberately not behind `approval`: it holds no credentials and checks out
+  # no PR code, so a first-time fork contributor gets feedback with no
+  # maintainer click. No activity filter either -- title, fragment and waiver
+  # label each change independently.
   changelog:
     if: ${{ !contains(github.event.pull_request.labels.*.name, 'skip-changelog') }}
     runs-on: ${{ inputs.runs-on }}
     permissions:
       contents: read
-      # write, not read: a pull request with no fragment gets one guidance
-      # comment carrying a ready-to-paste template.
+      # write, not read: a missing fragment earns one guidance comment.
       pull-requests: write
     steps:
       - name: Fetch the fragment at the PR head
@@ -166,9 +164,8 @@ jobs:
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           set -euo pipefail
-          # Read the blob rather than checking the branch out: the base repo's
-          # Contents API resolves a fork head SHA, which keeps
-          # allow-unsafe-pr-checkout confined to the ABI job.
+          # Read the blob, not a checkout: the base repo's Contents API resolves
+          # a fork head sha, keeping allow-unsafe-pr-checkout in the ABI job.
           DEST="${RUNNER_TEMP}/changes/preview"
           mkdir -p "$DEST"
           BODY="$(mktemp)"
@@ -177,9 +174,8 @@ jobs:
             cp "$BODY" "${DEST}/${PR}.json"
             exit 0
           fi
-          # Only a bare "Not Found" means "the ref resolved, the file is absent".
-          # Reporting anything else as a missing fragment would waive the
-          # requirement instead of failing.
+          # Only a bare "Not Found" means the ref resolved and the file is
+          # absent; treating anything else as missing would waive the check.
           MSG="$(jq -r '.message // "unparsable response"' < "$BODY" 2>/dev/null || echo 'unparsable response')"
           if [[ "$MSG" != "Not Found" ]]; then
             echo "::error::could not read the changelog fragment at ${HEAD_SHA}: ${MSG}"
@@ -195,9 +191,8 @@ jobs:
           PR: ${{ github.event.pull_request.number }}
         run: |
           set -euo pipefail
-          # `status<TAB>path` per changed path, so the check can assert that a
-          # customer-visible change adds exactly one new fragment at exactly its
-          # own path. Documented cap: this endpoint returns at most 3000 files.
+          # `status<TAB>path` per changed path, so the check can require exactly
+          # one new fragment at its own path. Endpoint caps out at 3000 files.
           OUT="${RUNNER_TEMP}/changed-paths.tsv"
           gh api --paginate "repos/${REPO}/pulls/${PR}/files?per_page=100" \
             --jq '.[] | select(.filename | startswith(".changes/"))
@@ -206,8 +201,8 @@ jobs:
           echo "Changed paths under .changes/:"
           sed 's/^/  /' "$OUT"
 
-      # Before the comment step, because only this step knows whether a fragment
-      # was required at all. It does not fail the job; the last step does.
+      # Before the comment step: only this step knows whether a fragment was
+      # required. It does not fail the job; the last step does.
       - name: Check the PR title and the fragment
         id: check
         # TODO: pin back to @main once the changelog action is on main.
@@ -232,8 +227,8 @@ jobs:
           pr: ${{ github.event.pull_request.number }}
           title: ${{ github.event.pull_request.title }}
           url: ${{ github.event.pull_request.html_url }}
-          # Outside $RUNNER_TEMP/changes so nothing mistakes it for a fragment
-          # the author supplied.
+          # Outside $RUNNER_TEMP/changes, so it is never mistaken for the
+          # author's own fragment.
           out: ${{ runner.temp }}/seed-template.json
 
       - name: Comment with the template, once per pull request
@@ -245,8 +240,8 @@ jobs:
           TEMPLATE: ${{ runner.temp }}/seed-template.json
         run: |
           set -euo pipefail
-          # Keyed on a hidden marker, not the wording, so the text can be
-          # revised without the bot re-commenting on every open pull request.
+          # Keyed on a hidden marker, not the wording, so the text can change
+          # without the bot re-commenting everywhere.
           MARKER='<!-- pre-merge-checks:changelog-template -->'
           if gh api --paginate "repos/${REPO}/issues/${PR}/comments" \
                --jq '.[].body' | grep -qF "$MARKER"; then
