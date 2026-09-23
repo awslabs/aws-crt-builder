@@ -407,8 +407,9 @@ def cmd_check(args):
             f"ERROR: no changelog fragment for PR #{args.pr}.\n"
             f"       expected: {frag}\n"
             f"       a `{typ}` change is customer-visible, so it needs an entry.\n"
-            f"       run `.github/actions/changelog/scripts/new-change` locally and commit the file,\n"
-            f"       or apply the `skip-changelog` label for CI-only / pure-infra PRs.",
+            f"       commit that file with this pull request -- the bot comments a\n"
+            f"       ready-to-paste template -- or apply the `skip-changelog` label\n"
+            f"       for CI-only / pure-infra changes.",
             file=sys.stderr,
         )
         reason("missing-fragment")

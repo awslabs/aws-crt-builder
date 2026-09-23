@@ -68,13 +68,16 @@ every renderer sorts semver properly.
 
 ## Contributor flow
 
-```
-.github/actions/changelog/scripts/new-change
-```
+Commit `.changes/preview/<PR>.json` with your pull request. Write `summary` so it
+reads as a release note, and use `notes` for detail — for a revert, say why. You
+never touch `CHANGELOG.md`.
 
-It prompts, writes the fragment, and tells you what to commit. Refine `summary`
-so it reads as a release note, and use `notes` for detail — for a revert, say
-why. You never touch `CHANGELOG.md`.
+Forgetting is fine: the check comments a ready-to-paste template with the type
+and summary already derived from your title.
+
+In a clone of this repository, `scripts/new-change` writes the fragment
+interactively. Consumer repos do not vendor it, so the template comment is the
+path there.
 
 ## Release flow
 
