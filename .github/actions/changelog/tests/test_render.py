@@ -95,14 +95,6 @@ def test_a_file_with_no_markers_gains_them(tmp_path):
     assert render.START in text and "Hand-written." in text
 
 
-def test_the_pointer_links_only_when_the_branch_name_resolves():
-    # ../../blob/<branch>/ reaches the repo root only for a one-segment name.
-    assert render.unreleased_pointer("docs") == \
-        "Unreleased changes can be found [here](../../blob/docs/CHANGELOG.md).\n"
-    slashed = render.unreleased_pointer("team/docs")
-    assert "`team/docs`" in slashed and "](" not in slashed
-
-
 def test_an_existing_heading_is_reused_not_duplicated(tmp_path):
     # An adopting repo already has `# Changelog`; a second one renders as two
     # titles stacked on top of each other.
@@ -141,15 +133,10 @@ def test_entries_within_a_section_are_ordered_by_pull_request(tmp_path):
     assert re.findall(r"\(\[#(\d+)\]", fixes) == ["10", "20", "30"]
 
 
-def test_the_rendered_section_is_exact(tmp_path):
+def test_the_rendered_section_is_exact():
     # One test pins the whole shape, so a change to it has to be deliberate.
-    _write(tmp_path, 7, "feat", summary="Add a widget")
-    assert render.render_release_section("1.2.0", "2026-09-30",
-                                         load := [{"pr": 7, "type": "feat",
-                                                   "summary": "Add a widget",
-                                                   "notes": "Worth knowing."}]) == (
-        "## [1.2.0] — 2026-09-30\n"
-        "\n"
+    assert render.render_grouped([{"pr": 7, "type": "feat", "summary": "Add a widget",
+                                   "notes": "Worth knowing."}]) == (
         "### Features\n"
         "- Add a widget. ([#7](../../pull/7))\n"
         "\n"

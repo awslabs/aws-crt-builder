@@ -63,24 +63,6 @@ def render_grouped(fragments, minor_prs=()):
     return "\n".join(lines).rstrip() + "\n" if lines else ""
 
 
-def render_release_section(version, date, fragments, minor_prs=()):
-    body = render_grouped(fragments, minor_prs)
-    return f"## [{version}] — {date}\n\n{body}" if body else ""
-
-
-def unreleased_pointer(docs_branch):
-    """What the region says on the release branch: a link to what is coming.
-
-    The link resolves from /<owner>/<repo>/blob/<branch>/CHANGELOG.md, so it only
-    reaches the repo root when the branch name is one path segment. A branch with
-    a slash in it is named instead of linked, because the link would not resolve.
-    """
-    if "/" in docs_branch:
-        return f"Unreleased changes are on the `{docs_branch}` branch.\n"
-    return ("Unreleased changes can be found "
-            f"[here](../../blob/{docs_branch}/CHANGELOG.md).\n")
-
-
 def set_region(text, region):
     """Replace the unreleased region, adding it and the file's shape on a first run."""
     if START in text and END in text:
