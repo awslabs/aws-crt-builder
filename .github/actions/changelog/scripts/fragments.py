@@ -51,6 +51,16 @@ def parse_title(title):
 
 
 def validate_fragment(path):
+    """Every problem with one fragment, as a list of messages.
+
+    The schema is closed, so a misspelled field is an error rather than a value
+    silently ignored. Text containing an HTML comment is refused because an entry
+    is rendered inside a marked region and would break every later render. A
+    revert must carry notes, since saying why is the only reason it earns an entry.
+    Whether `pr` names a real pull request cannot be settled here -- this runs with
+    no token and no network -- so only the placeholder is caught, and `check`
+    asserts the fragment agrees with the pull request its trigger fired for.
+    """
     errs = []
     try:
         data = json.loads(Path(path).read_text())
@@ -58,8 +68,6 @@ def validate_fragment(path):
         return [f"{path}: invalid JSON: {e}"]
     for k in sorted(REQUIRED - set(data)):
         errs.append(f"{path}: missing field: {k}")
-    # The schema is closed, so a misspelled field is an error rather than a
-    # value silently ignored -- and `impact` cannot be smuggled in by an author.
     extra = sorted(set(data) - REQUIRED - OPTIONAL)
     if extra:
         errs.append(f"{path}: unexpected field(s): {', '.join(extra)}")
@@ -72,21 +80,14 @@ def validate_fragment(path):
     if not isinstance(pr, int) or isinstance(pr, bool):
         errs.append(f"{path}: pr must be int")
     elif pr <= 0:
-        # Whether the number is a real pull request cannot be settled here: this
-        # runs with no token and no network. `check` settles it by asserting the
-        # fragment agrees with the --pr its trigger fired for. What is left is
-        # the placeholder, which renders as a dead `(#0)` reference.
         errs.append(f"{path}: pr must be the real pull request number, not {pr}")
     for field in ("summary", "notes"):
-        # An entry is rendered inside a marked region. Text that closes the marker
-        # would break every later render of the file.
         if isinstance(data.get(field), str) and "<!--" in data[field]:
             errs.append(f"{path}: {field} must not contain an HTML comment")
     notes = data.get("notes", "")
     if not isinstance(notes, str):
         errs.append(f"{path}: notes must be a string")
     elif data.get("type") == "revert" and not notes.strip():
-        # The whole reason a revert needs its own entry is to say why.
         errs.append(f"{path}: a revert needs notes explaining why")
     return errs
 
@@ -126,7 +127,9 @@ def cmd_seed(args):
     The counterpart to validate_fragment, not a duplicate of it: this produces a
     fragment and validation consumes one. It exists for the two fields a comment
     cannot state generically -- the type, derived from the title prefix, and a
-    revert's summary, derived from the Revert button's generated title.
+    revert's summary, derived from the Revert button's generated title -- whose
+    shape is `Revert "<original title> (#N)"`, so neither the original type prefix
+    nor its number belongs in the entry.
 
     It writes to --out, outside the tree the check reads, and the author copies
     it from the comment. So it writes without validating: the summary is a
@@ -139,8 +142,6 @@ def cmd_seed(args):
     if pr_type is None:
         pr_type = "chore"
     if pr_type == "revert":
-        # The button's title is `Revert "<original title> (#N)"`; neither the
-        # original type prefix nor its number belongs in this entry.
         summary = re.sub(r"^(feat|fix|chore|revert)(\([^)]+\))?:\s*", "", summary,
                          flags=re.IGNORECASE)
         summary = re.sub(r"\s*\(#\d+\)\s*$", "", summary)
