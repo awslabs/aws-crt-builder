@@ -1,4 +1,4 @@
-"""Fragments to markdown, and the two edits made to CHANGELOG.md.
+"""Fragments to markdown, and the three edits made to CHANGELOG.md.
 
 The file is not regenerated. A release inserts one section below the unreleased
 region and never touches what is already there, so a published entry cannot
@@ -17,11 +17,14 @@ EARLIER = "## Earlier releases"
 START = "<!-- changelog:unreleased -->"
 END = "<!-- /changelog:unreleased -->"
 SENTENCE_END = (".", "!", "?")
+# Relative, so no repo name is stored. An archive one directory deeper needs one
+# more `..`, which archive_line derives from this rather than restating it.
+PR_PREFIX = "../../pull/"
 
 
 def pr_link(frag):
-    """`#843` linked relative to the repo root, so no repo name is stored."""
-    return f"[#{frag['pr']}](../../pull/{frag['pr']})"
+    """`#843` linked relative to the repo root."""
+    return f"[#{frag['pr']}]({PR_PREFIX}{frag['pr']})"
 
 
 def render_entry(frag):
@@ -78,30 +81,19 @@ def unreleased_pointer(docs_branch):
             f"[here](../../blob/{docs_branch}/CHANGELOG.md).\n")
 
 
-def render_unreleased(fragments):
-    """What the region says on the docs branch."""
-    return "## [Unreleased]\n\n" + (render_grouped(fragments) or "_Nothing yet._\n")
-
-
-def skeleton(region="", heading=HEADING, rest=""):
-    """The file's shape: a heading, the region, then whatever was already there."""
-    return (f"{heading}\n\n{START}\n{region}{END}\n"
-            + (f"\n{rest}" if rest.strip() else ""))
-
-
 def set_region(text, region):
-    """Replace the unreleased region, adding it on a first run."""
+    """Replace the unreleased region, adding it and the file's shape on a first run."""
     if START in text and END in text:
         head, _, rest = text.partition(START)
         _, _, tail = rest.partition(END)
         return f"{head}{START}\n{region}{END}{tail}"
     body = text.lstrip("\n")
-    if body.startswith("# "):
-        # The file already has its heading -- an adopting repo has one. Reuse it
-        # rather than adding a second heading above it.
-        heading, _, rest = body.partition("\n")
-        return skeleton(region, heading, rest.lstrip("\n"))
-    return skeleton(region, rest=body)
+    # Reuse the file's own heading when it has one -- an adopting repo does --
+    # rather than adding a second heading above it.
+    heading, _, rest = body.partition("\n") if body.startswith("# ") else (HEADING, "", body)
+    rest = rest.lstrip("\n")
+    return (f"{heading}\n\n{START}\n{region}{END}\n"
+            + (f"\n{rest}" if rest.strip() else ""))
 
 
 def insert_release(text, section):
@@ -145,7 +137,7 @@ def archive_line(text, line):
     head, _, body = text.partition(END)
     at = body.find("\n## ")
     # The archive sits one directory down, so every link needs one more `..`.
-    moved = set_earlier(body[at + 1:], "").replace("](../../pull/", "](../../../pull/")
+    moved = set_earlier(body[at + 1:], "").replace(f"]({PR_PREFIX}", f"](../{PR_PREFIX}")
     return (head + END + body[:at + 1].rstrip() + "\n",
             f"{HEADING} — {line}\n\nCurrent releases are in the "
             f"[top-level changelog](../CHANGELOG.md).\n\n{moved.strip()}\n")
@@ -154,7 +146,8 @@ def archive_line(text, line):
 def cmd_render(args):
     """Refresh the unreleased region. The docs branch runs this on every merge."""
     path = Path(args.changelog)
+    body = render_grouped(load_preview(args.changes_dir)) or "_Nothing yet._\n"
     text = path.read_text() if path.exists() else ""
-    path.write_text(set_region(text, render_unreleased(load_preview(args.changes_dir))))
+    path.write_text(set_region(text, f"## [Unreleased]\n\n{body}"))
     print(f"rendered → {args.changelog}")
     return 0

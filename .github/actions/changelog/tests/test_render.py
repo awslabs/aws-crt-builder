@@ -83,7 +83,7 @@ def test_the_unreleased_region_is_replaced_not_appended(tmp_path):
 
 def test_rendering_leaves_released_sections_alone(tmp_path):
     (tmp_path / "CHANGELOG.md").write_text(
-        render.skeleton("") + "\n## [1.0.0] — 2026-01-01\n\n### Features\n- Old. (#1)\n")
+        render.set_region("", "") + "\n## [1.0.0] — 2026-01-01\n\n### Features\n- Old. (#1)\n")
     _seed(tmp_path, 2, "feat: New")
     text = _render(tmp_path)
     assert "## [1.0.0]" in text and "Old." in text and "New." in text
