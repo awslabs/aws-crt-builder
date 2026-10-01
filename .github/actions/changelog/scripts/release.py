@@ -7,8 +7,8 @@ import re
 from pathlib import Path
 
 from fragments import _err, load_preview
-from render import archive_line, insert_release, render_release_section, \
-    set_earlier, set_region, unreleased_pointer
+from render import archive_line, insert_release, render_grouped, set_earlier, \
+    set_region
 
 ISO_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 VERSION_RE = re.compile(r"(\d+)\.(\d+)\.\d+")
@@ -51,13 +51,19 @@ def cmd_rollup(args):
         _err(f"--minor-prs must be pull request numbers, got {args.minor_prs!r}")
         return 2
     minor_prs = {int(p) for p in labelled}
-    section = render_release_section(args.version, args.date, fragments, minor_prs)
+    body = render_grouped(fragments, minor_prs)
+    section = f"## [{args.version}] — {args.date}\n\n{body}" if body else ""
 
     path = Path(args.changelog)
     text = path.read_text() if path.exists() else ""
-    # The release branch's region is the pointer, not the unreleased list: only a
-    # release rewrites this file, so a list of unreleased changes would sit stale.
-    text = set_region(text, unreleased_pointer(args.docs_branch))
+    # The region here points at the docs branch rather than holding the unreleased
+    # list: only a release rewrites this file, so a list would sit stale. A branch
+    # name with a slash is named rather than linked, because
+    # ../../blob/<branch>/CHANGELOG.md reaches the repo root only for one segment.
+    docs = args.docs_branch
+    text = set_region(text, f"Unreleased changes are on the `{docs}` branch.\n"
+                      if "/" in docs else "Unreleased changes can be found "
+                      f"[here](../../blob/{docs}/CHANGELOG.md).\n")
 
     # A new minor version line closes the old one: its sections move to an archive,
     # so the root only ever carries the line being released into. Nothing to close
