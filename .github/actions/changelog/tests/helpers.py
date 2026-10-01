@@ -31,3 +31,9 @@ def _seed(tmp_path, pr, title):
         frag.parent.mkdir(parents=True, exist_ok=True)
         frag.write_text(out.read_text())
     return rc
+
+
+def _render(tmp_path):
+    changelog.main(["render", "--changes-dir", _changes(tmp_path),
+                    "--changelog", str(tmp_path / "CHANGELOG.md")])
+    return (tmp_path / "CHANGELOG.md").read_text()
