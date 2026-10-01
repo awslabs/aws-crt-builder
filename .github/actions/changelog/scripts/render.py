@@ -105,32 +105,26 @@ def insert_release(text, section):
     return body.rstrip() + "\n"
 
 
-def earlier_releases(changes_dir):
-    """Links to the archived lines, newest first, or '' when there are none.
+def _without_earlier(text):
+    """`text` with any trailing list of archived lines removed."""
+    return text.partition("\n" + EARLIER)[0].rstrip() + "\n"
+
+
+def set_earlier(text, changes_dir):
+    """Replace the trailing list of archived lines, newest first.
 
     Only a release needs this; the docs render never touches the listing. It is
-    rebuilt from the files present rather than from a list kept in the file, so an
-    archive written by hand at adoption is picked up without being registered.
+    rebuilt from the archives present rather than from a list kept in the file, so
+    one written by hand at adoption is picked up without being registered anywhere.
     """
     d = Path(changes_dir)
     files = sorted(d.glob("*.x.md"), reverse=True,
                    key=lambda p: [int(x) for x in p.name.split(".")[:2]])
+    body = _without_earlier(text)
     if not files:
-        return ""
-    return (f"{EARLIER}\n\n"
+        return body
+    return (f"{body}\n{EARLIER}\n\n"
             + "\n".join(f"- [{p.stem}]({d.name}/{p.name})" for p in files) + "\n")
-
-
-def set_earlier(text, listing):
-    """Replace the trailing list of archived lines, or drop it when `listing` is ''.
-
-    Both callers are the release: one refreshes the root's list, and `archive_line`
-    strips it, because the list sits below the release sections and would otherwise
-    be carried into the archive -- where it would be a list of archives whose links
-    no longer resolve.
-    """
-    body = text.partition("\n" + EARLIER)[0].rstrip() + "\n"
-    return body + (f"\n{listing}" if listing else "")
 
 
 def archive_line(text, line):
@@ -144,7 +138,9 @@ def archive_line(text, line):
     head, _, body = text.partition(END)
     at = body.find("\n## ")
     # The archive sits one directory down, so every link needs one more `..`.
-    moved = set_earlier(body[at + 1:], "").replace(f"]({PR_PREFIX}", f"](../{PR_PREFIX}")
+    # The list of archives belongs to the root only, and it sits below the release
+    # sections, so it would otherwise be carried into the archive.
+    moved = _without_earlier(body[at + 1:]).replace(f"]({PR_PREFIX}", f"](../{PR_PREFIX}")
     return (head + END + body[:at + 1].rstrip() + "\n",
             f"{HEADING} — {line}\n\nCurrent releases are in the "
             f"[top-level changelog](../CHANGELOG.md).\n\n{moved.strip()}\n")
