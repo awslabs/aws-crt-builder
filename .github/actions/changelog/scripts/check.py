@@ -103,8 +103,9 @@ def cmd_check(args):
             f"no changelog fragment for PR #{args.pr}.\n"
             f"       expected: {frag}\n"
             f"       a `{pr_type}` change is customer-visible, so it needs an entry.\n"
-            f"       commit that file with this pull request -- the bot comments a\n"
-            f"       ready-to-paste template.")
+            f"       commit that file with this pull request -- a ready-to-paste\n"
+            f"       template is in this run's summary, and is commented here too\n"
+            f"       when CI has a token that can write.")
         reason("missing-fragment")
         return 1
 
