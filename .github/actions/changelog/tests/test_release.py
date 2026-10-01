@@ -83,6 +83,15 @@ def test_the_docs_branch_name_is_the_consumers_choice(tmp_path):
     assert "[here](../../blob/changelog-docs/CHANGELOG.md)" in _changelog(tmp_path)
 
 
+def test_a_slashed_docs_branch_is_named_rather_than_linked(tmp_path):
+    # ../../blob/<branch>/ reaches the repo root only for a one-segment name, so a
+    # branch with a slash in it would link somewhere that does not resolve.
+    _seed(tmp_path, 1, "feat: Add a widget")
+    _rollup(tmp_path, "1.0.2", "2026-09-06", docs_branch="team/docs")
+    text = _changelog(tmp_path)
+    assert "`team/docs`" in text and "](../../blob/" not in text
+
+
 def test_the_abi_label_decides_the_breaking_section(tmp_path):
     _seed(tmp_path, 20, "feat: Replace the socket options layout")
     _seed(tmp_path, 21, "feat: Add a knob")
