@@ -11,9 +11,11 @@ into CHANGELOG.md and deletes them, so the rendered file is the record and
 import argparse
 import sys
 
+from check import cmd_check
 from fragments import cmd_seed
 from release import cmd_rollup
 from render import cmd_render
+
 
 
 def main(argv=None):
@@ -27,6 +29,18 @@ def main(argv=None):
     s.add_argument("--out", required=True,
                    help="Where to write it; never inside the changes directory.")
     s.set_defaults(func=cmd_seed)
+
+    c = sub.add_parser("check", help="CI: assert the PR title and its fragment are valid")
+    c.add_argument("--pr", type=int, required=True)
+    c.add_argument("--title", default="", help="PR title; the change type is derived from it")
+    c.add_argument("--bot-author", default="",
+                   help="login of the PR author when it is a bot; waives both checks")
+    c.add_argument("--changes-dir", default=".changes")
+    c.add_argument("--changed-paths-file", default="",
+                   help="file of `status<TAB>path` lines for the PR's changes under .changes/")
+    c.add_argument("--changes-prefix", default=".changes",
+                   help="repo-relative changes directory, for matching changed paths")
+    c.set_defaults(func=cmd_check)
 
     r = sub.add_parser("render", help="refresh the unreleased region from preview/")
     r.add_argument("--changes-dir", default=".changes")
