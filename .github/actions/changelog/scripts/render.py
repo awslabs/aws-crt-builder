@@ -108,7 +108,8 @@ def insert_release(text, section):
 def earlier_releases(changes_dir):
     """Links to the archived lines, newest first, or '' when there are none.
 
-    Built from the files present rather than from a list kept in the file, so an
+    Only a release needs this; the docs render never touches the listing. It is
+    rebuilt from the files present rather than from a list kept in the file, so an
     archive written by hand at adoption is picked up without being registered.
     """
     d = Path(changes_dir)
@@ -121,7 +122,13 @@ def earlier_releases(changes_dir):
 
 
 def set_earlier(text, listing):
-    """Replace the trailing list of archived lines."""
+    """Replace the trailing list of archived lines, or drop it when `listing` is ''.
+
+    Both callers are the release: one refreshes the root's list, and `archive_line`
+    strips it, because the list sits below the release sections and would otherwise
+    be carried into the archive -- where it would be a list of archives whose links
+    no longer resolve.
+    """
     body = text.partition("\n" + EARLIER)[0].rstrip() + "\n"
     return body + (f"\n{listing}" if listing else "")
 
