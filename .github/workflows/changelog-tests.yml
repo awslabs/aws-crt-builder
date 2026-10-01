@@ -1,0 +1,33 @@
+# Run the changelog tool's own tests. Nothing else in this repository does:
+# sanity-test.yml discovers `tests/`, which is the builder package's suite.
+
+name: Changelog Tests
+
+on:
+  pull_request:
+    paths:
+      - '.github/actions/changelog/**'
+      - '.github/workflows/changelog-*'
+  push:
+    branches: [main]
+    paths:
+      - '.github/actions/changelog/**'
+      - '.github/workflows/changelog-*'
+
+jobs:
+  tests:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pytest
+        run: python3 -m pip install --quiet pytest
+
+      - name: Unit tests
+        working-directory: .github/actions/changelog
+        run: python3 -m pytest tests -q
+
+      # The replay is the one part that git has to be real for, so it is covered
+      # against a scratch repository rather than with fakes.
+      - name: Replay against a scratch repository
+        run: bash .github/workflows/changelog-replay-test.sh

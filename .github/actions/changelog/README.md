@@ -7,11 +7,29 @@ Fragment-based changelog. A pull request adds one JSON fragment; a release rende
 | mode | who runs it | what it does |
 |---|---|---|
 | `check` | pull request CI | assert the title convention and the fragment agree |
-| `seed` | pull request CI | write the template the bot comments with |
+| `seed` | pull request CI | write the template offered to the author |
 | `render` | every merge, on the docs branch | refresh the unreleased region |
 | `rollup` | the release job | insert this release's section and drop the fragments |
 
 It holds no token and needs no network.
+
+## Wiring it up
+
+Nothing but a trigger belongs in a consumer repository. Three reusable workflows in this repo hold the wiring — `changelog-check.yml`, `changelog-render.yml` and `changelog-rollup.yml` — so a fix to any of it reaches every repo at once instead of being pasted into each.
+
+```yaml
+name: Changelog Render
+on:
+  push:
+    branches: [main]
+jobs:
+  render:
+    uses: awslabs/aws-crt-builder/.github/workflows/changelog-render.yml@main
+```
+
+A repo passes `with:` only where it differs from the defaults, `main` and `docs`. Each workflow checks this repo out to reach the action, at the ref given by `builder-ref` — a called workflow cannot discover its own ref, since `github.job_workflow_sha` is empty inside one and `workflow_ref` describes the caller. A repo pinning the workflow to anything other than `main` should pin `builder-ref` to match.
+
+The render and rollup workflows share `changelog-replay.sh`, which mirrors the release branch onto the docs branch. It replays whatever is missing rather than what the push event named: one push can carry several commits, and a concurrency group holds only one pending run, so a cancelled run costs nothing and a re-run is a no-op. `changelog-replay-test.sh` covers both against a scratch repository.
 
 ## The rules a pull request must follow
 
@@ -20,7 +38,7 @@ It holds no token and needs no network.
 - A `chore` needs no fragment: it renders nowhere, so an entry would be invisible. A CI-only or pure-infra change is a `chore`, so nothing waives the check — the type already exempts it.
 - A bot author waives both the title convention and the fragment.
 
-Forgetting is fine: the check comments a ready-to-paste template with the type and summary already derived from the title. That comment is the whole contributor-facing surface.
+Forgetting is fine: the check writes a ready-to-paste template, with the type and summary already derived from the title, into the run's summary — and comments it on the pull request when it has a token that can write. A pull request raised from a fork does not get one, however the workflow asks, so the summary is the guarantee and the comment is the courtesy.
 
 ## Fragment schema
 

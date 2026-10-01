@@ -1,0 +1,122 @@
+# Cut a release's changelog: insert the rendered section on the release branch,
+# delete the fragments it rendered, archive the minor version line it closes, and
+# mirror the result onto the docs branch.
+#
+# This writes the changelog and nothing else -- no tag, no release, no artifact.
+# A consumer repository holds only the trigger that calls this, typically from
+# its release workflow:
+#
+#   jobs:
+#     changelog:
+#       uses: awslabs/aws-crt-builder/.github/workflows/changelog-rollup.yml@main
+#       with:
+#         version: ${{ needs.bump.outputs.version }}
+#         date: ${{ needs.bump.outputs.date }}
+
+name: Changelog Rollup
+
+on:
+  workflow_call:
+    inputs:
+      builder-ref:
+        description: >-
+          Ref of this repository supplying the action and the replay script. Pin
+          it to whatever ref the caller pinned this workflow to.
+        required: false
+        type: string
+        default: 'main'
+      version:
+        description: 'Release version, x.y.z.'
+        required: true
+        type: string
+      date:
+        description: 'Release date, ISO-8601.'
+        required: true
+        type: string
+      minor-prs:
+        description: >-
+          Comma-separated pull requests carrying the `minor` label. Their entries
+          render under "Possible Breaking Changes". The caller looks the labels
+          up; the action takes no token.
+        required: false
+        type: string
+        default: ''
+      release-branch:
+        description: 'Branch the release is cut from.'
+        required: false
+        type: string
+        default: 'main'
+      docs-branch:
+        description: 'Branch holding the rendered changelog.'
+        required: false
+        type: string
+        default: 'docs'
+    secrets:
+      deploy_key:
+        description: 'Deploy key with write access. Without it the run''s own token is used.'
+        required: false
+
+concurrency:
+  group: changelog-docs
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  rollup:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.release-branch }}
+          fetch-depth: 0
+          ssh-key: ${{ secrets.deploy_key }}
+
+      # Checked out outside the tracked tree so it survives the replay's branch
+      # switches. The ref cannot be derived: `github.job_workflow_sha` is empty
+      # inside a called workflow, and `workflow_ref` describes the caller.
+      - uses: actions/checkout@v4
+        with:
+          repository: awslabs/aws-crt-builder
+          ref: ${{ inputs.builder-ref }}
+          path: .crt-builder
+
+      - name: Roll the fragments up into a release section
+        uses: ./.crt-builder/.github/actions/changelog
+        with:
+          mode: rollup
+          version: ${{ inputs.version }}
+          date: ${{ inputs.date }}
+          minor-prs: ${{ inputs.minor-prs }}
+          docs-branch: ${{ inputs.docs-branch }}
+
+      - name: Commit the release
+        id: commit
+        env:
+          VERSION: ${{ inputs.version }}
+          RELEASE_BRANCH: ${{ inputs.release-branch }}
+        run: |
+          set -euo pipefail
+          git config user.name "aws-sdk-common-runtime-bot"
+          git config user.email "aws-sdk-common-runtime@amazon.com"
+          git add -A CHANGELOG.md .changes
+          if git diff --cached --quiet; then
+            # Re-running a release is a no-op: the fragments it rendered are gone.
+            echo "rollup changed nothing; nothing to commit"
+            echo "sha=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git commit -m "Roll the changelog up into ${VERSION}"
+          git push origin "HEAD:${RELEASE_BRANCH}"
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      # A push made with the run's own token cannot trigger another workflow, so
+      # the mirroring Changelog Render would have done happens here instead.
+      - name: Replay the release onto the docs branch
+        if: steps.commit.outputs.sha != ''
+        env:
+          TRIGGER_SHA: ${{ steps.commit.outputs.sha }}
+          DOCS_BRANCH: ${{ inputs.docs-branch }}
+          CHANGELOG_PY: ${{ github.workspace }}/.crt-builder/.github/actions/changelog/scripts/changelog.py
+        run: bash .crt-builder/.github/workflows/changelog-replay.sh
