@@ -7,19 +7,72 @@ import re
 from pathlib import Path
 
 from fragments import _err, load_preview
-from render import END, HEADING, PR_PREFIX, render_grouped, set_region
+from render import HEADING, PR_PREFIX, UNRELEASED_END, render_grouped, set_unreleased
 
 ISO_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
-# Anchored where it is used: searching would match a version inside an entry's
-# prose and archive the wrong line.
 VERSION_RE = re.compile(r"(\d+)\.(\d+)\.\d+")
-# Archived lines are listed last, after every release section. Only a release
-# writes this; the docs render never touches it.
 EARLIER = "## Earlier releases"
 
 
+def insert_section(text, section):
+    """Add a release's section to the file, directly below the unreleased block.
+
+    Every release does this and nothing else does. Releases therefore accumulate
+    newest-first, and the ones already published are never rewritten.
+    """
+    head, _, tail = text.partition(UNRELEASED_END)
+    return f"{head}{UNRELEASED_END}\n\n{section.rstrip()}\n\n{tail.lstrip()}".rstrip() + "\n"
+
+
+def archive_closed_line(text, changes, line):
+    """Move a closed minor version line's releases out to .changes/<line>.md.
+
+    Only a release opening a new minor line does this, so the root carries just the
+    line being released into. Everything below the unreleased block *is* the closing
+    line, so nothing needs reading to decide what belongs. The root's own list of
+    archives is dropped rather than carried along, and every link gains one `..`
+    because the archive sits a directory deeper.
+
+    Returns the remaining text, or None when an existing archive would be
+    overwritten with different content -- it is the permanent record for that line.
+    An identical write is allowed, being a retry.
+    """
+    head, _, below = text.partition(UNRELEASED_END)
+    at = below.find("\n## ")
+    moved = below[at + 1:].partition("\n" + EARLIER)[0].strip()
+    archive = (f"{HEADING} — {line}\n\nCurrent releases are in the "
+               f"[top-level changelog](../CHANGELOG.md).\n\n"
+               f"{moved.replace(f']({PR_PREFIX}', f'](../{PR_PREFIX}')}\n")
+    target = changes / f"{line}.md"
+    if target.exists() and target.read_text() != archive:
+        _err(f"{target} already exists with different content; archiving {line} "
+             f"would overwrite it")
+        return None
+    target.write_text(archive)
+    return head + UNRELEASED_END + below[:at + 1].rstrip() + "\n"
+
+
+def set_archive_list(text, changes):
+    """Replace the trailing list of archived lines, newest first.
+
+    Rebuilt from the archives present rather than from a list kept in the file, so
+    one written by hand at adoption is picked up without being registered anywhere.
+    """
+    text = text.partition("\n" + EARLIER)[0].rstrip() + "\n"
+    archives = sorted(changes.glob("*.x.md"), reverse=True,
+                      key=lambda p: [int(x) for x in p.name.split(".")[:2]])
+    if not archives:
+        return text
+    return (f"{text}\n{EARLIER}\n\n"
+            + "\n".join(f"- [{p.stem}]({changes.name}/{p.name})" for p in archives) + "\n")
+
+
 def cmd_rollup(args):
-    """Insert this release's section, archive the line it closes, drop the fragments.
+    """The only way a release edits the file: validate, render, then route.
+
+    A patch release adds its section and stops. A release opening a new minor
+    version line archives the line it closes first, and that is the whole difference
+    between the two.
 
     Re-running it is a no-op: the fragments are gone, so there is nothing left to
     insert. That matters because a release job that fails after this step -- on the
@@ -27,26 +80,12 @@ def cmd_rollup(args):
     release instead, since releasing would delete it unrendered and lose the entry
     rather than merely delay it.
 
-    In the release branch's copy of the file, the marked unreleased region holds a
-    link to the docs branch rather than the list of unreleased changes itself: only
-    a release rewrites this file, so a list of what is in flight would sit
-    permanently stale. A docs branch whose name contains a slash is named rather
-    than linked, since ../../blob/<branch>/CHANGELOG.md reaches the repo root only
-    for a one-segment name.
-
-    The new section goes directly below that region, so a line's releases accumulate
-    newest-first and the ones already published are never rewritten.
-
-    A release opening a new minor version line closes the old one, moving its
-    sections to .changes/<M>.<N>.x.md so the root only ever carries the line being
-    released into. Everything below the region *is* the closing line, so nothing
-    needs reading to decide what belongs; the root's own list of archives is dropped
-    rather than carried along, and every link gains one `..` because the archive
-    sits a directory deeper. An existing archive is never overwritten with different
-    content -- it is the permanent record for that line -- but an identical write is
-    allowed, being a retry. That list of archives is rebuilt from the files present
-    rather than kept in the file, so one written by hand at adoption is picked up
-    without being registered anywhere.
+    In the release branch's copy of the file, the unreleased block holds a link to
+    the docs branch rather than the list of unreleased changes itself: only a release
+    rewrites this file, so a list of what is in flight would sit permanently stale. A
+    docs branch whose name contains a slash is named rather than linked, since
+    ../../blob/<branch>/CHANGELOG.md reaches the repo root only for a one-segment
+    name.
     """
     if not ISO_DATE_RE.match(args.date):
         _err(f"--date must be YYYY-MM-DD, got {args.date!r}")
@@ -65,46 +104,28 @@ def cmd_rollup(args):
     if not all(p.isdigit() for p in labelled):
         _err(f"--minor-prs must be pull request numbers, got {args.minor_prs!r}")
         return 2
+
     body = render_grouped(fragments, {int(p) for p in labelled})
     section = f"## [{args.version}] — {args.date}\n\n{body}" if body else ""
 
     path = Path(args.changelog)
     text = path.read_text() if path.exists() else ""
     docs = args.docs_branch
-    text = set_region(text, f"Unreleased changes are on the `{docs}` branch.\n"
-                      if "/" in docs else "Unreleased changes can be found "
-                      f"[here](../../blob/{docs}/CHANGELOG.md).\n")
-
-    closing = VERSION_RE.match(text.partition("\n## [")[2])
-    opening = VERSION_RE.match(args.version)
-    if section and closing and opening and closing.group(1, 2) != opening.group(1, 2):
-        line = f"{closing.group(1)}.{closing.group(2)}.x"
-        head, _, below = text.partition(END)
-        at = below.find("\n## ")
-        moved = below[at + 1:].partition("\n" + EARLIER)[0].strip()
-        archive = (f"{HEADING} — {line}\n\nCurrent releases are in the "
-                   f"[top-level changelog](../CHANGELOG.md).\n\n"
-                   f"{moved.replace(f']({PR_PREFIX}', f'](../{PR_PREFIX}')}\n")
-        target = changes / f"{line}.md"
-        if target.exists() and target.read_text() != archive:
-            _err(f"{target} already exists with different content; releasing "
-                 f"{args.version} would overwrite it")
-            return 2
-        target.write_text(archive)
-        text = head + END + below[:at + 1].rstrip() + "\n"
+    text = set_unreleased(text, f"Unreleased changes are on the `{docs}` branch.\n"
+                          if "/" in docs else "Unreleased changes can be found "
+                          f"[here](../../blob/{docs}/CHANGELOG.md).\n")
 
     if section:
-        head, _, tail = text.partition(END)
-        text = f"{head}{END}\n\n{section.rstrip()}\n\n{tail.lstrip()}".rstrip() + "\n"
+        closing = VERSION_RE.match(text.partition("\n## [")[2])
+        opening = VERSION_RE.match(args.version)
+        if closing and opening and closing.group(1, 2) != opening.group(1, 2):
+            text = archive_closed_line(
+                text, changes, f"{closing.group(1)}.{closing.group(2)}.x")
+            if text is None:
+                return 2
+        text = insert_section(text, section)
 
-    text = text.partition("\n" + EARLIER)[0].rstrip() + "\n"
-    archives = sorted(changes.glob("*.x.md"), reverse=True,
-                      key=lambda p: [int(x) for x in p.name.split(".")[:2]])
-    if archives:
-        text += (f"\n{EARLIER}\n\n"
-                 + "\n".join(f"- [{p.stem}]({changes.name}/{p.name})" for p in archives)
-                 + "\n")
-    path.write_text(text)
+    path.write_text(set_archive_list(text, changes))
 
     for f in on_disk:
         f.unlink()
