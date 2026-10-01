@@ -7,8 +7,8 @@ import re
 from pathlib import Path
 
 from fragments import _err, load_preview
-from render import archive_line, earlier_releases, insert_release, \
-    render_release_section, set_earlier, set_region, unreleased_pointer
+from render import archive_line, insert_release, render_release_section, \
+    set_earlier, set_region, unreleased_pointer
 
 ISO_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 VERSION_RE = re.compile(r"(\d+)\.(\d+)\.\d+")
@@ -75,8 +75,7 @@ def cmd_rollup(args):
             return 2
         target.write_text(archive)
 
-    path.write_text(set_earlier(insert_release(text, section),
-                                earlier_releases(changes)))
+    path.write_text(set_earlier(insert_release(text, section), changes))
 
     for f in on_disk:
         f.unlink()
