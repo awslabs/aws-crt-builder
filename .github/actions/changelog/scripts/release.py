@@ -18,11 +18,6 @@ VERSION_RE = re.compile(r"(\d+)\.(\d+)\.\d+")
 EARLIER = "## Earlier releases"
 
 
-def _minor(match):
-    """(major, minor) of a matched version, for deciding which line is closing."""
-    return tuple(int(g) for g in match.group(1, 2)) if match else None
-
-
 def cmd_rollup(args):
     """Insert this release's section, archive the line it closes, drop the fragments.
 
@@ -66,10 +61,10 @@ def cmd_rollup(args):
     # A new minor version line closes the old one: its sections move out to an
     # archive, so the root only ever carries the line being released into. Nothing
     # to close if this release renders nothing, or if either version does not parse.
-    closing = _minor(VERSION_RE.match(text.partition("\n## [")[2]))
-    opening = _minor(VERSION_RE.match(args.version))
-    if section and closing and opening and closing != opening:
-        line = f"{closing[0]}.{closing[1]}.x"
+    closing = VERSION_RE.match(text.partition("\n## [")[2])
+    opening = VERSION_RE.match(args.version)
+    if section and closing and opening and closing.group(1, 2) != opening.group(1, 2):
+        line = f"{closing.group(1)}.{closing.group(2)}.x"
         # Everything below the region *is* the closing line, so nothing needs
         # reading to decide what belongs. The root's own list of archives sits
         # below those sections and is dropped rather than carried into the file,
