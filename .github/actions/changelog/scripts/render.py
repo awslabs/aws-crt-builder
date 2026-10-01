@@ -52,14 +52,16 @@ def render_grouped(fragments, minor_prs=()):
 
 
 def set_region(text, region):
-    """Replace the unreleased region, adding it and the file's shape on a first run."""
+    """Replace the unreleased region, adding it and the file's shape on a first run.
+
+    A file that already has a heading -- an adopting repo's does -- keeps it rather
+    than gaining a second one above it.
+    """
     if START in text and END in text:
         head, _, rest = text.partition(START)
         _, _, tail = rest.partition(END)
         return f"{head}{START}\n{region}{END}{tail}"
     body = text.lstrip("\n")
-    # Reuse the file's own heading when it has one -- an adopting repo does --
-    # rather than adding a second heading above it.
     heading, _, rest = body.partition("\n") if body.startswith("# ") else (HEADING, "", body)
     rest = rest.lstrip("\n")
     return (f"{heading}\n\n{START}\n{region}{END}\n"
