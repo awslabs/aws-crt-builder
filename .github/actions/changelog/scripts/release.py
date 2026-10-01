@@ -27,11 +27,15 @@ def cmd_rollup(args):
     release instead, since releasing would delete it unrendered and lose the entry
     rather than merely delay it.
 
-    The region on this branch points at the docs branch instead of holding the
-    unreleased list, because only a release rewrites this file and a list would sit
+    In the release branch's copy of the file, the marked unreleased region holds a
+    link to the docs branch rather than the list of unreleased changes itself: only
+    a release rewrites this file, so a list of what is in flight would sit
     permanently stale. A docs branch whose name contains a slash is named rather
     than linked, since ../../blob/<branch>/CHANGELOG.md reaches the repo root only
     for a one-segment name.
+
+    The new section goes directly below that region, so a line's releases accumulate
+    newest-first and the ones already published are never rewritten.
 
     A release opening a new minor version line closes the old one, moving its
     sections to .changes/<M>.<N>.x.md so the root only ever carries the line being
@@ -40,12 +44,9 @@ def cmd_rollup(args):
     rather than carried along, and every link gains one `..` because the archive
     sits a directory deeper. An existing archive is never overwritten with different
     content -- it is the permanent record for that line -- but an identical write is
-    allowed, being a retry.
-
-    The section goes directly below the region, so a line's releases accumulate
-    newest-first and older ones are never rewritten. The trailing list of archives
-    is rebuilt from the files present rather than kept in the file, so one written
-    by hand at adoption is picked up without being registered anywhere.
+    allowed, being a retry. That list of archives is rebuilt from the files present
+    rather than kept in the file, so one written by hand at adoption is picked up
+    without being registered anywhere.
     """
     if not ISO_DATE_RE.match(args.date):
         _err(f"--date must be YYYY-MM-DD, got {args.date!r}")
