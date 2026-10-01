@@ -1,19 +1,21 @@
 """Fragments to markdown, and the one edit the docs branch makes.
 
-The file is not regenerated. Only the unreleased region is rewritten, and only on
+The file is not regenerated. Only the unreleased block is rewritten, and only on
 the docs branch, where it is derived from preview/ on every merge. A release
-inserts its section below that region and never touches what is already there, so
-a published entry cannot change under a reader -- see release.py.
+inserts its section below that block and never touches what is already there, so a
+published entry cannot change under a reader -- see release.py.
 """
 from pathlib import Path
 
 from fragments import BREAKING_SECTION, CATEGORY, load_preview
 
 HEADING = "# Changelog"
-# The region is bounded by markers rather than found by position, so an editor
-# adding prose around it cannot move what gets replaced.
-START = "<!-- changelog:unreleased -->"
-END = "<!-- /changelog:unreleased -->"
+# The unreleased block is bounded by markers rather than found by position, so an
+# editor adding prose around it cannot move what gets replaced. It holds the
+# unreleased list on the docs branch and a link to it on the release branch; every
+# line outside it is history and is never rewritten.
+UNRELEASED_START = "<!-- changelog:unreleased -->"
+UNRELEASED_END = "<!-- /changelog:unreleased -->"
 SENTENCE_END = (".", "!", "?")
 # Relative, so no repo name is stored. An archive one directory deeper needs one
 # more `..`, which the release derives from this rather than restating it.
@@ -51,28 +53,28 @@ def render_grouped(fragments, minor_prs=()):
     return "\n".join(lines).rstrip() + "\n" if lines else ""
 
 
-def set_region(text, region):
-    """Replace the unreleased region, adding it and the file's shape on a first run.
+def set_unreleased(text, block):
+    """Replace the unreleased block, adding it and the file's shape on a first run.
 
     A file that already has a heading -- an adopting repo's does -- keeps it rather
     than gaining a second one above it.
     """
-    if START in text and END in text:
-        head, _, rest = text.partition(START)
-        _, _, tail = rest.partition(END)
-        return f"{head}{START}\n{region}{END}{tail}"
+    if UNRELEASED_START in text and UNRELEASED_END in text:
+        head, _, rest = text.partition(UNRELEASED_START)
+        _, _, tail = rest.partition(UNRELEASED_END)
+        return f"{head}{UNRELEASED_START}\n{block}{UNRELEASED_END}{tail}"
     body = text.lstrip("\n")
     heading, _, rest = body.partition("\n") if body.startswith("# ") else (HEADING, "", body)
     rest = rest.lstrip("\n")
-    return (f"{heading}\n\n{START}\n{region}{END}\n"
+    return (f"{heading}\n\n{UNRELEASED_START}\n{block}{UNRELEASED_END}\n"
             + (f"\n{rest}" if rest.strip() else ""))
 
 
 def cmd_render(args):
-    """Refresh the unreleased region. The docs branch runs this on every merge."""
+    """Refresh the unreleased block. The docs branch runs this on every merge."""
     path = Path(args.changelog)
     body = render_grouped(load_preview(args.changes_dir)) or "_Nothing yet._\n"
     text = path.read_text() if path.exists() else ""
-    path.write_text(set_region(text, f"## [Unreleased]\n\n{body}"))
+    path.write_text(set_unreleased(text, f"## [Unreleased]\n\n{body}"))
     print(f"rendered → {args.changelog}")
     return 0

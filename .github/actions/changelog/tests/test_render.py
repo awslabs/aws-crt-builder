@@ -78,12 +78,12 @@ def test_the_unreleased_region_is_replaced_not_appended(tmp_path):
     _seed(tmp_path, 2, "feat: Second")
     text = _render(tmp_path)
     assert "Second" in text and "First" not in text
-    assert text.count(render.START) == 1
+    assert text.count(render.UNRELEASED_START) == 1
 
 
 def test_rendering_leaves_released_sections_alone(tmp_path):
     (tmp_path / "CHANGELOG.md").write_text(
-        render.set_region("", "") + "\n## [1.0.0] — 2026-01-01\n\n### Features\n- Old. (#1)\n")
+        render.set_unreleased("", "") + "\n## [1.0.0] — 2026-01-01\n\n### Features\n- Old. (#1)\n")
     _seed(tmp_path, 2, "feat: New")
     text = _render(tmp_path)
     assert "## [1.0.0]" in text and "Old." in text and "New." in text
@@ -92,7 +92,7 @@ def test_rendering_leaves_released_sections_alone(tmp_path):
 def test_a_file_with_no_markers_gains_them(tmp_path):
     (tmp_path / "CHANGELOG.md").write_text("# Changelog\n\n## [0.9.0]\n\nHand-written.\n")
     text = _render(tmp_path)
-    assert render.START in text and "Hand-written." in text
+    assert render.UNRELEASED_START in text and "Hand-written." in text
 
 
 def test_an_existing_heading_is_reused_not_duplicated(tmp_path):
@@ -102,7 +102,7 @@ def test_an_existing_heading_is_reused_not_duplicated(tmp_path):
         "# Changelog\n\n## [1.0.0]\n\nOfficial release of 1.0.0.\n")
     text = _render(tmp_path)
     assert text.count("# Changelog") == 1
-    assert text.index(render.START) < text.index("## [1.0.0]")
+    assert text.index(render.UNRELEASED_START) < text.index("## [1.0.0]")
     assert "Official release of 1.0.0." in text
 
 
