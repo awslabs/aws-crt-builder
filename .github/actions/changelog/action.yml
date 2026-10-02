@@ -21,25 +21,15 @@ inputs:
     description: 'Pull request number.'
     required: false
   title:
-    description: >-
-      PR title. In check mode the change type is derived from it, which decides
-      whether a fragment is required at all; in seed mode it seeds the type,
-      falling back to chore.
+    description: 'PR title. In check mode the change type is derived from it, which decides whether a fragment is required at all; in seed mode it seeds the type, falling back to chore.'
     required: false
   # check
   changed-paths-file:
-    description: >-
-      File of `status<TAB>path` lines for the pull request's changed files.
-      Derived from the pull request when not given; supply it to override. A
-      customer-visible change must add exactly one new fragment at exactly its own
-      path.
+    description: 'File of `status<TAB>path` lines for the pull request''s changed files. Derived from the pull request when not given; supply it to override. A customer-visible change must add exactly one new fragment at exactly its own path.'
     required: false
     default: ''
   token:
-    description: >-
-      Token used to comment the template on a pull request missing a fragment.
-      A pull request from a fork gets a read-only one however it is asked for, so
-      the run summary is where the template always lands.
+    description: 'Token used to comment the template on a pull request missing a fragment. A pull request from a fork gets a read-only one however it is asked for, so the run summary is where the template always lands.'
     required: false
     default: ${{ github.token }}
   changes-prefix:
@@ -47,16 +37,12 @@ inputs:
     required: false
     default: '.changes'
   bot-author:
-    description: >-
-      Login of the PR author when it is a bot. Non-empty waives both the title
-      convention and the fragment requirement.
+    description: 'Login of the PR author when it is a bot. Non-empty waives both the title convention and the fragment requirement.'
     required: false
     default: ''
   # seed
   out:
-    description: >-
-      Where to write the template. Keep it outside the changes directory: it is a
-      starting point for the author, not a fragment the pull request committed.
+    description: 'Where to write the template. Keep it outside the changes directory: it is a starting point for the author, not a fragment the pull request committed.'
     required: false
     default: ''
   # rollup
@@ -67,10 +53,7 @@ inputs:
     description: 'Release date, ISO-8601.'
     required: false
   minor-prs:
-    description: >-
-      Comma-separated pull requests carrying the `minor` label. Their
-      entries render under "Possible Breaking Changes" instead of their own
-      type section. The caller looks the labels up.
+    description: 'Comma-separated pull requests carrying the `minor` label. Their entries render under "Possible Breaking Changes" instead of their own type section. The caller looks the labels up.'
     required: false
     default: ''
   docs-branch:
@@ -80,16 +63,10 @@ inputs:
 
 outputs:
   rc:
-    description: >-
-      check mode: 0 pass, 1 author-fixable, 2 caller error. The step fails on
-      anything but 0, so read this only from a step with `if: always()`.
+    description: 'check mode: 0 pass, 1 author-fixable, 2 caller error. The step fails on anything but 0, so read this only from a step with `if: always()`.'
     value: ${{ steps.run.outputs.rc }}
   reason:
-    description: >-
-      check mode: ok | exempt-type | waived-bot | missing-fragment |
-      invalid-fragment | pr-mismatch | type-mismatch | bad-title |
-      stray-fragment | modified-fragment. Empty when the caller's own inputs are
-      wrong (rc 2), since no check ran.
+    description: 'check mode: ok | exempt-type | waived-bot | missing-fragment | invalid-fragment | pr-mismatch | type-mismatch | bad-title | stray-fragment | modified-fragment. Empty when the caller''s own inputs are wrong (rc 2), since no check ran.'
     value: ${{ steps.run.outputs.reason }}
 
 runs:
