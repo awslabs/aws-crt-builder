@@ -1,0 +1,69 @@
+# Mirror the release branch onto the docs branch, rendering the unreleased
+# changelog into every commit. The release branch takes no bot commits.
+#
+# A consumer repository holds only the trigger that calls this:
+#
+#   on:
+#     push:
+#       branches: [main]
+#   jobs:
+#     render:
+#       uses: awslabs/aws-crt-builder/.github/workflows/changelog-render.yml@main
+#       secrets: inherit
+
+name: Changelog Render
+
+on:
+  workflow_call:
+    inputs:
+      builder-ref:
+        description: >-
+          Ref of this repository supplying the action and the replay script. Pin
+          it to whatever ref the caller pinned this workflow to.
+        required: false
+        type: string
+        default: 'main'
+      docs-branch:
+        description: 'Branch holding the rendered changelog.'
+        required: false
+        type: string
+        default: 'docs'
+    secrets:
+      deploy_key:
+        description: >-
+          Deploy key with write access, for a docs branch whose pushes must
+          trigger further workflows. Without it the run's own token is used,
+          which cannot.
+        required: false
+
+concurrency:
+  group: changelog-docs
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  render:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ssh-key: ${{ secrets.deploy_key }}
+
+      # Checked out outside the tracked tree so it survives the replay's branch
+      # switches. The ref cannot be derived: `github.job_workflow_sha` is empty
+      # inside a called workflow, and `workflow_ref` describes the caller.
+      - uses: actions/checkout@v4
+        with:
+          repository: awslabs/aws-crt-builder
+          ref: ${{ inputs.builder-ref }}
+          path: .crt-builder
+
+      - name: Replay onto the docs branch
+        env:
+          TRIGGER_SHA: ${{ github.sha }}
+          DOCS_BRANCH: ${{ inputs.docs-branch }}
+          CHANGELOG_PY: ${{ github.workspace }}/.crt-builder/.github/actions/changelog/scripts/changelog.py
+        run: bash .crt-builder/.github/workflows/changelog-replay.sh

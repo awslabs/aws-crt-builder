@@ -7,11 +7,46 @@ Fragment-based changelog. A pull request adds one JSON fragment; a release rende
 | mode | who runs it | what it does |
 |---|---|---|
 | `check` | pull request CI | assert the title convention and the fragment agree |
-| `seed` | pull request CI | write the template the bot comments with |
+| `seed` | pull request CI | write the template offered to the author |
 | `render` | every merge, on the docs branch | refresh the unreleased region |
 | `rollup` | the release job | insert this release's section and drop the fragments |
 
 It holds no token and needs no network.
+
+## Wiring it up
+
+`check` and `rollup` are steps in a job a consumer already has — a pre-merge check and a release — so they are calls to this action:
+
+```yaml
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: awslabs/aws-crt-builder/.github/actions/changelog@main
+        with:
+          mode: check
+```
+
+That is the whole call. The pull request number, title, author and changed paths come from the event, and the step fails when the check does. Granting the job `pull-requests: write` additionally comments the template; without it the template still lands in the run summary, which is also what happens for a pull request from a fork, since those get a read-only token however the job asks.
+
+A release calls the same action with `mode: rollup`, `version` and `date`, then commits `CHANGELOG.md` and `.changes/` with whatever it already uses to commit the version bump.
+
+Only the docs render needs a job of its own — nothing else is triggered by a push to the release branch — so it is the one reusable workflow:
+
+```yaml
+name: Changelog Render
+on:
+  push:
+    branches: [main]
+jobs:
+  render:
+    permissions:
+      contents: write
+    uses: awslabs/aws-crt-builder/.github/workflows/changelog-render.yml@main
+```
+
+A repo passes `with:` only where it differs from the defaults, `main` and `docs`. The workflow checks this repo out to reach the replay script, at the ref given by `builder-ref` — a called workflow cannot discover its own ref, since `github.job_workflow_sha` is empty inside one and `workflow_ref` describes the caller. A repo pinning the workflow to anything other than `main` should pin `builder-ref` to match.
+
+`changelog-replay.sh` mirrors the release branch onto the docs branch. It replays whatever is missing rather than what the push event named: one push can carry several commits, and a concurrency group holds only one pending run, so a cancelled run costs nothing and a re-run is a no-op. That is also what catches a release up — a release commit pushed with the run's own token triggers nothing, so docs mirrors it on the next push to the release branch.
 
 ## The rules a pull request must follow
 
@@ -20,7 +55,7 @@ It holds no token and needs no network.
 - A `chore` needs no fragment: it renders nowhere, so an entry would be invisible. A CI-only or pure-infra change is a `chore`, so nothing waives the check — the type already exempts it.
 - A bot author waives both the title convention and the fragment.
 
-Forgetting is fine: the check comments a ready-to-paste template with the type and summary already derived from the title. That comment is the whole contributor-facing surface.
+Forgetting is fine: the check writes a ready-to-paste template, with the type and summary already derived from the title, into the run's summary — and comments it on the pull request when it has a token that can write. A pull request raised from a fork does not get one, however the workflow asks, so the summary is the guarantee and the comment is the courtesy.
 
 ## Fragment schema
 
