@@ -125,13 +125,6 @@ scripts/render.py       fragments to markdown, and the three edits to the file
 scripts/release.py      cutting a release
 scripts/check.py        the CI gate
 scripts/changelog.py    the CLI; the only entry point
-tests/                  one file per module, fixtures in tests/helpers.py
 ```
 
 Imports only ever point down that list — `render` may use `fragments`, never the other way, and nothing imports `changelog`. `python3 changelog.py` resolves its siblings because the script's own directory is first on `sys.path`, so the directory can be copied anywhere and run with no packaging.
-
-## Local testing
-
-```
-python3 -m pytest .github/actions/changelog/tests -q
-```
