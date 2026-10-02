@@ -29,7 +29,7 @@ jobs:
 
 A repo passes `with:` only where it differs from the defaults, `main` and `docs`. Each workflow checks this repo out to reach the action, at the ref given by `builder-ref` — a called workflow cannot discover its own ref, since `github.job_workflow_sha` is empty inside one and `workflow_ref` describes the caller. A repo pinning the workflow to anything other than `main` should pin `builder-ref` to match.
 
-The render and rollup workflows share `changelog-replay.sh`, which mirrors the release branch onto the docs branch. It replays whatever is missing rather than what the push event named: one push can carry several commits, and a concurrency group holds only one pending run, so a cancelled run costs nothing and a re-run is a no-op. `changelog-replay-test.sh` covers both against a scratch repository.
+The render and rollup workflows share `changelog-replay.sh`, which mirrors the release branch onto the docs branch. It replays whatever is missing rather than what the push event named: one push can carry several commits, and a concurrency group holds only one pending run, so a cancelled run costs nothing and a re-run is a no-op.
 
 ## The rules a pull request must follow
 
