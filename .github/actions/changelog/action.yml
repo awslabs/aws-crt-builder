@@ -1,5 +1,8 @@
 name: 'Changelog'
 description: 'Check a pull request''s changelog fragment, seed a template for one, or roll fragments up into a release. Fragments are author-written; no bot ever writes one on the author''s behalf.'
+# check and rollup are steps in a job the caller already has -- a pre-merge check
+# and a release. Only the docs render needs a job of its own, so that is the one
+# reusable workflow: see .github/workflows/changelog-render.yml.
 
 inputs:
   mode:
@@ -26,11 +29,19 @@ inputs:
   # check
   changed-paths-file:
     description: >-
-      File of `status<TAB>path` lines for the pull request's changed files. When
-      given, a customer-visible change must add exactly one new fragment at
-      exactly its own path.
+      File of `status<TAB>path` lines for the pull request's changed files.
+      Derived from the pull request when not given; supply it to override. A
+      customer-visible change must add exactly one new fragment at exactly its own
+      path.
     required: false
     default: ''
+  token:
+    description: >-
+      Token used to comment the template on a pull request missing a fragment.
+      A pull request from a fork gets a read-only one however it is asked for, so
+      the run summary is where the template always lands.
+    required: false
+    default: ${{ github.token }}
   changes-prefix:
     description: 'Repo-relative changes directory, for matching changed paths.'
     required: false
@@ -59,7 +70,7 @@ inputs:
     description: >-
       Comma-separated pull requests carrying the `minor` label. Their
       entries render under "Possible Breaking Changes" instead of their own
-      type section. The caller looks the labels up; this action takes no token.
+      type section. The caller looks the labels up.
     required: false
     default: ''
   docs-branch:
@@ -69,7 +80,9 @@ inputs:
 
 outputs:
   rc:
-    description: 'check mode: 0 pass, 1 author-fixable, 2 caller error.'
+    description: >-
+      check mode: 0 pass, 1 author-fixable, 2 caller error. The step fails on
+      anything but 0, so read this only from a step with `if: always()`.
     value: ${{ steps.run.outputs.rc }}
   reason:
     description: >-
@@ -93,6 +106,8 @@ runs:
         TITLE: ${{ inputs.title }}
         BOT_AUTHOR: ${{ inputs.bot-author }}
         CHANGED_PATHS_FILE: ${{ inputs.changed-paths-file }}
+        GH_TOKEN: ${{ inputs.token }}
+        MARKER: '<!-- changelog-fragment-template -->' 
         CHANGES_PREFIX: ${{ inputs.changes-prefix }}
         OUT: ${{ inputs.out }}
         VERSION: ${{ inputs.version }}
@@ -106,9 +121,25 @@ runs:
         SCRIPT="${GITHUB_ACTION_PATH}/scripts/changelog.py"
         case "${MODE}" in
           check)
-            # Does not fail the step. The caller reads `rc` and `reason` and
-            # decides -- a missing fragment earns a template comment first,
-            # every other failure only gets the diagnostic above.
+            EV="${GITHUB_EVENT_PATH:-/dev/null}"
+            PR="${PR:-$(jq -r '.pull_request.number // empty' "${EV}")}"
+            TITLE="${TITLE:-$(jq -r '.pull_request.title // empty' "${EV}")}"
+            BOT_AUTHOR="${BOT_AUTHOR:-$(jq -r \
+              'select(.pull_request.user.type == "Bot") | .pull_request.user.login // empty' \
+              "${EV}")}"
+            if [[ -z "${CHANGED_PATHS_FILE}" ]]; then
+              BASE="$(jq -r '.pull_request.base.sha // empty' "${EV}")"
+              HEAD="$(jq -r '.pull_request.head.sha // empty' "${EV}")"
+              if [[ -n "${BASE}" && -n "${HEAD}" ]]; then
+                CHANGED_PATHS_FILE="${RUNNER_TEMP}/changed-paths.tsv"
+                # The status is spelled the way the pull request files API spells
+                # it, not as git's single letter.
+                git diff --name-status "${BASE}...${HEAD}" \
+                  | awk -F'\t' 'BEGIN{OFS="\t"} {s=substr($1,1,1); n="changed"; if(s=="A")n="added"; else if(s=="M")n="modified"; else if(s=="D")n="removed"; else if(s=="R")n="renamed"; print n,$NF}' \
+                  > "${CHANGED_PATHS_FILE}"
+              fi
+            fi
+
             OUT_FILE="$(mktemp)"
             set +e
             python3 "${SCRIPT}" check --pr "${PR}" --title "${TITLE}" \
@@ -117,12 +148,32 @@ runs:
               --changes-prefix "${CHANGES_PREFIX}" | tee "${OUT_FILE}"
             rc="${PIPESTATUS[0]}"
             set -e
-            {
-              echo "rc=${rc}"
-              echo "reason=$(grep -o 'CHANGELOG_CHECK_REASON::[a-z-]*' "${OUT_FILE}" \
-                              | tail -n1 | cut -d: -f3 || true)"
-            } >> "${GITHUB_OUTPUT}"
+            reason="$(grep -o 'CHANGELOG_CHECK_REASON::[a-z-]*' "${OUT_FILE}" \
+                        | tail -n1 | cut -d: -f3 || true)"
+            { echo "rc=${rc}"; echo "reason=${reason}"; } >> "${GITHUB_OUTPUT}"
             rm -f "${OUT_FILE}"
+
+            if [[ "${reason}" == "missing-fragment" ]]; then
+              TEMPLATE="${RUNNER_TEMP}/fragment-template.json"
+              python3 "${SCRIPT}" seed --pr "${PR}" --title "${TITLE}" --out "${TEMPLATE}"
+              COMMENT="${RUNNER_TEMP}/fragment-comment.md"
+              { echo "${MARKER}"
+                echo "Commit this as \`${CHANGES_PREFIX}/preview/${PR}.json\`:"
+                echo
+                echo '```json'
+                cat "${TEMPLATE}"
+                echo '```'
+              } > "${COMMENT}"
+              cat "${COMMENT}" >> "${GITHUB_STEP_SUMMARY:-/dev/stdout}"
+              if gh pr view "${PR}" --json comments -q '.comments[].body' 2>/dev/null \
+                   | grep -qF "${MARKER}"; then
+                echo "the template has already been commented"
+              else
+                gh pr comment "${PR}" --body-file "${COMMENT}" \
+                  || echo "::notice::Could not comment (a pull request from a fork gets a read-only token); the template is in this run's summary."
+              fi
+            fi
+            exit "${rc}"
             ;;
           seed)
             python3 "${SCRIPT}" seed --pr "${PR}" --title "${TITLE}" --out "${OUT}"

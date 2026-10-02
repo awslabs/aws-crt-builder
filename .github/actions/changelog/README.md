@@ -15,7 +15,22 @@ It holds no token and needs no network.
 
 ## Wiring it up
 
-Nothing but a trigger belongs in a consumer repository. Three reusable workflows in this repo hold the wiring — `changelog-check.yml`, `changelog-render.yml` and `changelog-rollup.yml` — so a fix to any of it reaches every repo at once instead of being pasted into each.
+`check` and `rollup` are steps in a job a consumer already has — a pre-merge check and a release — so they are calls to this action:
+
+```yaml
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: awslabs/aws-crt-builder/.github/actions/changelog@main
+        with:
+          mode: check
+```
+
+That is the whole call. The pull request number, title, author and changed paths come from the event, and the step fails when the check does. Granting the job `pull-requests: write` additionally comments the template; without it the template still lands in the run summary, which is also what happens for a pull request from a fork, since those get a read-only token however the job asks.
+
+A release calls the same action with `mode: rollup`, `version` and `date`, then commits `CHANGELOG.md` and `.changes/` with whatever it already uses to commit the version bump.
+
+Only the docs render needs a job of its own — nothing else is triggered by a push to the release branch — so it is the one reusable workflow:
 
 ```yaml
 name: Changelog Render
@@ -24,12 +39,14 @@ on:
     branches: [main]
 jobs:
   render:
+    permissions:
+      contents: write
     uses: awslabs/aws-crt-builder/.github/workflows/changelog-render.yml@main
 ```
 
-A repo passes `with:` only where it differs from the defaults, `main` and `docs`. Each workflow checks this repo out to reach the action, at the ref given by `builder-ref` — a called workflow cannot discover its own ref, since `github.job_workflow_sha` is empty inside one and `workflow_ref` describes the caller. A repo pinning the workflow to anything other than `main` should pin `builder-ref` to match.
+A repo passes `with:` only where it differs from the defaults, `main` and `docs`. The workflow checks this repo out to reach the replay script, at the ref given by `builder-ref` — a called workflow cannot discover its own ref, since `github.job_workflow_sha` is empty inside one and `workflow_ref` describes the caller. A repo pinning the workflow to anything other than `main` should pin `builder-ref` to match.
 
-The render and rollup workflows share `changelog-replay.sh`, which mirrors the release branch onto the docs branch. It replays whatever is missing rather than what the push event named: one push can carry several commits, and a concurrency group holds only one pending run, so a cancelled run costs nothing and a re-run is a no-op.
+`changelog-replay.sh` mirrors the release branch onto the docs branch. It replays whatever is missing rather than what the push event named: one push can carry several commits, and a concurrency group holds only one pending run, so a cancelled run costs nothing and a re-run is a no-op. That is also what catches a release up — a release commit pushed with the run's own token triggers nothing, so docs mirrors it on the next push to the release branch.
 
 ## The rules a pull request must follow
 
