@@ -93,7 +93,12 @@ build_ref() {
   # abi-compliance-checker compares. Forcing DWARF4 just silences the noise.
   #
   # Pass an explicit --branch so both builds resolve deps identically.
+  #
+  # --skip-install: the ABI image already bakes build-essential, so builder's
+  # InstallPackages (apt-get update + install) is redundant here, and running it
+  # in both parallel builds races the apt lock.
   ( cd "$src_dir" && python3 "$BUILDER_PYZ" build -p "$LIB_NAME" \
+      --skip-install \
       --branch "$DEP_BRANCH" \
       --cmake-extra=-DBUILD_SHARED_LIBS=ON \
       --cmake-extra=-DBUILD_TESTING=OFF \
