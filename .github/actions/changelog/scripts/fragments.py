@@ -4,6 +4,7 @@ A fragment is the only state this tool keeps. Once a release renders it into
 CHANGELOG.md the fragment is deleted -- the rendered file is the record from
 then on, and `git log -- .changes` still has every fragment that made it.
 """
+import enum
 import json
 import re
 import sys
@@ -35,12 +36,26 @@ TITLE_RE = re.compile(
 # only they can say WHY it was reverted.
 REVERT_TITLE_RE = re.compile(r'^revert\s+"(.+)"\s*$', re.IGNORECASE)
 
+# A revert of a revert restores a change whose entry already exists, so it needs
+# no entry of its own. Matched on the prefix: GitHub truncates the long titles
+# these produce.
+REVERT_OF_REVERT_RE = re.compile(r'^revert\s+"revert\s', re.IGNORECASE)
+
 REQUIRED = {"pr", "type", "summary"}
 OPTIONAL = {"notes"}
 
 
+class Rc(enum.IntEnum):
+    """Exit codes every command returns."""
+    OK = 0
+    AUTHOR_ERROR = 1  # the pull request author can fix it
+    CALLER_ERROR = 2  # the workflow invoked the tool wrongly
+
+
 def parse_title(title):
     title = title.strip()
+    if REVERT_OF_REVERT_RE.match(title):
+        return "chore", title
     m = TITLE_RE.match(title)
     if m:
         return m.group(1).lower(), m.group(2).strip()
@@ -58,14 +73,16 @@ def validate_fragment(path):
     is rendered inside a marked region and would break every later render. A
     revert must carry notes, since saying why is the only reason it earns an entry.
     Whether `pr` names a real pull request cannot be settled here -- this runs with
-    no token and no network -- so only the placeholder is caught, and `check`
-    asserts the fragment agrees with the pull request its trigger fired for.
+    no token and no network -- so `check` asserts the fragment agrees with the
+    pull request its trigger fired for.
     """
     errs = []
     try:
         data = json.loads(Path(path).read_text())
-    except (OSError, json.JSONDecodeError) as e:
+    except (OSError, ValueError) as e:
         return [f"{path}: invalid JSON: {e}"]
+    if not isinstance(data, dict):
+        return [f"{path}: must be a JSON object, not {type(data).__name__}"]
     for k in sorted(REQUIRED - set(data)):
         errs.append(f"{path}: missing field: {k}")
     extra = sorted(set(data) - REQUIRED - OPTIONAL)
@@ -79,8 +96,6 @@ def validate_fragment(path):
     pr = data.get("pr")
     if not isinstance(pr, int) or isinstance(pr, bool):
         errs.append(f"{path}: pr must be int")
-    elif pr <= 0:
-        errs.append(f"{path}: pr must be the real pull request number, not {pr}")
     for field in ("summary", "notes"):
         if isinstance(data.get(field), str) and "<!--" in data[field]:
             errs.append(f"{path}: {field} must not contain an HTML comment")
@@ -137,7 +152,7 @@ def cmd_seed(args):
     """
     if args.pr <= 0:
         _err(f"--pr must be the real pull request number, not {args.pr}")
-        return 2
+        return Rc.CALLER_ERROR
     pr_type, summary = parse_title(args.title)
     if pr_type is None:
         pr_type = "chore"
@@ -153,4 +168,4 @@ def cmd_seed(args):
         {"pr": args.pr, "type": pr_type, "summary": summary, "notes": ""},
         indent=2) + "\n")
     print(str(out))
-    return 0
+    return Rc.OK
