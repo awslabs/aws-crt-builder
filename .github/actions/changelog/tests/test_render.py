@@ -24,6 +24,12 @@ def test_a_chore_renders_nowhere(tmp_path):
     assert "_Nothing yet._" in text
 
 
+def test_a_chores_notes_render_nowhere(tmp_path):
+    _write(tmp_path, 1, "chore", notes="Internal only.")
+    text = _render(tmp_path)
+    assert "### Notes" not in text and "Internal only." not in text
+
+
 def test_an_empty_section_is_omitted(tmp_path):
     _seed(tmp_path, 1, "feat: Only a feature")
     text = _render(tmp_path)
