@@ -1,4 +1,4 @@
-# changelog
+# Changelog
 
 Fragment-based changelog. A pull request adds one JSON fragment; a release renders the fragments into `CHANGELOG.md` and deletes them. The rendered file is the record — nothing regenerates it, so a published entry cannot change under a reader.
 
@@ -15,10 +15,11 @@ It holds no token and needs no network.
 
 ## The rules a pull request must follow
 
-- The title is `<type>: <summary>`, where type is one of `feat | fix | chore | revert`. An optional scope is fine: `fix(io): Handle EINTR.` The Revert button's `Revert "<original title>"` is accepted as-is.
+- The title is `<type>: <summary>`, where type is one of `feat | fix | chore | revert`. An optional scope is fine: `fix(io): Handle EINTR.` The Revert button's `Revert "<original title>"` is accepted as-is, and a revert of a revert is exempt like a `chore`.
 - A `feat`, `fix` or `revert` needs exactly one fragment, at exactly `.changes/preview/<PR>.json`. A fragment named for another pull request would render under that number; one at another path renders nowhere.
 - A `chore` needs no fragment: it renders nowhere, so an entry would be invisible. A CI-only or pure-infra change is a `chore`, so nothing waives the check — the type already exempts it.
 - A bot author waives both the title convention and the fragment.
+- A stacked pull request retargeted to the release branch after the one below it was squash-merged still carries that one's fragment, so it fails as a stray fragment until it is rebased onto the release branch.
 
 Forgetting is fine: the check comments a ready-to-paste template with the type and summary already derived from the title. That comment is the whole contributor-facing surface.
 
