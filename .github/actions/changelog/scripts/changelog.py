@@ -17,7 +17,6 @@ from release import cmd_rollup
 from render import cmd_render
 
 
-
 def main(argv=None):
     p = argparse.ArgumentParser(prog="changelog")
     sub = p.add_subparsers(dest="cmd", required=True)
