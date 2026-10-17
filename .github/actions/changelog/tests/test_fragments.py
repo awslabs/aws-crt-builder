@@ -71,9 +71,22 @@ def test_an_empty_summary_is_rejected(tmp_path):
     assert fragments.validate_fragment(_at(tmp_path, _valid(summary="  ")))
 
 
-def test_a_placeholder_pr_number_is_rejected(tmp_path):
-    assert fragments.validate_fragment(_at(tmp_path, _valid(pr=0)))
+def test_a_non_integer_pr_number_is_rejected(tmp_path):
     assert fragments.validate_fragment(_at(tmp_path, _valid(pr=True)))
+    assert fragments.validate_fragment(_at(tmp_path, _valid(pr="1")))
+
+
+def test_a_fragment_that_is_not_an_object_is_reported_not_raised(tmp_path):
+    for body in ('"feat: add SSO"', "[1]", "null", "3"):
+        p = tmp_path / "x.json"
+        p.write_text(body)
+        assert any("JSON object" in e for e in fragments.validate_fragment(p))
+
+
+def test_undecodable_bytes_are_reported_not_raised(tmp_path):
+    p = tmp_path / "x.json"
+    p.write_bytes(b'{"summary": "\xff"}')
+    assert fragments.validate_fragment(p)
 
 
 def test_malformed_json_is_reported_not_raised(tmp_path):
@@ -164,3 +177,9 @@ def test_a_fragment_whose_filename_is_not_a_number_is_still_read(tmp_path):
     (tmp_path / ".changes" / "preview" / "extra.json").write_text(
         json.dumps(_valid(pr=5)))
     assert [f["pr"] for f in fragments.load_preview(tmp_path / ".changes")] == [5]
+
+
+def test_a_revert_of_a_revert_needs_no_entry():
+    assert fragments.parse_title('Revert "Revert "feat: x (#1)" (#2)"')[0] == "chore"
+    assert fragments.parse_title('Revert "Revert "Implement a very long ti…')[0] == "chore"
+    assert fragments.parse_title('Revert "feat: x (#1)"')[0] == "revert"
