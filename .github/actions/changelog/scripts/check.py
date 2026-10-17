@@ -1,6 +1,6 @@
 """The CI gate: assert a pull request's title and its fragment agree."""
 
-from fragments import CATEGORY, VALID_TYPES, _err, parse_title, \
+from fragments import CATEGORY, VALID_TYPES, Rc, _err, parse_title, \
     validate_fragment
 from pathlib import Path
 import json
@@ -35,7 +35,7 @@ def check_fragment_changes(args, pr_type, reason):
             f"       number; one at another path renders nowhere, and a released\n"
             f"       entry is already published.")
         reason("stray-fragment")
-        return 1
+        return Rc.AUTHOR_ERROR
 
     status = entries[0][0]
     if status != "added":
@@ -45,7 +45,7 @@ def check_fragment_changes(args, pr_type, reason):
             f"       request is rewriting a released or in-flight entry rather than\n"
             f"       contributing its own. Move the change to a new fragment.")
         reason("modified-fragment")
-        return 1
+        return Rc.AUTHOR_ERROR
 
     return None
 
@@ -72,11 +72,11 @@ def cmd_check(args):
         print(f"OK: #{args.pr} is authored by a bot ({args.bot_author}); "
               "title convention and changelog fragment both waived")
         reason("waived-bot")
-        return 0
+        return Rc.OK
 
     if not title:
         _err("--title is required to derive the change type")
-        return 2
+        return Rc.CALLER_ERROR
 
     pr_type, _summary = parse_title(title)
     if pr_type is None:
@@ -86,12 +86,12 @@ def cmd_check(args):
             f"{sorted(VALID_TYPES)}, an optional scope such as `chore(ci):`,\n"
             f'       or the Revert button\'s `Revert "<original title>"`.')
         reason("bad-title")
-        return 1
+        return Rc.AUTHOR_ERROR
 
     if pr_type not in CATEGORY:
         print(f"OK: #{args.pr} is a `{pr_type}` change; no changelog fragment required")
         reason("exempt-type")
-        return 0
+        return Rc.OK
 
     if args.changed_paths_file:
         rc = check_fragment_changes(args, pr_type, reason)
@@ -107,14 +107,14 @@ def cmd_check(args):
             f"       template is in this run's summary, and is commented here too\n"
             f"       when CI has a token that can write.")
         reason("missing-fragment")
-        return 1
+        return Rc.AUTHOR_ERROR
 
     errs = validate_fragment(frag)
     if errs:
         for e in errs:
             print(e, file=sys.stderr)
         reason("invalid-fragment")
-        return 1
+        return Rc.AUTHOR_ERROR
 
     data = json.loads(frag.read_text())
     declared_pr = data.get("pr")
@@ -122,7 +122,7 @@ def cmd_check(args):
         _err(
             f"{frag} declares pr={declared_pr} but this PR is #{args.pr}")
         reason("pr-mismatch")
-        return 1
+        return Rc.AUTHOR_ERROR
 
     if data.get("type") != pr_type:
         _err(
@@ -130,8 +130,8 @@ def cmd_check(args):
             f'`{data.get("type")}`.\n'
             f"       Fix whichever is wrong -- they must agree.")
         reason("type-mismatch")
-        return 1
+        return Rc.AUTHOR_ERROR
 
     print(f"OK: #{args.pr} title is `{pr_type}` and its fragment is present and valid")
     reason("ok")
-    return 0
+    return Rc.OK
