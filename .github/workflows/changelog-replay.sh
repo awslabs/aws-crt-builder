@@ -3,8 +3,8 @@
 # CHANGELOG.md into each one -- one docs commit per release-branch commit, so the
 # release branch itself stays free of bot commits.
 #
-# Run by changelog-render.yml and changelog-rollup.yml. A consumer repository
-# holds a trigger that calls those workflows and nothing else.
+# Run by changelog-render.yml. A consumer repository holds a trigger that calls
+# that workflow and nothing else.
 #
 #   TRIGGER_SHA   newest release-branch commit to replay (required)
 #   DOCS_BRANCH   branch holding the rendered changelog  (default: docs)

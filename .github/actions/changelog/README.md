@@ -20,11 +20,14 @@ It holds no token and needs no network.
 ```yaml
       - uses: actions/checkout@v4
         with:
+          ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
       - uses: awslabs/aws-crt-builder/.github/actions/changelog@main
         with:
           mode: check
 ```
+
+The `ref` matters under `pull_request_target`, where a plain checkout is the base branch and the fragment the check reads is not on disk.
 
 That is the whole call. The pull request number, title, author and changed paths come from the event, and the step fails when the check does. Granting the job `pull-requests: write` additionally comments the template; without it the template still lands in the run summary, which is also what happens for a pull request from a fork, since those get a read-only token however the job asks.
 
