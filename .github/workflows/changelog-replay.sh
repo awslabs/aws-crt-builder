@@ -3,8 +3,8 @@
 # CHANGELOG.md into each one -- one docs commit per release-branch commit, so the
 # release branch itself stays free of bot commits.
 #
-# Run by changelog-render.yml and changelog-rollup.yml. A consumer repository
-# holds a trigger that calls those workflows and nothing else.
+# Run by changelog-render.yml. A consumer repository holds a trigger that calls
+# that workflow and nothing else.
 #
 #   TRIGGER_SHA   newest release-branch commit to replay (required)
 #   DOCS_BRANCH   branch holding the rendered changelog  (default: docs)
@@ -97,7 +97,7 @@ replay_one() {
 # several commits, and a pending run can be cancelled -- a concurrency group
 # holds one running and one pending run -- so the triggering commit alone is
 # never the whole story. Each run therefore closes whatever gap it finds.
-LAST="$(git log -1 --grep='^(cherry picked from commit' --pretty=%B "${DOCS_BRANCH}" \
+LAST="$(git log -1 --grep='^(cherry picked from commit' --pretty=%B "refs/heads/${DOCS_BRANCH}" -- \
           | sed -n 's/^(cherry picked from commit \([0-9a-f]\{7,\}\))$/\1/p' | tail -n1)"
 : "${LAST:=$(git merge-base "${DOCS_BRANCH}" "${TRIGGER_SHA}")}"
 

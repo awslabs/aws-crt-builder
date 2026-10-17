@@ -7,7 +7,7 @@ published entry cannot change under a reader -- see release.py.
 """
 from pathlib import Path
 
-from fragments import BREAKING_SECTION, CATEGORY, load_preview
+from fragments import BREAKING_SECTION, CATEGORY, Rc, load_preview
 
 HEADING = "# Changelog"
 # The unreleased block is bounded by markers rather than found by position, so an
@@ -25,15 +25,16 @@ PR_PREFIX = "../../pull/"
 def render_grouped(fragments, minor_prs=()):
     """Sections in a fixed order, each omitted when it would be empty.
 
-    A chore renders nowhere, so a chore whose pull request carries the `minor`
-    label does not surface under breaking changes either.
+    A chore renders nowhere -- not under breaking changes when its pull request
+    carries the `minor` label, and not under Notes when it has notes.
     """
     buckets = [(BREAKING_SECTION, [f for f in fragments
                                    if f["pr"] in minor_prs and f["type"] in CATEGORY])]
     buckets += [(cat, [f for f in fragments
                        if f["type"] == pr_type and f["pr"] not in minor_prs])
                 for pr_type, cat in CATEGORY.items()]
-    buckets.append(("Notes", [f for f in fragments if f.get("notes", "").strip()]))
+    buckets.append(("Notes", [f for f in fragments
+                              if f["type"] in CATEGORY and f.get("notes", "").strip()]))
 
     lines = []
     for heading, entries in buckets:
@@ -77,4 +78,4 @@ def cmd_render(args):
     text = path.read_text() if path.exists() else ""
     path.write_text(set_unreleased(text, f"## [Unreleased]\n\n{body}"))
     print(f"rendered → {args.changelog}")
-    return 0
+    return Rc.OK

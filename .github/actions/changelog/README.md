@@ -1,4 +1,4 @@
-# changelog
+# Changelog
 
 Fragment-based changelog. A pull request adds one JSON fragment; a release renders the fragments into `CHANGELOG.md` and deletes them. The rendered file is the record — nothing regenerates it, so a published entry cannot change under a reader.
 
@@ -20,11 +20,14 @@ It holds no token and needs no network.
 ```yaml
       - uses: actions/checkout@v4
         with:
+          ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
       - uses: awslabs/aws-crt-builder/.github/actions/changelog@main
         with:
           mode: check
 ```
+
+The `ref` matters under `pull_request_target`, where a plain checkout is the base branch and the fragment the check reads is not on disk.
 
 That is the whole call. The pull request number, title, author and changed paths come from the event, and the step fails when the check does. Granting the job `pull-requests: write` additionally comments the template; without it the template still lands in the run summary, which is also what happens for a pull request from a fork, since those get a read-only token however the job asks.
 
@@ -50,10 +53,11 @@ A repo passes `with:` only where it differs from the defaults, `main` and `docs`
 
 ## The rules a pull request must follow
 
-- The title is `<type>: <summary>`, where type is one of `feat | fix | chore | revert`. An optional scope is fine: `fix(io): Handle EINTR.` The Revert button's `Revert "<original title>"` is accepted as-is.
+- The title is `<type>: <summary>`, where type is one of `feat | fix | chore | revert`. An optional scope is fine: `fix(io): Handle EINTR.` The Revert button's `Revert "<original title>"` is accepted as-is, and a revert of a revert is exempt like a `chore`.
 - A `feat`, `fix` or `revert` needs exactly one fragment, at exactly `.changes/preview/<PR>.json`. A fragment named for another pull request would render under that number; one at another path renders nowhere.
 - A `chore` needs no fragment: it renders nowhere, so an entry would be invisible. A CI-only or pure-infra change is a `chore`, so nothing waives the check — the type already exempts it.
 - A bot author waives both the title convention and the fragment.
+- A stacked pull request retargeted to the release branch after the one below it was squash-merged still carries that one's fragment, so it fails as a stray fragment until it is rebased onto the release branch.
 
 Forgetting is fine: the check writes a ready-to-paste template, with the type and summary already derived from the title, into the run's summary — and comments it on the pull request when it has a token that can write. A pull request raised from a fork does not get one, however the workflow asks, so the summary is the guarantee and the comment is the courtesy.
 

@@ -17,9 +17,7 @@ on:
   workflow_call:
     inputs:
       builder-ref:
-        description: >-
-          Ref of this repository supplying the action and the replay script. Pin
-          it to whatever ref the caller pinned this workflow to.
+        description: 'Ref of this repository supplying the action and the replay script; pin it to the ref the caller pinned this workflow to.'
         required: false
         type: string
         default: 'main'
@@ -30,10 +28,7 @@ on:
         default: 'docs'
     secrets:
       deploy_key:
-        description: >-
-          Deploy key with write access, for a docs branch whose pushes must
-          trigger further workflows. Without it the run's own token is used,
-          which cannot.
+        description: 'Deploy key with write access, for a docs branch whose pushes must trigger further workflows; without it the run''s own token is used, which cannot.'
         required: false
 
 concurrency:

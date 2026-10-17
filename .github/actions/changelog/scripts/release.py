@@ -6,7 +6,7 @@ rendered file is fixed by a chore -- the file is markdown, not a database.
 import re
 from pathlib import Path
 
-from fragments import _err, load_preview
+from fragments import Rc, _err, load_preview
 from render import HEADING, PR_PREFIX, UNRELEASED_END, render_grouped, set_unreleased
 
 ISO_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
@@ -89,7 +89,7 @@ def cmd_rollup(args):
     """
     if not ISO_DATE_RE.match(args.date):
         _err(f"--date must be YYYY-MM-DD, got {args.date!r}")
-        return 2
+        return Rc.CALLER_ERROR
 
     changes = Path(args.changes_dir)
     on_disk = sorted((changes / "preview").glob("*.json"))
@@ -98,12 +98,12 @@ def cmd_rollup(args):
         _err(f"{len(on_disk) - len(fragments)} of {len(on_disk)} fragment(s) in "
              f"{changes / 'preview'} are invalid (see the warnings above); "
              f"fix them first")
-        return 2
+        return Rc.CALLER_ERROR
 
     labelled = [p.strip() for p in args.minor_prs.split(",") if p.strip()]
     if not all(p.isdigit() for p in labelled):
         _err(f"--minor-prs must be pull request numbers, got {args.minor_prs!r}")
-        return 2
+        return Rc.CALLER_ERROR
 
     body = render_grouped(fragments, {int(p) for p in labelled})
     section = f"## [{args.version}] — {args.date}\n\n{body}" if body else ""
@@ -122,7 +122,7 @@ def cmd_rollup(args):
             text = archive_closed_line(
                 text, changes, f"{closing.group(1)}.{closing.group(2)}.x")
             if text is None:
-                return 2
+                return Rc.CALLER_ERROR
         text = insert_section(text, section)
 
     path.write_text(set_archive_list(text, changes))
@@ -131,4 +131,4 @@ def cmd_rollup(args):
         f.unlink()
     print(f"released {len(fragments)} fragment(s) as {args.version}"
           + ("" if section else " (nothing customer-facing, so no section)"))
-    return 0
+    return Rc.OK
