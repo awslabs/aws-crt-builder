@@ -97,7 +97,7 @@ replay_one() {
 # several commits, and a pending run can be cancelled -- a concurrency group
 # holds one running and one pending run -- so the triggering commit alone is
 # never the whole story. Each run therefore closes whatever gap it finds.
-LAST="$(git log -1 --grep='^(cherry picked from commit' --pretty=%B "${DOCS_BRANCH}" \
+LAST="$(git log -1 --grep='^(cherry picked from commit' --pretty=%B "refs/heads/${DOCS_BRANCH}" -- \
           | sed -n 's/^(cherry picked from commit \([0-9a-f]\{7,\}\))$/\1/p' | tail -n1)"
 : "${LAST:=$(git merge-base "${DOCS_BRANCH}" "${TRIGGER_SHA}")}"
 
