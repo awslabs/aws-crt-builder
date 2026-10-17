@@ -50,11 +50,11 @@ case "${MODE}" in
         echo '```'
       } > "${COMMENT}"
       cat "${COMMENT}" >> "${GITHUB_STEP_SUMMARY:-/dev/stdout}"
-      if gh pr view "${PR}" --json comments -q '.comments[].body' 2>/dev/null \
+      if gh pr view "${PR}" --repo "${GITHUB_REPOSITORY}" --json comments -q '.comments[].body' 2>/dev/null \
            | grep -qF "${MARKER}"; then
         echo "the template has already been commented"
       else
-        gh pr comment "${PR}" --body-file "${COMMENT}" \
+        gh pr comment "${PR}" --repo "${GITHUB_REPOSITORY}" --body-file "${COMMENT}" \
           || echo "::notice::Could not comment (a pull request from a fork gets a read-only token); the template is in this run's summary."
       fi
     fi
