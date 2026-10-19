@@ -12,6 +12,7 @@ import argparse
 import sys
 
 from fragments import cmd_seed
+from render import cmd_render
 
 
 def main(argv=None):
@@ -25,6 +26,11 @@ def main(argv=None):
     s.add_argument("--out", required=True,
                    help="Where to write it; never inside the changes directory.")
     s.set_defaults(func=cmd_seed)
+
+    r = sub.add_parser("render", help="refresh the unreleased region from preview/")
+    r.add_argument("--changes-dir", default=".changes")
+    r.add_argument("--changelog", default="CHANGELOG.md")
+    r.set_defaults(func=cmd_render)
 
     args = p.parse_args(argv)
     return args.func(args)
