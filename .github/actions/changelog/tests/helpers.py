@@ -48,3 +48,24 @@ def _rollup(tmp_path, version, date, minor_prs="", docs_branch=""):
     if docs_branch:
         argv += ["--docs-branch", docs_branch]
     return changelog.main(argv)
+
+
+def _check(tmp_path, pr, title, bot=""):
+    argv = ["check", "--pr", str(pr), "--title", title,
+            "--changes-dir", _changes(tmp_path)]
+    if bot:
+        argv += ["--bot-author", bot]
+    return changelog.main(argv)
+
+
+def _paths(tmp_path, *entries):
+    p = tmp_path / "paths.txt"
+    p.write_text("".join(f"{st}\t{path}\n" for st, path in entries))
+    return str(p)
+
+
+def _check_paths(tmp_path, pr, title, paths_file):
+    return changelog.main(["check", "--pr", str(pr), "--title", title,
+                           "--changes-dir", _changes(tmp_path),
+                           "--changed-paths-file", paths_file,
+                           "--changes-prefix", ".changes"])
