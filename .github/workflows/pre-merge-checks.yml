@@ -16,7 +16,7 @@
 #         pull-requests: write
 #         id-token: write
 #         statuses: write
-#       uses: awslabs/aws-crt-builder/.github/workflows/pre-merge-checks.yml@main
+#       uses: awslabs/aws-crt-builder/.github/workflows/pre-merge-checks.yml@sim/pre-merge
 #       with:
 #         lib-name: aws-c-common
 #         approval-environment: ${{ github.event.pull_request.head.repo.full_name != github.repository && 'customer-env' || '' }}
@@ -58,7 +58,7 @@ jobs:
       pull-requests: write
     steps:
       - name: Clear the verdict
-        uses: awslabs/aws-crt-builder/.github/actions/validate-label@main
+        uses: awslabs/aws-crt-builder/.github/actions/validate-label@sim/pre-merge
         with:
           pr: ${{ github.event.pull_request.number }}
 
@@ -125,14 +125,14 @@ jobs:
 
       - name: Check ABI
         id: check
-        uses: awslabs/aws-crt-builder/.github/actions/check-abi@main
+        uses: awslabs/aws-crt-builder/.github/actions/check-abi@sim/pre-merge
         with:
           lib-name: ${{ inputs.lib-name }}
           builder-version: latest
           base-ref: ${{ steps.refs.outputs.base-sha }}
 
       - name: Apply the verdict
-        uses: awslabs/aws-crt-builder/.github/actions/validate-label@main
+        uses: awslabs/aws-crt-builder/.github/actions/validate-label@sim/pre-merge
         with:
           verdict: ${{ steps.check.outputs.label }}
           pr: ${{ github.event.pull_request.number }}
@@ -164,7 +164,7 @@ jobs:
             > "${RUNNER_TEMP}/changed-paths.tsv"
 
       - name: Check the PR title and the fragment
-        uses: awslabs/aws-crt-builder/.github/actions/changelog@main
+        uses: awslabs/aws-crt-builder/.github/actions/changelog@sim/pre-merge
         with:
           mode: check
           changes-dir: ${{ runner.temp }}/changes
