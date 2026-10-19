@@ -37,3 +37,14 @@ def _render(tmp_path):
     changelog.main(["render", "--changes-dir", _changes(tmp_path),
                     "--changelog", str(tmp_path / "CHANGELOG.md")])
     return (tmp_path / "CHANGELOG.md").read_text()
+
+
+def _rollup(tmp_path, version, date, minor_prs="", docs_branch=""):
+    argv = ["rollup", "--version", version, "--date", date,
+            "--changes-dir", _changes(tmp_path),
+            "--changelog", str(tmp_path / "CHANGELOG.md")]
+    if minor_prs:
+        argv += ["--minor-prs", minor_prs]
+    if docs_branch:
+        argv += ["--docs-branch", docs_branch]
+    return changelog.main(argv)
