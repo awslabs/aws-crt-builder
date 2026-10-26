@@ -148,6 +148,9 @@ See builder/data.py for more info/defaults/possible values.
         "./gradlew test"
     ],
 
+    // whether to run tests in parallel with -j 4 flag
+    "test_parallel": false,
+
     // These will be built before my-project, and transitive dependencies will be followed. Alias: upstream
     "dependencies": [
         {

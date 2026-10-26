@@ -258,8 +258,15 @@ class CTestRun(Action):
             return
 
         ctest = toolchain.ctest_binary()
-        sh.exec(*toolchain.shell_env, ctest,
-                "--output-on-failure", working_dir=project_build_dir, check=True)
+        ctest_args = ["--output-on-failure"]
+
+        # Add parallel execution flag if test_parallel is enabled
+        if self.project.config.get('test_parallel', False):
+            ctest_args.append("-j")
+            ctest_args.append("4")
+
+        sh.exec(*toolchain.shell_env, ctest, *ctest_args,
+                working_dir=project_build_dir, check=True)
         if env.args.coverage:
             # Only generate coverage when required to
             # If CTest found no test, generate coverage will hang
