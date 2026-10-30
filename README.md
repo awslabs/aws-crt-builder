@@ -48,7 +48,8 @@ Each project is represented at minimum by its name, path on disk, and github rep
 any python scripts to describe it, then this is enough for the builder to at least build the project, assuming it will build with defaults
 for the current host/target. Projects which declare upstream (dependencies) and downstream (consumers) will get the added benefit of extra
 CI checks which will attempt to use a branch with the same name as the current PR, and build the downstream project to see if your changes
-work.
+work. The exception is the `external-pr` branch: it is meant to be reused for landing unrelated external PRs, so dependencies are always
+pulled from `main` when building it.
 
 ### Configuration (builder.json)
 Each project has a configuration file: builder.json in the root of the project. It may also have a .builder folder which contains python

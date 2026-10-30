@@ -5,6 +5,11 @@ import os
 from builder.core.action import Action
 from builder.core.project import Project
 
+# Branches that should NOT try to match same-named branches in dependencies.
+# Used for e.g. landing unrelated external PRs via a reused branch name;
+# dependencies will be pulled from main instead.
+NO_DEPENDENCY_BRANCH_MATCH = ['external-pr']
+
 
 class DownloadSource(Action):
     """ Downloads the source for a given project """
@@ -51,6 +56,9 @@ class DownloadDependencies(Action):
         project = env.project
         sh = env.shell
         branch = env.branch
+        if branch in NO_DEPENDENCY_BRANCH_MATCH:
+            print('Branch {} opts out of dependency branch matching, using main for dependencies'.format(branch))
+            branch = 'main'
         spec = env.spec
         deps = project.get_dependencies(spec)
 
