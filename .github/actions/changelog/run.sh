@@ -20,7 +20,7 @@ case "${MODE}" in
         # The status is spelled the way the pull request files API spells
         # it, not as git's single letter.
         git diff --name-status "${BASE}...${HEAD}" \
-          | awk -F'\t' 'BEGIN{OFS="\t"} {s=substr($1,1,1); n="changed"; if(s=="A")n="added"; else if(s=="M")n="modified"; else if(s=="D")n="removed"; else if(s=="R")n="renamed"; print n,$NF}' \
+          | awk -F'\t' 'BEGIN{OFS="\t"} {s=substr($1,1,1); n="changed"; if(s=="A")n="added"; else if(s=="M")n="modified"; else if(s=="D")n="removed"; else if(s=="R")n="renamed"; if(s=="R")print "removed",$2; print n,$NF}' \
           > "${CHANGED_PATHS_FILE}"
       fi
     fi
@@ -50,7 +50,7 @@ case "${MODE}" in
         echo '```'
       } > "${COMMENT}"
       cat "${COMMENT}" >> "${GITHUB_STEP_SUMMARY:-/dev/stdout}"
-      if gh pr view "${PR}" --repo "${GITHUB_REPOSITORY}" --json comments -q '.comments[].body' 2>/dev/null \
+      if gh pr view "${PR}" --repo "${GITHUB_REPOSITORY}" --json comments -q '.comments[] | select(.author.login == "github-actions") | .body' 2>/dev/null \
            | grep -qF "${MARKER}"; then
         echo "the template has already been commented"
       else
@@ -63,15 +63,11 @@ case "${MODE}" in
   seed)
     python3 "${SCRIPT}" seed --pr "${PR}" --title "${TITLE}" --out "${OUT}"
     ;;
-  render)
-    python3 "${SCRIPT}" render \
-      --changes-dir "${CHANGES_DIR}" --changelog "${CHANGELOG}"
-    ;;
   rollup)
     python3 "${SCRIPT}" rollup \
       --version "${VERSION}" --date "${DATE}" \
       --changes-dir "${CHANGES_DIR}" --changelog "${CHANGELOG}" \
-      --docs-branch "${DOCS_BRANCH}" --minor-prs "${MINOR_PRS}"
+      --minor-prs "${MINOR_PRS}" ${ARCHIVE:+--archive}
     ;;
   *)
     echo "ERROR: unknown mode '${MODE}'" >&2; exit 2 ;;
