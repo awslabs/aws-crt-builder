@@ -41,6 +41,10 @@ class InstallPackages(Action):
 
         packages = self.packages if self.packages else config.get(
             'packages', [])
+        # don't reinstall cmake if the host already has one
+        if 'cmake' in packages and (shutil.which('cmake3') or shutil.which('cmake')):
+            print('cmake already found on PATH, skipping install')
+            packages = [p for p in packages if p != 'cmake']
         if packages:
             packages = UniqueList(packages)
             pkg_tool = package_tool()
