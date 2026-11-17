@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Changelog fragment tooling: seed, check, render, rollup.
+"""Changelog fragment tooling: seed, check, rollup.
 
 A fragment per pull request under `.changes/preview/`. A release renders those
 into CHANGELOG.md and deletes them, so the rendered file is the record and
 `.changes/` only ever holds what has not shipped yet. Unreleased changes exist
-only as fragments; `render` prints them without writing anything.
+only as fragments.
 
   .changes/preview/<pr>.json   awaiting release; written by the pull request author
   CHANGELOG.md                 the record: one section per release, newest first
@@ -15,7 +15,6 @@ import sys
 from check import cmd_check
 from fragments import cmd_seed
 from release import cmd_rollup
-from render import cmd_render
 
 
 def main(argv=None):
@@ -42,18 +41,14 @@ def main(argv=None):
                    help="repo-relative changes directory, for matching changed paths")
     c.set_defaults(func=cmd_check)
 
-    r = sub.add_parser("render", help="print the unreleased changes from preview/")
-    r.add_argument("--changes-dir", default=".changes")
-    r.set_defaults(func=cmd_render)
-
     u = sub.add_parser("rollup", help="cut a release: render preview/ and drop it")
     u.add_argument("--version", required=True)
     u.add_argument("--date", required=True)
     u.add_argument("--changes-dir", default=".changes")
     u.add_argument("--changelog", default="CHANGELOG.md")
     u.add_argument("--archive", action="store_true",
-                   help="Also move every minor line other than the one being "
-                        "released into to .changes/<M>.<N>.x.md.")
+                   help="Also move every release outside the minor line being "
+                        "released into to one .changes/<oldest>-<newest>.md.")
     u.add_argument("--minor-prs", default="",
                    help="Comma-separated PRs carrying the `minor` label; "
                         "their entries render under Possible Breaking Changes.")

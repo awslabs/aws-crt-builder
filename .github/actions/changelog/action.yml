@@ -56,7 +56,7 @@ inputs:
     required: false
     default: ''
   archive:
-    description: 'Set to `true` to also move every minor line other than the one being released into to .changes/<M>.<N>.x.md. Off by default: releases rarely archive, so a caller enables it in its own PR when it wants to.'
+    description: 'Set to `true` to also move every release outside the minor line being released into to one .changes/<oldest>-<newest>.md. Off by default: releases rarely archive, so a caller enables it in its own PR when it wants to.'
     required: false
     default: 'false'
 

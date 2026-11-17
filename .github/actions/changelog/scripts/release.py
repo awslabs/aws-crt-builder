@@ -1,18 +1,47 @@
 """Cutting a release: render the fragments awaiting one, then drop them.
 
+Unreleased changes exist only as fragments, so a release is the one place
+anything is rendered.
+
 No version guard. The version comes from the release job, and a mistake in the
 rendered file is fixed by a chore -- the file is markdown, not a database.
 """
 import re
 from pathlib import Path
 
-from fragments import Rc, _err, load_preview
-from render import render_grouped
+from fragments import BREAKING_SECTION, CATEGORY, Rc, _err, load_preview
 
 HEADING = "# Changelog"
 ISO_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
-SECTION_RE = re.compile(r"^## \[(\d+)\.(\d+)\.\d+\]")
+SECTION_RE = re.compile(r"^## \[(\d+)\.(\d+)\.(\d+)\]")
+ARCHIVE_RE = re.compile(r"^(\d+\.\d+\.\d+)-(\d+\.\d+\.\d+)\.md$")
 EARLIER = "## Earlier releases"
+SENTENCE_END = (".", "!", "?")
+
+
+def render_grouped(fragments, minor_prs=()):
+    """Sections in a fixed order, each omitted when it would be empty.
+
+    An entry is its summary alone: it links to nothing, so a rendered file never
+    depends on where the repository is hosted.
+    """
+    buckets = [(BREAKING_SECTION, [f for f in fragments
+                                   if f["pr"] in minor_prs and f["type"] in CATEGORY])]
+    buckets += [(cat, [f for f in fragments
+                       if f["type"] == pr_type and f["pr"] not in minor_prs])
+                for pr_type, cat in CATEGORY.items()]
+
+    lines = []
+    for heading, entries in buckets:
+        if not entries:
+            continue
+        lines.append(f"### {heading}")
+        for f in sorted(entries, key=lambda x: x["pr"]):
+            summary = f["summary"].strip()
+            dot = "" if summary.endswith(SENTENCE_END) else "."
+            lines.append(f"- {summary}{dot}")
+        lines.append("")
+    return "\n".join(lines).rstrip() + "\n" if lines else ""
 
 
 def parse(text):
@@ -33,37 +62,45 @@ def line_of(section):
     return SECTION_RE.match(section).group(1, 2)
 
 
-def archive_lines(sections, keep, changes):
-    """Move every minor line except `keep` out to .changes/<M>.<N>.x.md.
+def version_of(section):
+    return ".".join(SECTION_RE.match(section).groups())
 
-    Returns the sections that stay, or None when an existing archive would be
-    overwritten with different content -- it is the permanent record for that
-    line. An identical write is allowed, being a retry.
+
+def archive_older(sections, keep, changes):
+    """Move every release outside the minor line `keep` into one archive file.
+
+    The file is named for the releases it holds, .changes/<oldest>-<newest>.md: an
+    archive is cut when the developer asks, so it can span several minor lines.
+
+    Returns the sections that stay, or None when the archive would overwrite a
+    file with different content -- it is the permanent record for those releases.
+    An identical write is allowed, being a retry.
     """
-    stay, moved = [], {}
-    for s in sections:
-        (stay if line_of(s) == keep else moved.setdefault(line_of(s), [])).append(s)
-    for (major, minor), group in moved.items():
-        line = f"{major}.{minor}.x"
-        archive = (f"{HEADING} — {line}\n\nCurrent releases are in the "
-                   f"[top-level changelog](../CHANGELOG.md).\n\n" + "\n\n".join(group) + "\n")
-        target = changes / f"{line}.md"
-        if target.exists() and target.read_text() != archive:
-            _err(f"{target} already exists with different content; archiving {line} "
-                 f"would overwrite it")
-            return None
-        target.write_text(archive)
+    stay = [s for s in sections if line_of(s) == keep]
+    moved = [s for s in sections if line_of(s) != keep]
+    if not moved:
+        return stay
+    span = f"{version_of(moved[-1])}-{version_of(moved[0])}"
+    archive = (f"{HEADING} — {span.replace('-', ' to ')}\n\nCurrent releases are in the "
+               f"[top-level changelog](../CHANGELOG.md).\n\n" + "\n\n".join(moved) + "\n")
+    target = changes / f"{span}.md"
+    if target.exists() and target.read_text() != archive:
+        _err(f"{target} already exists with different content; archiving {span} "
+             f"would overwrite it")
+        return None
+    target.write_text(archive)
     return stay
 
 
 def archive_list(changes):
-    """The trailing list of archived lines, newest first, rebuilt from the files present."""
-    archives = sorted(changes.glob("*.x.md"), reverse=True,
-                      key=lambda p: [int(x) for x in p.name.split(".")[:2]])
+    """The trailing list of archives, newest first, rebuilt from the files present."""
+    found = [(p, ARCHIVE_RE.match(p.name)) for p in changes.glob("*.md")]
+    archives = sorted(((p, m) for p, m in found if m), reverse=True,
+                      key=lambda pm: [int(x) for x in pm[1].group(2).split(".")])
     if not archives:
         return ""
     return (f"\n\n{EARLIER}\n\n"
-            + "\n".join(f"- [{p.stem}]({changes.name}/{p.name})" for p in archives))
+            + "\n".join(f"- [{p.stem}]({changes.name}/{p.name})" for p, _ in archives))
 
 
 def cmd_rollup(args):
@@ -71,8 +108,8 @@ def cmd_rollup(args):
 
     The release's section goes directly below the heading, so releases accumulate
     newest-first and published ones are never rewritten. Archiving is the
-    developer's call: with --archive, every minor line other than the one being
-    released into moves to its own file.
+    developer's call: with --archive, every release outside the minor line being
+    released into moves to one archive file.
 
     Re-running it is a no-op: the fragments are gone, so there is nothing left to
     insert. That matters because a release job that fails after this step -- on the
@@ -109,7 +146,7 @@ def cmd_rollup(args):
     head, sections = parse(path.read_text() if path.exists() else "")
     if section:
         if args.archive:
-            sections = archive_lines(sections, opening.group(1, 2), changes)
+            sections = archive_older(sections, opening.group(1, 2), changes)
             if sections is None:
                 return Rc.CALLER_ERROR
         sections.insert(0, section.strip())
