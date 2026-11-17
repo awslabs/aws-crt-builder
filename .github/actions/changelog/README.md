@@ -72,7 +72,7 @@ The schema is closed: an unexpected field is an error, so a misspelling is caugh
 
 `rollup` inserts one section directly below the heading, so releases accumulate newest-first and older ones are never rewritten. Sections within a release render in a fixed order and only when non-empty: **Possible Breaking Changes**, Features, Fixes, Changes, Reverts. A pull request carrying the `minor` label renders under Possible Breaking Changes instead of its own type section. The label settles that, not the ABI check: the check proposes a verdict and a maintainer can override it. The caller passes those numbers as `minor-prs`.
 
-Archiving is the developer's call. With the `archive` input, `rollup` moves every minor line other than the one being released into to `.changes/<M>.<N>.x.md` and links each at the bottom. Without it, nothing moves. An archive is a move, not a re-render, and the list of archived lines is rebuilt from the files present, so one written by hand at adoption is picked up without being registered anywhere.
+Archiving is the developer's call. With the `archive` input set to `true` (default `false`), `rollup` moves every minor line other than the one being released into to `.changes/<M>.<N>.x.md` and links each at the bottom. Without it, nothing moves. An archive is a move, not a re-render, and the list of archived lines is rebuilt from the files present, so one written by hand at adoption is picked up without being registered anywhere.
 
 ## Releasing
 

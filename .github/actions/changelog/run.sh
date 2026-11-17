@@ -67,7 +67,7 @@ case "${MODE}" in
     python3 "${SCRIPT}" rollup \
       --version "${VERSION}" --date "${DATE}" \
       --changes-dir "${CHANGES_DIR}" --changelog "${CHANGELOG}" \
-      --minor-prs "${MINOR_PRS}" ${ARCHIVE:+--archive}
+      --minor-prs "${MINOR_PRS}" $([[ "${ARCHIVE}" == "true" ]] && echo --archive)
     ;;
   *)
     echo "ERROR: unknown mode '${MODE}'" >&2; exit 2 ;;

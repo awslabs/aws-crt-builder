@@ -56,9 +56,9 @@ inputs:
     required: false
     default: ''
   archive:
-    description: 'Set to a non-empty value to also move every minor line other than the one being released into to .changes/<M>.<N>.x.md. Left to the developer: archive when it suits the repo.'
+    description: 'Set to `true` to also move every minor line other than the one being released into to .changes/<M>.<N>.x.md. Off by default: releases rarely archive, so a caller enables it in its own PR when it wants to.'
     required: false
-    default: ''
+    default: 'false'
 
 outputs:
   rc:
