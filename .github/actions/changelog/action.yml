@@ -1,19 +1,18 @@
 name: 'Changelog'
 description: 'Check a pull request''s changelog fragment, seed a template for one, or roll fragments up into a release. Fragments are author-written; no bot ever writes one on the author''s behalf.'
 # check and rollup are steps in a job the caller already has -- a pre-merge check
-# and a release. Only the docs render needs a job of its own, so that is the one
-# reusable workflow: see .github/workflows/changelog-render.yml.
+# and a release.
 
 inputs:
   mode:
-    description: 'One of: check | seed | render | rollup'
+    description: 'One of: check | seed | rollup'
     required: true
   changes-dir:
     description: 'Directory holding fragments.'
     required: false
     default: '.changes'
   changelog:
-    description: 'Path to CHANGELOG.md (render and rollup modes).'
+    description: 'Path to CHANGELOG.md (rollup mode).'
     required: false
     default: 'CHANGELOG.md'
   # check, seed
@@ -56,10 +55,10 @@ inputs:
     description: 'Comma-separated pull requests carrying the `minor` label. Their entries render under "Possible Breaking Changes" instead of their own type section. The caller looks the labels up.'
     required: false
     default: ''
-  docs-branch:
-    description: 'Branch named in the release file''s pointer to in-flight changes.'
+  archive:
+    description: 'Set to `true` to also move every release outside the minor line being released into to one .changes/<oldest>-<newest>.md. Off by default: releases rarely archive, so a caller enables it in its own PR when it wants to.'
     required: false
-    default: 'docs'
+    default: 'false'
 
 outputs:
   rc:
@@ -90,5 +89,5 @@ runs:
         VERSION: ${{ inputs.version }}
         DATE: ${{ inputs.date }}
         MINOR_PRS: ${{ inputs.minor-prs }}
-        DOCS_BRANCH: ${{ inputs.docs-branch }}
+        ARCHIVE: ${{ inputs.archive }}
       run: bash "${GITHUB_ACTION_PATH}/run.sh"

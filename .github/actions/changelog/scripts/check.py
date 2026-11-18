@@ -88,6 +88,8 @@ def cmd_check(args):
         reason("bad-title")
         return Rc.AUTHOR_ERROR
 
+    # Returning before the changed-paths check is deliberate: a chore may change
+    # anything under .changes/, which is how a wrong or reverted entry is corrected.
     if pr_type not in CATEGORY:
         print(f"OK: #{args.pr} is a `{pr_type}` change; no changelog fragment required")
         reason("exempt-type")
