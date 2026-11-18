@@ -95,6 +95,7 @@ build_ref() {
   # Pass an explicit --branch so both builds resolve deps identically.
   ( cd "$src_dir" && python3 "$BUILDER_PYZ" build -p "$LIB_NAME" \
       --branch "$DEP_BRANCH" \
+      --skip-install \
       --cmake-extra=-DBUILD_SHARED_LIBS=ON \
       --cmake-extra=-DBUILD_TESTING=OFF \
       --cmake-extra="-DCMAKE_C_FLAGS_RELWITHDEBINFO=-g -Og -gdwarf-4 -DNDEBUG" \
@@ -108,6 +109,14 @@ build_ref() {
 DEP_BRANCH="${GITHUB_HEAD_REF:-main}"
 [[ -z "$DEP_BRANCH" ]] && DEP_BRANCH=main
 echo "Dep branch for both builds: ${DEP_BRANCH}"
+
+# Install compiler/packages once, up front: both parallel builds would otherwise
+# race for the same apt lock.
+echo "Installing build prerequisites once"
+if ! ( cd "$HEAD_DIR" && python3 "$BUILDER_PYZ" build -p "$LIB_NAME" --install-only ); then
+  echo "ERROR: installing build prerequisites failed" >&2
+  exit 1
+fi
 
 echo "Building HEAD ($HEAD_DIR) and base ($BASE_WORKTREE) in parallel"
 build_ref "$HEAD_DIR" &

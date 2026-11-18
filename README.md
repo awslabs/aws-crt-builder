@@ -300,6 +300,7 @@ The `builder.main` console script will be added to your path automatically and c
 When debugging builder locally, use whatever python debugger you wish. You can also feed it the following command line arguments to ease the
 debugging experience:
 * --skip-install - don't install packages, assume they're already there
+* --install-only - install the compiler and packages, then exit without building (pair with --skip-install on later runs)
 * --build-dir=/path/to/other/git/repo - will jump to this directory before starting execution, helpful for debugging another project's
                                         configuration and build scripts
 
