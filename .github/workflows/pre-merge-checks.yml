@@ -160,7 +160,7 @@ jobs:
             rm -f "${RUNNER_TEMP}/changes/preview/${PR}.json"
           fi
           gh api --paginate "repos/${GITHUB_REPOSITORY}/pulls/${PR}/files?per_page=100" \
-            --jq '.[] | select(.filename | startswith(".changes/")) | "\(.status)\t\(.filename)"' \
+            --jq '.[] | (select(.filename | startswith(".changes/")) | "\(.status)\t\(.filename)"), (select((.previous_filename // "") | startswith(".changes/")) | "removed\t\(.previous_filename)")' \
             > "${RUNNER_TEMP}/changed-paths.tsv"
 
       - name: Check the PR title and the fragment
@@ -185,13 +185,17 @@ jobs:
           RESULTS: ${{ toJSON(needs) }}
           PR: ${{ github.event.pull_request.number }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          TITLE: ${{ github.event.pull_request.title }}
         run: |
           set -uo pipefail
+          shopt -s nocasematch
           FAILED="$(jq -r 'to_entries | map(select(.value.result == "failure" or .value.result == "cancelled")) | map(.key + "=" + .value.result) | join(", ")' <<< "$RESULTS")"
           if [[ -n "$FAILED" ]]; then
             STATE=failure; REASON="pre-merge check(s) did not pass: ${FAILED}"
           elif ! LABELS="$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json labels -q '.labels[].name')"; then
             STATE=failure; REASON="could not read the labels on #${PR}"
+          elif [[ "$TITLE" =~ ^chore(\([^\)]+\))?!?: ]] && grep -qxE 'minor|needs-review' <<< "$LABELS"; then
+            STATE=failure; REASON="titled chore but the ABI check found a possible break: retitle it change, feat or fix and add a fragment"
           elif grep -qxF needs-review <<< "$LABELS"; then
             STATE=failure; REASON="labeled needs-review: a maintainer must REPLACE it with patch or minor; deleting it leaves this blocked"
           elif ! grep -qxE 'patch|minor' <<< "$LABELS"; then
