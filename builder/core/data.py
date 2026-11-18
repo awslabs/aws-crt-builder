@@ -46,6 +46,7 @@ KEYS = {
     'test': None,  # deprecated, use test_steps
     'test_env': {},
     'test_steps': ['test'],  # steps to run instead of the default ctest
+    'test_parallel': False,  # whether to run tests in parallel with -j flag
 
     'setup_steps': [],  # Commands to run at env setup time
     'pkg_tool': None,  # apt, brew, yum, apk, etc

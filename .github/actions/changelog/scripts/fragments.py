@@ -10,12 +10,15 @@ import re
 import sys
 from pathlib import Path
 
-VALID_TYPES = {"feat", "fix", "chore", "revert"}
+VALID_TYPES = {"feat", "fix", "change", "chore", "revert"}
 
 # Section order for the rendered file. chore has no row: documentation and
 # maintenance are internal, so requiring a fragment would force authors to
-# write text no customer reads.
-CATEGORY = {"feat": "Features", "fix": "Fixes", "revert": "Reverts"}
+# write text no customer reads. change is a behavior change that is neither a
+# feature nor a fix, such as a new default part size; customers see it, so it
+# needs a fragment.
+CATEGORY = {"feat": "Features", "fix": "Fixes", "change": "Changes",
+            "revert": "Reverts"}
 
 # A pull request carrying the `minor` label renders here instead of its own
 # type section: a consumer may have to change something to take the release.
@@ -28,7 +31,7 @@ BREAKING_SECTION = "Possible Breaking Changes"
 assert set(CATEGORY) | {"chore"} == VALID_TYPES
 
 TITLE_RE = re.compile(
-    r"^(feat|fix|chore|revert)(?:\([^)]+\))?:\s*(.+)$", re.IGNORECASE
+    r"^(feat|fix|change|chore|revert)(?:\([^)]+\))?!?:\s*(.+)$", re.IGNORECASE
 )
 # GitHub's Revert button generates `Revert "<original title> (#<n>)"`, which
 # carries no `<type>:` prefix. Accepting it verbatim means a maintainer using
@@ -42,7 +45,6 @@ REVERT_TITLE_RE = re.compile(r'^revert\s+"(.+)"\s*$', re.IGNORECASE)
 REVERT_OF_REVERT_RE = re.compile(r'^revert\s+"revert\s', re.IGNORECASE)
 
 REQUIRED = {"pr", "type", "summary"}
-OPTIONAL = {"notes"}
 
 
 class Rc(enum.IntEnum):
@@ -69,12 +71,11 @@ def validate_fragment(path):
     """Every problem with one fragment, as a list of messages.
 
     The schema is closed, so a misspelled field is an error rather than a value
-    silently ignored. Text containing an HTML comment is refused because an entry
-    is rendered inside a marked region and would break every later render. A
-    revert must carry notes, since saying why is the only reason it earns an entry.
-    Whether `pr` names a real pull request cannot be settled here -- this runs with
-    no token and no network -- so `check` asserts the fragment agrees with the
-    pull request its trigger fired for.
+    silently ignored. Text containing an HTML comment is refused because an
+    unclosed one would hide the rest of CHANGELOG.md. Whether `pr` names a real
+    pull request cannot be settled here -- this runs with no token and no network
+    -- so `check` asserts the fragment agrees with the pull request its trigger
+    fired for.
     """
     errs = []
     try:
@@ -85,10 +86,10 @@ def validate_fragment(path):
         return [f"{path}: must be a JSON object, not {type(data).__name__}"]
     for k in sorted(REQUIRED - set(data)):
         errs.append(f"{path}: missing field: {k}")
-    extra = sorted(set(data) - REQUIRED - OPTIONAL)
+    extra = sorted(set(data) - REQUIRED)
     if extra:
         errs.append(f"{path}: unexpected field(s): {', '.join(extra)}")
-    if data.get("type") not in VALID_TYPES:
+    if not isinstance(data.get("type"), str) or data["type"] not in VALID_TYPES:
         errs.append(f"{path}: type must be one of {sorted(VALID_TYPES)}")
     s = data.get("summary")
     if not isinstance(s, str) or not s.strip():
@@ -96,14 +97,8 @@ def validate_fragment(path):
     pr = data.get("pr")
     if not isinstance(pr, int) or isinstance(pr, bool):
         errs.append(f"{path}: pr must be int")
-    for field in ("summary", "notes"):
-        if isinstance(data.get(field), str) and "<!--" in data[field]:
-            errs.append(f"{path}: {field} must not contain an HTML comment")
-    notes = data.get("notes", "")
-    if not isinstance(notes, str):
-        errs.append(f"{path}: notes must be a string")
-    elif data.get("type") == "revert" and not notes.strip():
-        errs.append(f"{path}: a revert needs notes explaining why")
+    if isinstance(s, str) and "<!--" in s:
+        errs.append(f"{path}: summary must not contain an HTML comment")
     return errs
 
 
@@ -164,8 +159,9 @@ def cmd_seed(args):
             summary = f"Reverted {summary}"
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
+    # A backtick is escaped so a title cannot close the code fence it is posted in.
     out.write_text(json.dumps(
-        {"pr": args.pr, "type": pr_type, "summary": summary, "notes": ""},
-        indent=2) + "\n")
+        {"pr": args.pr, "type": pr_type, "summary": summary},
+        indent=2).replace("`", "\\u0060") + "\n")
     print(str(out))
     return Rc.OK
