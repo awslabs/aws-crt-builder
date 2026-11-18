@@ -111,6 +111,7 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
+          allow-unsafe-pr-checkout: true
           persist-credentials: false
 
       - name: Resolve the commits to compare
