@@ -15,8 +15,7 @@ def check_fragment_changes(args, pr_type, reason):
     which is the ordinary "author forgot" case the fragment check reports below.
     """
     prefix = args.changes_prefix.rstrip("/")
-    exempt = pr_type not in CATEGORY
-    expected = None if exempt else f"{prefix}/preview/{args.pr}.json"
+    expected = f"{prefix}/preview/{args.pr}.json"
     rows = (ln.strip().partition("\t")
             for ln in Path(args.changed_paths_file).read_text().splitlines())
     entries = [(status, p) for status, _, p in rows if p.startswith(f"{prefix}/")]
@@ -25,15 +24,6 @@ def check_fragment_changes(args, pr_type, reason):
         return None
 
     wrong = [(st, p) for st, p in entries if p != expected]
-    if exempt:
-        listed = "\n".join(f"         {st:<10} {p}" for st, p in wrong)
-        _err(
-            f"a `{pr_type}` change is not customer-visible, so it must not touch\n"
-            f"       the changelog. This pull request changes:\n{listed}\n"
-            f"       If it changes behavior a customer can see, retitle it `change`,\n"
-            f"       `feat` or `fix` and add its own fragment.")
-        reason("stray-fragment")
-        return Rc.AUTHOR_ERROR
     if wrong:
         listed = "\n".join(f"         {st:<10} {p}" for st, p in wrong)
         _err(
@@ -98,15 +88,15 @@ def cmd_check(args):
         reason("bad-title")
         return Rc.AUTHOR_ERROR
 
-    if args.changed_paths_file:
-        rc = check_fragment_changes(args, pr_type, reason)
-        if rc is not None:
-            return rc
-
     if pr_type not in CATEGORY:
         print(f"OK: #{args.pr} is a `{pr_type}` change; no changelog fragment required")
         reason("exempt-type")
         return Rc.OK
+
+    if args.changed_paths_file:
+        rc = check_fragment_changes(args, pr_type, reason)
+        if rc is not None:
+            return rc
 
     if not frag.exists():
         _err(

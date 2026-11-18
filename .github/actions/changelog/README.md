@@ -37,7 +37,7 @@ A release calls the same action with `mode: rollup`, `version` and `date`, then 
 - The title is `<type>: <summary>`, where type is one of `feat | fix | change | chore | revert`. An optional scope is fine: `fix(io): Handle EINTR.` So is a `!` before the colon: `feat!: Drop the old API.` The Revert button's `Revert "<original title>"` is accepted as-is, and a revert of a revert is exempt like a `chore`.
 - `change` is a behavior change that is neither a feature nor a fix, such as a new default part size.
 - A `feat`, `fix`, `change` or `revert` needs exactly one fragment, at exactly `.changes/preview/<PR>.json`. A fragment named for another pull request would render under that number; one at another path renders nowhere.
-- A `chore` needs no fragment and must not touch `.changes/`: it renders nowhere, so an entry would be invisible. A change a customer can see is not a `chore`.
+- A `chore` needs no fragment and is not checked against `.changes/`: it renders nowhere, so an entry would be invisible, and it is the escape hatch for correcting the changelog, for example deleting the unreleased fragment of a change that was reverted. A change a customer can see is not a `chore`.
 - A bot author waives both the title convention and the fragment.
 - A stacked pull request retargeted to the release branch after the one below it was squash-merged still carries that one's fragment, so it fails as a stray fragment until it is rebased onto the release branch.
 
