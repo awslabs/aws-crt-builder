@@ -42,7 +42,9 @@ def run_action(action, env):
             sys.exit(13)
         action = action_cls()
 
-    if action.is_main():
+    if getattr(env.args, 'install_only', False):
+        Scripts.run_action(Script([InstallCompiler(), InstallPackages()], name='install-only'), env)
+    elif action.is_main():
         Scripts.run_action(action, env)
     else:
         Scripts.run_action(
@@ -148,6 +150,8 @@ def parse_args():
                         default='{}-{}'.format(current_os(), current_arch()),
                         choices=data.PLATFORMS.keys())
     parser.add_argument('--variant', type=str, help="Build variant to use instead of default")
+    parser.add_argument('--install-only', action='store_true',
+                        help="Install the compiler and packages, then exit without building")
     parser.add_argument('--cmake-extra', action='append', default=[])
     parser.add_argument('--coverage', action='store_true',
                         help="Enable test coverage report and upload it the codecov. Only supported when using cmake with gcc as compiler, error out on other cases.\n"
