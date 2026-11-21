@@ -2,14 +2,132 @@
 # SPDX-License-Identifier: Apache-2.0.
 
 import os
+import platform
 import re
 import shutil
+import sys
+import tarfile
+import tempfile
+import time
+import zipfile
 from functools import lru_cache, partial
+from hashlib import sha256
 from pathlib import Path
+from urllib.request import urlretrieve
 
 from builder.core.action import Action
 from builder.core.toolchain import Toolchain
 from builder.core.util import UniqueList, run_command, unique_flags
+
+
+# CMake versions known to be broken for our builds, mapped to the version to replace them with
+_BAD_CMAKE_VERSIONS = {
+    '4.5.0': '4.5.1',
+}
+
+
+def _parse_cmake_version(cmake):
+    output = run_command([cmake, '--version'], quiet=True).output
+    if not isinstance(output, str):
+        return None
+    m = re.match(r'cmake(3?) version ([\d\.]+)', output)
+    if m:
+        return m.group(2)
+    return None
+
+
+def _cmake_release_platform():
+    """ Returns (platform suffix, archive extension) of the Kitware CMake release matching this host """
+    machine = platform.machine().lower()
+    if sys.platform == 'darwin':
+        return 'macos-universal', 'tar.gz'
+    if sys.platform.startswith('linux'):
+        if machine in ('aarch64', 'arm64'):
+            return 'linux-aarch64', 'tar.gz'
+        if machine in ('x86_64', 'amd64'):
+            return 'linux-x86_64', 'tar.gz'
+    if sys.platform == 'win32':
+        if machine == 'arm64':
+            return 'windows-arm64', 'zip'
+        if machine in ('amd64', 'x86_64'):
+            return 'windows-x86_64', 'zip'
+        return 'windows-i386', 'zip'
+    raise Exception('No prebuilt cmake release available for {} {}'.format(sys.platform, machine))
+
+
+def _download(url, dest, retries=3):
+    for attempt in range(retries):
+        try:
+            urlretrieve(url, dest)
+            return
+        except Exception as ex:
+            print('Failed to download {}: {}'.format(url, ex))
+            if attempt + 1 == retries:
+                raise
+            time.sleep(5)
+
+
+def _install_cmake(version):
+    """ Download the requested cmake version from Kitware's GitHub releases into ~/.builder,
+    put it at the front of PATH, and return the path to the cmake executable """
+    release_platform, ext = _cmake_release_platform()
+    name = 'cmake-{}-{}'.format(version, release_platform)
+    install_root = os.path.expanduser(os.path.join('~', '.builder', 'cmake'))
+    install_dir = os.path.join(install_root, name)
+    exe = 'cmake.exe' if sys.platform == 'win32' else 'cmake'
+    if sys.platform == 'darwin':
+        cmake = os.path.join(install_dir, 'CMake.app', 'Contents', 'bin', exe)
+    else:
+        cmake = os.path.join(install_dir, 'bin', exe)
+
+    if not os.path.isfile(cmake):
+        base_url = 'https://github.com/Kitware/CMake/releases/download/v{}'.format(version)
+        archive_name = '{}.{}'.format(name, ext)
+        print('Downloading cmake {} from {}/{}'.format(version, base_url, archive_name))
+        os.makedirs(install_root, exist_ok=True)
+        with tempfile.TemporaryDirectory(dir=install_root) as staging:
+            archive = os.path.join(staging, archive_name)
+            checksums = os.path.join(staging, 'SHA-256.txt')
+            _download('{}/{}'.format(base_url, archive_name), archive)
+            _download('{}/cmake-{}-SHA-256.txt'.format(base_url, version), checksums)
+
+            # verify the archive against the checksum Kitware publishes alongside the release
+            expected = None
+            with open(checksums) as f:
+                for line in f:
+                    parts = line.split()
+                    if len(parts) == 2 and parts[1] == archive_name:
+                        expected = parts[0].lower()
+            if not expected:
+                raise Exception('No checksum published for {}'.format(archive_name))
+            digest = sha256()
+            with open(archive, 'rb') as f:
+                for chunk in iter(lambda: f.read(1 << 20), b''):
+                    digest.update(chunk)
+            if digest.hexdigest() != expected:
+                raise Exception('Checksum mismatch for {}: expected {}, got {}'.format(
+                    archive_name, expected, digest.hexdigest()))
+
+            extract_dir = os.path.join(staging, 'extract')
+            if ext == 'zip':
+                with zipfile.ZipFile(archive) as z:
+                    z.extractall(extract_dir)
+            else:
+                with tarfile.open(archive) as t:
+                    if hasattr(tarfile, 'data_filter'):
+                        t.extractall(extract_dir, filter='data')
+                    else:
+                        t.extractall(extract_dir)
+            # archives contain a single top level dir named after the release
+            shutil.rmtree(install_dir, ignore_errors=True)
+            os.replace(os.path.join(extract_dir, name), install_dir)
+
+        if not os.path.isfile(cmake):
+            raise Exception('cmake {} was installed, but {} does not exist'.format(version, cmake))
+
+    # cmake/ctest are invoked by name elsewhere, so the new version needs to win on PATH
+    os.environ['PATH'] = os.path.dirname(cmake) + os.pathsep + os.environ.get('PATH', '')
+    return cmake
 
 
 @lru_cache(1)
@@ -17,12 +135,28 @@ def _find_cmake():
     for cmake_alias in ['cmake3', 'cmake']:
         cmake = shutil.which(cmake_alias)
         if cmake:
+            version = _parse_cmake_version(cmake)
+            replacement = _BAD_CMAKE_VERSIONS.get(version)
+            if replacement:
+                print('cmake {} found at {} is known to be broken, switching to cmake {}'.format(
+                    version, cmake, replacement))
+                cmake = _install_cmake(replacement)
+                new_version = _parse_cmake_version(cmake)
+                if new_version != replacement:
+                    raise Exception('Expected cmake {} but {} reports version {}'.format(
+                        replacement, cmake, new_version))
             return cmake
     raise Exception("cmake not found")
 
 
 @lru_cache(1)
 def _find_ctest():
+    # make sure cmake has been resolved first (it may swap the cmake install), and prefer the ctest next to it
+    cmake_dir = os.path.dirname(_find_cmake())
+    for ctest_alias in ['ctest3', 'ctest']:
+        ctest = shutil.which(ctest_alias, path=cmake_dir)
+        if ctest:
+            return ctest
     for ctest_alias in ['ctest3', 'ctest']:
         ctest = shutil.which(ctest_alias)
         if ctest:
@@ -39,11 +173,7 @@ def cmake_path(cross_compile=False):
 def cmake_version(cross_compile=False):
     if cross_compile:
         return '3.17.1'
-    output = run_command([cmake_path(), '--version'], quiet=True).output
-    m = re.match(r'cmake(3?) version ([\d\.])', output)
-    if m:
-        return m.group(2)
-    return None
+    return _parse_cmake_version(cmake_path())
 
 
 def cmake_binary(cross_compile=False):
