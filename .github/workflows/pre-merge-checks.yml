@@ -23,6 +23,9 @@
 #       secrets:
 #         CRT_CI_ROLE_ARN: ${{ secrets.CRT_CI_ROLE_ARN }}
 #
+# pull_request_target runs the caller from the repository's default branch, so keep
+# the caller thin and put the logic here.
+#
 # A pull request from a fork runs the credentialed checks only after a maintainer
 # adds the approval label, and a new push removes it again. Same-repo pull
 # requests run everything straight away.
@@ -203,7 +206,11 @@ jobs:
           elif grep -qxF needs-review <<< "$LABELS"; then
             STATE=failure; REASON="labeled needs-review: a maintainer must REPLACE it with patch or minor; deleting it leaves this blocked"
           elif ! grep -qxE 'patch|minor' <<< "$LABELS"; then
-            STATE=failure; REASON="no patch or minor label: the ABI check has not produced a verdict for this commit"
+            if [[ "$GATED" == "true" ]]; then
+              STATE=failure; REASON="${APPROVAL_LABEL} is set but the ABI check has no verdict for this commit: remove and re-add ${APPROVAL_LABEL}"
+            else
+              STATE=failure; REASON="no patch or minor label: the ABI check has not produced a verdict for this commit"
+            fi
           else
             STATE=success; REASON="all pre-merge checks passed"
           fi
