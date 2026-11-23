@@ -61,10 +61,11 @@ jobs:
   # label swap is not recomputed.
   abi:
     if: >-
+      !(github.event.action == 'edited' && github.event.changes.title == null && github.event.changes.base == null) && (
       (!contains(fromJSON('["labeled","unlabeled"]'), github.event.action)
         && !(inputs.approval-label != '' && (github.event.pull_request.head.repo.full_name != github.repository || inputs.gate-same-repo)))
       || ((inputs.approval-label != '' && (github.event.pull_request.head.repo.full_name != github.repository || inputs.gate-same-repo))
-        && github.event.action == 'labeled' && github.event.label.name == inputs.approval-label)
+        && github.event.action == 'labeled' && github.event.label.name == inputs.approval-label))
     runs-on: ${{ inputs.runs-on }}
     permissions:
       id-token: write
@@ -106,6 +107,7 @@ jobs:
   # Holds no credentials and checks out no PR code: it reads the fragment and the
   # changed paths through the API.
   changelog:
+    if: ${{ !(github.event.action == 'edited' && github.event.changes.title == null && github.event.changes.base == null) }}
     runs-on: ${{ inputs.runs-on }}
     permissions:
       contents: read
@@ -137,7 +139,7 @@ jobs:
   # The only job that writes labels. Always runs, from the results of the checks.
   verdict:
     needs: [abi, changelog]
-    if: ${{ always() }}
+    if: ${{ always() && !(github.event.action == 'edited' && github.event.changes.title == null && github.event.changes.base == null) }}
     runs-on: ${{ inputs.runs-on }}
     permissions:
       pull-requests: write
