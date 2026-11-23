@@ -1,0 +1,45 @@
+name: 'Validate label'
+description: 'Reconcile a pull request to exactly one of the release-impact labels patch, minor or needs-review. An empty verdict clears all three.'
+
+inputs:
+  verdict:
+    description: 'patch | minor | needs-review, or empty to clear.'
+    required: false
+    default: ''
+  pr:
+    description: 'Pull request number.'
+    required: true
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Reconcile the labels
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        REPO: ${{ github.repository }}
+        PR: ${{ inputs.pr }}
+        VERDICT: ${{ inputs.verdict }}
+      run: |
+        set -euo pipefail
+        case "$VERDICT" in
+          patch)        COLOR=0e8a16 DESC="ABI backward-compatible (patch release)" ;;
+          minor)        COLOR=fbca04 DESC="ABI changed, source-compatible (minor release)" ;;
+          needs-review) COLOR=d93f0b DESC="ABI check: source/API compatibility broken, needs manual review" ;;
+          "")           ;;
+          *) echo "::error::unexpected verdict '${VERDICT}'"; exit 1 ;;
+        esac
+
+        CURRENT="$(gh pr view "$PR" --repo "$REPO" --json labels -q '.labels[].name')"
+        EDIT=() DROP=()
+        if [[ -n "$VERDICT" ]]; then
+          gh label create "$VERDICT" --repo "$REPO" --color "$COLOR" --description "$DESC" --force >/dev/null || true
+          EDIT+=(--add-label "$VERDICT")
+        fi
+        for l in patch minor needs-review; do
+          [[ "$l" == "$VERDICT" ]] && continue
+          grep -qxF "$l" <<< "$CURRENT" && DROP+=("$l")
+        done
+        [[ "${#DROP[@]}" -gt 0 ]] && EDIT+=(--remove-label "$(IFS=,; echo "${DROP[*]}")")
+        [[ "${#EDIT[@]}" -gt 0 ]] || { echo "nothing to change"; exit 0; }
+        gh pr edit "$PR" --repo "$REPO" "${EDIT[@]}"
