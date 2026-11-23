@@ -159,16 +159,18 @@ def cmake_version(cross_compile=False):
     return None
 
 
+# Return the full path, not the bare name: project steps run between pushenv and popenv, so the PATH change made
+# when swapping cmake (see _replace_broken_cmake) is gone by the next step.
 def cmake_binary(cross_compile=False):
     if cross_compile:
         return 'cmake'
-    return os.path.basename(_find_cmake())
+    return _find_cmake()
 
 
 def ctest_binary(cross_compile):
     if cross_compile:
         return 'ctest'
-    return os.path.basename(_find_ctest())
+    return _find_ctest()
 
 
 def _cmake_path(self):
@@ -371,6 +373,8 @@ class CTestRun(Action):
             return
 
         ctest = toolchain.ctest_binary()
+        # Log which ctest runs the tests, so a CI log shows whether the cmake swap took effect
+        sh.exec(*toolchain.shell_env, ctest, "--version", working_dir=project_build_dir, check=True)
         ctest_args = ["--output-on-failure"]
 
         # Add parallel execution flag if test_parallel is enabled
