@@ -2,18 +2,128 @@
 # SPDX-License-Identifier: Apache-2.0.
 
 import os
+import platform
 import re
 import shutil
+import sys
+import zipfile
 from functools import lru_cache, partial
 from pathlib import Path
+from urllib.request import urlretrieve
 
 from builder.core.action import Action
+from builder.core.fetch import hash_file
 from builder.core.toolchain import Toolchain
 from builder.core.util import UniqueList, run_command, unique_flags
+
+# CTest 4.5.0 copies all output captured so far for every line a test prints, so a test that prints
+# tens of MB runs into its timeout (https://gitlab.kitware.com/cmake/cmake/-/work_items/28298).
+# If the cmake on PATH is one of these versions, download the official replacement and put it first on PATH.
+_BROKEN_CMAKE_VERSIONS = {'4.5.0'}
+_REPLACEMENT_CMAKE_VERSION = '4.5.1'
+_CMAKE_RELEASE_URL = 'https://github.com/Kitware/CMake/releases/download/v{version}/{file}'
+
+
+def _replacement_cmake_package():
+    """Return (archive name, bin dir relative to the extract dir) for this host, or None if not supported."""
+    version = _REPLACEMENT_CMAKE_VERSION
+    machine = platform.machine().lower()
+    if sys.platform == 'win32':
+        arch = {'amd64': 'x86_64', 'x86_64': 'x86_64', 'arm64': 'arm64'}.get(machine)
+        if not arch:
+            return None
+        name = 'cmake-{}-windows-{}'.format(version, arch)
+        return name + '.zip', os.path.join(name, 'bin')
+    if sys.platform == 'darwin':
+        name = 'cmake-{}-macos-universal'.format(version)
+        return name + '.tar.gz', os.path.join(name, 'CMake.app', 'Contents', 'bin')
+    if sys.platform.startswith('linux'):
+        arch = {'x86_64': 'x86_64', 'amd64': 'x86_64', 'aarch64': 'aarch64', 'arm64': 'aarch64'}.get(machine)
+        if not arch:
+            return None
+        name = 'cmake-{}-linux-{}'.format(version, arch)
+        return name + '.tar.gz', os.path.join(name, 'bin')
+    return None
+
+
+def _install_replacement_cmake():
+    """Download, verify and extract the replacement cmake. Return its bin dir."""
+    package = _replacement_cmake_package()
+    if not package:
+        raise Exception('no CMake {} package for {} {}'.format(
+            _REPLACEMENT_CMAKE_VERSION, sys.platform, platform.machine()))
+    archive_name, bin_rel = package
+    install_dir = os.path.expanduser(os.path.join('~', '.builder', 'cmake-' + _REPLACEMENT_CMAKE_VERSION))
+    bin_dir = os.path.join(install_dir, bin_rel)
+    if os.path.isdir(bin_dir):
+        return bin_dir
+
+    os.makedirs(install_dir, exist_ok=True)
+    archive_path = os.path.join(install_dir, archive_name)
+    sums_path = os.path.join(install_dir, 'SHA-256.txt')
+    for file, path in ((archive_name, archive_path),
+                       ('cmake-{}-SHA-256.txt'.format(_REPLACEMENT_CMAKE_VERSION), sums_path)):
+        url = _CMAKE_RELEASE_URL.format(version=_REPLACEMENT_CMAKE_VERSION, file=file)
+        print('Downloading {}'.format(url))
+        urlretrieve(url, path)
+
+    expected = None
+    with open(sums_path) as f:
+        for line in f:
+            fields = line.split()
+            if len(fields) == 2 and fields[1] == archive_name:
+                expected = fields[0]
+    actual = hash_file(archive_path)
+    if expected != actual:
+        raise Exception('SHA-256 mismatch for {}: expected {}, got {}'.format(archive_name, expected, actual))
+
+    print('Extracting {} to {}'.format(archive_path, install_dir))
+    if archive_name.endswith('.zip'):
+        with zipfile.ZipFile(archive_path) as z:
+            z.extractall(install_dir)
+    else:
+        # System tar keeps the executable bits and the symlinks inside CMake.app.
+        run_command(['tar', '-xzf', archive_path, '-C', install_dir], check=True, quiet=True)
+    os.remove(archive_path)
+    if not os.path.isdir(bin_dir):
+        raise Exception('{} not found after extracting {}'.format(bin_dir, archive_name))
+    return bin_dir
+
+
+def _replace_broken_cmake(cmake):
+    """If cmake is a known-broken version, put a replacement first on PATH and return its bin dir, else None."""
+    output = run_command([cmake, '--version'], quiet=True).output
+    m = re.search(r'version (\S+)', output)
+    if not m or m.group(1) not in _BROKEN_CMAKE_VERSIONS:
+        return None
+    print('CMake {} has a known CTest regression; switching to CMake {}'.format(
+        m.group(1), _REPLACEMENT_CMAKE_VERSION))
+    try:
+        bin_dir = _install_replacement_cmake()
+    except Exception as ex:
+        print('WARNING: failed to install CMake {}, keeping CMake {}: {}'.format(
+            _REPLACEMENT_CMAKE_VERSION, m.group(1), ex))
+        return None
+    # Commands run cmake and ctest by name, so they must resolve to the replacement.
+    os.environ['PATH'] = bin_dir + os.pathsep + os.environ.get('PATH', '')
+    return bin_dir
+
+
+@lru_cache(1)
+def _cmake_bin_override():
+    """Bin dir of the replacement cmake, or None if the cmake found on PATH is used as is."""
+    for cmake_alias in ['cmake3', 'cmake']:
+        cmake = shutil.which(cmake_alias)
+        if cmake:
+            return _replace_broken_cmake(cmake)
+    return None
 
 
 @lru_cache(1)
 def _find_cmake():
+    bin_dir = _cmake_bin_override()
+    if bin_dir:
+        return shutil.which('cmake', path=bin_dir)
     for cmake_alias in ['cmake3', 'cmake']:
         cmake = shutil.which(cmake_alias)
         if cmake:
@@ -23,6 +133,9 @@ def _find_cmake():
 
 @lru_cache(1)
 def _find_ctest():
+    bin_dir = _cmake_bin_override()
+    if bin_dir:
+        return shutil.which('ctest', path=bin_dir)
     for ctest_alias in ['ctest3', 'ctest']:
         ctest = shutil.which(ctest_alias)
         if ctest:
@@ -46,16 +159,18 @@ def cmake_version(cross_compile=False):
     return None
 
 
+# Return the full path, not the bare name: project steps run between pushenv and popenv, so the PATH change made
+# when swapping cmake (see _replace_broken_cmake) is gone by the next step.
 def cmake_binary(cross_compile=False):
     if cross_compile:
         return 'cmake'
-    return os.path.basename(_find_cmake())
+    return _find_cmake()
 
 
 def ctest_binary(cross_compile):
     if cross_compile:
         return 'ctest'
-    return os.path.basename(_find_ctest())
+    return _find_ctest()
 
 
 def _cmake_path(self):
@@ -258,6 +373,8 @@ class CTestRun(Action):
             return
 
         ctest = toolchain.ctest_binary()
+        # Log which ctest runs the tests, so a CI log shows whether the cmake swap took effect
+        sh.exec(*toolchain.shell_env, ctest, "--version", working_dir=project_build_dir, check=True)
         ctest_args = ["--output-on-failure"]
 
         # Add parallel execution flag if test_parallel is enabled
