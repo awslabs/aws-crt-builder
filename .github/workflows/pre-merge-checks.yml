@@ -1,11 +1,11 @@
 # Everything that must be true before a pull request merges, in one workflow.
-# Consumers call it from a single pull_request_target workflow; the branch ruleset
-# requires the `pre-merge/gate` commit status that the verdict job posts.
+# Checks run in parallel; the verdict job aggregates them, is the only job that
+# writes labels, and posts the `pre-merge/gate` commit status the ruleset requires.
 #
 #   on:
 #     pull_request_target:
-#       # labeled/unlabeled re-run the gate when a maintainer swaps a label;
-#       # edited catches a retitle or a retarget.
+#       # labeled/unlabeled re-run the gate when a maintainer swaps a label or
+#       # adds the approval label; edited catches a retitle or a retarget.
 #       types: [opened, reopened, synchronize, edited, labeled, unlabeled]
 #   concurrency:
 #     group: pre-merge-${{ github.event.pull_request.number }}
@@ -19,9 +19,13 @@
 #       uses: awslabs/aws-crt-builder/.github/workflows/pre-merge-checks.yml@main
 #       with:
 #         lib-name: aws-c-common
-#         approval-environment: ${{ github.event.pull_request.head.repo.full_name != github.repository && 'customer-env' || '' }}
+#         approval-label: ci-ready
 #       secrets:
 #         CRT_CI_ROLE_ARN: ${{ secrets.CRT_CI_ROLE_ARN }}
+#
+# A pull request from a fork runs the credentialed checks only after a maintainer
+# adds the approval label, and a new push removes it again. Same-repo pull
+# requests run everything straight away.
 name: Pre-merge checks
 
 on:
@@ -31,14 +35,18 @@ on:
         description: 'C library name for the ABI check, e.g. aws-c-common.'
         required: true
         type: string
-      approval-environment:
+      approval-label:
         description: >-
-          Environment whose required reviewers gate execution of PR-authored
-          code. The caller passes a name for fork pull requests and '' otherwise;
-          '' means no environment and no wait.
+          Label a maintainer adds to let a fork pull request run the credentialed
+          checks. A push removes it. '' disables the gate.
         required: false
         type: string
         default: ''
+      gate-same-repo:
+        description: 'Apply the approval label to same-repo pull requests too (for testing the gate).'
+        required: false
+        type: boolean
+        default: false
       runs-on:
         required: false
         type: string
@@ -48,57 +56,21 @@ on:
         required: false
 
 jobs:
-  # Clears the previous verdict as soon as the code could have changed.
-  clear:
+  # Needs credentials and builds PR code. Runs on code changes, and on the approval
+  # label for a gated pull request; never on other label events, so a maintainer's
+  # label swap is not recomputed.
+  abi:
     if: >-
-      contains(fromJSON('["opened","reopened","synchronize"]'), github.event.action)
-      || (github.event.action == 'edited' && github.event.changes.base != null)
-    runs-on: ${{ inputs.runs-on }}
-    permissions:
-      pull-requests: write
-    steps:
-      - name: Clear the verdict
-        uses: awslabs/aws-crt-builder/.github/actions/validate-label@main
-        with:
-          pr: ${{ github.event.pull_request.number }}
-
-  # Holds the approval environment so a fork's code waits for a reviewer.
-  approval:
-    needs: clear
-    runs-on: ${{ inputs.runs-on }}
-    permissions: {}
-    environment: ${{ inputs.approval-environment }}
-    steps:
-      - name: Approved
-        env:
-          FORK: ${{ github.event.pull_request.head.repo.full_name != github.repository }}
-          ENVIRONMENT: ${{ inputs.approval-environment }}
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          if [[ "$FORK" == "true" && -z "$ENVIRONMENT" ]]; then
-            echo "::error::a fork pull request reached this job with no approval environment; the caller must pass one."
-            exit 1
-          fi
-          # GitHub creates a referenced environment that does not exist, with no
-          # protection rules, so a misspelled name would run fork code unreviewed.
-          if [[ -n "$ENVIRONMENT" ]]; then
-            REVIEWERS="$(gh api "repos/${GITHUB_REPOSITORY}/environments/${ENVIRONMENT}" \
-              -q '[.protection_rules[]? | select(.type == "required_reviewers") | .reviewers[]?] | length' \
-              2>/dev/null)" || REVIEWERS=0
-            if [[ "${REVIEWERS:-0}" == "0" ]]; then
-              echo "::error::environment '${ENVIRONMENT}' has no required reviewers; create it with reviewers or fix the name the caller passes."
-              exit 1
-            fi
-          fi
-
-  # Diffs the merge base against the pull request head and labels the result.
-  abi-compat:
-    needs: approval
+      (!contains(fromJSON('["labeled","unlabeled"]'), github.event.action)
+        && !(inputs.approval-label != '' && (github.event.pull_request.head.repo.full_name != github.repository || inputs.gate-same-repo)))
+      || ((inputs.approval-label != '' && (github.event.pull_request.head.repo.full_name != github.repository || inputs.gate-same-repo))
+        && github.event.action == 'labeled' && github.event.label.name == inputs.approval-label)
     runs-on: ${{ inputs.runs-on }}
     permissions:
       id-token: write
       contents: read
-      pull-requests: write
+    outputs:
+      label: ${{ steps.check.outputs.label }}
     steps:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -131,14 +103,8 @@ jobs:
           builder-version: latest
           base-ref: ${{ steps.refs.outputs.base-sha }}
 
-      - name: Apply the verdict
-        uses: awslabs/aws-crt-builder/.github/actions/validate-label@main
-        with:
-          verdict: ${{ steps.check.outputs.label }}
-          pr: ${{ github.event.pull_request.number }}
-
-  # Not behind approval: it holds no credentials and checks out no PR code, so
-  # it reads the fragment and the changed paths through the API instead.
+  # Holds no credentials and checks out no PR code: it reads the fragment and the
+  # changed paths through the API.
   changelog:
     runs-on: ${{ inputs.runs-on }}
     permissions:
@@ -146,7 +112,6 @@ jobs:
       pull-requests: write
     steps:
       - name: Read the fragment and changed paths at the PR head
-        id: read
         env:
           GH_TOKEN: ${{ github.token }}
           PR: ${{ github.event.pull_request.number }}
@@ -154,7 +119,6 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p "${RUNNER_TEMP}/changes/preview"
-          # The base repo's Contents API resolves a fork's head sha too.
           if ! gh api "repos/${GITHUB_REPOSITORY}/contents/.changes/preview/${PR}.json?ref=${HEAD_SHA}" \
                -H 'Accept: application/vnd.github.raw' > "${RUNNER_TEMP}/changes/preview/${PR}.json" 2>/dev/null; then
             rm -f "${RUNNER_TEMP}/changes/preview/${PR}.json"
@@ -170,22 +134,58 @@ jobs:
           changes-dir: ${{ runner.temp }}/changes
           changed-paths-file: ${{ runner.temp }}/changed-paths.tsv
 
-  # Posts the `pre-merge/gate` status on every event, from the live labels.
+  # The only job that writes labels. Always runs, from the results of the checks.
   verdict:
-    needs: [clear, approval, abi-compat, changelog]
+    needs: [abi, changelog]
     if: ${{ always() }}
     runs-on: ${{ inputs.runs-on }}
     permissions:
-      pull-requests: read
+      pull-requests: write
       statuses: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RESULTS: ${{ toJSON(needs) }}
+      PR: ${{ github.event.pull_request.number }}
+      HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      TITLE: ${{ github.event.pull_request.title }}
+      ACTION: ${{ github.event.action }}
+      BASE_CHANGED: ${{ github.event.changes.base != null }}
+      APPROVAL_LABEL: ${{ inputs.approval-label }}
+      GATED: ${{ inputs.approval-label != '' && (github.event.pull_request.head.repo.full_name != github.repository || inputs.gate-same-repo) }}
     steps:
+      - name: Plan the label changes
+        id: plan
+        run: |
+          set -uo pipefail
+          CODE_CHANGED=false
+          case "$ACTION" in
+            opened|reopened|synchronize) CODE_CHANGED=true ;;
+            edited) [[ "$BASE_CHANGED" == "true" ]] && CODE_CHANGED=true ;;
+          esac
+          ABI_RESULT="$(jq -r '.abi.result' <<< "$RESULTS")"
+          ABI_LABEL="$(jq -r '.abi.outputs.label // ""' <<< "$RESULTS")"
+          # A fresh verdict replaces the labels; a code change without one clears them.
+          if [[ "$ABI_RESULT" == "success" && -n "$ABI_LABEL" ]]; then
+            echo "apply=true" >> "$GITHUB_OUTPUT"; echo "verdict=${ABI_LABEL}" >> "$GITHUB_OUTPUT"
+          elif [[ "$CODE_CHANGED" == "true" ]]; then
+            echo "apply=true" >> "$GITHUB_OUTPUT"; echo "verdict=" >> "$GITHUB_OUTPUT"
+          else
+            echo "apply=false" >> "$GITHUB_OUTPUT"
+          fi
+          echo "code_changed=${CODE_CHANGED}" >> "$GITHUB_OUTPUT"
+
+      - name: Replace the verdict label
+        if: ${{ steps.plan.outputs.apply == 'true' }}
+        uses: awslabs/aws-crt-builder/.github/actions/validate-label@main
+        with:
+          verdict: ${{ steps.plan.outputs.verdict }}
+          pr: ${{ github.event.pull_request.number }}
+
+      - name: Withdraw the approval after a code change
+        if: ${{ env.GATED == 'true' && steps.plan.outputs.code_changed == 'true' }}
+        run: gh pr edit "$PR" --repo "$GITHUB_REPOSITORY" --remove-label "$APPROVAL_LABEL" || true
+
       - name: Publish the gate status
-        env:
-          GH_TOKEN: ${{ github.token }}
-          RESULTS: ${{ toJSON(needs) }}
-          PR: ${{ github.event.pull_request.number }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-          TITLE: ${{ github.event.pull_request.title }}
         run: |
           set -uo pipefail
           shopt -s nocasematch
@@ -194,6 +194,8 @@ jobs:
             STATE=failure; REASON="pre-merge check(s) did not pass: ${FAILED}"
           elif ! LABELS="$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json labels -q '.labels[].name')"; then
             STATE=failure; REASON="could not read the labels on #${PR}"
+          elif [[ "$GATED" == "true" ]] && ! grep -qxF "$APPROVAL_LABEL" <<< "$LABELS"; then
+            STATE=failure; REASON="waiting for a maintainer to add the ${APPROVAL_LABEL} label"
           elif [[ "$TITLE" =~ ^chore(\([^\)]+\))?!?: ]] && grep -qxE 'minor|needs-review' <<< "$LABELS"; then
             STATE=failure; REASON="titled chore but the ABI check found a possible break: retitle it change, feat or fix and add a fragment"
           elif grep -qxF needs-review <<< "$LABELS"; then
