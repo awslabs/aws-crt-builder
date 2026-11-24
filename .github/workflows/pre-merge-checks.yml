@@ -70,6 +70,11 @@ on:
         required: false
         type: boolean
         default: false
+      abi-image-registry:
+        description: 'ECR registry holding the aws-crt-ubuntu-22-abi-x64 image the ABI check runs in.'
+        required: false
+        type: string
+        default: '123124136734.dkr.ecr.us-east-1.amazonaws.com'
       runs-on:
         required: false
         type: string
@@ -168,6 +173,7 @@ jobs:
           lib-name: ${{ inputs.lib-name }}
           builder-version: latest
           base-ref: ${{ steps.refs.outputs.base-sha }}
+          image-registry: ${{ inputs.abi-image-registry }}
 
   # No credentials and no PR code: it reads the fragment and the changed paths
   # through the API. It waits only for `plan` (seconds), well inside the ABI check.
