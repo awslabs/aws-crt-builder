@@ -234,8 +234,23 @@ jobs:
       GATED: ${{ needs.plan.outputs.gated }}
       CODE_CHANGED: ${{ needs.plan.outputs.code_changed }}
     steps:
+      # A run for an older commit (another event kind runs side by side) must not write
+      # labels onto a pull request whose head has moved on; the newer commit has its own run.
+      - name: Check the pull request head
+        id: head
+        run: |
+          set -uo pipefail
+          CURRENT="$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json headRefOid -q .headRefOid 2>/dev/null || echo "$HEAD_SHA")"
+          if [[ "$CURRENT" != "$HEAD_SHA" ]]; then
+            echo "stale=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::#${PR} moved to ${CURRENT}; this run is for ${HEAD_SHA} and writes nothing"
+          else
+            echo "stale=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Plan the label changes
         id: plan
+        if: ${{ steps.head.outputs.stale != 'true' }}
         run: |
           set -uo pipefail
           ABI_RESULT="$(jq -r '.abi.result' <<< "$RESULTS")"
@@ -244,7 +259,7 @@ jobs:
           if [[ "$ABI_RESULT" == "success" && -n "$ABI_LABEL" ]]; then
             echo "apply=true" >> "$GITHUB_OUTPUT"; echo "verdict=${ABI_LABEL}" >> "$GITHUB_OUTPUT"
           elif [[ "$CODE_CHANGED" == "true" ]]; then
-            echo "apply=true" >> "$GITHUB_OUTPUT"; echo "verdict=" >> "$GITHUB_OUTPUT"
+            echo "apply=true" >> "$GITHUB_OUTPUT"; echo "verdict=" >> "$GITHUB_OUTPUT"; echo "invalidate=true" >> "$GITHUB_OUTPUT"
           else
             echo "apply=false" >> "$GITHUB_OUTPUT"
           fi
@@ -260,6 +275,12 @@ jobs:
       # The labels carry the verdict, but a status is tied to one commit. A run that did not
       # compute the verdict (a label event) checks for it, so labels left over from another
       # commit can never turn the gate green, even if a newer run replaced this commit's run.
+      - name: Invalidate the recorded verdict after a code change
+        if: ${{ steps.plan.outputs.invalidate == 'true' }}
+        run: |
+          gh api --method POST "repos/${GITHUB_REPOSITORY}/statuses/${HEAD_SHA}" \
+            -f state=failure -f context=pre-merge/abi-verdict -f "description=ABI verdict cleared: the code changed and no new verdict was computed" > /dev/null
+
       - name: Record the commit the verdict is for
         if: ${{ steps.replace.outcome == 'success' && steps.plan.outputs.verdict != '' }}
         env:
@@ -269,15 +290,15 @@ jobs:
             -f state=success -f context=pre-merge/abi-verdict -f "description=ABI verdict: ${VERDICT}" > /dev/null
 
       - name: Make sure the approval label exists
-        if: ${{ !cancelled() && env.GATED == 'true' }}
+        if: ${{ !cancelled() && steps.head.outputs.stale != 'true' && env.GATED == 'true' }}
         run: gh label create "$APPROVAL_LABEL" --repo "$GITHUB_REPOSITORY" --color 0e8a16 --description "A maintainer approved running CI on this pull request" >/dev/null 2>&1 || true
 
       - name: Withdraw the approval after a code change
-        if: ${{ !cancelled() && env.GATED == 'true' && env.CODE_CHANGED == 'true' }}
+        if: ${{ !cancelled() && steps.head.outputs.stale != 'true' && env.GATED == 'true' && env.CODE_CHANGED == 'true' }}
         run: gh pr edit "$PR" --repo "$GITHUB_REPOSITORY" --remove-label "$APPROVAL_LABEL" || true
 
       - name: Publish the gate status
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.head.outputs.stale != 'true' }}
         env:
           LABEL_UPDATE: ${{ steps.replace.outcome }}
         run: |
@@ -294,7 +315,7 @@ jobs:
             STATE=failure; REASON="this pull request is from a fork and the caller sets no approval-label"
           elif [[ "$GATED" == "true" ]] && ! grep -qxiF "$APPROVAL_LABEL" <<< "$LABELS"; then
             STATE=failure; REASON="waiting for a maintainer to add the ${APPROVAL_LABEL} label"
-          elif [[ "$(gh api "repos/${GITHUB_REPOSITORY}/commits/${HEAD_SHA}/status" --jq '.statuses | map(select(.context == "pre-merge/abi-verdict")) | length' 2>/dev/null || echo 0)" == "0" ]]; then
+          elif [[ "$(gh api "repos/${GITHUB_REPOSITORY}/commits/${HEAD_SHA}/status" --jq '.statuses | map(select(.context == "pre-merge/abi-verdict" and .state == "success")) | length' 2>/dev/null || echo 0)" == "0" ]]; then
             if [[ "$GATED" == "true" ]]; then
               STATE=failure; REASON="${APPROVAL_LABEL} is set but the ABI check has no verdict for this commit: remove and re-add ${APPROVAL_LABEL}"
             else
@@ -305,7 +326,7 @@ jobs:
           elif grep -qxiF needs-review <<< "$LABELS"; then
             STATE=failure; REASON="labeled needs-review: a maintainer must REPLACE it with patch or minor; deleting it leaves this blocked"
           elif ! grep -qxiE 'patch|minor' <<< "$LABELS"; then
-            STATE=failure; REASON="no patch or minor label: a maintainer removed the verdict; push again to recompute it"
+            STATE=failure; REASON="no patch or minor label: the verdict was removed or not produced; push again or re-run to recompute it"
           else
             STATE=success; REASON="all pre-merge checks passed"
           fi
