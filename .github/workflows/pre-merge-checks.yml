@@ -2,13 +2,26 @@
 # Checks run in parallel; the verdict job aggregates them, is the only job that
 # writes labels, and posts the `pre-merge/gate` commit status the ruleset requires.
 #
+# Triggers (one run per event):
+#   push (not main)      a commit on a branch of this repository; the workflow file is
+#                        the branch's own, so a change to the caller is tested by the
+#                        commit that makes it. Resolves the open pull request itself.
+#   pull_request         opened/reopened/edited/labeled/unlabeled -- NOT synchronize,
+#                        which the push already covers for same-repo branches.
+#   workflow_dispatch    a maintainer runs the credentialed checks for a fork pull
+#                        request at the exact commit they reviewed (inputs: pr, sha).
+#
 #   on:
-#     pull_request_target:
-#       # labeled/unlabeled re-run the gate when a maintainer swaps a label or
-#       # adds the approval label; edited catches a retitle or a retarget.
-#       types: [opened, reopened, synchronize, edited, labeled, unlabeled]
+#     push:
+#       branches-ignore: ['main']
+#     pull_request:
+#       types: [opened, reopened, edited, labeled, unlabeled]
+#     workflow_dispatch:
+#       inputs:
+#         pr:  { description: 'Pull request number', required: true }
+#         sha: { description: 'Reviewed head commit', required: true }
 #   concurrency:
-#     group: pre-merge-${{ github.event.pull_request.number }}
+#     group: pre-merge-${{ github.event.pull_request.head.ref || github.ref_name }}
 #   jobs:
 #     pre-merge:
 #       permissions:
@@ -19,16 +32,12 @@
 #       uses: awslabs/aws-crt-builder/.github/workflows/pre-merge-checks.yml@main
 #       with:
 #         lib-name: aws-c-common
-#         approval-label: ci-ready
 #       secrets:
 #         CRT_CI_ROLE_ARN: ${{ secrets.CRT_CI_ROLE_ARN }}
 #
-# pull_request_target runs the caller from the repository's default branch, so keep
-# the caller thin and put the logic here.
-#
-# A pull request from a fork runs the credentialed checks only after a maintainer
-# adds the approval label, and a new push removes it again. Same-repo pull
-# requests run everything straight away.
+# A pull request from a fork never runs the credentialed checks on its own events:
+# a maintainer dispatches the workflow with the commit they reviewed. workflow_dispatch
+# needs the caller on the default branch, so keep the caller thin and put the logic here.
 name: Pre-merge checks
 
 on:
@@ -38,15 +47,8 @@ on:
         description: 'C library name for the ABI check, e.g. aws-c-common.'
         required: true
         type: string
-      approval-label:
-        description: >-
-          Label a maintainer adds to let a fork pull request run the credentialed
-          checks. A push removes it. '' disables the gate.
-        required: false
-        type: string
-        default: ''
       gate-same-repo:
-        description: 'Apply the approval label to same-repo pull requests too (for testing the gate).'
+        description: 'Treat same-repo pull requests like forks: credentialed checks only on dispatch (for testing).'
         required: false
         type: boolean
         default: false
@@ -59,16 +61,87 @@ on:
         required: false
 
 jobs:
-  # Needs credentials and builds PR code. Runs on code changes, and on the approval
-  # label for a gated pull request; never on other label events, so a maintainer's
-  # label swap is not recomputed.
+  # Resolves which pull request and commit this run is about, and which checks apply.
+  meta:
+    runs-on: ${{ inputs.runs-on }}
+    permissions:
+      pull-requests: read
+    outputs:
+      skip: ${{ steps.m.outputs.skip }}
+      pr: ${{ steps.m.outputs.pr }}
+      head_sha: ${{ steps.m.outputs.head_sha }}
+      base_ref: ${{ steps.m.outputs.base_ref }}
+      title: ${{ steps.m.outputs.title }}
+      gated: ${{ steps.m.outputs.gated }}
+      run_abi: ${{ steps.m.outputs.run_abi }}
+      code_changed: ${{ steps.m.outputs.code_changed }}
+    steps:
+      - name: Resolve the pull request
+        id: m
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          ACTION: ${{ github.event.action }}
+          PR_PAYLOAD: ${{ github.event.pull_request.number }}
+          HEAD_PAYLOAD: ${{ github.event.pull_request.head.sha }}
+          BASE_PAYLOAD: ${{ github.event.pull_request.base.ref }}
+          TITLE_PAYLOAD: ${{ github.event.pull_request.title }}
+          FORK_PAYLOAD: ${{ github.event.pull_request.head.repo.full_name != github.repository }}
+          TITLE_CHANGED: ${{ github.event.changes.title != null }}
+          BASE_CHANGED: ${{ github.event.changes.base != null }}
+          DISPATCH_PR: ${{ github.event.inputs.pr }}
+          DISPATCH_SHA: ${{ github.event.inputs.sha }}
+          GATE_SAME_REPO: ${{ inputs.gate-same-repo }}
+        run: |
+          set -euo pipefail
+          out() { echo "$1=$2" >> "$GITHUB_OUTPUT"; }
+          skip=false
+          case "$EVENT" in
+            push)
+              J="$(gh pr list --repo "$GITHUB_REPOSITORY" --head "${GITHUB_REF#refs/heads/}" --state open \
+                    --json number,baseRefName,title,isCrossRepository \
+                    -q 'map(select(.isCrossRepository | not)) | .[0] // empty')"
+              if [[ -z "$J" ]]; then skip=true; PR=; BASE=; TITLE=; else
+                PR="$(jq -r .number <<< "$J")"; BASE="$(jq -r .baseRefName <<< "$J")"; TITLE="$(jq -r .title <<< "$J")"
+              fi
+              HEAD="$GITHUB_SHA"; FORK=false; CODE=true; DISPATCH=false ;;
+            pull_request|pull_request_target)
+              PR="$PR_PAYLOAD"; HEAD="$HEAD_PAYLOAD"; BASE="$BASE_PAYLOAD"; TITLE="$TITLE_PAYLOAD"; FORK="$FORK_PAYLOAD"; DISPATCH=false
+              CODE=false
+              case "$ACTION" in opened|reopened|synchronize) CODE=true ;; edited) [[ "$BASE_CHANGED" == "true" ]] && CODE=true ;; esac
+              # An edit that changes neither the title nor the base changes nothing checked.
+              if [[ "$ACTION" == "edited" && "$TITLE_CHANGED" != "true" && "$BASE_CHANGED" != "true" ]]; then skip=true; fi ;;
+            workflow_dispatch)
+              PR="$DISPATCH_PR"
+              J="$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json headRefOid,baseRefName,title,isCrossRepository,state)"
+              HEAD="$(jq -r .headRefOid <<< "$J")"; BASE="$(jq -r .baseRefName <<< "$J")"; TITLE="$(jq -r .title <<< "$J")"
+              FORK="$(jq -r .isCrossRepository <<< "$J")"; CODE=false; DISPATCH=true
+              if [[ "$(jq -r .state <<< "$J")" != "OPEN" ]]; then echo "::error::#${PR} is not open"; exit 1; fi
+              if [[ "$HEAD" != "$DISPATCH_SHA" ]]; then
+                echo "::error::#${PR} head is ${HEAD}, not the reviewed ${DISPATCH_SHA}; review the new commit and dispatch again"; exit 1
+              fi ;;
+            *) echo "::error::unsupported event ${EVENT}"; exit 1 ;;
+          esac
+          # Credentialed checks wait for a dispatch when the pull request is a fork's
+          # (or, for testing, any pull request).
+          GATED=false
+          if [[ "$FORK" == "true" || "$GATE_SAME_REPO" == "true" ]]; then GATED=true; fi
+          LABEL_EVENT=false; [[ "$ACTION" == "labeled" || "$ACTION" == "unlabeled" ]] && LABEL_EVENT=true
+          RUN_ABI=false
+          if [[ "$skip" != "true" ]]; then
+            if [[ "$GATED" == "true" ]]; then [[ "$DISPATCH" == "true" ]] && RUN_ABI=true
+            else [[ "$LABEL_EVENT" == "false" ]] && RUN_ABI=true; fi
+          fi
+          out skip "$skip"; out pr "$PR"; out head_sha "$HEAD"; out base_ref "$BASE"
+          out gated "$GATED"; out run_abi "$RUN_ABI"; out code_changed "${CODE}"
+          # The title can hold anything: pass it through a multi-line output.
+          { echo "title<<__TITLE_EOF__"; printf '%s\n' "$TITLE"; echo "__TITLE_EOF__"; } >> "$GITHUB_OUTPUT"
+
+  # Needs credentials and builds PR code. Runs on code changes for same-repo pull
+  # requests, and on a maintainer's dispatch (at the reviewed commit) for a gated one.
   abi:
-    if: >-
-      !(github.event.action == 'edited' && github.event.changes.title == null && github.event.changes.base == null) && (
-      (!contains(fromJSON('["labeled","unlabeled"]'), github.event.action)
-        && !(inputs.approval-label != '' && (github.event.pull_request.head.repo.full_name != github.repository || inputs.gate-same-repo)))
-      || ((inputs.approval-label != '' && (github.event.pull_request.head.repo.full_name != github.repository || inputs.gate-same-repo))
-        && github.event.action == 'labeled' && github.event.label.name == inputs.approval-label))
+    needs: meta
+    if: ${{ needs.meta.outputs.skip != 'true' && needs.meta.outputs.run_abi == 'true' }}
     runs-on: ${{ inputs.runs-on }}
     permissions:
       id-token: write
@@ -85,7 +158,7 @@ jobs:
       - name: Checkout the PR head
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.sha }}
+          ref: ${{ needs.meta.outputs.head_sha }}
           fetch-depth: 0
           allow-unsafe-pr-checkout: true
           persist-credentials: false
@@ -93,7 +166,7 @@ jobs:
       - name: Resolve the commits to compare
         id: refs
         env:
-          BASE_BRANCH: ${{ github.event.pull_request.base.ref }}
+          BASE_BRANCH: ${{ needs.meta.outputs.base_ref }}
         run: |
           set -euo pipefail
           git fetch --no-tags --quiet origin "+refs/heads/${BASE_BRANCH}:refs/remotes/origin/${BASE_BRANCH}"
@@ -110,7 +183,8 @@ jobs:
   # Holds no credentials and checks out no PR code: it reads the fragment and the
   # changed paths through the API.
   changelog:
-    if: ${{ !(github.event.action == 'edited' && github.event.changes.title == null && github.event.changes.base == null) }}
+    needs: meta
+    if: ${{ needs.meta.outputs.skip != 'true' }}
     runs-on: ${{ inputs.runs-on }}
     permissions:
       contents: read
@@ -119,8 +193,8 @@ jobs:
       - name: Read the fragment and changed paths at the PR head
         env:
           GH_TOKEN: ${{ github.token }}
-          PR: ${{ github.event.pull_request.number }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR: ${{ needs.meta.outputs.pr }}
+          HEAD_SHA: ${{ needs.meta.outputs.head_sha }}
         run: |
           set -euo pipefail
           mkdir -p "${RUNNER_TEMP}/changes/preview"
@@ -136,13 +210,15 @@ jobs:
         uses: awslabs/aws-crt-builder/.github/actions/changelog@main
         with:
           mode: check
+          pr: ${{ needs.meta.outputs.pr }}
+          title: ${{ needs.meta.outputs.title }}
           changes-dir: ${{ runner.temp }}/changes
           changed-paths-file: ${{ runner.temp }}/changed-paths.tsv
 
   # The only job that writes labels. Always runs, from the results of the checks.
   verdict:
-    needs: [abi, changelog]
-    if: ${{ always() && !(github.event.action == 'edited' && github.event.changes.title == null && github.event.changes.base == null) }}
+    needs: [meta, abi, changelog]
+    if: ${{ always() && needs.meta.result == 'success' && needs.meta.outputs.skip != 'true' }}
     runs-on: ${{ inputs.runs-on }}
     permissions:
       pull-requests: write
@@ -150,23 +226,16 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       RESULTS: ${{ toJSON(needs) }}
-      PR: ${{ github.event.pull_request.number }}
-      HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-      TITLE: ${{ github.event.pull_request.title }}
-      ACTION: ${{ github.event.action }}
-      BASE_CHANGED: ${{ github.event.changes.base != null }}
-      APPROVAL_LABEL: ${{ inputs.approval-label }}
-      GATED: ${{ inputs.approval-label != '' && (github.event.pull_request.head.repo.full_name != github.repository || inputs.gate-same-repo) }}
+      PR: ${{ needs.meta.outputs.pr }}
+      HEAD_SHA: ${{ needs.meta.outputs.head_sha }}
+      TITLE: ${{ needs.meta.outputs.title }}
+      GATED: ${{ needs.meta.outputs.gated }}
+      CODE_CHANGED: ${{ needs.meta.outputs.code_changed }}
     steps:
       - name: Plan the label changes
         id: plan
         run: |
           set -uo pipefail
-          CODE_CHANGED=false
-          case "$ACTION" in
-            opened|reopened|synchronize) CODE_CHANGED=true ;;
-            edited) [[ "$BASE_CHANGED" == "true" ]] && CODE_CHANGED=true ;;
-          esac
           ABI_RESULT="$(jq -r '.abi.result' <<< "$RESULTS")"
           ABI_LABEL="$(jq -r '.abi.outputs.label // ""' <<< "$RESULTS")"
           # A fresh verdict replaces the labels; a code change without one clears them.
@@ -177,37 +246,30 @@ jobs:
           else
             echo "apply=false" >> "$GITHUB_OUTPUT"
           fi
-          echo "code_changed=${CODE_CHANGED}" >> "$GITHUB_OUTPUT"
 
       - name: Replace the verdict label
         if: ${{ steps.plan.outputs.apply == 'true' }}
         uses: awslabs/aws-crt-builder/.github/actions/validate-label@main
         with:
           verdict: ${{ steps.plan.outputs.verdict }}
-          pr: ${{ github.event.pull_request.number }}
-
-      - name: Withdraw the approval after a code change
-        if: ${{ env.GATED == 'true' && steps.plan.outputs.code_changed == 'true' }}
-        run: gh pr edit "$PR" --repo "$GITHUB_REPOSITORY" --remove-label "$APPROVAL_LABEL" || true
+          pr: ${{ needs.meta.outputs.pr }}
 
       - name: Publish the gate status
         run: |
           set -uo pipefail
           shopt -s nocasematch
-          FAILED="$(jq -r 'to_entries | map(select(.value.result == "failure" or .value.result == "cancelled")) | map(.key + "=" + .value.result) | join(", ")' <<< "$RESULTS")"
+          FAILED="$(jq -r 'to_entries | map(select(.key != "meta" and (.value.result == "failure" or .value.result == "cancelled"))) | map(.key + "=" + .value.result) | join(", ")' <<< "$RESULTS")"
           if [[ -n "$FAILED" ]]; then
             STATE=failure; REASON="pre-merge check(s) did not pass: ${FAILED}"
           elif ! LABELS="$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json labels -q '.labels[].name')"; then
             STATE=failure; REASON="could not read the labels on #${PR}"
-          elif [[ "$GATED" == "true" ]] && ! grep -qxF "$APPROVAL_LABEL" <<< "$LABELS"; then
-            STATE=failure; REASON="waiting for a maintainer to add the ${APPROVAL_LABEL} label"
           elif [[ "$TITLE" =~ ^chore(\([^\)]+\))?!?: ]] && grep -qxE 'minor|needs-review' <<< "$LABELS"; then
             STATE=failure; REASON="titled chore but the ABI check found a possible break: retitle it change, feat or fix and add a fragment"
           elif grep -qxF needs-review <<< "$LABELS"; then
             STATE=failure; REASON="labeled needs-review: a maintainer must REPLACE it with patch or minor; deleting it leaves this blocked"
           elif ! grep -qxE 'patch|minor' <<< "$LABELS"; then
             if [[ "$GATED" == "true" ]]; then
-              STATE=failure; REASON="${APPROVAL_LABEL} is set but the ABI check has no verdict for this commit: remove and re-add ${APPROVAL_LABEL}"
+              STATE=failure; REASON="waiting for a maintainer to dispatch the pre-merge checks at this commit"
             else
               STATE=failure; REASON="no patch or minor label: the ABI check has not produced a verdict for this commit"
             fi
