@@ -126,11 +126,12 @@ jobs:
           # (or, for testing, any pull request).
           GATED=false
           if [[ "$FORK" == "true" || "$GATE_SAME_REPO" == "true" ]]; then GATED=true; fi
-          LABEL_EVENT=false; [[ "$ACTION" == "labeled" || "$ACTION" == "unlabeled" ]] && LABEL_EVENT=true
+          # The ABI check runs when the code changed, or for a gated pull request on a
+          # dispatch. A retitle or a label swap never recomputes it, so an override stands.
           RUN_ABI=false
           if [[ "$skip" != "true" ]]; then
             if [[ "$GATED" == "true" ]]; then [[ "$DISPATCH" == "true" ]] && RUN_ABI=true
-            else [[ "$LABEL_EVENT" == "false" ]] && RUN_ABI=true; fi
+            else [[ "$CODE" == "true" ]] && RUN_ABI=true; fi
           fi
           out skip "$skip"; out pr "$PR"; out head_sha "$HEAD"; out base_ref "$BASE"
           out gated "$GATED"; out run_abi "$RUN_ABI"; out code_changed "${CODE}"
