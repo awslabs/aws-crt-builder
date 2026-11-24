@@ -75,6 +75,7 @@ jobs:
   # pull request when its approval label is added; a retitle or a label swap never
   # recomputes it, so a maintainer's override stands.
   plan:
+    if: ${{ !(github.event.action == 'edited' && github.event.changes.title == null && github.event.changes.base == null) }}
     runs-on: ${{ inputs.runs-on }}
     permissions: {}
     outputs:
