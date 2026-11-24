@@ -56,7 +56,8 @@ on:
       approval-label:
         description: >-
           Label a maintainer adds to let a fork pull request run the credentialed
-          checks. A push removes it. '' disables the gate.
+          checks. A push removes it. Required for fork pull requests: with '' they never
+          run the credentialed checks.
         required: false
         type: string
         default: ''
@@ -77,11 +78,12 @@ jobs:
   # Decides what this event runs. Every other job needs it, so this `if` is the one
   # place that drops events that change nothing: an edit that touches neither the title
   # nor the base, and a label event for any label but the approval label and the verdict
-  # labels (a maintainer's swap is two events; the second changes nothing).
+  # labels. Both adding and removing those labels re-evaluates the gate, so the status
+  # never goes stale whichever order a maintainer does a swap in.
   # The ABI check runs on a code change, or for a gated pull request when its approval
   # label is added; a retitle or a label swap never recomputes it, so an override stands.
   plan:
-    if: ${{ !((github.event.action == 'edited' && github.event.changes.title == null && github.event.changes.base == null) || (github.event.action == 'unlabeled' && !(inputs.approval-label != '' && github.event.label.name == inputs.approval-label)) || (github.event.action == 'labeled' && !(contains(fromJSON('["patch","minor","needs-review"]'), github.event.label.name) || (inputs.approval-label != '' && github.event.label.name == inputs.approval-label)))) }}
+    if: ${{ !((github.event.action == 'edited' && github.event.changes.title == null && github.event.changes.base == null) || ((github.event.action == 'labeled' || github.event.action == 'unlabeled') && !(contains(fromJSON('["patch","minor","needs-review"]'), github.event.label.name) || (inputs.approval-label != '' && github.event.label.name == inputs.approval-label)))) }}
     runs-on: ${{ inputs.runs-on }}
     timeout-minutes: 5
     permissions: {}
@@ -106,11 +108,13 @@ jobs:
             opened|reopened|synchronize) CODE=true ;;
             edited) [[ "$BASE_CHANGED" == "true" ]] && CODE=true ;;
           esac
+          # A fork's code never gets credentials unless a maintainer approves it, so with no
+          # approval label configured it never runs the credentialed jobs at all.
           GATED=false
-          [[ -n "$APPROVAL_LABEL" && ( "$FORK" == "true" || "$GATE_SAME_REPO" == "true" ) ]] && GATED=true
+          [[ "$FORK" == "true" || "$GATE_SAME_REPO" == "true" ]] && GATED=true
           RUN=false
           if [[ "$GATED" == "true" ]]; then
-            [[ "$ACTION" == "labeled" && "$LABEL_NAME" == "$APPROVAL_LABEL" ]] && RUN=true
+            [[ -n "$APPROVAL_LABEL" && "$ACTION" == "labeled" && "${LABEL_NAME,,}" == "${APPROVAL_LABEL,,}" ]] && RUN=true
           else
             RUN=$CODE
           fi
@@ -148,7 +152,9 @@ jobs:
           BASE_BRANCH: ${{ github.event.pull_request.base.ref }}
         run: |
           set -euo pipefail
-          git fetch --no-tags --quiet origin "+refs/heads/${BASE_BRANCH}:refs/remotes/origin/${BASE_BRANCH}"
+          # fetch-depth 0 already brought every branch of the base repository.
+          git rev-parse --verify --quiet "origin/${BASE_BRANCH}" > /dev/null \
+            || { echo "::error::origin/${BASE_BRANCH} is missing from the checkout"; exit 1; }
           echo "base-sha=$(git merge-base HEAD "origin/${BASE_BRANCH}")" >> "$GITHUB_OUTPUT"
 
       - name: Check ABI
@@ -177,12 +183,25 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p "${RUNNER_TEMP}/changes/preview"
-          if ! gh api "repos/${GITHUB_REPOSITORY}/contents/.changes/preview/${PR}.json?ref=${HEAD_SHA}" \
-               -H 'Accept: application/vnd.github.raw' > "${RUNNER_TEMP}/changes/preview/${PR}.json" 2>/dev/null; then
-            rm -f "${RUNNER_TEMP}/changes/preview/${PR}.json"
+          FRAG="${RUNNER_TEMP}/changes/preview/${PR}.json"
+          # Only a 404 means "no fragment"; any other API error fails the job instead of
+          # being reported to the author as a missing fragment.
+          fetch() { gh api "repos/${GITHUB_REPOSITORY}/contents/.changes/preview/${PR}.json?ref=$1" \
+                      -H 'Accept: application/vnd.github.raw' > "$FRAG" 2> "${RUNNER_TEMP}/fetch.err"; }
+          if ! fetch "${HEAD_SHA}"; then
+            if grep -q 'HTTP 404' "${RUNNER_TEMP}/fetch.err"; then
+              # A fork's commit may not resolve by sha in the base repository: try the PR ref.
+              if ! fetch "refs/pull/${PR}/head"; then
+                grep -q 'HTTP 404' "${RUNNER_TEMP}/fetch.err" || { cat "${RUNNER_TEMP}/fetch.err" >&2; exit 1; }
+                rm -f "$FRAG"
+              fi
+            else
+              cat "${RUNNER_TEMP}/fetch.err" >&2; exit 1
+            fi
           fi
+          # @tsv escapes tabs and newlines in a path, so one cannot forge another row.
           gh api --paginate "repos/${GITHUB_REPOSITORY}/pulls/${PR}/files?per_page=100" \
-            --jq '.[] | (select(.filename | startswith(".changes/")) | "\(.status)\t\(.filename)"), (select((.previous_filename // "") | startswith(".changes/")) | "removed\t\(.previous_filename)")' \
+            --jq '.[] | (select(.filename | startswith(".changes/")) | [.status, .filename]), (select((.previous_filename // "") | startswith(".changes/")) | ["removed", .previous_filename]) | @tsv' \
             > "${RUNNER_TEMP}/changed-paths.tsv"
 
       - name: Check the PR title and the fragment
@@ -227,21 +246,34 @@ jobs:
           fi
 
       - name: Replace the verdict label
+        id: replace
         if: ${{ steps.plan.outputs.apply == 'true' }}
         uses: awslabs/aws-crt-builder/.github/actions/validate-label@main
         with:
           verdict: ${{ steps.plan.outputs.verdict }}
           pr: ${{ github.event.pull_request.number }}
 
+      # The labels carry the verdict, but a status is tied to one commit. A run that did not
+      # compute the verdict (a label event) checks for it, so labels left over from another
+      # commit can never turn the gate green, even if a newer run replaced this commit's run.
+      - name: Record the commit the verdict is for
+        if: ${{ steps.replace.outcome == 'success' && steps.plan.outputs.verdict != '' }}
+        env:
+          VERDICT: ${{ steps.plan.outputs.verdict }}
+        run: |
+          gh api --method POST "repos/${GITHUB_REPOSITORY}/statuses/${HEAD_SHA}" \
+            -f state=success -f context=pre-merge/abi-verdict -f "description=ABI verdict: ${VERDICT}" > /dev/null
+
       - name: Make sure the approval label exists
-        if: ${{ env.GATED == 'true' }}
+        if: ${{ !cancelled() && env.GATED == 'true' }}
         run: gh label create "$APPROVAL_LABEL" --repo "$GITHUB_REPOSITORY" --color 0e8a16 --description "A maintainer approved running CI on this pull request" >/dev/null 2>&1 || true
 
       - name: Withdraw the approval after a code change
-        if: ${{ env.GATED == 'true' && env.CODE_CHANGED == 'true' }}
+        if: ${{ !cancelled() && env.GATED == 'true' && env.CODE_CHANGED == 'true' }}
         run: gh pr edit "$PR" --repo "$GITHUB_REPOSITORY" --remove-label "$APPROVAL_LABEL" || true
 
       - name: Publish the gate status
+        if: ${{ !cancelled() }}
         run: |
           set -uo pipefail
           shopt -s nocasematch
@@ -250,18 +282,22 @@ jobs:
             STATE=failure; REASON="pre-merge check(s) did not pass: ${FAILED}"
           elif ! LABELS="$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json labels -q '.labels[].name')"; then
             STATE=failure; REASON="could not read the labels on #${PR}"
-          elif [[ "$GATED" == "true" ]] && ! grep -qxF "$APPROVAL_LABEL" <<< "$LABELS"; then
+          elif [[ "$GATED" == "true" && -z "$APPROVAL_LABEL" ]]; then
+            STATE=failure; REASON="this pull request is from a fork and the caller sets no approval-label"
+          elif [[ "$GATED" == "true" ]] && ! grep -qxiF "$APPROVAL_LABEL" <<< "$LABELS"; then
             STATE=failure; REASON="waiting for a maintainer to add the ${APPROVAL_LABEL} label"
-          elif [[ "$TITLE" =~ ^chore(\([^\)]+\))?!?: ]] && grep -qxE 'minor|needs-review' <<< "$LABELS"; then
-            STATE=failure; REASON="titled chore but the ABI check found a possible break: retitle it change, feat or fix and add a fragment"
-          elif grep -qxF needs-review <<< "$LABELS"; then
-            STATE=failure; REASON="labeled needs-review: a maintainer must REPLACE it with patch or minor; deleting it leaves this blocked"
-          elif ! grep -qxE 'patch|minor' <<< "$LABELS"; then
+          elif [[ "$(gh api "repos/${GITHUB_REPOSITORY}/commits/${HEAD_SHA}/statuses?per_page=100" --jq 'map(select(.context == "pre-merge/abi-verdict")) | length' 2>/dev/null || echo 0)" == "0" ]]; then
             if [[ "$GATED" == "true" ]]; then
               STATE=failure; REASON="${APPROVAL_LABEL} is set but the ABI check has no verdict for this commit: remove and re-add ${APPROVAL_LABEL}"
             else
-              STATE=failure; REASON="no patch or minor label: the ABI check has not produced a verdict for this commit"
+              STATE=failure; REASON="the ABI check has not run for this commit: push again or re-run the workflow"
             fi
+          elif [[ "$TITLE" =~ ^chore(\([^\)]+\))?!?: ]] && grep -qxiE 'minor|needs-review' <<< "$LABELS"; then
+            STATE=failure; REASON="titled chore but the ABI check found a possible break: retitle it change, feat or fix and add a fragment"
+          elif grep -qxiF needs-review <<< "$LABELS"; then
+            STATE=failure; REASON="labeled needs-review: a maintainer must REPLACE it with patch or minor; deleting it leaves this blocked"
+          elif ! grep -qxiE 'patch|minor' <<< "$LABELS"; then
+            STATE=failure; REASON="no patch or minor label: a maintainer removed the verdict; push again to recompute it"
           else
             STATE=success; REASON="all pre-merge checks passed"
           fi
