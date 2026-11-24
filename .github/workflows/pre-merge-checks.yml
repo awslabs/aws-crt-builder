@@ -255,14 +255,24 @@ jobs:
           set -uo pipefail
           ABI_RESULT="$(jq -r '.abi.result' <<< "$RESULTS")"
           ABI_LABEL="$(jq -r '.abi.outputs.label // ""' <<< "$RESULTS")"
-          # A fresh verdict replaces the labels; a code change without one clears them.
+          # A fresh verdict replaces the labels. A code change without one, or an ABI run that
+          # failed, clears them: a verdict that was not recomputed must not survive.
           if [[ "$ABI_RESULT" == "success" && -n "$ABI_LABEL" ]]; then
             echo "apply=true" >> "$GITHUB_OUTPUT"; echo "verdict=${ABI_LABEL}" >> "$GITHUB_OUTPUT"
-          elif [[ "$CODE_CHANGED" == "true" ]]; then
-            echo "apply=true" >> "$GITHUB_OUTPUT"; echo "verdict=" >> "$GITHUB_OUTPUT"; echo "invalidate=true" >> "$GITHUB_OUTPUT"
+          elif [[ "$CODE_CHANGED" == "true" || "$ABI_RESULT" == "failure" || "$ABI_RESULT" == "cancelled" ]]; then
+            echo "apply=true" >> "$GITHUB_OUTPUT"; echo "verdict=" >> "$GITHUB_OUTPUT"
           else
             echo "apply=false" >> "$GITHUB_OUTPUT"
           fi
+
+      - name: Invalidate the recorded verdict before changing the labels
+        if: ${{ steps.plan.outputs.apply == 'true' }}
+        env:
+          NEW_STATE: ${{ steps.plan.outputs.verdict == '' && 'failure' || 'pending' }}
+        run: |
+          gh api --method POST "repos/${GITHUB_REPOSITORY}/statuses/${HEAD_SHA}" \
+            -f "state=${NEW_STATE}" -f context=pre-merge/abi-verdict \
+            -f "description=ABI verdict cleared: no verdict was computed for this commit" > /dev/null
 
       - name: Replace the verdict label
         id: replace
@@ -275,12 +285,6 @@ jobs:
       # The labels carry the verdict, but a status is tied to one commit. A run that did not
       # compute the verdict (a label event) checks for it, so labels left over from another
       # commit can never turn the gate green, even if a newer run replaced this commit's run.
-      - name: Invalidate the recorded verdict after a code change
-        if: ${{ steps.plan.outputs.invalidate == 'true' }}
-        run: |
-          gh api --method POST "repos/${GITHUB_REPOSITORY}/statuses/${HEAD_SHA}" \
-            -f state=failure -f context=pre-merge/abi-verdict -f "description=ABI verdict cleared: the code changed and no new verdict was computed" > /dev/null
-
       - name: Record the commit the verdict is for
         if: ${{ steps.replace.outcome == 'success' && steps.plan.outputs.verdict != '' }}
         env:
@@ -319,7 +323,7 @@ jobs:
             if [[ "$GATED" == "true" ]]; then
               STATE=failure; REASON="${APPROVAL_LABEL} is set but the ABI check has no verdict for this commit: remove and re-add ${APPROVAL_LABEL}"
             else
-              STATE=failure; REASON="the ABI check has not run for this commit: push again or re-run the workflow"
+              STATE=failure; REASON="the ABI check has no successful verdict for this commit (it failed, was cleared or has not run): fix and push, or re-run the workflow"
             fi
           elif [[ "$TITLE" =~ ^chore(\([^\)]+\))?!?: ]] && grep -qxiE 'minor|needs-review' <<< "$LABELS"; then
             STATE=failure; REASON="titled chore but the ABI check found a possible break: retitle it change, feat or fix and add a fragment"
