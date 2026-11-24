@@ -24,13 +24,17 @@
 # The caller's repository needs the labels `patch`, `minor` and `needs-review` (created on
 # first use) and, when the gate is on, the approval label (created by the verdict).
 #
-# Caller (pull_request_target runs from the default branch, so keep it thin):
+# Caller (pull_request_target runs from the default branch, so keep it thin). The
+# concurrency group is per event kind on purpose: a run keeps its slot even when every job
+# is skipped, and a newer pending run in the same group replaces an older one. One group
+# per PR would let an unrelated label evict a pending push or verdict-label run; per kind,
+# only a newer event of the same kind can, and that one supersedes it.
 #
 #   on:
 #     pull_request_target:
 #       types: [opened, reopened, synchronize, edited, labeled, unlabeled]
 #   concurrency:
-#     group: pre-merge-${{ github.event.pull_request.number }}
+#     group: pre-merge-${{ github.event.pull_request.number }}-${{ github.event.action }}-${{ github.event.label.name }}
 #   jobs:
 #     pre-merge:
 #       permissions:
@@ -274,19 +278,23 @@ jobs:
 
       - name: Publish the gate status
         if: ${{ !cancelled() }}
+        env:
+          LABEL_UPDATE: ${{ steps.replace.outcome }}
         run: |
           set -uo pipefail
           shopt -s nocasematch
           FAILED="$(jq -r 'to_entries | map(select(.value.result == "failure" or .value.result == "cancelled")) | map(.key + "=" + .value.result) | join(", ")' <<< "$RESULTS")"
           if [[ -n "$FAILED" ]]; then
             STATE=failure; REASON="pre-merge check(s) did not pass: ${FAILED}"
+          elif [[ "$LABEL_UPDATE" == "failure" ]]; then
+            STATE=failure; REASON="could not update the verdict labels; re-run the workflow"
           elif ! LABELS="$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json labels -q '.labels[].name')"; then
             STATE=failure; REASON="could not read the labels on #${PR}"
           elif [[ "$GATED" == "true" && -z "$APPROVAL_LABEL" ]]; then
             STATE=failure; REASON="this pull request is from a fork and the caller sets no approval-label"
           elif [[ "$GATED" == "true" ]] && ! grep -qxiF "$APPROVAL_LABEL" <<< "$LABELS"; then
             STATE=failure; REASON="waiting for a maintainer to add the ${APPROVAL_LABEL} label"
-          elif [[ "$(gh api "repos/${GITHUB_REPOSITORY}/commits/${HEAD_SHA}/statuses?per_page=100" --jq 'map(select(.context == "pre-merge/abi-verdict")) | length' 2>/dev/null || echo 0)" == "0" ]]; then
+          elif [[ "$(gh api "repos/${GITHUB_REPOSITORY}/commits/${HEAD_SHA}/status" --jq '.statuses | map(select(.context == "pre-merge/abi-verdict")) | length' 2>/dev/null || echo 0)" == "0" ]]; then
             if [[ "$GATED" == "true" ]]; then
               STATE=failure; REASON="${APPROVAL_LABEL} is set but the ABI check has no verdict for this commit: remove and re-add ${APPROVAL_LABEL}"
             else
