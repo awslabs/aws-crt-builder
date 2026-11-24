@@ -10,16 +10,19 @@
 #
 #   plan        decides what this event runs (a few seconds)
 #   abi         credentialed; needs plan
-#   changelog   no credentials; starts immediately
+#   changelog   no credentials; needs only plan
 #   verdict     needs every check, is the only job that writes labels, and posts the
 #               `pre-merge/gate` commit status the ruleset requires
 #
 # Adding a check:
-#   1. Add a job. Credentialed ones add `needs: plan` and
-#      `if: ${{ needs.plan.outputs.run_credentialed == 'true' }}`; the others need nothing.
+#   1. Add a job with `needs: plan`, so an event that changes nothing skips it. A
+#      credentialed one also adds `if: ${{ needs.plan.outputs.run_credentialed == 'true' }}`.
 #      A check that builds on another adds that job to its own `needs`.
 #   2. Add its name to `verdict.needs`. The verdict fails if any needed job failed or
 #      was cancelled; a check that needs more than pass/fail exposes outputs for it.
+#
+# The caller's repository needs the labels `patch`, `minor` and `needs-review` (created on
+# first use) and, when the gate is on, the approval label (created by the verdict).
 #
 # Caller (pull_request_target runs from the default branch, so keep it thin):
 #
@@ -71,17 +74,18 @@ on:
         required: false
 
 jobs:
-  # Label events only matter for the approval label and the verdict labels: a
-  # maintainer's swap is two events and the second (removing the old label) changes nothing.
-  # Decides what this event runs. The ABI check runs on a code change, or for a gated
-  # pull request when its approval label is added; a retitle or a label swap never
-  # recomputes it, so a maintainer's override stands.
+  # Decides what this event runs. Every other job needs it, so this `if` is the one
+  # place that drops events that change nothing: an edit that touches neither the title
+  # nor the base, and a label event for any label but the approval label and the verdict
+  # labels (a maintainer's swap is two events; the second changes nothing).
+  # The ABI check runs on a code change, or for a gated pull request when its approval
+  # label is added; a retitle or a label swap never recomputes it, so an override stands.
   plan:
     if: ${{ !((github.event.action == 'edited' && github.event.changes.title == null && github.event.changes.base == null) || (github.event.action == 'unlabeled' && !(inputs.approval-label != '' && github.event.label.name == inputs.approval-label)) || (github.event.action == 'labeled' && !(contains(fromJSON('["patch","minor","needs-review"]'), github.event.label.name) || (inputs.approval-label != '' && github.event.label.name == inputs.approval-label)))) }}
     runs-on: ${{ inputs.runs-on }}
+    timeout-minutes: 5
     permissions: {}
     outputs:
-      skip: ${{ steps.p.outputs.skip }}
       gated: ${{ steps.p.outputs.gated }}
       code_changed: ${{ steps.p.outputs.code_changed }}
       run_credentialed: ${{ steps.p.outputs.run_credentialed }}
@@ -94,7 +98,6 @@ jobs:
           APPROVAL_LABEL: ${{ inputs.approval-label }}
           FORK: ${{ github.event.pull_request.head.repo.full_name != github.repository }}
           GATE_SAME_REPO: ${{ inputs.gate-same-repo }}
-          TITLE_CHANGED: ${{ github.event.changes.title != null }}
           BASE_CHANGED: ${{ github.event.changes.base != null }}
         run: |
           set -euo pipefail
@@ -103,26 +106,22 @@ jobs:
             opened|reopened|synchronize) CODE=true ;;
             edited) [[ "$BASE_CHANGED" == "true" ]] && CODE=true ;;
           esac
-          # An edit that changes neither the title nor the base changes nothing checked.
-          SKIP=false
-          [[ "$ACTION" == "edited" && "$TITLE_CHANGED" != "true" && "$BASE_CHANGED" != "true" ]] && SKIP=true
           GATED=false
           [[ -n "$APPROVAL_LABEL" && ( "$FORK" == "true" || "$GATE_SAME_REPO" == "true" ) ]] && GATED=true
           RUN=false
-          if [[ "$SKIP" != "true" ]]; then
-            if [[ "$GATED" == "true" ]]; then
-              [[ "$ACTION" == "labeled" && "$LABEL_NAME" == "$APPROVAL_LABEL" ]] && RUN=true
-            else
-              RUN=$CODE
-            fi
+          if [[ "$GATED" == "true" ]]; then
+            [[ "$ACTION" == "labeled" && "$LABEL_NAME" == "$APPROVAL_LABEL" ]] && RUN=true
+          else
+            RUN=$CODE
           fi
-          { echo "skip=$SKIP"; echo "gated=$GATED"; echo "code_changed=$CODE"; echo "run_credentialed=$RUN"; } >> "$GITHUB_OUTPUT"
+          { echo "gated=$GATED"; echo "code_changed=$CODE"; echo "run_credentialed=$RUN"; } >> "$GITHUB_OUTPUT"
 
   # Credentialed, and builds the PR's code.
   abi:
     needs: plan
     if: ${{ needs.plan.outputs.run_credentialed == 'true' }}
     runs-on: ${{ inputs.runs-on }}
+    timeout-minutes: 60
     permissions:
       id-token: write
       contents: read
@@ -161,10 +160,11 @@ jobs:
           base-ref: ${{ steps.refs.outputs.base-sha }}
 
   # No credentials and no PR code: it reads the fragment and the changed paths
-  # through the API. Starts immediately.
+  # through the API. It waits only for `plan` (seconds), well inside the ABI check.
   changelog:
-    if: ${{ !((github.event.action == 'edited' && github.event.changes.title == null && github.event.changes.base == null) || (github.event.action == 'unlabeled' && !(inputs.approval-label != '' && github.event.label.name == inputs.approval-label)) || (github.event.action == 'labeled' && !(contains(fromJSON('["patch","minor","needs-review"]'), github.event.label.name) || (inputs.approval-label != '' && github.event.label.name == inputs.approval-label)))) }}
+    needs: plan
     runs-on: ${{ inputs.runs-on }}
+    timeout-minutes: 10
     permissions:
       contents: read
       pull-requests: write
@@ -195,8 +195,9 @@ jobs:
   # The only job that writes labels. Always runs, from the results of the checks.
   verdict:
     needs: [plan, abi, changelog]
-    if: ${{ always() && needs.plan.result == 'success' && needs.plan.outputs.skip != 'true' }}
+    if: ${{ always() && needs.plan.result != 'skipped' }}
     runs-on: ${{ inputs.runs-on }}
+    timeout-minutes: 10
     permissions:
       pull-requests: write
       statuses: write
@@ -232,6 +233,10 @@ jobs:
           verdict: ${{ steps.plan.outputs.verdict }}
           pr: ${{ github.event.pull_request.number }}
 
+      - name: Make sure the approval label exists
+        if: ${{ env.GATED == 'true' }}
+        run: gh label create "$APPROVAL_LABEL" --repo "$GITHUB_REPOSITORY" --color 0e8a16 --description "A maintainer approved running CI on this pull request" >/dev/null 2>&1 || true
+
       - name: Withdraw the approval after a code change
         if: ${{ env.GATED == 'true' && env.CODE_CHANGED == 'true' }}
         run: gh pr edit "$PR" --repo "$GITHUB_REPOSITORY" --remove-label "$APPROVAL_LABEL" || true
@@ -240,7 +245,7 @@ jobs:
         run: |
           set -uo pipefail
           shopt -s nocasematch
-          FAILED="$(jq -r 'to_entries | map(select(.key != "plan" and (.value.result == "failure" or .value.result == "cancelled"))) | map(.key + "=" + .value.result) | join(", ")' <<< "$RESULTS")"
+          FAILED="$(jq -r 'to_entries | map(select(.value.result == "failure" or .value.result == "cancelled")) | map(.key + "=" + .value.result) | join(", ")' <<< "$RESULTS")"
           if [[ -n "$FAILED" ]]; then
             STATE=failure; REASON="pre-merge check(s) did not pass: ${FAILED}"
           elif ! LABELS="$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json labels -q '.labels[].name')"; then
