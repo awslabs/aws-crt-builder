@@ -71,11 +71,13 @@ on:
         required: false
 
 jobs:
+  # Label events only matter for the approval label and the verdict labels: a
+  # maintainer's swap is two events and the second (removing the old label) changes nothing.
   # Decides what this event runs. The ABI check runs on a code change, or for a gated
   # pull request when its approval label is added; a retitle or a label swap never
   # recomputes it, so a maintainer's override stands.
   plan:
-    if: ${{ !(github.event.action == 'edited' && github.event.changes.title == null && github.event.changes.base == null) }}
+    if: ${{ !((github.event.action == 'edited' && github.event.changes.title == null && github.event.changes.base == null) || (github.event.action == 'unlabeled' && !(inputs.approval-label != '' && github.event.label.name == inputs.approval-label)) || (github.event.action == 'labeled' && !(contains(fromJSON('["patch","minor","needs-review"]'), github.event.label.name) || (inputs.approval-label != '' && github.event.label.name == inputs.approval-label)))) }}
     runs-on: ${{ inputs.runs-on }}
     permissions: {}
     outputs:
@@ -161,7 +163,7 @@ jobs:
   # No credentials and no PR code: it reads the fragment and the changed paths
   # through the API. Starts immediately.
   changelog:
-    if: ${{ !(github.event.action == 'edited' && github.event.changes.title == null && github.event.changes.base == null) }}
+    if: ${{ !((github.event.action == 'edited' && github.event.changes.title == null && github.event.changes.base == null) || (github.event.action == 'unlabeled' && !(inputs.approval-label != '' && github.event.label.name == inputs.approval-label)) || (github.event.action == 'labeled' && !(contains(fromJSON('["patch","minor","needs-review"]'), github.event.label.name) || (inputs.approval-label != '' && github.event.label.name == inputs.approval-label)))) }}
     runs-on: ${{ inputs.runs-on }}
     permissions:
       contents: read
