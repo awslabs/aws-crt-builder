@@ -23,7 +23,7 @@
 #   patch / minor              patch / minor   green
 #   needs-review               needs-review    red: a maintainer must replace it
 #   anything                   patch / minor   green: a maintainer's override
-#   error                      none            red: re-run, or a maintainer adds patch/minor
+#   error                      none            red: re-run all jobs, or a maintainer adds patch/minor
 #
 # Adding a check:
 #   1. Add a job. A credentialed one adds `needs: plan` and
@@ -260,23 +260,26 @@ jobs:
       GATED: ${{ needs.plan.outputs.gated }}
       CODE_CHANGED: ${{ needs.plan.outputs.code_changed }}
     steps:
-      # A run for an older commit (the pull request moved on) writes nothing: the newer
-      # commit has its own run.
+      # A run for an older commit or base (the pull request moved on) writes nothing: the
+      # newer state has its own run.
       - name: Check the pull request head
         id: head
         run: |
           set -uo pipefail
-          CURRENT="$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json headRefOid -q .headRefOid 2>/dev/null || echo "$HEAD_SHA")"
-          if [[ "$CURRENT" != "$HEAD_SHA" ]]; then
+          CURRENT="$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json headRefOid,baseRefName -q '"\(.headRefOid) \(.baseRefName)"' 2>/dev/null || echo "$HEAD_SHA $BASE_REF")"
+          if [[ "$CURRENT" != "$HEAD_SHA $BASE_REF" ]]; then
             echo "stale=true" >> "$GITHUB_OUTPUT"
-            echo "::notice::#${PR} moved to ${CURRENT}; this run is for ${HEAD_SHA} and writes nothing"
+            echo "::notice::#${PR} is now at ${CURRENT}; this run is for ${HEAD_SHA} ${BASE_REF} and writes nothing"
           else
             echo "stale=false" >> "$GITHUB_OUTPUT"
           fi
 
-      # Labels change only after a fresh ABI result: a verdict replaces them (a no-op when
-      # it matches) and an error removes them. Labels first, then the result, so a failure
-      # in between leaves no result and the next event computes it again.
+      # Labels change only when an ABI result differs from the one already recorded for this
+      # commit, so a re-run (including "Re-run failed jobs", which reuses the old result)
+      # never undoes a maintainer's override. A verdict replaces the labels, an error removes
+      # them, and a patch verdict never downgrades a minor label already on the pull request.
+      # Labels first, then the result, so a failure in between leaves no result and the
+      # next event computes it again.
       - name: Plan the label changes
         id: plan
         if: ${{ steps.head.outputs.stale != 'true' }}
@@ -284,13 +287,23 @@ jobs:
           set -uo pipefail
           ABI_RESULT="$(jq -r '.abi.result' <<< "$RESULTS")"
           ABI_LABEL="$(jq -r '.abi.outputs.label // ""' <<< "$RESULTS")"
-          if [[ "$ABI_RESULT" == "success" && -n "$ABI_LABEL" ]]; then
-            { echo "apply=true"; echo "verdict=${ABI_LABEL}"; echo "record=${ABI_LABEL}"; } >> "$GITHUB_OUTPUT"
-          elif [[ "$ABI_RESULT" == "success" || "$ABI_RESULT" == "failure" ]]; then
-            { echo "apply=true"; echo "verdict="; echo "record=error"; } >> "$GITHUB_OUTPUT"
-          else
+          FRESH=none
+          if [[ "$ABI_RESULT" == "success" && -n "$ABI_LABEL" ]]; then FRESH="$ABI_LABEL"
+          elif [[ "$ABI_RESULT" == "success" || "$ABI_RESULT" == "failure" ]]; then FRESH=error; fi
+          PREV=none
+          DESC="$(gh api "repos/${GITHUB_REPOSITORY}/commits/${HEAD_SHA}/status" \
+                    --jq '.statuses[] | select(.context == "pre-merge/abi-verdict") | .description' 2>/dev/null || true)"
+          [[ "$DESC" == *" vs ${BASE_REF}" ]] && PREV="${DESC%% vs *}"
+          if [[ "$FRESH" == "none" || "$FRESH" == "$PREV" ]]; then
             echo "apply=false" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
+          VERDICT="$FRESH"
+          [[ "$FRESH" == "error" ]] && VERDICT=""
+          if [[ "$FRESH" == "patch" ]] && gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json labels -q '.labels[].name' | grep -qxiF minor; then
+            VERDICT=minor
+          fi
+          { echo "apply=true"; echo "verdict=${VERDICT}"; echo "record=${FRESH}"; } >> "$GITHUB_OUTPUT"
 
       - name: Replace the verdict label
         id: replace
@@ -306,9 +319,9 @@ jobs:
         env:
           RECORD: ${{ steps.plan.outputs.record }}
         run: |
-          case "$RECORD" in patch|minor) STATE=success ;; needs-review) STATE=failure ;; *) STATE=error ;; esac
+          # Informational: the gate is the required status, so this one never shows red.
           gh api --method POST "repos/${GITHUB_REPOSITORY}/statuses/${HEAD_SHA}" \
-            -f "state=${STATE}" -f context=pre-merge/abi-verdict -f "description=${RECORD} vs ${BASE_REF}" > /dev/null
+            -f state=success -f context=pre-merge/abi-verdict -f "description=${RECORD} vs ${BASE_REF}" > /dev/null
 
       - name: Make sure the approval label exists
         if: ${{ !cancelled() && steps.head.outputs.stale != 'true' && env.GATED == 'true' && env.APPROVAL_LABEL != '' }}
@@ -326,7 +339,6 @@ jobs:
         run: |
           set -uo pipefail
           shopt -s nocasematch
-          FAILED="$(jq -r 'to_entries | map(select(.value.result == "failure" or .value.result == "cancelled")) | map(.key + "=" + .value.result) | join(", ")' <<< "$RESULTS")"
           # A status just posted is not always visible to an immediate read, so use the
           # result this run recorded; otherwise the one an earlier run recorded.
           RESULT="${RECORDED_NOW:-none}"
@@ -335,29 +347,35 @@ jobs:
                       --jq '.statuses[] | select(.context == "pre-merge/abi-verdict") | .description' 2>/dev/null || true)"
             [[ "$DESC" == *" vs ${BASE_REF}" ]] && RESULT="${DESC%% vs *}"
           fi
+          LABELS_OK=true
+          LABELS="$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json labels -q '.labels[].name')" || LABELS_OK=false
+          # A maintainer's patch or minor label accepts an ABI error, even one a re-run repeats.
+          OVERRIDE=false
+          [[ "$RESULT" == "error" ]] && grep -qxiE 'patch|minor' <<< "$LABELS" && ! grep -qxiF needs-review <<< "$LABELS" && OVERRIDE=true
+          FAILED="$(jq -r --argjson ov "$OVERRIDE" 'to_entries | map(select((.value.result == "failure" or .value.result == "cancelled") and ($ov == false or .key != "abi"))) | map(.key + "=" + .value.result) | join(", ")' <<< "$RESULTS")"
           if [[ "$LABEL_UPDATE" == "failure" ]]; then
-            STATE=failure; REASON="could not update the verdict labels; re-run the workflow"
-          elif ! LABELS="$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json labels -q '.labels[].name')"; then
+            STATE=failure; REASON="could not update the verdict labels; re-run all jobs"
+          elif [[ "$LABELS_OK" != "true" ]]; then
             STATE=failure; REASON="could not read the labels on #${PR}"
           elif [[ "$TITLE" =~ ^chore(\([^\)]+\))?!?: ]] && grep -qxiE 'minor|needs-review' <<< "$LABELS"; then
             STATE=failure; REASON="titled chore but the ABI check found a possible break: retitle it change, feat or fix and add a fragment"
           elif [[ -n "$FAILED" ]]; then
             STATE=failure; REASON="pre-merge check(s) did not pass: ${FAILED}"
-            [[ "$RESULT" == "error" ]] && REASON="${REASON} (ABI error: re-run, or a maintainer adds patch or minor)"
+            [[ "$RESULT" == "error" ]] && REASON="${REASON} (ABI error: re-run all jobs, or a maintainer adds patch or minor)"
           elif [[ "$RESULT" == "none" ]]; then
             if [[ "$GATED" == "true" && -z "$APPROVAL_LABEL" ]]; then
               STATE=failure; REASON="this pull request is from a fork and the caller sets no approval-label"
             elif [[ "$GATED" == "true" ]]; then
               STATE=failure; REASON="waiting for a maintainer to add the ${APPROVAL_LABEL} label"
             else
-              STATE=failure; REASON="the ABI check has not run for this commit: re-run the workflow"
+              STATE=failure; REASON="the ABI check has not run for this commit: re-run all jobs"
             fi
           elif grep -qxiE 'patch|minor' <<< "$LABELS" && ! grep -qxiF needs-review <<< "$LABELS"; then
             STATE=success; REASON="all pre-merge checks passed"
           elif grep -qxiF needs-review <<< "$LABELS"; then
             STATE=failure; REASON="labeled needs-review: a maintainer must REPLACE it with patch or minor; deleting it leaves this blocked"
           elif [[ "$RESULT" == "error" ]]; then
-            STATE=failure; REASON="the ABI check errored for this commit: re-run the workflow, or a maintainer adds patch or minor to accept it"
+            STATE=failure; REASON="the ABI check errored for this commit: re-run all jobs, or a maintainer adds patch or minor to accept it"
           else
             STATE=failure; REASON="no patch or minor label: a maintainer removed the verdict; add patch or minor"
           fi
