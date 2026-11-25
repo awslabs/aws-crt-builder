@@ -253,10 +253,11 @@ jobs:
           changes-dir: ${{ runner.temp }}/changes
           changed-paths-file: ${{ runner.temp }}/changed-paths.tsv
 
-  # The only job that writes labels and results. Always runs, from the results of the checks.
+  # The only job that writes labels and results. Runs whatever the checks concluded, but
+  # never in a cancelled run: the newer run that cancelled it owns the gate.
   verdict:
     needs: [plan, abi, changelog]
-    if: ${{ always() }}
+    if: ${{ !cancelled() }}
     runs-on: ${{ inputs.runs-on }}
     timeout-minutes: 10
     permissions:
