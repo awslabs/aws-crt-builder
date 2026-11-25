@@ -32,17 +32,18 @@
 #   2. Add its name to `verdict.needs`. The verdict fails if any needed job failed or
 #      was cancelled; a check that needs more than pass/fail exposes outputs for it.
 #
-# Caller. One concurrency group per pull request: a code change cancels the run in
-# progress (its commit is obsolete and the new run computes everything), while any other
-# event waits so a running ABI check is never thrown away. pull_request_target runs
-# from the default branch, so keep the caller thin.
+# Caller. One concurrency group per pull request, and every new event cancels the run in
+# progress: plan decides from state, so the new run redoes whatever the cancelled one did
+# not record (a retitle during an ABI check restarts it). plan first marks the gate
+# pending, so a green gate from an earlier run cannot be merged while the checks re-run.
+# pull_request_target runs from the default branch, so keep the caller thin.
 #
 #   on:
 #     pull_request_target:
 #       types: [opened, reopened, synchronize, edited, labeled, unlabeled]
 #   concurrency:
 #     group: pre-merge-${{ github.event.pull_request.number }}
-#     cancel-in-progress: ${{ contains(fromJSON('["opened","reopened","synchronize"]'), github.event.action) || github.event.changes.base != null }}
+#     cancel-in-progress: true
 #   jobs:
 #     pre-merge:
 #       permissions:
@@ -101,12 +102,24 @@ jobs:
     runs-on: ${{ inputs.runs-on }}
     timeout-minutes: 5
     permissions:
-      statuses: read
+      statuses: write
     outputs:
       gated: ${{ steps.p.outputs.gated }}
       code_changed: ${{ steps.p.outputs.code_changed }}
       run_credentialed: ${{ steps.p.outputs.run_credentialed }}
     steps:
+      # The previous result stays on the commit until this run posts its own, so mark it
+      # pending first: nothing can merge on a stale green while the checks re-run.
+      - name: Mark the gate pending
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          ACTION: ${{ github.event.action }}
+        run: |
+          gh api --method POST "repos/${GITHUB_REPOSITORY}/statuses/${HEAD_SHA}" \
+            -f state=pending -f context=pre-merge/gate -f "description=re-checking after ${ACTION}" \
+            -f "target_url=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" > /dev/null
+
       - name: Plan
         id: p
         env:
@@ -240,10 +253,11 @@ jobs:
           changes-dir: ${{ runner.temp }}/changes
           changed-paths-file: ${{ runner.temp }}/changed-paths.tsv
 
-  # The only job that writes labels and results. Always runs, from the results of the checks.
+  # The only job that writes labels and results. Runs whatever the checks concluded, but
+  # never in a cancelled run: the newer run that cancelled it owns the gate.
   verdict:
     needs: [plan, abi, changelog]
-    if: ${{ always() }}
+    if: ${{ !cancelled() }}
     runs-on: ${{ inputs.runs-on }}
     timeout-minutes: 10
     permissions:
