@@ -301,6 +301,7 @@ jobs:
           pr: ${{ github.event.pull_request.number }}
 
       - name: Record the ABI result for this commit
+        id: record
         if: ${{ steps.replace.outcome == 'success' }}
         env:
           RECORD: ${{ steps.plan.outputs.record }}
@@ -321,14 +322,19 @@ jobs:
         if: ${{ !cancelled() && steps.head.outputs.stale != 'true' }}
         env:
           LABEL_UPDATE: ${{ steps.replace.outcome }}
+          RECORDED_NOW: ${{ steps.record.outcome == 'success' && steps.plan.outputs.record || '' }}
         run: |
           set -uo pipefail
           shopt -s nocasematch
           FAILED="$(jq -r 'to_entries | map(select(.value.result == "failure" or .value.result == "cancelled")) | map(.key + "=" + .value.result) | join(", ")' <<< "$RESULTS")"
-          DESC="$(gh api "repos/${GITHUB_REPOSITORY}/commits/${HEAD_SHA}/status" \
-                    --jq '.statuses[] | select(.context == "pre-merge/abi-verdict") | .description' 2>/dev/null || true)"
-          RESULT=none
-          [[ "$DESC" == *" vs ${BASE_REF}" ]] && RESULT="${DESC%% vs *}"
+          # A status just posted is not always visible to an immediate read, so use the
+          # result this run recorded; otherwise the one an earlier run recorded.
+          RESULT="${RECORDED_NOW:-none}"
+          if [[ "$RESULT" == "none" ]]; then
+            DESC="$(gh api "repos/${GITHUB_REPOSITORY}/commits/${HEAD_SHA}/status" \
+                      --jq '.statuses[] | select(.context == "pre-merge/abi-verdict") | .description' 2>/dev/null || true)"
+            [[ "$DESC" == *" vs ${BASE_REF}" ]] && RESULT="${DESC%% vs *}"
+          fi
           if [[ "$LABEL_UPDATE" == "failure" ]]; then
             STATE=failure; REASON="could not update the verdict labels; re-run the workflow"
           elif ! LABELS="$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json labels -q '.labels[].name')"; then
