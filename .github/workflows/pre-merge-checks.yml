@@ -1,28 +1,16 @@
-# Pre-merge checks run in parallel; `verdict` aggregates them and posts the required
-# `pre-merge/gate` status. To add a check, add a job (with `needs: plan` and the
-# `run_credentialed` condition if it needs credentials) and list it in `verdict.needs`.
-#
-# Caller:
+# Reusable pre-merge checks; `verdict` posts the required `pre-merge/gate` status.
+# To add a check, add a job and list it in `verdict.needs`. Caller:
 #
 #   on:
 #     pull_request_target:
 #       types: [opened, reopened, synchronize, edited, labeled, unlabeled]
-#   concurrency:
-#     group: pre-merge-${{ github.event.pull_request.number }}
-#     cancel-in-progress: true
+#   concurrency: { group: "pre-merge-${{ github.event.pull_request.number }}", cancel-in-progress: true }
 #   jobs:
 #     pre-merge:
-#       permissions:
-#         contents: read
-#         pull-requests: write
-#         id-token: write
-#         statuses: write
+#       permissions: { contents: read, pull-requests: write, id-token: write, statuses: write }
 #       uses: awslabs/aws-crt-builder/.github/workflows/pre-merge-checks.yml@main
-#       with:
-#         lib-name: aws-c-common
-#         approval-label: ci-ready
-#       secrets:
-#         CRT_CI_ROLE_ARN: ${{ secrets.CRT_CI_ROLE_ARN }}
+#       with: { lib-name: aws-c-common, approval-label: ci-ready }
+#       secrets: { CRT_CI_ROLE_ARN: "${{ secrets.CRT_CI_ROLE_ARN }}" }
 name: Pre-merge checks
 
 on:
