@@ -33,16 +33,6 @@ on:
         required: false
         type: string
         default: ''
-      gate-same-repo:
-        description: 'Apply the approval label to same-repo pull requests too (for testing the gate).'
-        required: false
-        type: boolean
-        default: false
-      abi-image-registry:
-        description: 'ECR registry holding the aws-crt-ubuntu-22-abi-x64 image the ABI check runs in.'
-        required: false
-        type: string
-        default: '123124136734.dkr.ecr.us-east-1.amazonaws.com'
       runs-on:
         required: false
         type: string
@@ -82,7 +72,6 @@ jobs:
           LABEL_NAME: ${{ github.event.label.name }}
           APPROVAL_LABEL: ${{ inputs.approval-label }}
           FORK: ${{ github.event.pull_request.head.repo.full_name != github.repository }}
-          GATE_SAME_REPO: ${{ inputs.gate-same-repo }}
           BASE_CHANGED: ${{ github.event.changes.base != null }}
           RUN_ATTEMPT: ${{ github.run_attempt }}
         run: |
@@ -92,8 +81,7 @@ jobs:
             opened|reopened|synchronize) CODE=true ;;
             edited) [[ "$BASE_CHANGED" == "true" ]] && CODE=true ;;
           esac
-          GATED=false
-          [[ "$FORK" == "true" || "$GATE_SAME_REPO" == "true" ]] && GATED=true
+          GATED="$FORK"
           DESC="$(gh api "repos/${GITHUB_REPOSITORY}/commits/${HEAD_SHA}/status" \
                     --jq '.statuses[] | select(.context == "pre-merge/abi-verdict") | .description')"
           RESULT=none
@@ -153,7 +141,6 @@ jobs:
           lib-name: ${{ inputs.lib-name }}
           builder-version: latest
           base-ref: ${{ steps.refs.outputs.base-sha }}
-          image-registry: ${{ inputs.abi-image-registry }}
 
   changelog:
     runs-on: ${{ inputs.runs-on }}
@@ -228,7 +215,7 @@ jobs:
             echo "stale=false" >> "$GITHUB_OUTPUT"
           fi
 
-      # Labels change only when the result differs from the recorded one; patch never replaces minor.
+      # Labels change only when the result differs from the recorded one.
       - name: Plan the label changes
         id: plan
         if: ${{ steps.head.outputs.stale != 'true' }}
@@ -249,9 +236,6 @@ jobs:
           fi
           VERDICT="$FRESH"
           [[ "$FRESH" == "error" ]] && VERDICT=""
-          if [[ "$FRESH" == "patch" ]] && gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json labels -q '.labels[].name' | grep -qxiF minor; then
-            VERDICT=minor
-          fi
           { echo "apply=true"; echo "verdict=${VERDICT}"; echo "record=${FRESH}"; } >> "$GITHUB_OUTPUT"
 
       - name: Replace the verdict label
