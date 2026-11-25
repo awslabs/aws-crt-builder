@@ -1,42 +1,8 @@
-# Everything that must be true before a pull request merges, in one workflow.
+# Pre-merge checks run in parallel; `verdict` aggregates them and posts the required
+# `pre-merge/gate` status. To add a check, add a job (with `needs: plan` and the
+# `run_credentialed` condition if it needs credentials) and list it in `verdict.needs`.
 #
-# Decisions come from state, never from which event fired: every event runs the same
-# plan, so a cancelled, failed or skipped run can never leave a stale verdict behind.
-#
-#   ABI result  recorded per commit as the commit status `pre-merge/abi-verdict`,
-#               "<verdict> vs <base branch>" where verdict is patch, minor,
-#               needs-review or error. A new push is a new commit with no result.
-#   labels      patch / minor / needs-review on the pull request show the verdict and
-#               are a maintainer's override. The workflow changes them only when a
-#               fresh result differs, so pushes do not churn them.
-#
-#   plan        reads the result for the head commit against the current base. The ABI
-#               check runs when there is none (or on a re-run after an error); for a
-#               pull request from a fork only when the approval label is added.
-#   abi         credentialed; needs plan
-#   changelog   no credentials; starts at once
-#   verdict     needs every check, is the only job that writes labels and results, and
-#               posts the `pre-merge/gate` commit status the ruleset requires
-#
-#   ABI result for the head    label           gate
-#   none                       any             red: the check has not run for this commit
-#   patch / minor              patch / minor   green
-#   needs-review               needs-review    red: a maintainer must replace it
-#   anything                   patch / minor   green: a maintainer's override
-#   error                      none            red: re-run all jobs, or a maintainer adds patch/minor
-#
-# Adding a check:
-#   1. Add a job. A credentialed one adds `needs: plan` and
-#      `if: ${{ needs.plan.outputs.run_credentialed == 'true' }}`; the others need nothing.
-#      A check that builds on another adds that job to its own `needs`.
-#   2. Add its name to `verdict.needs`. The verdict fails if any needed job failed or
-#      was cancelled; a check that needs more than pass/fail exposes outputs for it.
-#
-# Caller. One concurrency group per pull request, and every new event cancels the run in
-# progress: plan decides from state, so the new run redoes whatever the cancelled one did
-# not record (a retitle during an ABI check restarts it). plan first marks the gate
-# pending, so a green gate from an earlier run cannot be merged while the checks re-run.
-# pull_request_target runs from the default branch, so keep the caller thin.
+# Caller:
 #
 #   on:
 #     pull_request_target:
@@ -108,8 +74,6 @@ jobs:
       code_changed: ${{ steps.p.outputs.code_changed }}
       run_credentialed: ${{ steps.p.outputs.run_credentialed }}
     steps:
-      # The previous result stays on the commit until this run posts its own, so mark it
-      # pending first: nothing can merge on a stale green while the checks re-run.
       - name: Mark the gate pending
         env:
           GH_TOKEN: ${{ github.token }}
@@ -135,8 +99,6 @@ jobs:
           RUN_ATTEMPT: ${{ github.run_attempt }}
         run: |
           set -euo pipefail
-          # Only the fork gate looks at the event: approval is a maintainer's act on a
-          # commit they read, and a push withdraws it.
           CODE=false
           case "$ACTION" in
             opened|reopened|synchronize) CODE=true ;;
@@ -144,7 +106,6 @@ jobs:
           esac
           GATED=false
           [[ "$FORK" == "true" || "$GATE_SAME_REPO" == "true" ]] && GATED=true
-          # The result recorded for this commit, if it was computed against this base.
           DESC="$(gh api "repos/${GITHUB_REPOSITORY}/commits/${HEAD_SHA}/status" \
                     --jq '.statuses[] | select(.context == "pre-merge/abi-verdict") | .description')"
           RESULT=none
@@ -162,7 +123,6 @@ jobs:
           echo "ABI result for ${HEAD_SHA} vs ${BASE_REF}: ${RESULT}; run the ABI check: ${RUN}"
           { echo "gated=$GATED"; echo "code_changed=$CODE"; echo "run_credentialed=$RUN"; } >> "$GITHUB_OUTPUT"
 
-  # Credentialed, and builds the PR's code.
   abi:
     needs: plan
     if: ${{ needs.plan.outputs.run_credentialed == 'true' }}
@@ -194,7 +154,6 @@ jobs:
           BASE_BRANCH: ${{ github.event.pull_request.base.ref }}
         run: |
           set -euo pipefail
-          # fetch-depth 0 already brought every branch of the base repository.
           git rev-parse --verify --quiet "origin/${BASE_BRANCH}" > /dev/null \
             || { echo "::error::origin/${BASE_BRANCH} is missing from the checkout"; exit 1; }
           echo "base-sha=$(git merge-base HEAD "origin/${BASE_BRANCH}")" >> "$GITHUB_OUTPUT"
@@ -208,8 +167,6 @@ jobs:
           base-ref: ${{ steps.refs.outputs.base-sha }}
           image-registry: ${{ inputs.abi-image-registry }}
 
-  # No credentials and no PR code: it reads the fragment and the changed paths
-  # through the API.
   changelog:
     runs-on: ${{ inputs.runs-on }}
     timeout-minutes: 10
@@ -226,13 +183,12 @@ jobs:
           set -euo pipefail
           mkdir -p "${RUNNER_TEMP}/changes/preview"
           FRAG="${RUNNER_TEMP}/changes/preview/${PR}.json"
-          # Only a 404 means "no fragment"; any other API error fails the job instead of
-          # being reported to the author as a missing fragment.
+          # Only a 404 means there is no fragment.
           fetch() { gh api "repos/${GITHUB_REPOSITORY}/contents/.changes/preview/${PR}.json?ref=$1" \
                       -H 'Accept: application/vnd.github.raw' > "$FRAG" 2> "${RUNNER_TEMP}/fetch.err"; }
           if ! fetch "${HEAD_SHA}"; then
             if grep -q 'HTTP 404' "${RUNNER_TEMP}/fetch.err"; then
-              # A fork's commit may not resolve by sha in the base repository: try the PR ref.
+              # A fork's commit may not resolve here by sha; try the PR ref.
               if ! fetch "refs/pull/${PR}/head"; then
                 grep -q 'HTTP 404' "${RUNNER_TEMP}/fetch.err" || { cat "${RUNNER_TEMP}/fetch.err" >&2; exit 1; }
                 rm -f "$FRAG"
@@ -241,7 +197,7 @@ jobs:
               cat "${RUNNER_TEMP}/fetch.err" >&2; exit 1
             fi
           fi
-          # @tsv escapes tabs and newlines in a path, so one cannot forge another row.
+          # @tsv escapes tabs and newlines in paths.
           gh api --paginate "repos/${GITHUB_REPOSITORY}/pulls/${PR}/files?per_page=100" \
             --jq '.[] | (select(.filename | startswith(".changes/")) | [.status, .filename]), (select((.previous_filename // "") | startswith(".changes/")) | ["removed", .previous_filename]) | @tsv' \
             > "${RUNNER_TEMP}/changed-paths.tsv"
@@ -253,8 +209,6 @@ jobs:
           changes-dir: ${{ runner.temp }}/changes
           changed-paths-file: ${{ runner.temp }}/changed-paths.tsv
 
-  # The only job that writes labels and results. Runs whatever the checks concluded, but
-  # never in a cancelled run: the newer run that cancelled it owns the gate.
   verdict:
     needs: [plan, abi, changelog]
     if: ${{ !cancelled() }}
@@ -274,8 +228,6 @@ jobs:
       GATED: ${{ needs.plan.outputs.gated }}
       CODE_CHANGED: ${{ needs.plan.outputs.code_changed }}
     steps:
-      # A run for an older commit or base (the pull request moved on) writes nothing: the
-      # newer state has its own run.
       - name: Check the pull request head
         id: head
         run: |
@@ -288,12 +240,7 @@ jobs:
             echo "stale=false" >> "$GITHUB_OUTPUT"
           fi
 
-      # Labels change only when an ABI result differs from the one already recorded for this
-      # commit, so a re-run (including "Re-run failed jobs", which reuses the old result)
-      # never undoes a maintainer's override. A verdict replaces the labels, an error removes
-      # them, and a patch verdict never downgrades a minor label already on the pull request.
-      # Labels first, then the result, so a failure in between leaves no result and the
-      # next event computes it again.
+      # Labels change only when the result differs from the recorded one; patch never replaces minor.
       - name: Plan the label changes
         id: plan
         if: ${{ steps.head.outputs.stale != 'true' }}
@@ -333,7 +280,6 @@ jobs:
         env:
           RECORD: ${{ steps.plan.outputs.record }}
         run: |
-          # Informational: the gate is the required status, so this one never shows red.
           gh api --method POST "repos/${GITHUB_REPOSITORY}/statuses/${HEAD_SHA}" \
             -f state=success -f context=pre-merge/abi-verdict -f "description=${RECORD} vs ${BASE_REF}" > /dev/null
 
@@ -353,8 +299,7 @@ jobs:
         run: |
           set -uo pipefail
           shopt -s nocasematch
-          # A status just posted is not always visible to an immediate read, so use the
-          # result this run recorded; otherwise the one an earlier run recorded.
+          # A status posted moments ago may not read back yet.
           RESULT="${RECORDED_NOW:-none}"
           if [[ "$RESULT" == "none" ]]; then
             DESC="$(gh api "repos/${GITHUB_REPOSITORY}/commits/${HEAD_SHA}/status" \
@@ -363,7 +308,7 @@ jobs:
           fi
           LABELS_OK=true
           LABELS="$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json labels -q '.labels[].name')" || LABELS_OK=false
-          # A maintainer's patch or minor label accepts an ABI error, even one a re-run repeats.
+          # patch or minor over an ABI error is a maintainer override.
           OVERRIDE=false
           [[ "$RESULT" == "error" ]] && grep -qxiE 'patch|minor' <<< "$LABELS" && ! grep -qxiF needs-review <<< "$LABELS" && OVERRIDE=true
           FAILED="$(jq -r --argjson ov "$OVERRIDE" 'to_entries | map(select((.value.result == "failure" or .value.result == "cancelled") and ($ov == false or .key != "abi"))) | map(.key + "=" + .value.result) | join(", ")' <<< "$RESULTS")"
