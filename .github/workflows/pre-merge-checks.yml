@@ -46,22 +46,12 @@ jobs:
     runs-on: ${{ inputs.runs-on }}
     timeout-minutes: 5
     permissions:
-      statuses: write
+      statuses: read
     outputs:
       gated: ${{ steps.p.outputs.gated }}
       code_changed: ${{ steps.p.outputs.code_changed }}
       run_credentialed: ${{ steps.p.outputs.run_credentialed }}
     steps:
-      - name: Mark the gate pending
-        env:
-          GH_TOKEN: ${{ github.token }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-          ACTION: ${{ github.event.action }}
-        run: |
-          gh api --method POST "repos/${GITHUB_REPOSITORY}/statuses/${HEAD_SHA}" \
-            -f state=pending -f context=pre-merge/gate -f "description=re-checking after ${ACTION}" \
-            -f "target_url=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" > /dev/null
-
       - name: Plan
         id: p
         env:
