@@ -1,4 +1,4 @@
-# Reusable pre-merge checks; `verdict` posts the required `pre-merge/gate` status.
+# Reusable pre-merge checks; `verdict` posts the required `pre-merge/verdict` status.
 # To add a check, add a job and list it in `verdict.needs`. Caller:
 #
 #   on:
@@ -29,7 +29,7 @@ on:
         type: string
         default: ''
       approval-environment:
-        description: 'Ignored; fork pull requests are gated by approval-label. Kept so existing callers keep working.'
+        description: 'Ignored; fork pull requests wait for approval-label. Kept so existing callers keep working.'
         required: false
         type: string
         default: ''
@@ -48,7 +48,7 @@ jobs:
     permissions:
       statuses: read
     outputs:
-      gated: ${{ steps.p.outputs.gated }}
+      needs_approval: ${{ steps.p.outputs.needs_approval }}
       code_changed: ${{ steps.p.outputs.code_changed }}
       run_credentialed: ${{ steps.p.outputs.run_credentialed }}
     steps:
@@ -71,7 +71,7 @@ jobs:
             opened|reopened|synchronize) CODE=true ;;
             edited) [[ "$BASE_CHANGED" == "true" ]] && CODE=true ;;
           esac
-          GATED="$FORK"
+          NEEDS_APPROVAL="$FORK"
           DESC="$(gh api "repos/${GITHUB_REPOSITORY}/commits/${HEAD_SHA}/status" \
                     --jq '.statuses[] | select(.context == "pre-merge/abi-verdict") | .description')"
           RESULT=none
@@ -80,14 +80,14 @@ jobs:
           [[ "$RESULT" == "none" || ( "$RESULT" == "error" && "$RUN_ATTEMPT" -gt 1 ) ]] && NEED=true
           RUN=false
           if [[ "$NEED" == "true" ]]; then
-            if [[ "$GATED" == "true" ]]; then
+            if [[ "$NEEDS_APPROVAL" == "true" ]]; then
               [[ -n "$APPROVAL_LABEL" && "$ACTION" == "labeled" && "${LABEL_NAME,,}" == "${APPROVAL_LABEL,,}" ]] && RUN=true
             else
               RUN=true
             fi
           fi
           echo "ABI result for ${HEAD_SHA} vs ${BASE_REF}: ${RESULT}; run the ABI check: ${RUN}"
-          { echo "gated=$GATED"; echo "code_changed=$CODE"; echo "run_credentialed=$RUN"; } >> "$GITHUB_OUTPUT"
+          { echo "needs_approval=$NEEDS_APPROVAL"; echo "code_changed=$CODE"; echo "run_credentialed=$RUN"; } >> "$GITHUB_OUTPUT"
 
   abi:
     needs: plan
@@ -190,7 +190,7 @@ jobs:
       BASE_REF: ${{ github.event.pull_request.base.ref }}
       TITLE: ${{ github.event.pull_request.title }}
       APPROVAL_LABEL: ${{ inputs.approval-label }}
-      GATED: ${{ needs.plan.outputs.gated }}
+      NEEDS_APPROVAL: ${{ needs.plan.outputs.needs_approval }}
       CODE_CHANGED: ${{ needs.plan.outputs.code_changed }}
     steps:
       - name: Check the pull request head
@@ -246,14 +246,14 @@ jobs:
             -f state=success -f context=pre-merge/abi-verdict -f "description=${RECORD} vs ${BASE_REF}" > /dev/null
 
       - name: Make sure the approval label exists
-        if: ${{ !cancelled() && steps.head.outputs.stale != 'true' && env.GATED == 'true' && env.APPROVAL_LABEL != '' }}
+        if: ${{ !cancelled() && steps.head.outputs.stale != 'true' && env.NEEDS_APPROVAL == 'true' && env.APPROVAL_LABEL != '' }}
         run: gh label create "$APPROVAL_LABEL" --repo "$GITHUB_REPOSITORY" --color 0e8a16 --description "A maintainer approved running CI on this pull request" >/dev/null 2>&1 || true
 
       - name: Withdraw the approval after a code change
-        if: ${{ !cancelled() && steps.head.outputs.stale != 'true' && env.GATED == 'true' && env.CODE_CHANGED == 'true' && env.APPROVAL_LABEL != '' }}
+        if: ${{ !cancelled() && steps.head.outputs.stale != 'true' && env.NEEDS_APPROVAL == 'true' && env.CODE_CHANGED == 'true' && env.APPROVAL_LABEL != '' }}
         run: gh pr edit "$PR" --repo "$GITHUB_REPOSITORY" --remove-label "$APPROVAL_LABEL" || true
 
-      - name: Publish the gate status
+      - name: Publish the verdict
         if: ${{ !cancelled() && steps.head.outputs.stale != 'true' }}
         env:
           LABEL_UPDATE: ${{ steps.replace.outcome }}
@@ -284,9 +284,9 @@ jobs:
             STATE=failure; REASON="pre-merge check(s) did not pass: ${FAILED}"
             [[ "$RESULT" == "error" ]] && REASON="${REASON} (ABI error: re-run all jobs, or a maintainer adds patch or minor)"
           elif [[ "$RESULT" == "none" ]]; then
-            if [[ "$GATED" == "true" && -z "$APPROVAL_LABEL" ]]; then
+            if [[ "$NEEDS_APPROVAL" == "true" && -z "$APPROVAL_LABEL" ]]; then
               STATE=failure; REASON="this pull request is from a fork and the caller sets no approval-label"
-            elif [[ "$GATED" == "true" ]]; then
+            elif [[ "$NEEDS_APPROVAL" == "true" ]]; then
               STATE=failure; REASON="waiting for a maintainer to add the ${APPROVAL_LABEL} label"
             else
               STATE=failure; REASON="the ABI check has not run for this commit: re-run all jobs"
@@ -301,6 +301,6 @@ jobs:
             STATE=failure; REASON="no patch or minor label: a maintainer removed the verdict; add patch or minor"
           fi
           gh api --method POST "repos/${GITHUB_REPOSITORY}/statuses/${HEAD_SHA}" \
-            -f "state=${STATE}" -f "context=pre-merge/gate" -f "description=${REASON:0:140}" \
+            -f "state=${STATE}" -f "context=pre-merge/verdict" -f "description=${REASON:0:140}" \
             -f "target_url=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" >/dev/null
           [[ "$STATE" == "success" ]] || { echo "::error::${REASON}"; exit 1; }
