@@ -147,24 +147,12 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p "${RUNNER_TEMP}/changes/preview"
-          FRAG="${RUNNER_TEMP}/changes/preview/${PR}.json"
-          # Only a 404 means there is no fragment.
-          fetch() { gh api "repos/${GITHUB_REPOSITORY}/contents/.changes/preview/${PR}.json?ref=$1" \
-                      -H 'Accept: application/vnd.github.raw' > "$FRAG" 2> "${RUNNER_TEMP}/fetch.err"; }
-          if ! fetch "${HEAD_SHA}"; then
-            if grep -q 'HTTP 404' "${RUNNER_TEMP}/fetch.err"; then
-              # A fork's commit may not resolve here by sha; try the PR ref.
-              if ! fetch "refs/pull/${PR}/head"; then
-                grep -q 'HTTP 404' "${RUNNER_TEMP}/fetch.err" || { cat "${RUNNER_TEMP}/fetch.err" >&2; exit 1; }
-                rm -f "$FRAG"
-              fi
-            else
-              cat "${RUNNER_TEMP}/fetch.err" >&2; exit 1
-            fi
+          if ! gh api "repos/${GITHUB_REPOSITORY}/contents/.changes/preview/${PR}.json?ref=${HEAD_SHA}" \
+               -H 'Accept: application/vnd.github.raw' > "${RUNNER_TEMP}/changes/preview/${PR}.json" 2>/dev/null; then
+            rm -f "${RUNNER_TEMP}/changes/preview/${PR}.json"
           fi
-          # @tsv escapes tabs and newlines in paths.
           gh api --paginate "repos/${GITHUB_REPOSITORY}/pulls/${PR}/files?per_page=100" \
-            --jq '.[] | (select(.filename | startswith(".changes/")) | [.status, .filename]), (select((.previous_filename // "") | startswith(".changes/")) | ["removed", .previous_filename]) | @tsv' \
+            --jq '.[] | (select(.filename | startswith(".changes/")) | "\(.status)\t\(.filename)"), (select((.previous_filename // "") | startswith(".changes/")) | "removed\t\(.previous_filename)")' \
             > "${RUNNER_TEMP}/changed-paths.tsv"
 
       - name: Check the PR title and the fragment
@@ -244,10 +232,6 @@ jobs:
         run: |
           gh api --method POST "repos/${GITHUB_REPOSITORY}/statuses/${HEAD_SHA}" \
             -f state=success -f context=pre-merge/abi-verdict -f "description=${RECORD} vs ${BASE_REF}" > /dev/null
-
-      - name: Make sure the approval label exists
-        if: ${{ !cancelled() && steps.head.outputs.stale != 'true' && env.NEEDS_APPROVAL == 'true' && env.APPROVAL_LABEL != '' }}
-        run: gh label create "$APPROVAL_LABEL" --repo "$GITHUB_REPOSITORY" --color 0e8a16 --description "A maintainer approved running CI on this pull request" >/dev/null 2>&1 || true
 
       - name: Withdraw the approval after a code change
         if: ${{ !cancelled() && steps.head.outputs.stale != 'true' && env.NEEDS_APPROVAL == 'true' && env.CODE_CHANGED == 'true' && env.APPROVAL_LABEL != '' }}
