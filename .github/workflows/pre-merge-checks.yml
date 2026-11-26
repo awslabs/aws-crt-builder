@@ -28,11 +28,6 @@ on:
         required: false
         type: string
         default: ''
-      approval-environment:
-        description: 'Ignored; fork pull requests wait for approval-label. Kept so existing callers keep working.'
-        required: false
-        type: string
-        default: ''
       runs-on:
         required: false
         type: string
