@@ -8,7 +8,7 @@
 #   jobs:
 #     pre-merge:
 #       permissions: { contents: read, pull-requests: write, id-token: write, statuses: write }
-#       uses: awslabs/aws-crt-builder/.github/workflows/pre-merge-checks.yml@main
+#       uses: awslabs/aws-crt-builder/.github/workflows/pre-merge-checks.yml@sim/premerge-v2
 #       with: { lib-name: aws-c-common, approval-label: ci-ready }
 #       secrets: { CRT_CI_ROLE_ARN: "${{ secrets.CRT_CI_ROLE_ARN }}" }
 name: Pre-merge checks
@@ -121,7 +121,7 @@ jobs:
 
       - name: Check ABI
         id: check
-        uses: awslabs/aws-crt-builder/.github/actions/check-abi@main
+        uses: awslabs/aws-crt-builder/.github/actions/check-abi@sim/premerge-v2
         with:
           lib-name: ${{ inputs.lib-name }}
           builder-version: latest
@@ -151,7 +151,7 @@ jobs:
             > "${RUNNER_TEMP}/changed-paths.tsv"
 
       - name: Check the PR title and the fragment
-        uses: awslabs/aws-crt-builder/.github/actions/changelog@main
+        uses: awslabs/aws-crt-builder/.github/actions/changelog@sim/premerge-v2
         with:
           mode: check
           changes-dir: ${{ runner.temp }}/changes
@@ -214,7 +214,7 @@ jobs:
       - name: Replace the verdict label
         id: replace
         if: ${{ steps.plan.outputs.apply == 'true' }}
-        uses: awslabs/aws-crt-builder/.github/actions/validate-label@main
+        uses: awslabs/aws-crt-builder/.github/actions/validate-label@sim/premerge-v2
         with:
           verdict: ${{ steps.plan.outputs.verdict }}
           pr: ${{ github.event.pull_request.number }}
