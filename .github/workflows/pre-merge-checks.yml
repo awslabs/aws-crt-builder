@@ -1,27 +1,16 @@
-# Everything that must be true before a pull request merges, in one workflow.
-# Consumers call it from a single pull_request_target workflow; the branch ruleset
-# requires the `pre-merge/gate` commit status that the verdict job posts.
+# Reusable pre-merge checks; `verdict` posts the required `pre-merge/verdict` status.
+# To add a check, add a job and list it in `verdict.needs`. Caller:
 #
 #   on:
 #     pull_request_target:
-#       # labeled/unlabeled re-run the gate when a maintainer swaps a label;
-#       # edited catches a retitle or a retarget.
 #       types: [opened, reopened, synchronize, edited, labeled, unlabeled]
-#   concurrency:
-#     group: pre-merge-${{ github.event.pull_request.number }}
+#   concurrency: { group: "pre-merge-${{ github.event.pull_request.number }}", cancel-in-progress: true }
 #   jobs:
 #     pre-merge:
-#       permissions:
-#         contents: read
-#         pull-requests: write
-#         id-token: write
-#         statuses: write
+#       permissions: { contents: read, pull-requests: write, id-token: write, statuses: write }
 #       uses: awslabs/aws-crt-builder/.github/workflows/pre-merge-checks.yml@main
-#       with:
-#         lib-name: aws-c-common
-#         approval-environment: ${{ github.event.pull_request.head.repo.full_name != github.repository && 'customer-env' || '' }}
-#       secrets:
-#         CRT_CI_ROLE_ARN: ${{ secrets.CRT_CI_ROLE_ARN }}
+#       with: { lib-name: aws-c-common, approval-label: ci-ready }
+#       secrets: { CRT_CI_ROLE_ARN: "${{ secrets.CRT_CI_ROLE_ARN }}" }
 name: Pre-merge checks
 
 on:
@@ -31,11 +20,11 @@ on:
         description: 'C library name for the ABI check, e.g. aws-c-common.'
         required: true
         type: string
-      approval-environment:
+      approval-label:
         description: >-
-          Environment whose required reviewers gate execution of PR-authored
-          code. The caller passes a name for fork pull requests and '' otherwise;
-          '' means no environment and no wait.
+          Label a maintainer adds to let a fork pull request run the credentialed
+          checks. A push removes it. Required for fork pull requests: with '' they never
+          run the credentialed checks.
         required: false
         type: string
         default: ''
@@ -48,57 +37,63 @@ on:
         required: false
 
 jobs:
-  # Clears the previous verdict as soon as the code could have changed.
-  clear:
-    if: >-
-      contains(fromJSON('["opened","reopened","synchronize"]'), github.event.action)
-      || (github.event.action == 'edited' && github.event.changes.base != null)
+  plan:
     runs-on: ${{ inputs.runs-on }}
+    timeout-minutes: 5
     permissions:
-      pull-requests: write
+      statuses: read
+    outputs:
+      needs_approval: ${{ steps.p.outputs.needs_approval }}
+      code_changed: ${{ steps.p.outputs.code_changed }}
+      run_credentialed: ${{ steps.p.outputs.run_credentialed }}
     steps:
-      - name: Clear the verdict
-        uses: awslabs/aws-crt-builder/.github/actions/validate-label@main
-        with:
-          pr: ${{ github.event.pull_request.number }}
-
-  # Holds the approval environment so a fork's code waits for a reviewer.
-  approval:
-    needs: clear
-    runs-on: ${{ inputs.runs-on }}
-    permissions: {}
-    environment: ${{ inputs.approval-environment }}
-    steps:
-      - name: Approved
+      - name: Plan
+        id: p
         env:
-          FORK: ${{ github.event.pull_request.head.repo.full_name != github.repository }}
-          ENVIRONMENT: ${{ inputs.approval-environment }}
           GH_TOKEN: ${{ github.token }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+          ACTION: ${{ github.event.action }}
+          LABEL_NAME: ${{ github.event.label.name }}
+          APPROVAL_LABEL: ${{ inputs.approval-label }}
+          FORK: ${{ github.event.pull_request.head.repo.full_name != github.repository }}
+          BASE_CHANGED: ${{ github.event.changes.base != null }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
         run: |
-          if [[ "$FORK" == "true" && -z "$ENVIRONMENT" ]]; then
-            echo "::error::a fork pull request reached this job with no approval environment; the caller must pass one."
-            exit 1
-          fi
-          # GitHub creates a referenced environment that does not exist, with no
-          # protection rules, so a misspelled name would run fork code unreviewed.
-          if [[ -n "$ENVIRONMENT" ]]; then
-            REVIEWERS="$(gh api "repos/${GITHUB_REPOSITORY}/environments/${ENVIRONMENT}" \
-              -q '[.protection_rules[]? | select(.type == "required_reviewers") | .reviewers[]?] | length' \
-              2>/dev/null)" || REVIEWERS=0
-            if [[ "${REVIEWERS:-0}" == "0" ]]; then
-              echo "::error::environment '${ENVIRONMENT}' has no required reviewers; create it with reviewers or fix the name the caller passes."
-              exit 1
+          set -euo pipefail
+          CODE=false
+          case "$ACTION" in
+            opened|reopened|synchronize) CODE=true ;;
+            edited) [[ "$BASE_CHANGED" == "true" ]] && CODE=true ;;
+          esac
+          NEEDS_APPROVAL="$FORK"
+          DESC="$(gh api "repos/${GITHUB_REPOSITORY}/commits/${HEAD_SHA}/status" \
+                    --jq '.statuses[] | select(.context == "pre-merge/abi-verdict") | .description')"
+          RESULT=none
+          [[ "$DESC" == *" vs ${BASE_REF}" ]] && RESULT="${DESC%% vs *}"
+          NEED=false
+          [[ "$RESULT" == "none" || ( "$RESULT" == "error" && "$RUN_ATTEMPT" -gt 1 ) ]] && NEED=true
+          RUN=false
+          if [[ "$NEED" == "true" ]]; then
+            if [[ "$NEEDS_APPROVAL" == "true" ]]; then
+              [[ -n "$APPROVAL_LABEL" && "$ACTION" == "labeled" && "${LABEL_NAME,,}" == "${APPROVAL_LABEL,,}" ]] && RUN=true
+            else
+              RUN=true
             fi
           fi
+          echo "ABI result for ${HEAD_SHA} vs ${BASE_REF}: ${RESULT}; run the ABI check: ${RUN}"
+          { echo "needs_approval=$NEEDS_APPROVAL"; echo "code_changed=$CODE"; echo "run_credentialed=$RUN"; } >> "$GITHUB_OUTPUT"
 
-  # Diffs the merge base against the pull request head and labels the result.
-  abi-compat:
-    needs: approval
+  abi:
+    needs: plan
+    if: ${{ needs.plan.outputs.run_credentialed == 'true' }}
     runs-on: ${{ inputs.runs-on }}
+    timeout-minutes: 60
     permissions:
       id-token: write
       contents: read
-      pull-requests: write
+    outputs:
+      label: ${{ steps.check.outputs.label }}
     steps:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -120,7 +115,8 @@ jobs:
           BASE_BRANCH: ${{ github.event.pull_request.base.ref }}
         run: |
           set -euo pipefail
-          git fetch --no-tags --quiet origin "+refs/heads/${BASE_BRANCH}:refs/remotes/origin/${BASE_BRANCH}"
+          git rev-parse --verify --quiet "origin/${BASE_BRANCH}" > /dev/null \
+            || { echo "::error::origin/${BASE_BRANCH} is missing from the checkout"; exit 1; }
           echo "base-sha=$(git merge-base HEAD "origin/${BASE_BRANCH}")" >> "$GITHUB_OUTPUT"
 
       - name: Check ABI
@@ -131,22 +127,14 @@ jobs:
           builder-version: latest
           base-ref: ${{ steps.refs.outputs.base-sha }}
 
-      - name: Apply the verdict
-        uses: awslabs/aws-crt-builder/.github/actions/validate-label@main
-        with:
-          verdict: ${{ steps.check.outputs.label }}
-          pr: ${{ github.event.pull_request.number }}
-
-  # Not behind approval: it holds no credentials and checks out no PR code, so
-  # it reads the fragment and the changed paths through the API instead.
   changelog:
     runs-on: ${{ inputs.runs-on }}
+    timeout-minutes: 10
     permissions:
       contents: read
       pull-requests: write
     steps:
       - name: Read the fragment and changed paths at the PR head
-        id: read
         env:
           GH_TOKEN: ${{ github.token }}
           PR: ${{ github.event.pull_request.number }}
@@ -154,7 +142,6 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p "${RUNNER_TEMP}/changes/preview"
-          # The base repo's Contents API resolves a fork's head sha too.
           if ! gh api "repos/${GITHUB_REPOSITORY}/contents/.changes/preview/${PR}.json?ref=${HEAD_SHA}" \
                -H 'Accept: application/vnd.github.raw' > "${RUNNER_TEMP}/changes/preview/${PR}.json" 2>/dev/null; then
             rm -f "${RUNNER_TEMP}/changes/preview/${PR}.json"
@@ -170,40 +157,129 @@ jobs:
           changes-dir: ${{ runner.temp }}/changes
           changed-paths-file: ${{ runner.temp }}/changed-paths.tsv
 
-  # Posts the `pre-merge/gate` status on every event, from the live labels.
   verdict:
-    needs: [clear, approval, abi-compat, changelog]
-    if: ${{ always() }}
+    needs: [plan, abi, changelog]
+    if: ${{ !cancelled() }}
     runs-on: ${{ inputs.runs-on }}
+    timeout-minutes: 10
     permissions:
-      pull-requests: read
+      pull-requests: write
       statuses: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RESULTS: ${{ toJSON(needs) }}
+      PR: ${{ github.event.pull_request.number }}
+      HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      BASE_REF: ${{ github.event.pull_request.base.ref }}
+      TITLE: ${{ github.event.pull_request.title }}
+      APPROVAL_LABEL: ${{ inputs.approval-label }}
+      NEEDS_APPROVAL: ${{ needs.plan.outputs.needs_approval }}
+      CODE_CHANGED: ${{ needs.plan.outputs.code_changed }}
     steps:
-      - name: Publish the gate status
+      - name: Check the pull request head
+        id: head
+        run: |
+          set -uo pipefail
+          CURRENT="$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json headRefOid,baseRefName -q '"\(.headRefOid) \(.baseRefName)"' 2>/dev/null || echo "$HEAD_SHA $BASE_REF")"
+          if [[ "$CURRENT" != "$HEAD_SHA $BASE_REF" ]]; then
+            echo "stale=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::#${PR} is now at ${CURRENT}; this run is for ${HEAD_SHA} ${BASE_REF} and writes nothing"
+          else
+            echo "stale=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Labels change only when the result differs from the recorded one.
+      - name: Plan the label changes
+        id: plan
+        if: ${{ steps.head.outputs.stale != 'true' }}
+        run: |
+          set -uo pipefail
+          ABI_RESULT="$(jq -r '.abi.result' <<< "$RESULTS")"
+          ABI_LABEL="$(jq -r '.abi.outputs.label // ""' <<< "$RESULTS")"
+          FRESH=none
+          if [[ "$ABI_RESULT" == "success" && -n "$ABI_LABEL" ]]; then FRESH="$ABI_LABEL"
+          elif [[ "$ABI_RESULT" == "success" || "$ABI_RESULT" == "failure" ]]; then FRESH=error; fi
+          PREV=none
+          DESC="$(gh api "repos/${GITHUB_REPOSITORY}/commits/${HEAD_SHA}/status" \
+                    --jq '.statuses[] | select(.context == "pre-merge/abi-verdict") | .description' 2>/dev/null || true)"
+          [[ "$DESC" == *" vs ${BASE_REF}" ]] && PREV="${DESC%% vs *}"
+          if [[ "$FRESH" == "none" || "$FRESH" == "$PREV" ]]; then
+            echo "apply=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          VERDICT="$FRESH"
+          [[ "$FRESH" == "error" ]] && VERDICT=""
+          { echo "apply=true"; echo "verdict=${VERDICT}"; echo "record=${FRESH}"; } >> "$GITHUB_OUTPUT"
+
+      - name: Replace the verdict label
+        id: replace
+        if: ${{ steps.plan.outputs.apply == 'true' }}
+        uses: awslabs/aws-crt-builder/.github/actions/validate-label@main
+        with:
+          verdict: ${{ steps.plan.outputs.verdict }}
+          pr: ${{ github.event.pull_request.number }}
+
+      - name: Record the ABI result for this commit
+        id: record
+        if: ${{ steps.replace.outcome == 'success' }}
         env:
-          GH_TOKEN: ${{ github.token }}
-          RESULTS: ${{ toJSON(needs) }}
-          PR: ${{ github.event.pull_request.number }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-          TITLE: ${{ github.event.pull_request.title }}
+          RECORD: ${{ steps.plan.outputs.record }}
+        run: |
+          gh api --method POST "repos/${GITHUB_REPOSITORY}/statuses/${HEAD_SHA}" \
+            -f state=success -f context=pre-merge/abi-verdict -f "description=${RECORD} vs ${BASE_REF}" > /dev/null
+
+      - name: Withdraw the approval after a code change
+        if: ${{ !cancelled() && steps.head.outputs.stale != 'true' && env.NEEDS_APPROVAL == 'true' && env.CODE_CHANGED == 'true' && env.APPROVAL_LABEL != '' }}
+        run: gh pr edit "$PR" --repo "$GITHUB_REPOSITORY" --remove-label "$APPROVAL_LABEL" || true
+
+      - name: Publish the verdict
+        if: ${{ !cancelled() && steps.head.outputs.stale != 'true' }}
+        env:
+          LABEL_UPDATE: ${{ steps.replace.outcome }}
+          RECORDED_NOW: ${{ steps.record.outcome == 'success' && steps.plan.outputs.record || '' }}
         run: |
           set -uo pipefail
           shopt -s nocasematch
-          FAILED="$(jq -r 'to_entries | map(select(.value.result == "failure" or .value.result == "cancelled")) | map(.key + "=" + .value.result) | join(", ")' <<< "$RESULTS")"
-          if [[ -n "$FAILED" ]]; then
-            STATE=failure; REASON="pre-merge check(s) did not pass: ${FAILED}"
-          elif ! LABELS="$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json labels -q '.labels[].name')"; then
+          # A status posted moments ago may not read back yet.
+          RESULT="${RECORDED_NOW:-none}"
+          if [[ "$RESULT" == "none" ]]; then
+            DESC="$(gh api "repos/${GITHUB_REPOSITORY}/commits/${HEAD_SHA}/status" \
+                      --jq '.statuses[] | select(.context == "pre-merge/abi-verdict") | .description' 2>/dev/null || true)"
+            [[ "$DESC" == *" vs ${BASE_REF}" ]] && RESULT="${DESC%% vs *}"
+          fi
+          LABELS_OK=true
+          LABELS="$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json labels -q '.labels[].name')" || LABELS_OK=false
+          # patch or minor over an ABI error is a maintainer override.
+          OVERRIDE=false
+          [[ "$RESULT" == "error" ]] && grep -qxiE 'patch|minor' <<< "$LABELS" && ! grep -qxiF needs-review <<< "$LABELS" && OVERRIDE=true
+          FAILED="$(jq -r --argjson ov "$OVERRIDE" 'to_entries | map(select((.value.result == "failure" or .value.result == "cancelled") and ($ov == false or .key != "abi"))) | map(.key + "=" + .value.result) | join(", ")' <<< "$RESULTS")"
+          if [[ "$LABEL_UPDATE" == "failure" ]]; then
+            STATE=failure; REASON="could not update the verdict labels; re-run all jobs"
+          elif [[ "$LABELS_OK" != "true" ]]; then
             STATE=failure; REASON="could not read the labels on #${PR}"
-          elif [[ "$TITLE" =~ ^chore(\([^\)]+\))?!?: ]] && grep -qxE 'minor|needs-review' <<< "$LABELS"; then
+          elif [[ "$TITLE" =~ ^chore(\([^\)]+\))?!?: ]] && grep -qxiE 'minor|needs-review' <<< "$LABELS"; then
             STATE=failure; REASON="titled chore but the ABI check found a possible break: retitle it change, feat or fix and add a fragment"
-          elif grep -qxF needs-review <<< "$LABELS"; then
-            STATE=failure; REASON="labeled needs-review: a maintainer must REPLACE it with patch or minor; deleting it leaves this blocked"
-          elif ! grep -qxE 'patch|minor' <<< "$LABELS"; then
-            STATE=failure; REASON="no patch or minor label: the ABI check has not produced a verdict for this commit"
-          else
+          elif [[ -n "$FAILED" ]]; then
+            STATE=failure; REASON="pre-merge check(s) did not pass: ${FAILED}"
+            [[ "$RESULT" == "error" ]] && REASON="${REASON} (ABI error: re-run all jobs, or a maintainer adds patch or minor)"
+          elif [[ "$RESULT" == "none" ]]; then
+            if [[ "$NEEDS_APPROVAL" == "true" && -z "$APPROVAL_LABEL" ]]; then
+              STATE=failure; REASON="this pull request is from a fork and the caller sets no approval-label"
+            elif [[ "$NEEDS_APPROVAL" == "true" ]]; then
+              STATE=failure; REASON="waiting for a maintainer to add the ${APPROVAL_LABEL} label"
+            else
+              STATE=failure; REASON="the ABI check has not run for this commit: re-run all jobs"
+            fi
+          elif grep -qxiE 'patch|minor' <<< "$LABELS" && ! grep -qxiF needs-review <<< "$LABELS"; then
             STATE=success; REASON="all pre-merge checks passed"
+          elif grep -qxiF needs-review <<< "$LABELS"; then
+            STATE=failure; REASON="labeled needs-review: a maintainer must REPLACE it with patch or minor; deleting it leaves this blocked"
+          elif [[ "$RESULT" == "error" ]]; then
+            STATE=failure; REASON="the ABI check errored for this commit: re-run all jobs, or a maintainer adds patch or minor to accept it"
+          else
+            STATE=failure; REASON="no patch or minor label: a maintainer removed the verdict; add patch or minor"
           fi
           gh api --method POST "repos/${GITHUB_REPOSITORY}/statuses/${HEAD_SHA}" \
-            -f "state=${STATE}" -f "context=pre-merge/gate" -f "description=${REASON:0:140}" \
+            -f "state=${STATE}" -f "context=pre-merge/verdict" -f "description=${REASON:0:140}" \
             -f "target_url=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" >/dev/null
           [[ "$STATE" == "success" ]] || { echo "::error::${REASON}"; exit 1; }
