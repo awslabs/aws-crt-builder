@@ -36,6 +36,13 @@ summary() { [[ -n "${GITHUB_STEP_SUMMARY:-}" ]] && printf '%s\n' "$1" >> "$GITHU
 
 echo "Plan: ${PREVIOUS_TAG} -> ${NEW_TAG} (${BUMP} bump, SOVERSION=${NEW_SOVERSION})"
 
+FRAGMENTS="$(compgen -G '.changes/preview/*.json' | wc -l || true)"
+if [[ "$FRAGMENTS" -eq 0 ]]; then
+  echo "No changelog fragments found; skipping the changelog."
+else
+  echo "Rolling up ${FRAGMENTS} changelog fragment(s) into CHANGELOG.md."
+fi
+
 if [[ "${DRY_RUN:-false}" == "true" ]]; then
   echo "DRY RUN: would write '${NEW_VERSION}' to '${VERSION_FILE}', push to the default branch, tag '${NEW_TAG}', and create a GitHub Release."
   summary ""
@@ -90,6 +97,12 @@ git config user.email "aws-sdk-common-runtime@amazon.com"
 
 printf '%s\n' "$NEW_VERSION" > "$VERSION_FILE"
 git add "$VERSION_FILE"
+if [[ "$FRAGMENTS" -gt 0 ]]; then
+  python3 "$(dirname "$0")/../../changelog/scripts/changelog.py" rollup \
+    --version "$NEW_VERSION" --date "$(date -u +%F)" --minor-prs "${MINOR_PRS:-}" \
+    $([[ "${FREEZE_CHANGELOG:-false}" == "true" ]] && echo --archive)
+  git add CHANGELOG.md .changes
+fi
 git commit -m "chore(release): ${BUMP}-update to VERSION - ${NEW_VERSION}"
 git push origin "$DEFAULT_BRANCH"
 

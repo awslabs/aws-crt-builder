@@ -38,9 +38,10 @@ would produce far more releases than any of these libraries want.
      bump.
    - Otherwise -> patch bump.
    - SOVERSION is always `major.minor` of the resulting version.
-4. **Write, push, tag, and publish** -- overwrites the version file, commits
-   it, and pushes straight to the default branch over SSH using a deploy key
-   fetched fresh from AWS Secrets Manager (see `deploy-key-secret-id` below),
+4. **Write, push, tag, and publish** -- overwrites the version file, rolls
+   any `.changes/preview/` fragments up into `CHANGELOG.md` (the `changelog`
+   action's `rollup`), commits both in one commit, and pushes straight to
+   the default branch over SSH using a deploy key fetched fresh from AWS Secrets Manager (see `deploy-key-secret-id` below),
    then tags the new commit and creates the GitHub Release with notes
    generated from the PRs merged since the previous tag. Skipped entirely if
    step 3 decided there was nothing to release.

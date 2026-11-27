@@ -174,17 +174,14 @@ if [[ "${ABI_LABEL:-}" == "minor" ]]; then
 fi
 
 # --- Rule 3 -------------------------------------------------------------------
-MINOR_PRS=""
-if [[ -z "$BUMP" ]]; then
-  MINOR_PRS="$(prs_with_label "$MINOR_PR_LABEL")" || {
-    echo "ERROR: 'gh pr list' failed while checking for '${MINOR_PR_LABEL}'-labeled PRs." >&2
-    exit 1
-  }
-  if [[ -n "$MINOR_PRS" ]]; then
-    BUMP="minor"
-    REASON="the ABI is backward-compatible, but PR(s) #${MINOR_PRS} merged since \`${PREVIOUS_TAG}\` are labeled \`${MINOR_PR_LABEL}\`"
-    echo "PR(s) #${MINOR_PRS} carry the '${MINOR_PR_LABEL}' label -> minor bump."
-  fi
+MINOR_PRS="$(prs_with_label "$MINOR_PR_LABEL")" || {
+  echo "ERROR: 'gh pr list' failed while checking for '${MINOR_PR_LABEL}'-labeled PRs." >&2
+  exit 1
+}
+if [[ -z "$BUMP" && -n "$MINOR_PRS" ]]; then
+  BUMP="minor"
+  REASON="the ABI is backward-compatible, but PR(s) #${MINOR_PRS} merged since \`${PREVIOUS_TAG}\` are labeled \`${MINOR_PR_LABEL}\`"
+  echo "PR(s) #${MINOR_PRS} carry the '${MINOR_PR_LABEL}' label -> minor bump."
 fi
 
 # --- Rule 4 -------------------------------------------------------------------
@@ -221,4 +218,5 @@ summary "- Version: \`${PREVIOUS_VERSION}\` -> \`${NEW_VERSION}\` (SOVERSION \`$
   echo "previous_version=${PREVIOUS_VERSION}"
   echo "new_version=${NEW_VERSION}"
   echo "new_soversion=${NEW_SOVERSION}"
+  echo "minor_prs=${MINOR_PRS}"
 } >> "$GITHUB_OUTPUT"

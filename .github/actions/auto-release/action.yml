@@ -25,6 +25,10 @@ inputs:
     description: 'Compute and summarize the bump/version but do not commit, tag, or publish anything.'
     required: false
     default: 'false'
+  freeze-changelog:
+    description: 'Set to `true` to move every release outside the minor line being released from CHANGELOG.md into one .changes/<oldest>-<newest>.md (the changelog action''s `archive`).'
+    required: false
+    default: 'false'
   github-token:
     description: 'Token used to read PR labels and create the release. Defaults to the job token.'
     required: false
@@ -112,5 +116,7 @@ runs:
         NEW_SOVERSION: ${{ steps.compute.outputs.new_soversion }}
         PREVIOUS_TAG: ${{ steps.resolve.outputs.previous_tag }}
         BUMP: ${{ steps.compute.outputs.bump }}
+        MINOR_PRS: ${{ steps.compute.outputs.minor_prs }}
+        FREEZE_CHANGELOG: ${{ inputs.freeze-changelog }}
         DRY_RUN: ${{ inputs.dry-run }}
       run: bash "${GITHUB_ACTION_PATH}/scripts/cut-release.sh"
