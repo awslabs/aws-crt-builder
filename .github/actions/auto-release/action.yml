@@ -29,6 +29,10 @@ inputs:
     description: 'Set to `true` to move every release outside the minor line being released from CHANGELOG.md into one .changes/<oldest>-<newest>.md (the changelog action''s `archive`).'
     required: false
     default: 'false'
+  override-abi-check:
+    description: 'Set to `true` to skip the ABI check and decide the bump from PR labels only: minor if any merged PR is labeled with `minor-pr-label`, else patch.'
+    required: false
+    default: 'false'
   github-token:
     description: 'Token used to read PR labels and create the release. Defaults to the job token.'
     required: false
@@ -85,6 +89,7 @@ runs:
 
     - name: Check ABI (previous release vs this ref)
       id: check_abi
+      if: ${{ inputs.override-abi-check != 'true' }}
       uses: awslabs/aws-crt-builder/.github/actions/check-abi@main
       with:
         lib-name: ${{ inputs.lib-name }}
@@ -98,7 +103,7 @@ runs:
         GH_TOKEN: ${{ inputs.github-token }}
         REPO: ${{ github.repository }}
         PREVIOUS_TAG: ${{ steps.resolve.outputs.previous_tag }}
-        ABI_LABEL: ${{ steps.check_abi.outputs.label }}
+        ABI_LABEL: ${{ inputs.override-abi-check == 'true' && 'overridden' || steps.check_abi.outputs.label }}
         VERSION_FILE: ${{ inputs.version-file }}
         MAJOR_PR_LABEL: ${{ inputs.major-pr-label }}
         MINOR_PR_LABEL: ${{ inputs.minor-pr-label }}

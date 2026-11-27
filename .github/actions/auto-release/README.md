@@ -108,6 +108,8 @@ jobs:
 | `minor-pr-label` | no | `minor` | PR label that forces a minor bump when the ABI is compatible. |
 | `builder-version` | no | `latest` | Builder version/channel; also the ABI docker image tag. `latest` tracks the most recent published builder release. |
 | `dry-run` | no | `false` | Compute and summarize the bump/version but write/commit/tag/publish nothing. |
+| `freeze-changelog` | no | `false` | Move every release outside the minor line being released from `CHANGELOG.md` into one `.changes/<oldest>-<newest>.md`. |
+| `override-abi-check` | no | `false` | Skip the ABI check and decide the bump from PR labels only: minor if any merged PR carries `minor-pr-label`, else patch. A `major-pr-label` PR still fails the release. |
 | `github-token` | no | `github.token` | Token used to read PR labels and create the release. |
 | `deploy-key-secret-id` | no | `github-deploy-key/<owner>/<repo>` | AWS Secrets Manager secret ID holding the deploy key for this repo. SecretString is a JSON blob whose `.private_key` field holds the PEM. |
 

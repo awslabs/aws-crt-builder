@@ -14,7 +14,7 @@
 #   PREVIOUS_TAG     the previous release tag, "vMAJOR.MINOR.PATCH" (the
 #                    previously released version is parsed from this name,
 #                    never read from a file's content at that tag)
-#   ABI_LABEL        "patch" | "minor" | "needs-review" | "" -- output of the
+#   ABI_LABEL        "patch" | "minor" | "needs-review" | "overridden" | "" -- output of the
 #                    check-abi action (see its gate.sh for how this is chosen)
 #   VERSION_FILE     path (relative to repo root) where the current version
 #                    at HEAD is expected. If present, it must match the
@@ -122,8 +122,8 @@ fi
 
 # No verdict at all is never treated as "compatible" -- an empty or
 # unrecognized ABI_LABEL must not silently fall through to a patch bump.
-if [[ "${ABI_LABEL:-}" != "patch" && "${ABI_LABEL:-}" != "minor" ]]; then
-  echo "ERROR: unrecognized ABI check result '${ABI_LABEL:-<empty>}'; expected patch/minor/needs-review." >&2
+if [[ "${ABI_LABEL:-}" != "patch" && "${ABI_LABEL:-}" != "minor" && "${ABI_LABEL:-}" != "overridden" ]]; then
+  echo "ERROR: unrecognized ABI check result '${ABI_LABEL:-<empty>}'; expected patch/minor/needs-review/overridden." >&2
   summary ""
   summary "**FAILED: unrecognized ABI check result \`${ABI_LABEL:-<empty>}\`.**"
   echo "skip=true" >> "$GITHUB_OUTPUT"
