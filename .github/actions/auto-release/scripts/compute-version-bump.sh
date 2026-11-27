@@ -219,4 +219,5 @@ summary "- Version: \`${PREVIOUS_VERSION}\` -> \`${NEW_VERSION}\` (SOVERSION \`$
   echo "new_version=${NEW_VERSION}"
   echo "new_soversion=${NEW_SOVERSION}"
   echo "minor_prs=${MINOR_PRS}"
+  echo "date=$(date -u +%F)"
 } >> "$GITHUB_OUTPUT"

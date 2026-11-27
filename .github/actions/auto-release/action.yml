@@ -104,6 +104,27 @@ runs:
         MINOR_PR_LABEL: ${{ inputs.minor-pr-label }}
       run: bash "${GITHUB_ACTION_PATH}/scripts/compute-version-bump.sh"
 
+    - name: Find changelog fragments
+      id: fragments
+      if: ${{ steps.compute.outputs.skip == 'false' }}
+      shell: bash
+      run: |
+        if compgen -G '.changes/preview/*.json' > /dev/null; then
+          echo "found=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "No changelog fragments found; skipping the changelog."
+        fi
+
+    - name: Roll up the changelog
+      if: ${{ steps.fragments.outputs.found == 'true' }}
+      uses: awslabs/aws-crt-builder/.github/actions/changelog@main
+      with:
+        mode: rollup
+        version: ${{ steps.compute.outputs.new_version }}
+        date: ${{ steps.compute.outputs.date }}
+        minor-prs: ${{ steps.compute.outputs.minor_prs }}
+        archive: ${{ inputs.freeze-changelog }}
+
     - name: Write version file, commit, tag, and publish
       if: ${{ steps.compute.outputs.skip == 'false' }}
       shell: bash
@@ -116,7 +137,5 @@ runs:
         NEW_SOVERSION: ${{ steps.compute.outputs.new_soversion }}
         PREVIOUS_TAG: ${{ steps.resolve.outputs.previous_tag }}
         BUMP: ${{ steps.compute.outputs.bump }}
-        MINOR_PRS: ${{ steps.compute.outputs.minor_prs }}
-        FREEZE_CHANGELOG: ${{ inputs.freeze-changelog }}
         DRY_RUN: ${{ inputs.dry-run }}
       run: bash "${GITHUB_ACTION_PATH}/scripts/cut-release.sh"
