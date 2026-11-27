@@ -89,7 +89,7 @@ git config user.name "aws-crt-bot"
 git config user.email "aws-sdk-common-runtime@amazon.com"
 
 printf '%s\n' "$NEW_VERSION" > "$VERSION_FILE"
-git add "$VERSION_FILE"
+git add "$VERSION_FILE" CHANGELOG.md .changes
 git commit -m "chore(release): ${BUMP}-update to VERSION - ${NEW_VERSION}"
 git push origin "$DEFAULT_BRANCH"
 

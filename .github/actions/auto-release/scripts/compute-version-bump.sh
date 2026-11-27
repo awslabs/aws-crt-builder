@@ -14,7 +14,7 @@
 #   PREVIOUS_TAG     the previous release tag, "vMAJOR.MINOR.PATCH" (the
 #                    previously released version is parsed from this name,
 #                    never read from a file's content at that tag)
-#   ABI_LABEL        "patch" | "minor" | "needs-review" | "" -- output of the
+#   ABI_LABEL        "patch" | "minor" | "needs-review" | "overridden" | "" -- output of the
 #                    check-abi action (see its gate.sh for how this is chosen)
 #   VERSION_FILE     path (relative to repo root) where the current version
 #                    at HEAD is expected. If present, it must match the
@@ -122,8 +122,8 @@ fi
 
 # No verdict at all is never treated as "compatible" -- an empty or
 # unrecognized ABI_LABEL must not silently fall through to a patch bump.
-if [[ "${ABI_LABEL:-}" != "patch" && "${ABI_LABEL:-}" != "minor" ]]; then
-  echo "ERROR: unrecognized ABI check result '${ABI_LABEL:-<empty>}'; expected patch/minor/needs-review." >&2
+if [[ "${ABI_LABEL:-}" != "patch" && "${ABI_LABEL:-}" != "minor" && "${ABI_LABEL:-}" != "overridden" ]]; then
+  echo "ERROR: unrecognized ABI check result '${ABI_LABEL:-<empty>}'; expected patch/minor/needs-review/overridden." >&2
   summary ""
   summary "**FAILED: unrecognized ABI check result \`${ABI_LABEL:-<empty>}\`.**"
   echo "skip=true" >> "$GITHUB_OUTPUT"
@@ -174,17 +174,14 @@ if [[ "${ABI_LABEL:-}" == "minor" ]]; then
 fi
 
 # --- Rule 3 -------------------------------------------------------------------
-MINOR_PRS=""
-if [[ -z "$BUMP" ]]; then
-  MINOR_PRS="$(prs_with_label "$MINOR_PR_LABEL")" || {
-    echo "ERROR: 'gh pr list' failed while checking for '${MINOR_PR_LABEL}'-labeled PRs." >&2
-    exit 1
-  }
-  if [[ -n "$MINOR_PRS" ]]; then
-    BUMP="minor"
-    REASON="the ABI is backward-compatible, but PR(s) #${MINOR_PRS} merged since \`${PREVIOUS_TAG}\` are labeled \`${MINOR_PR_LABEL}\`"
-    echo "PR(s) #${MINOR_PRS} carry the '${MINOR_PR_LABEL}' label -> minor bump."
-  fi
+MINOR_PRS="$(prs_with_label "$MINOR_PR_LABEL")" || {
+  echo "ERROR: 'gh pr list' failed while checking for '${MINOR_PR_LABEL}'-labeled PRs." >&2
+  exit 1
+}
+if [[ -z "$BUMP" && -n "$MINOR_PRS" ]]; then
+  BUMP="minor"
+  REASON="the ABI is backward-compatible, but PR(s) #${MINOR_PRS} merged since \`${PREVIOUS_TAG}\` are labeled \`${MINOR_PR_LABEL}\`"
+  echo "PR(s) #${MINOR_PRS} carry the '${MINOR_PR_LABEL}' label -> minor bump."
 fi
 
 # --- Rule 4 -------------------------------------------------------------------
@@ -221,4 +218,6 @@ summary "- Version: \`${PREVIOUS_VERSION}\` -> \`${NEW_VERSION}\` (SOVERSION \`$
   echo "previous_version=${PREVIOUS_VERSION}"
   echo "new_version=${NEW_VERSION}"
   echo "new_soversion=${NEW_SOVERSION}"
+  echo "minor_prs=${MINOR_PRS}"
+  echo "date=$(date -u +%F)"
 } >> "$GITHUB_OUTPUT"

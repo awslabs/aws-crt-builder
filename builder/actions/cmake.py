@@ -106,6 +106,17 @@ def _replace_broken_cmake(cmake):
         return None
     # Commands run cmake and ctest by name, so they must resolve to the replacement.
     os.environ['PATH'] = bin_dir + os.pathsep + os.environ.get('PATH', '')
+    # When running under GitHub Actions, also persist the fix across steps: anything
+    # written to $GITHUB_PATH is prepended to PATH for every subsequent step in the
+    # same job, so tools invoked outside builder.pyz (e.g. a CTest runner called
+    # from a later step) also pick up the replacement.
+    github_path_file = os.environ.get('GITHUB_PATH')
+    if github_path_file:
+        try:
+            with open(github_path_file, 'a', encoding='utf-8') as f:
+                f.write(bin_dir + '\n')
+        except OSError as ex:
+            print('WARNING: failed to persist CMake replacement to GITHUB_PATH: {}'.format(ex))
     return bin_dir
 
 
