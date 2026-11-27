@@ -38,9 +38,10 @@ would produce far more releases than any of these libraries want.
      bump.
    - Otherwise -> patch bump.
    - SOVERSION is always `major.minor` of the resulting version.
-4. **Write, push, tag, and publish** -- overwrites the version file, commits
-   it, and pushes straight to the default branch over SSH using a deploy key
-   fetched fresh from AWS Secrets Manager (see `deploy-key-secret-id` below),
+4. **Write, push, tag, and publish** -- overwrites the version file, rolls
+   any `.changes/preview/` fragments up into `CHANGELOG.md` (the `changelog`
+   action's `rollup`), commits both in one commit, and pushes straight to
+   the default branch over SSH using a deploy key fetched fresh from AWS Secrets Manager (see `deploy-key-secret-id` below),
    then tags the new commit and creates the GitHub Release with notes
    generated from the PRs merged since the previous tag. Skipped entirely if
    step 3 decided there was nothing to release.
@@ -107,6 +108,8 @@ jobs:
 | `minor-pr-label` | no | `minor` | PR label that forces a minor bump when the ABI is compatible. |
 | `builder-version` | no | `latest` | Builder version/channel; also the ABI docker image tag. `latest` tracks the most recent published builder release. |
 | `dry-run` | no | `false` | Compute and summarize the bump/version but write/commit/tag/publish nothing. |
+| `freeze-changelog` | no | `false` | Move every release outside the minor line being released from `CHANGELOG.md` into one `.changes/<oldest>-<newest>.md`. |
+| `override-abi-check` | no | `false` | Skip the ABI check and decide the bump from PR labels only: minor if any merged PR carries `minor-pr-label`, else patch. A `major-pr-label` PR still fails the release. |
 | `github-token` | no | `github.token` | Token used to read PR labels and create the release. |
 | `deploy-key-secret-id` | no | `github-deploy-key/<owner>/<repo>` | AWS Secrets Manager secret ID holding the deploy key for this repo. SecretString is a JSON blob whose `.private_key` field holds the PEM. |
 
