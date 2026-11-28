@@ -109,6 +109,7 @@ jobs:
         - name: alpine-3.16-arm64
           latest-alias: alpine-latest-arm64
         - name: alpine-3.22-arm64
+          extra-build-flag: --platform=linux/aarch64
         # alpine armv7
         - name: alpine-3.16-armv7
           latest-alias: alpine-latest-armv7
